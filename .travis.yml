@@ -10,12 +10,10 @@ install:
   - pip install "cloudshell-shell-core>=2.2.0,<2.3.0" --extra-index-url https://testpypi.python.org/simple
   - pip install "cloudshell-automation-api>=7.1.0.0,<7.2.0.0" --extra-index-url https://testpypi.python.org/simple
 
-script:
-    - pushd package
-    - python setup.py develop
-    - popd
-    - python runtests.py --with-coverage  --cover-package=package --exclude setup.py
+script:              
 
 after_success:
     - coveralls
-
+    
+#notifications:
+# webhools: https://qualisystems.getbadges.io/api/app/webhook/{will be added later}
