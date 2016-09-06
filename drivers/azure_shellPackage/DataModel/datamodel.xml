@@ -1,0 +1,355 @@
+<?xml version="1.0" encoding="utf-8"?>
+<DataModelInfo xmlns="http://schemas.qualisystems.com/ResourceManagement/DataModelSchema.xsd">
+  <Attributes>
+    <AttributeInfo DefaultValue="" Description="Enable in order to retrieve credentials from a Windows machine. Note that if this parameter is enabled and the credentials weren't retrieved within 15 minutes the deployment will fail." IsReadOnly="false" Name="Wait for Credentials" Type="Boolean">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo DefaultValue="" Description="If empty the role that is configured on the Execution Server instance in the Management VPC is used." IsReadOnly="false" Name="AWS Secret Access Key" Type="Password">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo DefaultValue="" Description="" IsReadOnly="false" Name="Password" Type="Password">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo DefaultValue="" Description="" IsReadOnly="false" Name="User" Type="String">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo DefaultValue="" Description="The Management VPC ID. Will be used to configure the communication between the Management VPC and the Sandbox VPC. For example vpc-633fb904." IsReadOnly="false" Name="AWS Mgmt VPC ID" Type="String">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo DefaultValue="" Description="" IsReadOnly="false" Name="Generic Input" Type="String">
+      <Rules/>
+    </AttributeInfo>
+    <AttributeInfo DefaultValue="" Description="If empty the role that is configured on the Execution Server instance in the Management VPC is used." IsReadOnly="false" Name="AWS Access Key ID" Type="Password">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo DefaultValue="" Description="The public cloud region to be used by this cloud provider resource." IsReadOnly="false" Name="Region" Type="String">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo DefaultValue="" Description="The Management VPC's security group. Will be used to configure the communication between the Management VPC's instances and the Sandbox instances. For example sg-0d104876." IsReadOnly="false" Name="AWS Mgmt SG ID" Type="String">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo DefaultValue="" Description="The available device names for the volume. Depending on the block device driver of the selected AMI's kernel, the device may be attached with a different name than what you specify. If left empty the default defined in the AMI will be used. For example: /dev/xvda" IsReadOnly="false" Name="Root Volume Name" Type="String">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo DefaultValue="" Description="The name of an S3 bucket in which PEM files will be located. Each active Sandbox will have a PEM file under a designated folder. For example: sandbox-management." IsReadOnly="false" Name="Keypairs Location" Type="String">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo DefaultValue="0" Description="The root volume size. The value must be greater or equal to the size of the root snapshot used. If set to zero the default defined in the image will be used. For example: 30." IsReadOnly="false" Name="Storage Size" Type="Numeric">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo  Description="Ports and protocol to open inbound traffic from outside of the sandbox. The syntax is port[single/range]:protocol [tcp(default)/udp] with semi-colon separation, for example: 80;443:tcp;200-220:udp." IsReadOnly="false" Name="Inbound Ports"  Type="String">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo  Description="Ports and protocol to open outbound traffic from inside of the sandbox. The syntax is port[single/range]:protocol [tcp(default)/udp] with semi-colon separation, for example: 80;443:tcp;200-220:udp." IsReadOnly="false" Name="Outbound Ports"  Type="String">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo DefaultValue="false" Description="If set to False the deployment will not wait for the VM to get an ip" IsReadOnly="false" Name="Wait for IP"  Type="Boolean">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo DefaultValue="false"  Name="Wait for Status Check"  Description="If enabled the app deployment will end successfully only after instance status checks has passed. The status checks include network connectivity, physical host status, system status and more." IsReadOnly="false" Type="Boolean">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo DefaultValue="true" Description="Enables the automatic execution of the Autoload command during reservation Setup." IsReadOnly="false" Name="Autoload" Type="Boolean">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo DefaultValue="0" Description="The default number of I/O operations per second that the root volume can support. This parameter is used only for storage of type io1, in which you can provision up to 30 IOPS per GiB. If set to zero the default in the image will be used. For example: 240." IsReadOnly="false"  Name="Storage IOPS" Type="Numeric">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo DefaultValue="" Description="The type of the storage volume. In AWS there are few EBS Volume types that can be used, gp2 and io1 for SSD, st1 and sc1 for HDD or the standard type which is the old generation EBS volume type. If auto is selected the storage type defined in the image will be used." IsReadOnly="false"  Name="Storage Type" Type="String">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo DefaultValue="" Description="The AWS EC2 instance type. The instance type determines the CPU, memory and networking capacity of the instance. For example: t2.large." IsReadOnly="false" Name="Instance Type" Type="String">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo DefaultValue="0" Description="The max number of I/O operations per second that the volume can support. For Provisioned IOPS (SSD) volumes, you can provision up to 30 IOPS per GiB. If left empty the default in the AMI will be used. For example 240." IsReadOnly="false" Name="Max Storage IOPS" Type="Numeric">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo DefaultValue="0" Description="The max number of GiB of the root volume. Must be greater than zero or the size of the snapshot used. If kept empty the default size of the snapshot will be used. For example 8." IsReadOnly="false" Name="Max Storage Size" Type="Numeric">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo DefaultValue="" Description="The cloud provider resource name in CloudShell." IsReadOnly="false" Name="Cloud Provider" Type="String">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo DefaultValue="" Description="The AWS AMI ID to launch the instance from. The AMI should be accessible in the selected cloud provider's AWS region. For example :ami-6869aa05." IsReadOnly="false" Name="AWS AMI Id" Type="String">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo DefaultValue="" Description="Reserved networks that will be excluded when allocating Sandbox networks. Should include at least the management network. The syntax is comma separated CIDR, only of size /24. For example:10.0.0.0/24,172.31.0.0/24." IsReadOnly="false" Name="Networks In Use" Type="String">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo DefaultValue="False" Description="Requests a public IP address from Amazon's public IP address pool, to make your instance reachable from the internet. In most cases the public IP address is associated with the instance until it's stopped or terminated, after which it's no longer available for you to use. If you require a persistent public IP use an Elastic IP address instead." IsReadOnly="false" Name="Add Public IP" Type="Boolean">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo DefaultValue="" Description="Assigns an Elastic IP address to the instance. An Elastic IP is a static public IP address, which is reachable from the internet. Please enter the specific Elastic IP you want to associate with your instance. If kept empty no Elastic IP will be associated with the instance. Note that this value should be filled in for the app in the environment and not in the app catalog. For example 52.203.236.131." IsReadOnly="false" Name="Add Elastic IP" Type="String">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo DefaultValue="" Description="" IsReadOnly="false" Name="Public IP" Type="String">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+  </Attributes>
+  <ResourceFamilies>
+    <ResourceFamily Description="" IsAdminOnly="true" IsSearchable="true" Name="Cloud Provider">
+      <AttachedAttributes />
+      <AttributeValues />
+      <Models>
+        <ResourceModel Description="" ImagePath="AWS.png" Name="AWS EC2" SupportsConcurrentCommands="true">
+          <AttachedAttributes>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Region">
+              <AllowedValues>
+                <AllowedValue>us-east-1</AllowedValue>
+                <AllowedValue>us-west-2</AllowedValue>
+                <AllowedValue>ap-southeast-1</AllowedValue>
+                <AllowedValue>ap-southeast-2</AllowedValue>
+                <AllowedValue>ap-northeast-1</AllowedValue>
+                <AllowedValue>eu-central-1</AllowedValue>
+                <AllowedValue>eu-west-1</AllowedValue>
+              </AllowedValues>
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="AWS Mgmt SG ID">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="AWS Mgmt VPC ID">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Keypairs Location">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Max Storage Size">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Max Storage IOPS">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="AWS Access Key ID">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="AWS Secret Access Key">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Networks In Use">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Instance Type">
+              <AllowedValues />
+            </AttachedAttribute>
+          </AttachedAttributes>
+          <AttributeValues>
+            <AttributeValue Name="Region" Value="us-east-1" />
+          </AttributeValues>
+          <ParentModels />
+          <Drivers>
+            <DriverName>AWS Shell Driver</DriverName>
+          </Drivers>
+          <Scripts>
+          </Scripts>
+        </ResourceModel>
+      </Models>
+      <Categories />
+    </ResourceFamily>
+    <ResourceFamily Description="" IsSearchable="true" Name="Generic App Family" ResourceType="Application" IsLockedByDefault="true">
+      <AttachedAttributes>
+      </AttachedAttributes>
+      <AttributeValues>
+      </AttributeValues>
+      <Models>
+        <ResourceModel Description="" Name="Generic App Model" SupportsConcurrentCommands="false">
+          <AttachedAttributes>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Password"/>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="User"/>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Public IP"/>
+          </AttachedAttributes>
+          <AttributeValues>
+          </AttributeValues>
+          <ParentModels />
+          <Drivers>
+          </Drivers>
+          <Scripts>
+          </Scripts>
+        </ResourceModel>
+      </Models>
+      <Categories />
+    </ResourceFamily>
+    <ResourceFamily Description="" IsService="true" Name="Installation Options" ServiceType="Installation">
+      <AttachedAttributes />
+      <AttributeValues />
+      <Models>
+        <ResourceModel Description="" Name="Generic Installation Option" SupportsConcurrentCommands="false">
+          <AttachedAttributes>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Generic Input" UserInput="true">
+              <AllowedValues />
+            </AttachedAttribute>
+          </AttachedAttributes>
+          <AttributeValues>
+            <AttributeValue Name="Generic Input" Value="" />
+          </AttributeValues>
+          <ParentModels />
+          <Drivers>
+            <DriverName>Generic Driver</DriverName>
+          </Drivers>
+          <Scripts />
+        </ResourceModel>
+      </Models>
+      <Categories>
+      </Categories>
+    </ResourceFamily>
+    <ResourceFamily Description="" IsService="true" Name="Deployment Options" ServiceType="Deployment">
+      <AttachedAttributes />
+      <AttributeValues />
+      <Models>
+        <ResourceModel Description="" Name="AWS EC2 Instance" ImagePath="DeploymentTypes-AWS-EC2.png" SupportsConcurrentCommands="false">
+          <AttachedAttributes>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Cloud Provider" UserInput="true">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="AWS AMI Id" UserInput="true">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Instance Type" UserInput="true">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Storage Size" UserInput="false">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Storage IOPS" UserInput="false">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Storage Type" UserInput="false">
+              <AllowedValues>
+                <AllowedValue>auto</AllowedValue>
+                <AllowedValue>gp2</AllowedValue>
+                <AllowedValue>io1</AllowedValue>
+                <AllowedValue>st1</AllowedValue>
+                <AllowedValue>sc1</AllowedValue>
+                <AllowedValue>standard</AllowedValue>
+              </AllowedValues>
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Inbound Ports" UserInput="true">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Outbound Ports" UserInput="true">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Wait for IP" UserInput="false">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Wait for Status Check" UserInput="false">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Autoload" UserInput="false">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Wait for Credentials" UserInput="false">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Add Public IP" UserInput="true">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Add Elastic IP" UserInput="true">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Root Volume Name" UserInput="false">
+              <AllowedValues />
+            </AttachedAttribute>
+          </AttachedAttributes>
+          <AttributeValues>
+            <AttributeValue Name="Autoload" Value="true"/>
+            <AttributeValue Name="Wait for IP" Value="false"/>
+            <AttributeValue Name="Wait for Credentials" Value="true"/>
+            <AttributeValue Name="Add Public IP" Value="true"/>
+            <AttributeValue Name="Storage Type" Value="auto"/>
+          </AttributeValues>
+          <ParentModels />
+          <Drivers>
+            <DriverName>Deploy AWS EC2 AMI Instance</DriverName>
+          </Drivers>
+        </ResourceModel>
+      </Models>
+      <Categories>
+      </Categories>
+    </ResourceFamily>
+  </ResourceFamilies>
+  <DriverDescriptors>
+      <DriverDescriptor Name="AWS Shell Driver" DriverType="PythonDriver" />
+      <DriverDescriptor Name="Deploy AWS EC2 AMI Instance" DriverType="PythonDriver" />
+  </DriverDescriptors>
+</DataModelInfo>
