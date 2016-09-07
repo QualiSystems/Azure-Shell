@@ -2,8 +2,6 @@ from cloudshell.shell.core.resource_driver_interface import ResourceDriverInterf
 
 
 class AzureShellDriver(ResourceDriverInterface):
-    def cleanup(self):
-        pass
 
     def __init__(self):
         """
@@ -12,6 +10,9 @@ class AzureShellDriver(ResourceDriverInterface):
         pass
 
     def initialize(self, context):
+        pass
+
+    def cleanup(self):
         pass
 
     def deploy_resource(self, context, request):
