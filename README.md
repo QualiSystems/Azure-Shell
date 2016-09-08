@@ -2,3 +2,6 @@
 
 # Azure-Shell
 :books::shell: A CloudShell 'Shell' that allows integrating Azure as an app's deployment option.
+
+[![Throughput Graph](https://graphs.waffle.io/QualiSystems/Azure-Shell/throughput.svg)](https://waffle.io/QualiSystems/Azure-Shell/metrics/throughput)
+
