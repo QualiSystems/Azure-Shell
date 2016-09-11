@@ -2,7 +2,8 @@
 <ShellsConfiguration xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://schemas.qualisystems.com/ResourceManagement/ShellsConfigurationSchema.xsd">
 <ResourceTemplates>
     <ResourceTemplate Name="BaseShell" Model="BaseShell" Driver="BaseShell Driver">
-        <Description></Description>
+        <Description>
+        </Description>
         <AutoLoad Enable="false">
             <Description>Description for autoload </Description>
         </AutoLoad>

@@ -36,7 +36,7 @@
         <Rule Name="Configuration" />
         <Rule Name="Setting" />
       </Rules>
-    </AttributeInfo>\
+    </AttributeInfo>
     <AttributeInfo Name="Public IP" DefaultValue="" Description="" IsReadOnly="false" Type="String">
         <Rules>
             <Rule Name="Configuration" />
@@ -174,15 +174,7 @@
         <ResourceModel Description="" ImagePath="AWS.png" Name="Azure" SupportsConcurrentCommands="true">
           <AttachedAttributes>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Region">
-              <AllowedValues>
-                <AllowedValue>us-east-1</AllowedValue>
-                <AllowedValue>us-west-2</AllowedValue>
-                <AllowedValue>ap-southeast-1</AllowedValue>
-                <AllowedValue>ap-southeast-2</AllowedValue>
-                <AllowedValue>ap-northeast-1</AllowedValue>
-                <AllowedValue>eu-central-1</AllowedValue>
-                <AllowedValue>eu-west-1</AllowedValue>
-              </AllowedValues>
+              <AllowedValues/>
             </AttachedAttribute>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Instance Type">
               <AllowedValues />
@@ -218,9 +210,6 @@
               <AllowedValues />
             </AttachedAttribute>
           </AttachedAttributes>
-          <AttributeValues>
-            <AttributeValue Name="Region" Value="us-east-1" />
-          </AttributeValues>
           <ParentModels />
           <Drivers>
             <DriverName>Azure Shell Driver</DriverName>
@@ -281,7 +270,7 @@
       <AttachedAttributes />
       <AttributeValues />
       <Models>
-        <ResourceModel Description="" Name="Azure VM" ImagePath="DeploymentTypes-AWS-EC2.png" SupportsConcurrentCommands="false">
+        <ResourceModel Description="" Name="Azure VM" ImagePath="" SupportsConcurrentCommands="false">
           <AttachedAttributes>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Cloud Provider" UserInput="true">
               <AllowedValues />
@@ -307,9 +296,6 @@
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Outbound Ports" UserInput="true">
               <AllowedValues />
             </AttachedAttribute>
-            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Public IP Type" UserInput="true">
-              <AllowedValues />
-            </AttachedAttribute>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Image Publisher" UserInput="true">
               <AllowedValues />
             </AttachedAttribute>
@@ -323,13 +309,7 @@
               <AllowedValues />
             </AttachedAttribute>
           </AttachedAttributes>
-          <AttributeValues>
-            <AttributeValue Name="Autoload" Value="true"/>
-            <AttributeValue Name="Wait for IP" Value="false"/>
-            <AttributeValue Name="Wait for Credentials" Value="true"/>
-            <AttributeValue Name="Add Public IP" Value="true"/>
-            <AttributeValue Name="Storage Type" Value="auto"/>
-          </AttributeValues>
+
           <ParentModels />
           <Drivers>
           </Drivers>
