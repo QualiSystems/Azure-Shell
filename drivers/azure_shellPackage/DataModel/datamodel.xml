@@ -58,8 +58,6 @@
     <AttributeInfo Name="Generic Input" DefaultValue="" Description="" IsReadOnly="false" Type="String">
       <Rules/>
     </AttributeInfo>
-
-    <!--Cloud Provider Attributes-->
     <AttributeInfo Name="Region" DefaultValue="" Description="The public cloud region to be used by this cloud provider resource." IsReadOnly="false" Type="String">
       <Rules>
         <Rule Name="Configuration" />
@@ -135,8 +133,37 @@
       </Rules>
     </AttributeInfo>
 
-
-
+    <!--New Azure Deployment Option Attributes -->
+    <AttributeInfo Name="Public IP Type"  DefaultValue="" Description="Static or Dynamic" IsReadOnly="false" Type="String">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo Name="Image Publisher"  DefaultValue="" Description="" IsReadOnly="false" Type="String">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo Name="Image Offer"  DefaultValue="" Description="" IsReadOnly="false" Type="String">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo Name="Image SKU"  DefaultValue="" Description="" IsReadOnly="false" Type="String">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo Name="Disk Type"  DefaultValue="" Description="" IsReadOnly="false" Type="String">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
 
   </Attributes>
   <ResourceFamilies>
@@ -259,27 +286,20 @@
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Cloud Provider" UserInput="true">
               <AllowedValues />
             </AttachedAttribute>
-            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="AWS AMI Id" UserInput="true">
-              <AllowedValues />
-            </AttachedAttribute>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Instance Type" UserInput="true">
               <AllowedValues />
             </AttachedAttribute>
-            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Storage Size" UserInput="false">
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Wait for IP" UserInput="false">
               <AllowedValues />
             </AttachedAttribute>
-            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Storage IOPS" UserInput="false">
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Autoload" UserInput="false">
               <AllowedValues />
             </AttachedAttribute>
-            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Storage Type" UserInput="false">
-              <AllowedValues>
-                <AllowedValue>auto</AllowedValue>
-                <AllowedValue>gp2</AllowedValue>
-                <AllowedValue>io1</AllowedValue>
-                <AllowedValue>st1</AllowedValue>
-                <AllowedValue>sc1</AllowedValue>
-                <AllowedValue>standard</AllowedValue>
-              </AllowedValues>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Add Public IP" UserInput="true">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Public IP Type" UserInput="true">
+              <AllowedValues />
             </AttachedAttribute>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Inbound Ports" UserInput="true">
               <AllowedValues />
@@ -287,25 +307,19 @@
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Outbound Ports" UserInput="true">
               <AllowedValues />
             </AttachedAttribute>
-            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Wait for IP" UserInput="false">
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Public IP Type" UserInput="true">
               <AllowedValues />
             </AttachedAttribute>
-            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Wait for Status Check" UserInput="false">
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Image Publisher" UserInput="true">
               <AllowedValues />
             </AttachedAttribute>
-            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Autoload" UserInput="false">
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Image Offer" UserInput="true">
               <AllowedValues />
             </AttachedAttribute>
-            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Wait for Credentials" UserInput="false">
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Image SKU" UserInput="true">
               <AllowedValues />
             </AttachedAttribute>
-            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Add Public IP" UserInput="true">
-              <AllowedValues />
-            </AttachedAttribute>
-            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Add Elastic IP" UserInput="true">
-              <AllowedValues />
-            </AttachedAttribute>
-            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Root Volume Name" UserInput="false">
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Disk Type" UserInput="true">
               <AllowedValues />
             </AttachedAttribute>
           </AttachedAttributes>
