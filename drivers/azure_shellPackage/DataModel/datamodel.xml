@@ -223,7 +223,7 @@
           </AttributeValues>
           <ParentModels />
           <Drivers>
-            <DriverName>AWS Shell Driver</DriverName>
+            <DriverName>Azure Shell Driver</DriverName>
           </Drivers>
           <Scripts>
           </Scripts>
@@ -332,7 +332,6 @@
           </AttributeValues>
           <ParentModels />
           <Drivers>
-            <DriverName>Deploy AWS EC2 AMI Instance</DriverName>
           </Drivers>
         </ResourceModel>
       </Models>
@@ -341,7 +340,6 @@
     </ResourceFamily>
   </ResourceFamilies>
   <DriverDescriptors>
-      <DriverDescriptor Name="AWS Shell Driver" DriverType="PythonDriver" />
-      <DriverDescriptor Name="Deploy AWS EC2 AMI Instance" DriverType="PythonDriver" />
+      <DriverDescriptor Name="Azure Shell Driver" DriverType="PythonDriver" />
   </DriverDescriptors>
 </DataModelInfo>
