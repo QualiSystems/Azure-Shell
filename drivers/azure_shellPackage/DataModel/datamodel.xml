@@ -7,12 +7,6 @@
         <Rule Name="Setting" />
       </Rules>
     </AttributeInfo>
-    <AttributeInfo Name="Instance Type"  DefaultValue="" Description="The AWS EC2 instance type. The instance type determines the CPU, memory and networking capacity of the instance. For example: t2.large." IsReadOnly="false"Type="String">
-      <Rules>
-        <Rule Name="Configuration" />
-        <Rule Name="Setting" />
-      </Rules>
-    </AttributeInfo>
     <AttributeInfo Name="Wait for IP" DefaultValue="false" Description="If set to False the deployment will not wait for the VM to get an ip" IsReadOnly="false" Type="Boolean">
       <Rules>
         <Rule Name="Configuration" />
@@ -43,18 +37,6 @@
         <Rule Name="Setting" />
       </Rules>
     </AttributeInfo>\
-    <AttributeInfo Name="Region" DefaultValue="" Description="The public cloud region to be used by this cloud provider resource." IsReadOnly="false" Type="String">
-      <Rules>
-        <Rule Name="Configuration" />
-        <Rule Name="Setting" />
-      </Rules>
-    </AttributeInfo>
-    <AttributeInfo Name="Networks In Use" DefaultValue="" Description="Reserved networks that will be excluded when allocating Sandbox networks. Should include at least the management network. The syntax is comma separated CIDR, only of size /24. For example:10.0.0.0/24,172.31.0.0/24." IsReadOnly="false" Type="String">
-      <Rules>
-        <Rule Name="Configuration" />
-        <Rule Name="Setting" />
-      </Rules>
-    </AttributeInfo>
     <AttributeInfo Name="Public IP" DefaultValue="" Description="" IsReadOnly="false" Type="String">
         <Rules>
             <Rule Name="Configuration" />
@@ -76,6 +58,86 @@
     <AttributeInfo Name="Generic Input" DefaultValue="" Description="" IsReadOnly="false" Type="String">
       <Rules/>
     </AttributeInfo>
+
+    <!--Cloud Provider Attributes-->
+    <AttributeInfo Name="Region" DefaultValue="" Description="The public cloud region to be used by this cloud provider resource." IsReadOnly="false" Type="String">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo Name="Azure Mgmt NSG ID" DefaultValue="" Description="" IsReadOnly="false" Type="String">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo Name="Azure Mgmt Network ID" DefaultValue="" Description="" IsReadOnly="false" Type="String">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo Name="Keypairs Location" DefaultValue="" Description="" IsReadOnly="false" Type="String">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo Name="Instance Type"  DefaultValue="" Description="" IsReadOnly="false" Type="String">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo Name="Networks In Use"  DefaultValue="" Description="" IsReadOnly="false" Type="String">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+
+    <!--Cloud Provider new Attributes-->
+    <AttributeInfo Name="Azure Subscription ID"  DefaultValue="" Description="" IsReadOnly="false" Type="String">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo Name="Azure Tenant"  DefaultValue="" Description="" IsReadOnly="false" Type="String">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo Name="Azure Secret"  DefaultValue="" Description="" IsReadOnly="false" Type="String">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo Name="Azure Client ID"  DefaultValue="" Description="" IsReadOnly="false" Type="String">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo Name="Azure Mgmt VNET"  DefaultValue="" Description="" IsReadOnly="false" Type="String">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo Name="Storage Type"  DefaultValue="" Description="" IsReadOnly="false" Type="String">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+
+
+
+
   </Attributes>
   <ResourceFamilies>
     <ResourceFamily Description="" IsAdminOnly="true" IsSearchable="true" Name="Cloud Provider">
@@ -96,6 +158,36 @@
               </AllowedValues>
             </AttachedAttribute>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Instance Type">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Azure Mgmt NSG ID">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Azure Mgmt Network ID">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Keypairs Location">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Networks In Use">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Azure Subscription ID">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Azure Tenant">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Azure Secret">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Azure Client ID">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Azure Mgmt VNET">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Storage Type">
               <AllowedValues />
             </AttachedAttribute>
           </AttachedAttributes>
