@@ -1,0 +1,23 @@
+<Driver Description="This driver orchestrate all the command that will be executed on AWS" MainClass="driver.AWSShellDriver" Name="AWS Shell Driver" Version="1.0.0 ">
+    <Layout>
+        <Category Name="Deployment">
+            <Command Description="" DisplayName="Deploy From AMI" Name="deploy_ami" Tags="allow_unreserved" />
+        </Category>
+        <Category Name="Connectivity">
+            <Command Description="" DisplayName="Refresh IP" EnableCancellation="true" Name="remote_refresh_ip" Tags="remote_connectivity,allow_shared" />
+            <Command Description="" DisplayName="Get Application Ports" EnableCancellation="true" Name="GetApplicationPorts" Tags="remote_connectivity,allow_shared" />
+            <Command Description="" DisplayName="Prepare Connectivity" Name="PrepareConnectivity" Tags="allow_unreserved" />
+            <Command Description="" DisplayName="Cleanup Connectivity" Name="CleanupConnectivity" Tags="allow_unreserved" />
+        </Category>
+        <Category Name="Hidden Commands">
+            <Command Description="" DisplayName="Power Cycle" Name="PowerCycle" Tags="power" />
+            <Command Description="" DisplayName="Delete VM Only" Name="destroy_vm_only" Tags="remote_app_management,allow_shared" />
+            <Command Description="" DisplayName="GetAccessKey" Name="GetAccessKey" Tags="remote_app_management" />
+        </Category>
+
+        <Category Name="Power">
+            <Command Description="" DisplayName="Power On" Name="PowerOn" Tags="power" />
+            <Command Description="" DisplayName="Power Off" Name="PowerOff" Tags="power" />
+        </Category>
+    </Layout>
+</Driver>
