@@ -76,14 +76,13 @@
     <AttributeInfo Name="Generic Input" DefaultValue="" Description="" IsReadOnly="false" Type="String">
       <Rules/>
     </AttributeInfo>
-
   </Attributes>
   <ResourceFamilies>
     <ResourceFamily Description="" IsAdminOnly="true" IsSearchable="true" Name="Cloud Provider">
       <AttachedAttributes />
       <AttributeValues />
       <Models>
-        <ResourceModel Description="" ImagePath="AWS.png" Name="AWS EC2" SupportsConcurrentCommands="true">
+        <ResourceModel Description="" ImagePath="AWS.png" Name="Azure" SupportsConcurrentCommands="true">
           <AttachedAttributes>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Region">
               <AllowedValues>
@@ -95,30 +94,6 @@
                 <AllowedValue>eu-central-1</AllowedValue>
                 <AllowedValue>eu-west-1</AllowedValue>
               </AllowedValues>
-            </AttachedAttribute>
-            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="AWS Mgmt SG ID">
-              <AllowedValues />
-            </AttachedAttribute>
-            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="AWS Mgmt VPC ID">
-              <AllowedValues />
-            </AttachedAttribute>
-            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Keypairs Location">
-              <AllowedValues />
-            </AttachedAttribute>
-            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Max Storage Size">
-              <AllowedValues />
-            </AttachedAttribute>
-            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Max Storage IOPS">
-              <AllowedValues />
-            </AttachedAttribute>
-            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="AWS Access Key ID">
-              <AllowedValues />
-            </AttachedAttribute>
-            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="AWS Secret Access Key">
-              <AllowedValues />
-            </AttachedAttribute>
-            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Networks In Use">
-              <AllowedValues />
             </AttachedAttribute>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Instance Type">
               <AllowedValues />
@@ -187,7 +162,7 @@
       <AttachedAttributes />
       <AttributeValues />
       <Models>
-        <ResourceModel Description="" Name="AWS EC2 Instance" ImagePath="DeploymentTypes-AWS-EC2.png" SupportsConcurrentCommands="false">
+        <ResourceModel Description="" Name="Azure VM" ImagePath="DeploymentTypes-AWS-EC2.png" SupportsConcurrentCommands="false">
           <AttachedAttributes>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Cloud Provider" UserInput="true">
               <AllowedValues />
