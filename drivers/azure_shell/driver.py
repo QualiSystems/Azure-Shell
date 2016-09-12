@@ -15,7 +15,7 @@ class AzureShellDriver(ResourceDriverInterface):
     def cleanup(self):
         pass
 
-    def deploy_resource(self, context, request):
+    def deploy_vm(self, context, request):
         pass
 
     def PowerOn(self, context, ports):
