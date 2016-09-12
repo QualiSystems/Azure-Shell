@@ -16,7 +16,7 @@ class AzureShellDriver(ResourceDriverInterface):
         pass
 
     def deploy_vm(self, context, request):
-        pass
+        raise Exception("In the deploy vm driver.")
 
     def PowerOn(self, context, ports):
         pass

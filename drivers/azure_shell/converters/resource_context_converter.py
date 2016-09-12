@@ -6,7 +6,7 @@ class ResourceContextConverter(object):
         """
         Converts a context to a deployment resource model
 
-        :param int resource : The context of the resource
+        :param resource : The context of the resource
         :param deployment_credentials:
         :return:
         """
