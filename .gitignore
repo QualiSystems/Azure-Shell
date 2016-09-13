@@ -4,3 +4,4 @@ drivers/azure_shellPackage/Resource Drivers - Python/*.zip
 drivers/azure_shellPackage/Resource Drivers - Python/Azure Deploy VM Driver.zip
 drivers/deployment_drivers/azure_vm/debug.xml
 *.pyc
+debug_info.txt

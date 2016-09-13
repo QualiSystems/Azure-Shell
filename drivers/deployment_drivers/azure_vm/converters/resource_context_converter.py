@@ -28,3 +28,4 @@ class ResourceContextConverter(object):
         deployed_resource.image_offer = resource.attributes['Image Offer']
         deployed_resource.image_sku = resource.attributes['Image SKU']
         deployed_resource.disk_type = resource.attributes['Disk Type']
+        return deployed_resource
