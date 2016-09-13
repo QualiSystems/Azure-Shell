@@ -1,7 +1,7 @@
-<Driver Description="This driver orchestrate all the command that will be executed on AWS" MainClass="driver.AzureShellDriver" Name="AWS Shell Driver" Version="1.0.0 ">
+<Driver Description="This driver orchestrate all the command that will be executed on Azure" MainClass="driver.AzureShellDriver" Name="Azure Shell Driver" Version="1.0.0 ">
     <Layout>
         <Category Name="Deployment">
-            <Command Description="" DisplayName="Deploy From AMI" Name="deploy_ami" Tags="allow_unreserved" />
+            <Command Description="" DisplayName="Deploy VM" Name="deploy_vm" Tags="allow_unreserved" />
         </Category>
         <Category Name="Connectivity">
             <Command Description="" DisplayName="Refresh IP" EnableCancellation="true" Name="remote_refresh_ip" Tags="remote_connectivity,allow_shared" />
@@ -11,6 +11,7 @@
         </Category>
         <Category Name="Hidden Commands">
             <Command Description="" DisplayName="Power Cycle" Name="PowerCycle" Tags="power" />
+            <Command Description="" Name="destroy_vm_only" />
         </Category>
         <Category Name="Power">
             <Command Description="" DisplayName="Power On" Name="PowerOn" Tags="power" />
