@@ -27,7 +27,7 @@ class DeployAzureVM(ResourceDriverInterface):
 
                 # create deployment resource model and serialize it to json
                 aws_ami_deployment_model = self.resource_context_converter\
-                    .resource_context_to_deployment_resource_model('', '')
+                    .resource_context_to_deployment_resource_model(context.resource, '')
 
                 vm_res_name = jsonpickle.decode(context.resource.app_context.app_request_json)['name']
 
