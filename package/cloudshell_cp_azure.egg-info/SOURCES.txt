@@ -1,0 +1,15 @@
+setup.py
+cloudshell/__init__.py
+cloudshell/cp/__init__.py
+cloudshell/cp/azure/__init__.py
+cloudshell/cp/azure/azure_shell.py
+cloudshell/cp/azure/common/__init__.py
+cloudshell/cp/azure/common/deploy_data_holder.py
+cloudshell/cp/azure/domain/__init__.py
+cloudshell/cp/azure/models/__init__.py
+cloudshell_cp_azure.egg-info/PKG-INFO
+cloudshell_cp_azure.egg-info/SOURCES.txt
+cloudshell_cp_azure.egg-info/dependency_links.txt
+cloudshell_cp_azure.egg-info/requires.txt
+cloudshell_cp_azure.egg-info/top_level.txt
+tests/__init__.py

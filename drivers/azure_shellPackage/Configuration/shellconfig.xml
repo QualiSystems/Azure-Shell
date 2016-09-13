@@ -10,14 +10,19 @@
                 <Description>After filling in all the inputs click Start Discovery to complete the cloud provider creation process</Description>
             </AutoLoad>
             <Attributes>
-                <!--<Attribute Name="Region" Value="" />-->
-                <!--<Attribute Name="AWS Mgmt SG ID" Value="" />-->
-                <!--<Attribute Name="AWS Mgmt VPC ID" Value="" />-->
-                <!--<Attribute Name="Keypairs Location" Value="" />-->
-                <!--<Attribute Name="Max Storage Size" Value="0" />-->
-                <!--<Attribute Name="Max Storage IOPS" Value="0" />-->
-                <!--<Attribute Name="Networks In Use" Value="" />-->
-                <!--<Attribute Name="Instance Type" Value="" />-->
+                <Attribute Name="Region" Value="" />
+                <Attribute Value="" Name="Instance Type"/>
+                <Attribute Value="" Name="Azure Mgmt NSG ID"/>
+                <Attribute Value="" Name="Azure Mgmt Network ID"/>
+                <Attribute Value="" Name="Keypairs Location"/>
+                <Attribute Value="" Name="Networks In Use"/>
+                <Attribute Value="" Name="Azure Subscription ID"/>
+                <Attribute Value="" Name="Azure Tenant"/>
+                <Attribute Value="" Name="Azure Secret"/>
+                <Attribute Value="" Name="Azure Client ID"/>
+                <Attribute Value="" Name="Azure Mgmt VNET"/>
+                <Attribute Value="" Name="Storage Type"/>
+
             </Attributes>
         </ResourceTemplate>
     </ResourceTemplates>

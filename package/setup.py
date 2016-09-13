@@ -11,11 +11,11 @@ with open('test_requirements.txt') as f_tests:
     required_for_tests = f_tests.read().splitlines()
 
 setup(
-        name="cloudshell-cp-aws",
+        name="cloudshell-cp-azure",
         author="Quali",
         author_email="support@qualisystems.com",
-        description=("A repository for projects providing out of the box capabilities within CloudShell to define AWS "
-                     "instances in CloudShell and leverage Amazon Cloud Computing capabilities to deploy and connect "
+        description=("A repository for projects providing out of the box capabilities within CloudShell to define Azure "
+                     "instances in CloudShell and leverage Azure Cloud Computing capabilities to deploy and connect "
                      "apps in CloudShell sandboxes."),
         packages=find_packages(),
         test_suite='nose.collector',
@@ -24,7 +24,7 @@ setup(
         install_requires=required,
         version=version_from_file,
         include_package_data=True,
-        keywords="sandbox cloud virtualization aws amazon cmp cloudshell",
+        keywords="sandbox cloud virtualization Azure cloudshell",
         classifiers=[
             "Development Status :: 4 - Beta",
             "Topic :: Software Development :: Libraries",

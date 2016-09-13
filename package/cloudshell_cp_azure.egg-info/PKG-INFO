@@ -1,0 +1,15 @@
+Metadata-Version: 1.1
+Name: cloudshell-cp-azure
+Version: 1.0.0
+Summary: A repository for projects providing out of the box capabilities within CloudShell to define Azure instances in CloudShell and leverage Azure Cloud Computing capabilities to deploy and connect apps in CloudShell sandboxes.
+Home-page: UNKNOWN
+Author: Quali
+Author-email: support@qualisystems.com
+License: UNKNOWN
+Description: UNKNOWN
+Keywords: sandbox cloud virtualization Azure cloudshell
+Platform: UNKNOWN
+Classifier: Development Status :: 4 - Beta
+Classifier: Topic :: Software Development :: Libraries
+Classifier: License :: OSI Approved :: Apache Software License
+Requires: jsonpickle

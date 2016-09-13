@@ -2,12 +2,15 @@ import jsonpickle
 from cloudshell.shell.core.resource_driver_interface import ResourceDriverInterface
 from cloudshell.shell.core.session.cloudshell_session import CloudShellSessionContext
 from cloudshell.shell.core.session.logging_session import LoggingSessionContext
-from drivers.azure_shell.converters.resource_context_converter import ResourceContextConverter
+from converters.resource_context_converter import ResourceContextConverter
 from helpers.deployment_helper import DeploymentHelper
+from cloudshell.shell.core.resource_driver_interface import ResourceDriverInterface
 
 
 class DeployAzureVM(ResourceDriverInterface):
+
     def __init__(self):
+
         self.deployment_helper = DeploymentHelper()
         self.resource_context_converter = ResourceContextConverter()
 
@@ -17,7 +20,7 @@ class DeployAzureVM(ResourceDriverInterface):
     def initialize(self, context):
         pass
 
-    def Deploy(self, context, Name = None):
+    def Deploy(self, context, Name=None):
         with LoggingSessionContext(context) as logger:
             with CloudShellSessionContext(context) as session:
                 logger.info('Deploy started')

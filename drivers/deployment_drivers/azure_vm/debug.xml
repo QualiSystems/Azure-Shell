@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <properties>
 <entry key="loadFrom">C:\work\Git\Azure-Shell\drivers\deployment_drivers\azure_vm</entry>
-<entry key="waitForDebugger">true</entry>
+<entry key="waitForDebugger">false</entry>
 </properties>
