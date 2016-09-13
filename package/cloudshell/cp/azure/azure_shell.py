@@ -1,4 +1,6 @@
 from cloudshell.core.context.error_handling_context import ErrorHandlingContext
+from cloudshell.shell.core.session.logging_session import LoggingSessionContext
+
 from cloudshell.cp.azure.domain.context.azure_shell import AzureShellContext
 from cloudshell.cp.azure.domain.services.parsers.azure_model_parser import AzureModelsParser
 from cloudshell.cp.azure.domain.services.parsers.command_result_parser import CommandResultsParser
@@ -19,15 +21,16 @@ class AzureShell(object):
         :param JSON Obj deployment_request:
         """
 
-        with AzureShellContext() as shell_context:
-            with ErrorHandlingContext(shell_context.logger):
-                shell_context.logger.info('Deploying Azure VM')
+        with LoggingSessionContext(command_context) as logger:
+            with ErrorHandlingContext(logger):
+
+                logger.info('Deploying Azure VM')
 
                 azure_vm_deployment_model = self.model_parser.convert_to_deployment_resource_model(deployment_request)
 
                 deploy_data = self.deploy_azure_vm_operation \
-                    .deploy(logger=shell_context.logger,
-                            compute_client=shell_context.compute_client,
+                    .deploy(logger=logger,
+                            compute_client=compute_client,
                             azure_vm_deployment_model=azure_vm_deployment_model)
 
                 return self.command_result_parser.set_command_result(deploy_data)

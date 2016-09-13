@@ -52,8 +52,7 @@ class DeployAzureVMOperation(object):
                         vhd=VirtualHardDisk(
                             uri='TBD',  # the VM name
                             )
-                        )
-                    ),
+                        ),
                     image_reference=ImageReference(
                         publisher=azure_vm_deployment_model.image_publisher,
                         offer=azure_vm_deployment_model.image_offer,
