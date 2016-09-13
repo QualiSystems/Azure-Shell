@@ -311,6 +311,7 @@
           </AttachedAttributes>
           <ParentModels />
           <Drivers>
+            <DriverName>Azure Deploy VM Driver</DriverName>
           </Drivers>
         </ResourceModel>
       </Models>
