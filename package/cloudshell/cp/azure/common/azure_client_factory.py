@@ -3,7 +3,7 @@ from cloudshell.cp.azure.domain.context.azure_client_context import ComputeManag
 
 
 class AzureClientFactory(object):
-    def __init__(self, client_handlers,service_principal_credentials, subscription_id):
+    def __init__(self, client_handlers, service_principal_credentials, subscription_id):
         """
 
         :param [HandlerBase] client_handlers:
@@ -14,6 +14,9 @@ class AzureClientFactory(object):
         self.service_principal_credentials = service_principal_credentials
         self.subscription_id = subscription_id
         self.clients_handlers = client_handlers
+
+    def register_handler(self, handler):
+        self.clients_handlers.append(handler)
 
     def get_client(self, client_type):
         return self.clients_handlers
