@@ -4,6 +4,7 @@ from cloudshell.cp.azure.models.azure_cloud_provider_resource_model import Azure
 from cloudshell.cp.azure.models.deploy_azure_vm_resource_model import DeployAzureVMResourceModel
 from cloudshell.cp.azure.common.deploy_data_holder import DeployDataHolder
 
+
 class AzureModelsParser(object):
     @staticmethod
     def convert_to_deployment_resource_model(deployment_request):

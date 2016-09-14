@@ -3,7 +3,7 @@ from unittest import TestCase
 from cloudshell.shell.core.driver_context import ResourceCommandContext
 from mock import Mock
 
-from deployment_drivers.azure_vm.driver import DeployAzureVM
+from driver import DeployAzureVM
 
 
 class TestDeployAzureVM(TestCase):

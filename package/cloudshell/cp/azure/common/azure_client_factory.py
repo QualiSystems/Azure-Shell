@@ -19,7 +19,8 @@ class AzureClientFactory(object):
         self.clients_handlers.append(handler)
 
     def get_client(self, client_type):
-        return self.clients_handlers
+        return next(handler.get_client(self.service_principal_credentials, self.subscription_id) for handler in
+                    self.clients_handlers if handler.can_handle(client_type=client_type))
 
 
 class HandlerBase(object):

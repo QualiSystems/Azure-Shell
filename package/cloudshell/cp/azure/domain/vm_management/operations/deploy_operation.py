@@ -1,7 +1,3 @@
-from azure.mgmt.compute import VirtualMachine, OSProfile, HardwareProfile, NetworkProfile, StorageProfile, OSDisk, \
-    VirtualHardDisk, ImageReference, VirtualMachineSizeTypes, NetworkInterfaceReference, CachingTypes, \
-    DiskCreateOptionTypes
-
 from cloudshell.cp.azure.models.deploy_result_model import DeployResult
 
 

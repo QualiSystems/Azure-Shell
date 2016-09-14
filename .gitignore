@@ -6,3 +6,4 @@ drivers/deployment_drivers/azure_vm/debug.xml
 *.pyc
 debug_info.txt
 *debug.xml
+package/cloudshell_cp_azure.egg-info/*

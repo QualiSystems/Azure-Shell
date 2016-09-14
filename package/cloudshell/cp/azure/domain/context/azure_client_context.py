@@ -20,6 +20,7 @@ class AzureClientFactoryContext(object):
                                       ResourceManagementClientHandler(ResourceManagementClient),
                                       NetworkManagementClientHandler(NetworkManagementClient)]
 
+
     @staticmethod
     def get_credentials(cloud_provider_model):
         raise Exception("get_credentials not implemented")
