@@ -1,5 +1,4 @@
 import jsonpickle
-from cloudshell.shell.core.resource_driver_interface import ResourceDriverInterface
 from cloudshell.shell.core.session.cloudshell_session import CloudShellSessionContext
 from cloudshell.shell.core.session.logging_session import LoggingSessionContext
 from converters.resource_context_converter import ResourceContextConverter
