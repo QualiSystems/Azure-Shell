@@ -7,6 +7,7 @@ from cloudshell.shell.core.session.logging_session import LoggingSessionContext
 from cloudshell.cp.azure.domain.context.azure_client_context import AzureClientFactoryContext
 from cloudshell.cp.azure.domain.services.parsers.azure_model_parser import AzureModelsParser
 from cloudshell.cp.azure.domain.services.parsers.command_result_parser import CommandResultsParser
+from cloudshell.cp.azure.domain.services.virtual_machine_service import VirtualMachineService
 from cloudshell.cp.azure.domain.vm_management.operations.deploy_operation import DeployAzureVMOperation
 
 
@@ -22,7 +23,7 @@ class AzureShell(object):
         :param JSON Obj deployment_request:
         """
 
-        cloud_provider=self.model_parser.convert_to_cloud_provider_resource_model(command_context)
+        cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(command_context)
         azure_vm_deployment_model = self.model_parser.convert_to_deployment_resource_model(deployment_request)
 
         with AzureClientFactoryContext(command_context) as azure_clients_factory:
@@ -34,12 +35,14 @@ class AzureShell(object):
                     resource_client = azure_clients_factory.get_client(ResourceManagementClient)
                     network_client = azure_clients_factory.get_client(NetworkManagementClient)
                     storage_client = azure_clients_factory.get_client(StorageManagementClient)
+                    vm_service = VirtualMachineService(compute_management_client=compute_client,
+                                                       resource_management_client=resource_client,
+                                                       network_client=network_client,
+                                                       storage_client=storage_client)
 
-                    deploy_azure_vm_operation = DeployAzureVMOperation(logger=logger,
-                                                                       compute_management_client=compute_client,
-                                                                       resource_management_client=resource_client,
-                                                                       network_client=network_client,
-                                                                       storage_client=storage_client)
+                    deploy_azure_vm_operation = DeployAzureVMOperation(logger=logger,vm_service=vm_service)
 
-                    deploy_data = deploy_azure_vm_operation.deploy(azure_vm_deployment_model=azure_vm_deployment_model)
+                    deploy_data = deploy_azure_vm_operation.deploy(azure_vm_deployment_model=azure_vm_deployment_model,
+                                                                   cloud_provider_model=cloud_provider_model)
+
                     return self.command_result_parser.set_command_result(deploy_data)
