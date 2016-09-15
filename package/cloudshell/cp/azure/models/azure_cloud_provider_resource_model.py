@@ -5,4 +5,11 @@ class AzureCloudProviderResourceModel(object):
         self.azure_mgmt_nsg_id = ''  # type: str
         self.azure_mgmt_vnet = ''  # type: str
         self.azure_secret = ''  # type: str
+        self.region = ''  # type: str
+        self.instance_type = ''  # type: str
+        self.keypairs_location = ''  # type: str
+        self.networks_in_use = ''  # type: str
+        self.azure_subscription_id = ''  # type: str
+        self.azure_tenant = ''  # type: str
+        self.storage_type = ''  # type: str
         # todo

@@ -18,7 +18,7 @@ class DeployAzureVMOperation(object):
         self.storage_client = storage_client
         self.network_client = network_client
 
-    def deploy(self,azure_vm_deployment_model):
+    def deploy(self,azure_vm_deployment_model,cloud_provider_deployment_model):
         # deploy_data = self.compute_client.virtual_machines.create_or_update(
         #     azure_vm_deployment_model.group_name,
         #     azure_vm_deployment_model.vm_name,
