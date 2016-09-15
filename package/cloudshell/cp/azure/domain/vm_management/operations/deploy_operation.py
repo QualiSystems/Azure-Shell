@@ -29,10 +29,10 @@ class DeployAzureVMOperation(object):
         resource_name = ""
         group_name = ""
         region = ""
-        IMAGE_PUBLISHER = 'Canonical'
-        IMAGE_OFFER = 'UbuntuServer'
-        IMAGE_SKU = '16.04.0-LTS'
-        IMAGE_VERSION = 'latest'
+        image_publisher = 'Canonical'
+        image_offer = 'UbuntuServer'
+        image_sku = '16.04.0-LTS'
+        image_version = 'latest'
 
         admin_username = 'gil1'
         interface_name = 'gil6'
@@ -53,7 +53,7 @@ class DeployAzureVMOperation(object):
         nic_id = self.vm_service.create_network(group_name, interface_name, ip_name, network_name, region, subnet_name)
 
         # 4. create Vm
-        self.vm_service.create_vm(IMAGE_OFFER, IMAGE_PUBLISHER, IMAGE_SKU, IMAGE_VERSION, admin_password, admin_username,
+        self.vm_service.create_vm(image_offer, image_publisher, image_sku, image_version, admin_password, admin_username,
                                   compute_client, computer_name, group_name, nic_id, region, storage_name, vm_name)
 
         return DeployResult()

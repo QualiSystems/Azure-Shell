@@ -35,6 +35,7 @@ class AzureShell(object):
                     resource_client = azure_clients_factory.get_client(ResourceManagementClient)
                     network_client = azure_clients_factory.get_client(NetworkManagementClient)
                     storage_client = azure_clients_factory.get_client(StorageManagementClient)
+
                     vm_service = VirtualMachineService(compute_management_client=compute_client,
                                                        resource_management_client=resource_client,
                                                        network_client=network_client,
