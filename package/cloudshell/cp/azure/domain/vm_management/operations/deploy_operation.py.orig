@@ -20,6 +20,52 @@ class DeployAzureVMOperation(object):
         """
 
         self.logger = logger
+<<<<<<< HEAD
+        self.compute_management_client = compute_management_client
+        self.resource_management_client = resource_management_client
+        self.storage_client = storage_client
+        self.network_client = network_client
+
+    def deploy(self,azure_vm_deployment_model,cloud_provider_deployment_model):
+        # deploy_data = self.compute_client.virtual_machines.create_or_update(
+        #     azure_vm_deployment_model.group_name,
+        #     azure_vm_deployment_model.vm_name,
+        #     VirtualMachine(
+        #         location='TBD',
+        #         os_profile=OSProfile(
+        #             computer_name='TBD',
+        #             admin_username='TBD',
+        #             admin_password='TBD'
+        #         ),
+        #         hardware_profile=HardwareProfile(
+        #             vm_size=VirtualMachineSizeTypes.basic_a0
+        #         ),
+        #         network_profile=NetworkProfile(
+        #             network_interfaces=[
+        #                 NetworkInterfaceReference(
+        #                     id='TBD'
+        #                 ),
+        #             ]
+        #         ),
+        #         storage_profile=StorageProfile(
+        #             os_disk=OSDisk(
+        #                 caching=CachingTypes.none,
+        #                 create_option=DiskCreateOptionTypes.from_image,
+        #                 name='TBD',
+        #                 vhd=VirtualHardDisk(
+        #                     uri='TBD',  # the VM name
+        #                 )
+        #             ),
+        #             image_reference=ImageReference(
+        #                 publisher=azure_vm_deployment_model.image_publisher,
+        #                 offer=azure_vm_deployment_model.image_offer,
+        #                 sku=azure_vm_deployment_model.image_sku,
+        #                 version='TBD'
+        #             )
+        #         )
+        #     )
+        # )
+=======
         self.vm_service = vm_service
 
     def deploy(self, azure_vm_deployment_model, cloud_provider_model):
@@ -55,5 +101,6 @@ class DeployAzureVMOperation(object):
         # 4. create Vm
         self.vm_service.create_vm(image_offer, image_publisher, image_sku, image_version, admin_password, admin_username,
                                   compute_client, computer_name, group_name, nic_id, region, storage_name, vm_name)
+>>>>>>> 541af792f4048e832c50ce0638fd05fdcdb3d48b
 
         return DeployResult()

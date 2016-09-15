@@ -23,7 +23,11 @@ class AzureShell(object):
         :param JSON Obj deployment_request:
         """
 
+<<<<<<< HEAD
+        cloud_provider_deployment_model = self.model_parser.convert_to_cloud_provider_resource_model(command_context)
+=======
         cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(command_context)
+>>>>>>> 541af792f4048e832c50ce0638fd05fdcdb3d48b
         azure_vm_deployment_model = self.model_parser.convert_to_deployment_resource_model(deployment_request)
 
         with AzureClientFactoryContext(command_context) as azure_clients_factory:
@@ -46,4 +50,8 @@ class AzureShell(object):
                     deploy_data = deploy_azure_vm_operation.deploy(azure_vm_deployment_model=azure_vm_deployment_model,
                                                                    cloud_provider_model=cloud_provider_model)
 
+<<<<<<< HEAD
+                    deploy_data = deploy_azure_vm_operation.deploy(azure_vm_deployment_model=azure_vm_deployment_model,cloud_provider_deployment_model=cloud_provider_deployment_model)
+=======
+>>>>>>> 541af792f4048e832c50ce0638fd05fdcdb3d48b
                     return self.command_result_parser.set_command_result(deploy_data)
