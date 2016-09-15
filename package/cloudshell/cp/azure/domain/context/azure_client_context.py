@@ -2,9 +2,11 @@ from azure.mgmt.compute import ComputeManagementClient
 from azure.mgmt.network import NetworkManagementClient
 from azure.mgmt.resource import ResourceManagementClient
 from azure.mgmt.storage import StorageManagementClient
+from msrestazure.azure_active_directory import ServicePrincipalCredentials
 
-from cloudshell.cp.azure.common.azure_client_factory import StorageManagementClientHandler, \
-    ComputeManagementClientHandler, ResourceManagementClientHandler, NetworkManagementClientHandler, AzureClientFactory
+from cloudshell.cp.azure.common.azure_client_factory import AzureClientFactory
+from cloudshell.cp.azure.common.handlers import ComputeManagementClientHandler, ResourceManagementClientHandler, \
+    NetworkManagementClientHandler, StorageManagementClientHandler
 
 
 class AzureClientFactoryContext(object):
@@ -23,11 +25,13 @@ class AzureClientFactoryContext(object):
 
     @staticmethod
     def get_credentials(cloud_provider_model):
-        raise Exception("get_credentials not implemented")
+        return ServicePrincipalCredentials(client_id=cloud_provider_model.resource.attributes['Azure Client ID'],
+                                           secret=cloud_provider_model.resource.attributes['Azure Secret'],
+                                           tenant=cloud_provider_model.resource.attributes['Azure Tenant'])
 
     @staticmethod
     def get_subscription(cloud_provider_model):
-        raise Exception("get_subscription not implemented")
+        return cloud_provider_model.resource.attributes['Azure Subscription ID']
 
     def __enter__(self):
         return AzureClientFactory(client_handlers=self.azure_client_handlers,
@@ -38,49 +42,3 @@ class AzureClientFactoryContext(object):
         pass
 
 
-class ComputeManagementClientContext(object):
-    def __init__(self, service_principal_credentials, subscription_id):
-        self.subscription_id = subscription_id
-        self.service_principal_credentials = service_principal_credentials
-
-    def __enter__(self):
-        return ComputeManagementClient(self.service_principal_credentials, self.subscription_id)
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        pass
-
-
-class ResourceManagementClientContext(object):
-    def __init__(self, service_principal_credentials, subscription_id):
-        self.subscription_id = subscription_id
-        self.service_principal_credentials = service_principal_credentials
-
-    def __enter__(self):
-        return ResourceManagementClient(self.service_principal_credentials, self.subscription_id)
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        pass
-
-
-class NetworkManagementClientContext(object):
-    def __init__(self, service_principal_credentials, subscription_id):
-        self.service_principal_credentials = service_principal_credentials
-        self.subscription_id = subscription_id
-
-    def __enter__(self):
-        return NetworkManagementClient(self.service_principal_credentials, self.subscription_id)
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        pass
-
-
-class StorageManagementClientContext(object):
-    def __init__(self, service_principal_credentials, subscription_id):
-        self.service_principal_credentials = service_principal_credentials
-        self.subscription_id = subscription_id
-
-    def __enter__(self):
-        return StorageManagementClient(self.service_principal_credentials, self.subscription_id)
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        pass

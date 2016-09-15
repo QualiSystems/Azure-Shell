@@ -1,6 +1,6 @@
 from cloudshell.shell.core.resource_driver_interface import ResourceDriverInterface
 
-# from cloudshell.cp.azure.azure_shell import AzureShell
+from cloudshell.cp.azure.azure_shell import AzureShell
 
 
 class AzureShellDriver(ResourceDriverInterface):
@@ -8,8 +8,6 @@ class AzureShellDriver(ResourceDriverInterface):
         """
         ctor must be without arguments, it is created with reflection at run time
         """
-        # self.azure_shell = AzureShell()
-        pass
 
     def initialize(self, context):
         pass
@@ -18,8 +16,8 @@ class AzureShellDriver(ResourceDriverInterface):
         pass
 
     def deploy_vm(self, context, request):
-        pass
-        # return self.azure_shell.deploy_azure_vm(command_context=context, deployment_request=request)
+        azure_shell = AzureShell()
+        return azure_shell.deploy_azure_vm(command_context=context, deployment_request=request)
 
     def PowerOn(self, context, ports):
         pass
