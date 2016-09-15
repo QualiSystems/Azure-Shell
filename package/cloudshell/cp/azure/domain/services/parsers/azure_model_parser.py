@@ -31,3 +31,8 @@ class AzureModelsParser(object):
 
 
         return azure_resource_model
+
+
+
+
+
