@@ -23,7 +23,7 @@ class AzureShell(object):
         :param JSON Obj deployment_request:
         """
 
-        cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(command_context)
+        cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(command_context.resource)
         azure_vm_deployment_model = self.model_parser.convert_to_deployment_resource_model(deployment_request)
 
         with AzureClientFactoryContext(command_context) as azure_clients_factory:

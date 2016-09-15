@@ -11,11 +11,20 @@ class AzureModelsParser(object):
         data = jsonpickle.decode(deployment_request)
         data_holder = DeployDataHolder(data)
         deployment_resource_model = DeployAzureVMResourceModel()
-        deployment_resource_model.group_name = data_holder.ami_params.group_name
-        deployment_resource_model.vm_name = data_holder.ami_params.vm_name
+        deployment_resource_model.add_public_ip = data_holder.ami_params.add_public_ip
+        deployment_resource_model.autoload = data_holder.ami_params.autoload
         deployment_resource_model.cloud_provider = data_holder.ami_params.cloud_provider
-
-        # todo
+        deployment_resource_model.disk_type = data_holder.ami_params.disk_type
+        deployment_resource_model.group_name = data_holder.ami_params.group_name
+        deployment_resource_model.image_offer = data_holder.ami_params.image_offer
+        deployment_resource_model.image_publisher = data_holder.ami_params.image_publisher
+        deployment_resource_model.image_sku = data_holder.ami_params.image_sku
+        deployment_resource_model.inbound_ports = data_holder.ami_params.inbound_ports
+        deployment_resource_model.instance_type = data_holder.ami_params.instance_type
+        deployment_resource_model.outbound_ports = data_holder.ami_params.outbound_ports
+        deployment_resource_model.public_ip_type = data_holder.ami_params.public_ip_type
+        deployment_resource_model.vm_name = data_holder.ami_params.vm_name
+        deployment_resource_model.wait_for_ip = data_holder.ami_params.wait_for_ip
 
         return deployment_resource_model
 
@@ -41,8 +50,3 @@ class AzureModelsParser(object):
         azure_resource_model.storage_type = resource_context['Storage Type']
 
         return azure_resource_model
-
-
-
-
-

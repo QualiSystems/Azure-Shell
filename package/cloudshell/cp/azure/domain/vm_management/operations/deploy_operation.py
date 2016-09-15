@@ -1,9 +1,3 @@
-import azure
-from azure.mgmt.compute.models import OSProfile, HardwareProfile, VirtualMachineSizeTypes, NetworkProfile, \
-    NetworkInterfaceReference, OSDisk, CachingTypes, DiskCreateOptionTypes, VirtualHardDisk, ImageReference
-from azure.mgmt.network.models import NetworkInterfaceIPConfiguration, IPAllocationMethod, NetworkInterface
-from azure.mgmt.storage.models import StorageAccountCreateParameters, SkuName
-
 from cloudshell.cp.azure.domain.services.virtual_machine_service import VirtualMachineService
 from cloudshell.cp.azure.models.deploy_result_model import DeployResult
 
@@ -23,9 +17,7 @@ class DeployAzureVMOperation(object):
         self.vm_service = vm_service
 
     def deploy(self, azure_vm_deployment_model, cloud_provider_model):
-        compute_client = self.vm_service.compute_management_client
-
-        ##inputs from attributes?
+        # inputs from attributes?
         resource_name = ""
         group_name = ""
         region = ""
@@ -53,7 +45,8 @@ class DeployAzureVMOperation(object):
         nic_id = self.vm_service.create_network(group_name, interface_name, ip_name, network_name, region, subnet_name)
 
         # 4. create Vm
-        self.vm_service.create_vm(image_offer, image_publisher, image_sku, image_version, admin_password, admin_username,
-                                  compute_client, computer_name, group_name, nic_id, region, storage_name, vm_name)
+        self.vm_service.create_vm(image_offer, image_publisher, image_sku, image_version, admin_password,
+                                  admin_username,
+                                  computer_name, group_name, nic_id, region, storage_name, vm_name)
 
         return DeployResult()

@@ -12,10 +12,9 @@ class VirtualMachineService(object):
         self.storage_client = storage_client
         self.network_client = network_client
 
-    @staticmethod
-    def create_vm(image_offer, image_publisher, image_sku, image_version, admin_password, admin_username,
-                  compute_client, computer_name, group_name, nic_id, region, storage_name, vm_name):
-        compute_client.virtual_machines.create_or_update(
+    def create_vm(self, image_offer, image_publisher, image_sku, image_version, admin_password, admin_username,
+                  computer_name, group_name, nic_id, region, storage_name, vm_name):
+        self.compute_management_client.virtual_machines.create_or_update(
             group_name,
             vm_name,
             azure.mgmt.compute.models.VirtualMachine(
