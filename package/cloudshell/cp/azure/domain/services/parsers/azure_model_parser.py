@@ -25,6 +25,7 @@ class AzureModelsParser(object):
         deployment_resource_model.public_ip_type = data_holder.ami_params.public_ip_type
         deployment_resource_model.vm_name = data_holder.ami_params.vm_name
         deployment_resource_model.wait_for_ip = data_holder.ami_params.wait_for_ip
+        deployment_resource_model.app_name = data_holder.app_name
 
         return deployment_resource_model
 

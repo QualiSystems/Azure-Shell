@@ -2,6 +2,7 @@ import azure
 from azure.mgmt.compute.models import OSProfile, HardwareProfile, VirtualMachineSizeTypes, NetworkProfile, \
     NetworkInterfaceReference, CachingTypes, DiskCreateOptionTypes, VirtualHardDisk, ImageReference, OSDisk
 from azure.mgmt.network.models import NetworkInterfaceIPConfiguration, IPAllocationMethod, NetworkInterface
+from azure.mgmt.resource.resources.models import ResourceGroup
 from azure.mgmt.storage.models import StorageAccountCreateParameters, SkuName
 
 
@@ -76,6 +77,12 @@ class VirtualMachineService(object):
                                                                                   kind=azure.mgmt.storage.models.Kind.storage.value,
                                                                                   location=region))
         storage_accounts_create.wait()  # async operation
+
+    def create_group(self, group_name, region):
+        return self.resource_management_client.resource_groups.create_or_update(
+            group_name,
+            ResourceGroup(location=region)
+        )
 
     def create_network_interface(self, network_client, region, management_group_name, interface_name,
                                  network_name, subnet_name, ip_name):

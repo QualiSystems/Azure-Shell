@@ -41,9 +41,14 @@ class AzureShell(object):
                                                        network_client=network_client,
                                                        storage_client=storage_client)
 
-                    deploy_azure_vm_operation = DeployAzureVMOperation(logger=logger,vm_service=vm_service)
+                    deploy_azure_vm_operation = DeployAzureVMOperation(logger=logger, vm_service=vm_service)
 
                     deploy_data = deploy_azure_vm_operation.deploy(azure_vm_deployment_model=azure_vm_deployment_model,
-                                                                   cloud_provider_model=cloud_provider_model)
+                                                                   cloud_provider_model=cloud_provider_model,
+                                                                   reservation_id=command_context.reservation.reservation_id)
+
+                    # ---Remove this----
+                    deploy_data = None
+                    # ------------------
 
                     return self.command_result_parser.set_command_result(deploy_data)
