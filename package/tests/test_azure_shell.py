@@ -13,7 +13,7 @@ class TestAzureShell(TestCase):
         deploymock = DeployAzureVMResourceModel()
         deploymock.app_name = 'my instance name'
 
-        result = DeployResult()
+        result = DeployResult(vm_name=deploymock.app_name)
 
         self.azure_shell.model_parser.convert_to_deployment_resource_model = Mock(return_value=deploymock)
         self.azure_shell.deploy_azure_vm = Mock(return_value=result)

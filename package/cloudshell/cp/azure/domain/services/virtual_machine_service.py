@@ -15,7 +15,7 @@ class VirtualMachineService(object):
 
     def create_vm(self, image_offer, image_publisher, image_sku, image_version, admin_password, admin_username,
                   computer_name, group_name, nic_id, region, storage_name, vm_name):
-        self.compute_management_client.virtual_machines.create_or_update(
+        vm_result = self.compute_management_client.virtual_machines.create_or_update(
             group_name,
             vm_name,
             azure.mgmt.compute.models.VirtualMachine(
@@ -56,6 +56,7 @@ class VirtualMachineService(object):
                 ),
             ),
         )
+        return vm_result
 
     def create_network(self, group_name, interface_name, ip_name, network_name, region, subnet_name):
         nic_id = self.create_network_interface(
