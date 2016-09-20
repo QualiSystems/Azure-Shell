@@ -5,6 +5,7 @@ from azure.mgmt.storage import StorageManagementClient
 from cloudshell.core.context.error_handling_context import ErrorHandlingContext
 from cloudshell.shell.core.session.logging_session import LoggingSessionContext
 from cloudshell.cp.azure.domain.context.azure_client_context import AzureClientFactoryContext
+from cloudshell.cp.azure.domain.services.network_service import NetworkService
 from cloudshell.cp.azure.domain.services.parsers.azure_model_parser import AzureModelsParser
 from cloudshell.cp.azure.domain.services.parsers.command_result_parser import CommandResultsParser
 from cloudshell.cp.azure.domain.services.virtual_machine_service import VirtualMachineService
@@ -38,10 +39,12 @@ class AzureShell(object):
 
                     vm_service = VirtualMachineService(compute_management_client=compute_client,
                                                        resource_management_client=resource_client,
-                                                       network_client=network_client,
                                                        storage_client=storage_client)
 
-                    deploy_azure_vm_operation = DeployAzureVMOperation(logger=logger, vm_service=vm_service)
+                    network_service = NetworkService(network_client=network_client)
+
+                    deploy_azure_vm_operation = DeployAzureVMOperation(logger=logger, vm_service=vm_service,
+                                                                       network_service=network_service)
 
                     deploy_data = deploy_azure_vm_operation.deploy(azure_vm_deployment_model=azure_vm_deployment_model,
                                                                    cloud_provider_model=cloud_provider_model,
