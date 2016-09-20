@@ -107,9 +107,9 @@ class VirtualMachineService(object):
 
         result.wait()
 
-        subnet = network_client.subnets.get(management_group_name, network_name, subnet_name)
+        subnet = self.network_client.subnets.get(management_group_name, network_name, subnet_name)
 
-        result = network_client.public_ip_addresses.create_or_update(
+        result = self.network_client.public_ip_addresses.create_or_update(
             management_group_name,
             ip_name,
             azure.mgmt.network.models.PublicIPAddress(
@@ -121,10 +121,10 @@ class VirtualMachineService(object):
 
         result.wait()
 
-        public_ip_address = network_client.public_ip_addresses.get(management_group_name, ip_name)
+        public_ip_address = self.network_client.public_ip_addresses.get(management_group_name, ip_name)
         public_ip_id = public_ip_address.id
 
-        result = network_client.network_interfaces.create_or_update(
+        result = self.network_client.network_interfaces.create_or_update(
             management_group_name,
             interface_name,
             NetworkInterface(
@@ -144,7 +144,7 @@ class VirtualMachineService(object):
 
         result.wait()
 
-        network_interface = network_client.network_interfaces.get(
+        network_interface = self.network_client.network_interfaces.get(
             management_group_name,
             interface_name,
         )
