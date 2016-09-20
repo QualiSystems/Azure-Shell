@@ -60,7 +60,6 @@ class VirtualMachineService(object):
 
     def create_network(self, group_name, interface_name, ip_name, network_name, region, subnet_name):
         nic_id = self.create_network_interface(
-            self.network_client,
             region,
             group_name,
             interface_name,
@@ -71,17 +70,13 @@ class VirtualMachineService(object):
         return nic_id
 
     def create_storage_account(self, group_name, region, storage_account_name):
-        try:
-            storage_accounts_create = self.storage_client.storage_accounts.create(group_name, storage_account_name,
-                                                                                  StorageAccountCreateParameters(
-                                                                                      sku=azure.mgmt.storage.models.Sku(
-                                                                                          SkuName.standard_lrs),
-                                                                                      kind=azure.mgmt.storage.models.Kind.storage.value,
-                                                                                      location=region))
-            storage_accounts_create.wait()  # async operation
-        except Exception as e:
-            pass
-
+        storage_accounts_create = self.storage_client.storage_accounts.create(group_name, storage_account_name,
+                                                                              StorageAccountCreateParameters(
+                                                                                  sku=azure.mgmt.storage.models.Sku(
+                                                                                      SkuName.standard_lrs),
+                                                                                  kind=azure.mgmt.storage.models.Kind.storage.value,
+                                                                                  location=region))
+        storage_accounts_create.wait()  # async operation
 
     def create_group(self, group_name, region):
         return self.resource_management_client.resource_groups.create_or_update(
@@ -89,9 +84,9 @@ class VirtualMachineService(object):
             ResourceGroup(location=region)
         )
 
-    def create_network_interface(self, network_client, region, management_group_name, interface_name,
+    def create_network_interface(self, region, management_group_name, interface_name,
                                  network_name, subnet_name, ip_name):
-        result = network_client.virtual_networks.create_or_update(
+        result = self.network_client.virtual_networks.create_or_update(
             management_group_name,
             network_name,
             azure.mgmt.network.models.VirtualNetwork(
