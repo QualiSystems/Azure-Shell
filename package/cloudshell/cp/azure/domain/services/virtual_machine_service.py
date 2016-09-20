@@ -56,7 +56,7 @@ class VirtualMachineService(object):
                 ),
             ),
         )
-        return vm_result
+        return vm_result.result()
 
     def create_network(self, group_name, interface_name, ip_name, network_name, region, subnet_name):
         nic_id = self.create_network_interface(
@@ -71,13 +71,17 @@ class VirtualMachineService(object):
         return nic_id
 
     def create_storage_account(self, group_name, region, storage_account_name):
-        storage_accounts_create = self.storage_client.storage_accounts.create(group_name, storage_account_name,
-                                                                              StorageAccountCreateParameters(
-                                                                                  sku=azure.mgmt.storage.models.Sku(
-                                                                                      SkuName.standard_lrs),
-                                                                                  kind=azure.mgmt.storage.models.Kind.storage.value,
-                                                                                  location=region))
-        storage_accounts_create.wait()  # async operation
+        try:
+            storage_accounts_create = self.storage_client.storage_accounts.create(group_name, storage_account_name,
+                                                                                  StorageAccountCreateParameters(
+                                                                                      sku=azure.mgmt.storage.models.Sku(
+                                                                                          SkuName.standard_lrs),
+                                                                                      kind=azure.mgmt.storage.models.Kind.storage.value,
+                                                                                      location=region))
+            storage_accounts_create.wait()  # async operation
+        except Exception as e:
+            pass
+
 
     def create_group(self, group_name, region):
         return self.resource_management_client.resource_groups.create_or_update(
