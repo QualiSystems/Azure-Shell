@@ -30,8 +30,9 @@ class DeployAzureVMOperation(object):
         :param cloudshell.cp.azure.models.azure_cloud_provider_resource_model.AzureCloudProviderResourceModel cloud_provider_model:cloud provider
         :return:
         """
-        base_name = "quali"
-        resource_name = azure_vm_deployment_model.app_name  # self._generate_name(azure_vm_deployment_model.app_name)
+
+        resource_name = azure_vm_deployment_model.app_name
+        base_name = resource_name
         random_name = self._generate_name(base_name)
         group_name = str(reservation_id)
         interface_name = random_name

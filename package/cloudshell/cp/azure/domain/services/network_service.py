@@ -6,11 +6,12 @@ class NetworkService(object):
     def __init__(self, network_client):
         self.network_client = network_client
 
-    def create_network(self, group_name, interface_name, ip_name, region, subnet_name):
+    def create_network(self, group_name, interface_name, ip_name, region, subnet_name, network_name):
         nic_id = self.create_network_interface(
             region,
             group_name,
             interface_name,
+            network_name,
             subnet_name,
             ip_name)
         return nic_id
@@ -21,7 +22,6 @@ class NetworkService(object):
                                  network_name,
                                  subnet_name,
                                  ip_name):
-
         result = self.network_client.virtual_networks.create_or_update(
             management_group_name,
             network_name,
