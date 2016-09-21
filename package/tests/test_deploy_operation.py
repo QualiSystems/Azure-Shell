@@ -1,13 +1,13 @@
 from unittest import TestCase
-
+import uuid
 from mock import Mock
-
 from cloudshell.cp.azure.domain.services.network_service import NetworkService
 from cloudshell.cp.azure.domain.services.storage_service import StorageService
 from cloudshell.cp.azure.domain.services.virtual_machine_service import VirtualMachineService
 from cloudshell.cp.azure.domain.vm_management.operations.deploy_operation import DeployAzureVMOperation
 from cloudshell.cp.azure.models.azure_cloud_provider_resource_model import AzureCloudProviderResourceModel
 from cloudshell.cp.azure.models.deploy_azure_vm_resource_model import DeployAzureVMResourceModel
+from tests.test_helpers.test_helper import TestHelper
 
 
 class TestAzureShell(TestCase):
@@ -22,13 +22,24 @@ class TestAzureShell(TestCase):
                                                        storage_service=self.storage_service)
 
     def test_deploy_operation_deploy_result(self):
+        """
+        This method verifies the basic deployment of vm.
+        :return:
+        """
+
+        # Arrange
         self.vm_service.create_resource_group = Mock(return_value=True)
         self.storage_service.create_storage_account = Mock(return_value=True)
         self.network_service.create_network = Mock(return_value="The Created NIC")
-        self.vm_service.create_vm = Mock(return_value="The Created Resource")
+        self.vm_service.create_vm = Mock(return_value=Mock())
         self.vm_service.get_vm = Mock(return_value=Mock())
-        self.deploy_operation.deploy(DeployAzureVMResourceModel(),AzureCloudProviderResourceModel())
 
+        # Act
+        self.deploy_operation.deploy(DeployAzureVMResourceModel(), AzureCloudProviderResourceModel(), uuid.uuid4())
 
-
-
+        # Verify
+        self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.vm_service.create_resource_group))
+        self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.storage_service.create_storage_account))
+        self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.network_service.create_network))
+        self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.vm_service.create_vm))
+        self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.vm_service.get_vm))
