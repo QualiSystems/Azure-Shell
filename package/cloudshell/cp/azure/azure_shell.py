@@ -60,7 +60,7 @@ class AzureShell(object):
                                                                    resource_client=resource_client)
 
                     # ---Remove this----
-                    deploy_data = None
+                    # deploy_data = None
                     # ------------------
 
                     return self.command_result_parser.set_command_result(deploy_data)
