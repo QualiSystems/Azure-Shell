@@ -86,3 +86,13 @@ class NetworkService(object):
         )
 
         return network_interface.id
+
+    def get_public_ip(self, group_name, ip_name):
+        """
+
+        :param group_name:
+        :param ip_name:
+        :return:
+        """
+
+        return self.network_client.public_ip_addresses.get(group_name, ip_name)

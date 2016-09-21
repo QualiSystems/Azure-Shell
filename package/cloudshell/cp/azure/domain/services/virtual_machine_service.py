@@ -10,16 +10,6 @@ class VirtualMachineService(object):
         self.compute_management_client = compute_management_client
         self.resource_management_client = resource_management_client
 
-    def get_public_ip(self, group_name, ip_name):
-        """
-
-        :param group_name:
-        :param ip_name:
-        :return:
-        """
-
-        return self.network_client.public_ip_addresses.get(group_name, ip_name)
-
     def get_vm(self, group_name, vm_name):
         """
 
@@ -31,12 +21,13 @@ class VirtualMachineService(object):
         return self.compute_management_client.virtual_machines.get(group_name, vm_name)
 
     def create_vm(self, image_offer, image_publisher, image_sku, image_version, admin_password, admin_username,
-                  computer_name, group_name, nic_id, region, storage_name, vm_name):
+                  computer_name, group_name, nic_id, region, storage_name, vm_name, tags):
         vm_result = self.compute_management_client.virtual_machines.create_or_update(
             group_name,
             vm_name,
             azure.mgmt.compute.models.VirtualMachine(
                 location=region,
+                tags=tags,
                 os_profile=OSProfile(
                     admin_username=admin_username,
                     admin_password=admin_password,
