@@ -10,13 +10,15 @@ class DeployAzureVMOperation(object):
                  logger,
                  vm_service,
                  network_service,
-                 storage_service):
+                 storage_service,
+                 tags_service):
         """
 
         :param logger:
         :param cloudshell.cp.azure.domain.services.virtual_machine_service.VirtualMachineService vm_service:
         :param NetworkService network_service:
         :param cloudshell.cp.azure.domain.services.storage_service.StorageService storage_service:
+        :param cloudshell.cp.azure.domain.services.tags.TagService tags_service:
         :return:
         """
 
@@ -24,6 +26,7 @@ class DeployAzureVMOperation(object):
         self.vm_service = vm_service
         self.network_service = network_service
         self.storage_service = storage_service
+        self.tags_service = tags_service
 
     def deploy(self, azure_vm_deployment_model, cloud_provider_model, reservation_id):
         """
@@ -33,7 +36,8 @@ class DeployAzureVMOperation(object):
         :return:
         """
 
-        resource_name = azure_vm_deployment_model.app_name
+        app_name = azure_vm_deployment_model.app_name.lower().replace(" ","")
+        resource_name = app_name
         base_name = resource_name
         random_name = self._generate_name(base_name)
         group_name = str(reservation_id)
@@ -46,6 +50,7 @@ class DeployAzureVMOperation(object):
         admin_username = resource_name
         admin_password = 'ScJaw12deDFG'
         vm_name = random_name
+        tags = self.tags_service.get_tags(vm_name,admin_username,subnet_name,reservation_id)
 
         # 1. Crate a resource group
         self.vm_service.create_resource_group(group_name=group_name, region=cloud_provider_model.region)
@@ -75,11 +80,14 @@ class DeployAzureVMOperation(object):
                                                   nic_id=nic_id,
                                                   region=cloud_provider_model.region,
                                                   storage_name=storage_account_name,
-                                                  vm_name=vm_name)
+                                                  vm_name=vm_name,
+                                                  tags=tags)
 
-        vm = self.vm_service.get_vm(group_name=group_name, vm_name=vm_name)
+        public_ip = self.network_service.get_public_ip(group_name=group_name, ip_name=ip_name)
+        public_ip_address = public_ip.ip_address
+        # private_ip_address = public_ip.ip_configuration.private_ip_address
 
-        deployed_app_attributes = self._prepare_deployed_app_attributes(admin_username, admin_password, "TBD")
+        deployed_app_attributes = self._prepare_deployed_app_attributes(admin_username, admin_password, public_ip_address)
 
         return DeployResult(vm_name=vm_name,
                             vm_uuid=result_create.vm_id,
@@ -91,8 +99,8 @@ class DeployAzureVMOperation(object):
                             inbound_ports=azure_vm_deployment_model.inbound_ports,
                             outbound_ports=azure_vm_deployment_model.outbound_ports,
                             deployed_app_attributes=deployed_app_attributes,
-                            deployed_app_address="10.10.10.10",
-                            public_ip="10.10.10.11")
+                            deployed_app_address=public_ip_address,
+                            public_ip=public_ip_address)
 
     @staticmethod
     def _generate_name(name):

@@ -21,12 +21,13 @@ class VirtualMachineService(object):
         return self.compute_management_client.virtual_machines.get(group_name, vm_name)
 
     def create_vm(self, image_offer, image_publisher, image_sku, image_version, admin_password, admin_username,
-                  computer_name, group_name, nic_id, region, storage_name, vm_name):
+                  computer_name, group_name, nic_id, region, storage_name, vm_name, tags):
         vm_result = self.compute_management_client.virtual_machines.create_or_update(
             group_name,
             vm_name,
             azure.mgmt.compute.models.VirtualMachine(
                 location=region,
+                tags=tags,
                 os_profile=OSProfile(
                     admin_username=admin_username,
                     admin_password=admin_password,
