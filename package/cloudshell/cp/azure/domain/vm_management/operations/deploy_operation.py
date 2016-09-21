@@ -70,9 +70,11 @@ class DeployAzureVMOperation(object):
                                   storage_name=storage_account_name,
                                   vm_name=vm_name)
 
-        vm = self.vm_service.get_vm(group_name=group_name, vm_name=vm_name)
+        public_ip = self.vm_service.get_public_ip(group_name=group_name, ip_name=ip_name)
+        public_ip_address = public_ip.ip_address
+        # private_ip_address = public_ip.ip_configuration.private_ip_address
 
-        deployed_app_attributes = self._prepare_deployed_app_attributes(admin_username, admin_password, "TBD")
+        deployed_app_attributes = self._prepare_deployed_app_attributes(admin_username, admin_password, public_ip_address)
 
         return DeployResult(vm_name=vm_name,
                             vm_uuid=result_create.vm_id,
@@ -84,8 +86,8 @@ class DeployAzureVMOperation(object):
                             inbound_ports=azure_vm_deployment_model.inbound_ports,
                             outbound_ports=azure_vm_deployment_model.outbound_ports,
                             deployed_app_attributes=deployed_app_attributes,
-                            deployed_app_address="10.10.10.10",
-                            public_ip="10.10.10.11")
+                            deployed_app_address=public_ip_address,
+                            public_ip=public_ip_address)
 
     @staticmethod
     def _generate_name(name):

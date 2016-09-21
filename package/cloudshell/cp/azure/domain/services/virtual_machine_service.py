@@ -13,6 +13,16 @@ class VirtualMachineService(object):
         self.storage_client = storage_client
         self.network_client = network_client
 
+    def get_public_ip(self, group_name, ip_name):
+        """
+
+        :param group_name:
+        :param ip_name:
+        :return:
+        """
+
+        return self.network_client.public_ip_addresses.get(group_name, ip_name)
+
     def get_vm(self, group_name, vm_name):
         """
 
