@@ -70,7 +70,9 @@ class DeployAzureVMOperation(object):
                                   storage_name=storage_account_name,
                                   vm_name=vm_name)
 
-        deployed_app_attributes = {}
+        vm = self.vm_service.get_vm(group_name=group_name, vm_name=vm_name)
+
+        deployed_app_attributes = self._prepare_deployed_app_attributes(admin_username, admin_password, "TBD")
 
         return DeployResult(vm_name=vm_name,
                             vm_uuid=result_create.vm_id,
@@ -88,3 +90,17 @@ class DeployAzureVMOperation(object):
     @staticmethod
     def _generate_name(name):
         return name.replace(" ", "") + ((str(uuid.uuid4())).replace("-", ""))[0:8]
+
+    @staticmethod
+    def _prepare_deployed_app_attributes(admin_username, admin_password, public_ip):
+        """
+
+        :param admin_username:
+        :param admin_password:
+        :param public_ip:
+        :return: dict
+        """
+
+        deployed_app_attr = {'Password': admin_password, 'User': admin_username, 'Public IP': public_ip}
+
+        return deployed_app_attr

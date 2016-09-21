@@ -13,6 +13,16 @@ class VirtualMachineService(object):
         self.storage_client = storage_client
         self.network_client = network_client
 
+    def get_vm(self, group_name, vm_name):
+        """
+
+        :param group_name:
+        :param vm_name:
+        :return: azure.mgmt.compute.models.VirtualMachine
+        """
+
+        return self.compute_management_client.virtual_machines.get(group_name, vm_name)
+
     def create_vm(self, image_offer, image_publisher, image_sku, image_version, admin_password, admin_username,
                   computer_name, group_name, nic_id, region, storage_name, vm_name):
         vm_result = self.compute_management_client.virtual_machines.create_or_update(
