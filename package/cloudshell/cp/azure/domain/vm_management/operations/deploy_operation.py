@@ -28,13 +28,15 @@ class DeployAzureVMOperation(object):
         self.storage_service = storage_service
         self.tags_service = tags_service
 
-    def deploy(self, azure_vm_deployment_model, cloud_provider_model, reservation_id):
+    def deploy(self, azure_vm_deployment_model, cloud_provider_model, reservation):
         """
-        :param reservation_id:
+        :param reservation: cloudshell.cp.azure.models.reservation_model.ReservationModel
         :param cloudshell.cp.azure.models.deploy_azure_vm_resource_model.DeployAzureVMResourceModel azure_vm_deployment_model:
         :param cloudshell.cp.azure.models.azure_cloud_provider_resource_model.AzureCloudProviderResourceModel cloud_provider_model:cloud provider
         :return:
         """
+
+        reservation_id = reservation.reservation_id
 
         app_name = azure_vm_deployment_model.app_name.lower().replace(" ","")
         resource_name = app_name
@@ -50,7 +52,7 @@ class DeployAzureVMOperation(object):
         admin_username = resource_name
         admin_password = 'ScJaw12deDFG'
         vm_name = random_name
-        tags = self.tags_service.get_tags(vm_name,admin_username,subnet_name,reservation_id)
+        tags = self.tags_service.get_tags(vm_name,admin_username,subnet_name,reservation)
 
         # 1. Crate a resource group
         self.vm_service.create_resource_group(group_name=group_name, region=cloud_provider_model.region)

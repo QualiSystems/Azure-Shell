@@ -14,17 +14,23 @@ class TagService(object):
     def __init__(self):
         pass
 
-    def get_tags(self, vm_name, admin_username,subnet_name,reservation_id):
+    def get_tags(self, vm_name, admin_username,subnet_name,reservation):
         """
 
+        :param vm_name:
+        :param admin_username:
+        :param subnet_name:
+        :type reservation: cloudshell.cp.azure.models.reservation_model.ReservationModel
         :return:
         """
-        return {"test": "Igor",
+        return {
                 TagNames.Name: vm_name,
                 TagNames.CreatedBy: TagService.CREATED_BY_QUALI,
-                TagNames.Owner: admin_username,
+                TagNames.Owner: reservation.owner,
                 TagNames.Isolation: subnet_name,
-                TagNames.ReservationId: reservation_id
+                TagNames.ReservationId: reservation.reservation_id,
+                TagNames.Blueprint: reservation.blueprint,
+                TagNames.Domain: reservation.domain
                 }
 
 

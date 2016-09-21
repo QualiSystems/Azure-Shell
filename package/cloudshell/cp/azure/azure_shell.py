@@ -56,7 +56,8 @@ class AzureShell(object):
 
                     deploy_data = deploy_azure_vm_operation.deploy(azure_vm_deployment_model=azure_vm_deployment_model,
                                                                    cloud_provider_model=cloud_provider_model,
-                                                                   reservation_id=command_context.reservation.reservation_id)
+                                                                   reservation=self.model_parser.convert_to_reservation_model(
+                                                                       command_context.reservation))
 
                     # ---Remove this----
                     # deploy_data = None

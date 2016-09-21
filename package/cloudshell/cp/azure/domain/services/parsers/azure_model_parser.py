@@ -3,6 +3,7 @@ from cloudshell.cp.azure.models.azure_cloud_provider_resource_model import Azure
 
 from cloudshell.cp.azure.models.deploy_azure_vm_resource_model import DeployAzureVMResourceModel
 from cloudshell.cp.azure.common.deploy_data_holder import DeployDataHolder
+from cloudshell.cp.azure.models.reservation_model import ReservationModel
 
 
 class AzureModelsParser(object):
@@ -51,3 +52,11 @@ class AzureModelsParser(object):
         azure_resource_model.storage_type = resource_context['Storage Type']
 
         return azure_resource_model
+
+    @staticmethod
+    def convert_to_reservation_model(reservation_context):
+        """
+        :param ReservationContextDetails reservation_context:
+        :rtype: ReservationModel
+        """
+        return ReservationModel(reservation_context)
