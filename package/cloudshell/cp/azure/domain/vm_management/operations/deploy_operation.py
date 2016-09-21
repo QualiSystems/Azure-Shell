@@ -59,7 +59,7 @@ class DeployAzureVMOperation(object):
         tags = self.tags_service.get_tags(vm_name, admin_username, subnet_name, reservation)
 
         # 1. Crate a resource group
-        self.vm_service.create_resource_group(resource_client=resource_client,
+        self.vm_service.create_resource_group(resource_management_client=resource_client,
                                               group_name=group_name,
                                               region=cloud_provider_model.region)
 

@@ -53,7 +53,7 @@ class NetworkService(object):
             ip_name,
             azure.mgmt.network.models.PublicIPAddress(
                 location=region,
-                public_ip_allocation_method=azure.mgmt.network.models.IPAllocationMethod.dynamic,
+                public_ip_allocation_method=azure.mgmt.network.models.IPAllocationMethod.static,
                 idle_timeout_in_minutes=4,
             ),
         )
