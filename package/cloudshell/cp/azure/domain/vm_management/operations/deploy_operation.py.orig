@@ -53,7 +53,7 @@ class DeployAzureVMOperation(object):
 >>>>>>> 1349a9634ab5fec22bb3187cd4ec486b4d65cf09
 
         # 1. Crate a resource group
-        self.vm_service.create_group(group_name=group_name, region=cloud_provider_model.region)
+        self.vm_service.create_resource_group(group_name=group_name, region=cloud_provider_model.region)
 
         # 2. Create a storage account
         self.vm_service.create_storage_account(group_name=group_name,
