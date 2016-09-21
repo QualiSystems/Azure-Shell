@@ -6,10 +6,9 @@ from azure.mgmt.storage.models import StorageAccountCreateParameters, SkuName
 
 
 class VirtualMachineService(object):
-    def __init__(self, compute_management_client, resource_management_client, storage_client):
+    def __init__(self, compute_management_client, resource_management_client):
         self.compute_management_client = compute_management_client
         self.resource_management_client = resource_management_client
-        self.storage_client = storage_client
 
     def get_vm(self, group_name, vm_name):
         """
@@ -66,17 +65,24 @@ class VirtualMachineService(object):
         )
         return vm_result.result()
 
-    def create_storage_account(self, group_name, region, storage_account_name):
-        storage_accounts_create = self.storage_client.storage_accounts.create(group_name, storage_account_name,
-                                                                              StorageAccountCreateParameters(
-                                                                                  sku=azure.mgmt.storage.models.Sku(
-                                                                                      SkuName.standard_lrs),
-                                                                                  kind=azure.mgmt.storage.models.Kind.storage.value,
-                                                                                  location=region))
-        storage_accounts_create.wait()  # async operation
-
-    def create_group(self, group_name, region):
+    def create_resource_group(self, group_name, region):
         return self.resource_management_client.resource_groups.create_or_update(
             group_name,
             ResourceGroup(location=region)
         )
+
+
+class StorageService(object):
+    def __init__(self, storage_client):
+        self.storage_client = storage_client
+
+    def create_storage_account(self, group_name, region, storage_account_name):
+        kind_storage_value = azure.mgmt.storage.models.Kind.storage.value
+        sku_name = SkuName.standard_lrs
+        sku = azure.mgmt.storage.models.Sku(sku_name)
+        storage_accounts_create = self.storage_client.storage_accounts.create(group_name, storage_account_name,
+                                                                              StorageAccountCreateParameters(
+                                                                                  sku=sku,
+                                                                                  kind=kind_storage_value,
+                                                                                  location=region))
+        storage_accounts_create.wait()  # async operation

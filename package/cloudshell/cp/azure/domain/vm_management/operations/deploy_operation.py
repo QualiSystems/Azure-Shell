@@ -1,7 +1,5 @@
 import uuid
 
-import jsonpickle
-
 from cloudshell.cp.azure.domain.services.virtual_machine_service import VirtualMachineService
 from cloudshell.cp.azure.models.deploy_result_model import DeployResult
 
@@ -10,18 +8,21 @@ class DeployAzureVMOperation(object):
     def __init__(self,
                  logger,
                  vm_service,
-                 network_service):
+                 network_service,
+                 storage_service):
         """
 
         :param logger:
         :param VirtualMachineService vm_service:
         :param NetworkService network_service:
+        :param storage_service storage_service:
         :return:
         """
 
         self.logger = logger
         self.vm_service = vm_service
         self.network_service = network_service
+        self.storage_service = storage_service
 
     def deploy(self, azure_vm_deployment_model, cloud_provider_model, reservation_id):
         """
@@ -46,12 +47,12 @@ class DeployAzureVMOperation(object):
         vm_name = random_name
 
         # 1. Crate a resource group
-        self.vm_service.create_group(group_name=group_name, region=cloud_provider_model.region)
+        self.vm_service.create_resource_group(group_name=group_name, region=cloud_provider_model.region)
 
         # 2. Create a storage account
-        self.vm_service.create_storage_account(group_name=group_name,
-                                               region=cloud_provider_model.region,
-                                               storage_account_name=storage_account_name)
+        self.storage_service.create_storage_account(group_name=group_name,
+                                                    region=cloud_provider_model.region,
+                                                    storage_account_name=storage_account_name)
 
         # 3. Create the network interface
         nic_id = self.network_service.create_network(group_name=group_name,
