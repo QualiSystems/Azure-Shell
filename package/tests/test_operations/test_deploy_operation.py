@@ -37,7 +37,7 @@ class TestAzureShell(TestCase):
         self.vm_service.create_vm = Mock(return_value=Mock())
 
         # Act
-        self.deploy_operation.deploy(DeployAzureVMResourceModel(), AzureCloudProviderResourceModel(), uuid.uuid4())
+        self.deploy_operation.deploy(DeployAzureVMResourceModel(), AzureCloudProviderResourceModel(), Mock())
 
         # Verify
         self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.vm_service.create_resource_group))
