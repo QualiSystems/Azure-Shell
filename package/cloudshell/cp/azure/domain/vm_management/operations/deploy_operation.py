@@ -1,7 +1,5 @@
 import uuid
 
-from cloudshell.cp.azure.domain.services.virtual_machine_service import VirtualMachineService
-from cloudshell.cp.azure.domain.services.storage_service import StorageService
 from cloudshell.cp.azure.models.deploy_result_model import DeployResult
 
 
@@ -15,10 +13,6 @@ class DeployAzureVMOperation(object):
         """
 
         :param logger:
-        :param cloudshell.cp.azure.domain.services.virtual_machine_service.VirtualMachineService vm_service:
-        :param NetworkService network_service:
-        :param cloudshell.cp.azure.domain.services.storage_service.StorageService storage_service:
-        :param cloudshell.cp.azure.domain.services.tags.TagService tags_service:
         :return:
         """
 
@@ -28,8 +22,18 @@ class DeployAzureVMOperation(object):
         self.storage_service = storage_service
         self.tags_service = tags_service
 
-    def deploy(self, azure_vm_deployment_model, cloud_provider_model, reservation):
+    def deploy(self, azure_vm_deployment_model,
+               cloud_provider_model,
+               reservation,
+               storage_client,
+               network_client,
+               compute_client,
+               resource_client):
         """
+        :param storage_client:
+        :param resource_client:
+        :param compute_client:
+        :param network_client:
         :param reservation: cloudshell.cp.azure.models.reservation_model.ReservationModel
         :param cloudshell.cp.azure.models.deploy_azure_vm_resource_model.DeployAzureVMResourceModel azure_vm_deployment_model:
         :param cloudshell.cp.azure.models.azure_cloud_provider_resource_model.AzureCloudProviderResourceModel cloud_provider_model:cloud provider
@@ -38,7 +42,7 @@ class DeployAzureVMOperation(object):
 
         reservation_id = reservation.reservation_id
 
-        app_name = azure_vm_deployment_model.app_name.lower().replace(" ","")
+        app_name = azure_vm_deployment_model.app_name.lower().replace(" ", "")
         resource_name = app_name
         base_name = resource_name
         random_name = self._generate_name(base_name)
@@ -52,18 +56,22 @@ class DeployAzureVMOperation(object):
         admin_username = resource_name
         admin_password = 'ScJaw12deDFG'
         vm_name = random_name
-        tags = self.tags_service.get_tags(vm_name,admin_username,subnet_name,reservation)
+        tags = self.tags_service.get_tags(vm_name, admin_username, subnet_name, reservation)
 
         # 1. Crate a resource group
-        self.vm_service.create_resource_group(group_name=group_name, region=cloud_provider_model.region)
+        self.vm_service.create_resource_group(resource_client=resource_client,
+                                              group_name=group_name,
+                                              region=cloud_provider_model.region)
 
         # 2. Create a storage account
-        self.storage_service.create_storage_account(group_name=group_name,
+        self.storage_service.create_storage_account(storage_client=storage_client,
+                                                    group_name=group_name,
                                                     region=cloud_provider_model.region,
                                                     storage_account_name=storage_account_name)
 
         # 3. Create the network interface
-        nic_id = self.network_service.create_network(group_name=group_name,
+        nic_id = self.network_service.create_network(network_client=network_client,
+                                                     group_name=group_name,
                                                      interface_name=interface_name,
                                                      ip_name=ip_name,
                                                      network_name=network_name,
@@ -71,7 +79,8 @@ class DeployAzureVMOperation(object):
                                                      subnet_name=subnet_name)
 
         # 4. create Vm
-        result_create = self.vm_service.create_vm(image_offer=azure_vm_deployment_model.image_offer,
+        result_create = self.vm_service.create_vm(compute_management_client=compute_client,
+                                                  image_offer=azure_vm_deployment_model.image_offer,
                                                   image_publisher=azure_vm_deployment_model.image_publisher,
                                                   image_sku=azure_vm_deployment_model.image_sku,
                                                   image_version='latest',
@@ -85,11 +94,14 @@ class DeployAzureVMOperation(object):
                                                   vm_name=vm_name,
                                                   tags=tags)
 
-        public_ip = self.network_service.get_public_ip(group_name=group_name, ip_name=ip_name)
+        public_ip = self.network_service.get_public_ip(network_client=network_client,
+                                                       group_name=group_name,
+                                                       ip_name=ip_name)
         public_ip_address = public_ip.ip_address
         # private_ip_address = public_ip.ip_configuration.private_ip_address
 
-        deployed_app_attributes = self._prepare_deployed_app_attributes(admin_username, admin_password, public_ip_address)
+        deployed_app_attributes = self._prepare_deployed_app_attributes(admin_username, admin_password,
+                                                                        public_ip_address)
 
         return DeployResult(vm_name=vm_name,
                             vm_uuid=result_create.vm_id,

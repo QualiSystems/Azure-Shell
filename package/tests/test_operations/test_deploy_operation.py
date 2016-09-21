@@ -1,6 +1,7 @@
 from unittest import TestCase
-import uuid
+
 from mock import Mock
+
 from cloudshell.cp.azure.domain.services.network_service import NetworkService
 from cloudshell.cp.azure.domain.services.storage_service import StorageService
 from cloudshell.cp.azure.domain.services.tags import TagService
@@ -44,3 +45,4 @@ class TestAzureShell(TestCase):
         self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.storage_service.create_storage_account))
         self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.network_service.create_network))
         self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.vm_service.create_vm))
+

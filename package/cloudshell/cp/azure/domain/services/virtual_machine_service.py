@@ -6,23 +6,24 @@ from azure.mgmt.storage.models import SkuName
 
 
 class VirtualMachineService(object):
-    def __init__(self, compute_management_client, resource_management_client):
-        self.compute_management_client = compute_management_client
-        self.resource_management_client = resource_management_client
+    def __init__(self):
+        pass
 
-    def get_vm(self, group_name, vm_name):
+    def get_vm(self, compute_management_client, group_name, vm_name):
         """
 
+        :param compute_management_client:
         :param group_name:
         :param vm_name:
         :return: azure.mgmt.compute.models.VirtualMachine
         """
 
-        return self.compute_management_client.virtual_machines.get(group_name, vm_name)
+        return compute_management_client.virtual_machines.get(group_name, vm_name)
 
-    def create_vm(self, image_offer, image_publisher, image_sku, image_version, admin_password, admin_username,
+    def create_vm(self, compute_management_client, image_offer, image_publisher, image_sku, image_version,
+                  admin_password, admin_username,
                   computer_name, group_name, nic_id, region, storage_name, vm_name, tags):
-        vm_result = self.compute_management_client.virtual_machines.create_or_update(
+        vm_result = compute_management_client.virtual_machines.create_or_update(
             group_name,
             vm_name,
             azure.mgmt.compute.models.VirtualMachine(
@@ -66,10 +67,8 @@ class VirtualMachineService(object):
         )
         return vm_result.result()
 
-    def create_resource_group(self, group_name, region):
-        return self.resource_management_client.resource_groups.create_or_update(
+    def create_resource_group(self, resource_management_client, group_name, region):
+        return resource_management_client.resource_groups.create_or_update(
             group_name,
             ResourceGroup(location=region)
         )
-
-
