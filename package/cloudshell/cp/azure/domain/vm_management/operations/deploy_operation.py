@@ -1,6 +1,7 @@
 import uuid
 
 from cloudshell.cp.azure.domain.services.virtual_machine_service import VirtualMachineService
+from cloudshell.cp.azure.domain.services.storage_service import StorageService
 from cloudshell.cp.azure.models.deploy_result_model import DeployResult
 
 
@@ -13,9 +14,9 @@ class DeployAzureVMOperation(object):
         """
 
         :param logger:
-        :param VirtualMachineService vm_service:
+        :param cloudshell.cp.azure.domain.services.virtual_machine_service.VirtualMachineService vm_service:
         :param NetworkService network_service:
-        :param storage_service storage_service:
+        :param cloudshell.cp.azure.domain.services.storage_service.StorageService storage_service:
         :return:
         """
 

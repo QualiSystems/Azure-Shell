@@ -8,7 +8,8 @@ from cloudshell.cp.azure.domain.context.azure_client_context import AzureClientF
 from cloudshell.cp.azure.domain.services.network_service import NetworkService
 from cloudshell.cp.azure.domain.services.parsers.azure_model_parser import AzureModelsParser
 from cloudshell.cp.azure.domain.services.parsers.command_result_parser import CommandResultsParser
-from cloudshell.cp.azure.domain.services.virtual_machine_service import VirtualMachineService, StorageService
+from cloudshell.cp.azure.domain.services.virtual_machine_service import VirtualMachineService
+from cloudshell.cp.azure.domain.services.storage_service import StorageService
 from cloudshell.cp.azure.domain.vm_management.operations.deploy_operation import DeployAzureVMOperation
 
 
