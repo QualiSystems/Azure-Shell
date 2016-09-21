@@ -29,7 +29,7 @@ class AzureShell(object):
         cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(command_context.resource)
         azure_vm_deployment_model = self.model_parser.convert_to_deployment_resource_model(deployment_request)
 
-        with AzureClientFactoryContext(command_context) as azure_clients_factory:
+        with AzureClientFactoryContext(cloud_provider_model) as azure_clients_factory:
             with LoggingSessionContext(command_context) as logger:
                 with ErrorHandlingContext(logger):
                     logger.info('Deploying Azure VM')
