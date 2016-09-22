@@ -13,6 +13,10 @@ class DeployAzureVMOperation(object):
         """
 
         :param logger:
+        :param vm_service:
+        :param network_service:
+        :param cloudshell.cp.azure.domain.services.storage_service.StorageService storage_service:
+        :param tags_service:
         :return:
         """
 

@@ -34,7 +34,7 @@ class TestAzureShell(TestCase):
         # Arrange
         self.vm_service.create_resource_group = Mock(return_value=True)
         self.storage_service.create_storage_account = Mock(return_value=True)
-        self.network_service.create_network = Mock(return_value="The Created NIC")
+        self.network_service.create_network = Mock(return_value=Mock())
         self.vm_service.create_vm = Mock(return_value=Mock())
 
         # Act

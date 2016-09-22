@@ -75,16 +75,24 @@ class VirtualMachineService(object):
 
         storage_profile = StorageProfile(os_disk=os_disk, image_reference=image_reference)
 
-        virtual_machine = VirtualMachine(location=region,
-                                         tags=tags,
-                                         os_profile=os_profile,
-                                         hardware_profile=hardware_profile,
-                                         network_profile=network_profile,
-                                         storage_profile=storage_profile)
+        virtual_machine = self._get_virtual_machine(hardware_profile,
+                                                    network_profile,
+                                                    os_profile,
+                                                    region,
+                                                    storage_profile,
+                                                    tags)
 
         vm_result = compute_management_client.virtual_machines.create_or_update(group_name, vm_name, virtual_machine)
 
         return vm_result.result()
+
+    def _get_virtual_machine(self, hardware_profile, network_profile, os_profile, region, storage_profile, tags):
+        return VirtualMachine(location=region,
+                              tags=tags,
+                              os_profile=os_profile,
+                              hardware_profile=hardware_profile,
+                              network_profile=network_profile,
+                              storage_profile=storage_profile)
 
     def create_resource_group(self, resource_management_client, group_name, region, tags):
         return resource_management_client.resource_groups.create_or_update(group_name,
