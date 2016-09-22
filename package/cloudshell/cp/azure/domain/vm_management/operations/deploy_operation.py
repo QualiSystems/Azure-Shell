@@ -61,7 +61,7 @@ class DeployAzureVMOperation(object):
         # 1. Crate a resource group
         self.vm_service.create_resource_group(resource_management_client=resource_client,
                                               group_name=group_name,
-                                              region=cloud_provider_model.region, 
+                                              region=cloud_provider_model.region,
                                               tags=tags)
 
         # 2. Create a storage account
@@ -73,13 +73,13 @@ class DeployAzureVMOperation(object):
 
         # 3. Create the network interface
         nic = self.network_service.create_network(network_client=network_client,
-                                                     group_name=group_name,
-                                                     interface_name=interface_name,
-                                                     ip_name=ip_name,
-                                                     network_name=network_name,
-                                                     region=cloud_provider_model.region,
-                                                     subnet_name=subnet_name,
-                                                     tags=tags)
+                                                  group_name=group_name,
+                                                  interface_name=interface_name,
+                                                  ip_name=ip_name,
+                                                  network_name=network_name,
+                                                  region=cloud_provider_model.region,
+                                                  subnet_name=subnet_name,
+                                                  tags=tags)
 
         # 4. create Vm
         result_create = self.vm_service.create_vm(compute_management_client=compute_client,

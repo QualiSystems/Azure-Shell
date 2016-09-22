@@ -16,6 +16,7 @@ class TestServices(TestCase):
         compute_management_client.virtual_machines = Mock()
         compute_management_client.virtual_machines.create_or_update = Mock(return_value=Mock())
 
+        # Act
         vm_service.create_vm(compute_management_client=compute_management_client,
                              image_offer=Mock(),
                              image_publisher=Mock(),
@@ -31,6 +32,5 @@ class TestServices(TestCase):
                              vm_name=Mock(),
                              tags=Mock())
 
-        # Act
-
         # verify
+        self.assertTrue(compute_management_client.virtual_machines.create_or_update.called)
