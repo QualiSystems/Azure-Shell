@@ -6,9 +6,14 @@ class NetworkService(object):
     def __init__(self):
         pass
 
+<<<<<<< HEAD
     def create_network(self, group_name, interface_name, ip_name, region, subnet_name, network_name, tags):
         nic = self.create_network_interface(
+=======
+    def create_network(self, network_client, group_name, interface_name, ip_name, region, subnet_name, network_name):
+        nic_id = self.create_network_interface(
             network_client,
+>>>>>>> 1ae0feb3c47ebf025aeb64855aee58556cb274e8
             region,
             group_name,
             interface_name,
@@ -25,9 +30,14 @@ class NetworkService(object):
                                  interface_name,
                                  network_name,
                                  subnet_name,
+<<<<<<< HEAD
                                  ip_name,
                                  tags):
+        result = self.network_client.virtual_networks.create_or_update(
+=======
+                                 ip_name):
         result = network_client.virtual_networks.create_or_update(
+>>>>>>> 1ae0feb3c47ebf025aeb64855aee58556cb274e8
             management_group_name,
             network_name,
             azure.mgmt.network.models.VirtualNetwork(
