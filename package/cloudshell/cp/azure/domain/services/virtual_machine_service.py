@@ -54,7 +54,8 @@ class VirtualMachineService(object):
         :param tags:
         :return:
         """
-        os_profile = OSProfile(admin_username=admin_username, admin_password=admin_password,computer_name=computer_name)
+        os_profile = OSProfile(admin_username=admin_username, admin_password=admin_password,
+                               computer_name=computer_name)
 
         hardware_profile = HardwareProfile(vm_size=VirtualMachineSizeTypes.basic_a0)
 
@@ -86,5 +87,5 @@ class VirtualMachineService(object):
         return vm_result.result()
 
     def create_resource_group(self, resource_management_client, group_name, region, tags):
-        return resource_management_client.resource_groups.create_or_update(group_name,ResourceGroup(location=region))
-            ResourceGroup(location=region,tags=tags)
+        return resource_management_client.resource_groups.create_or_update(group_name,
+                                                                           ResourceGroup(location=region, tags=tags))
