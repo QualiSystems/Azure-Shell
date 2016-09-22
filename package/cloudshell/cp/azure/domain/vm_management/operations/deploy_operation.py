@@ -55,20 +55,22 @@ class DeployAzureVMOperation(object):
         tags = self.tags_service.get_tags(vm_name,admin_username,subnet_name,reservation)
 
         # 1. Crate a resource group
-        self.vm_service.create_resource_group(group_name=group_name, region=cloud_provider_model.region)
+        self.vm_service.create_resource_group(group_name=group_name, region=cloud_provider_model.region, tags=tags)
 
         # 2. Create a storage account
         self.storage_service.create_storage_account(group_name=group_name,
                                                     region=cloud_provider_model.region,
-                                                    storage_account_name=storage_account_name)
+                                                    storage_account_name=storage_account_name,
+                                                    tags=tags)
 
         # 3. Create the network interface
-        nic_id = self.network_service.create_network(group_name=group_name,
+        nic = self.network_service.create_network(group_name=group_name,
                                                      interface_name=interface_name,
                                                      ip_name=ip_name,
                                                      network_name=network_name,
                                                      region=cloud_provider_model.region,
-                                                     subnet_name=subnet_name)
+                                                     subnet_name=subnet_name,
+                                                     tags=tags)
 
         # 4. create Vm
         result_create = self.vm_service.create_vm(image_offer=azure_vm_deployment_model.image_offer,
@@ -79,7 +81,7 @@ class DeployAzureVMOperation(object):
                                                   admin_username=admin_username,
                                                   computer_name=computer_name,
                                                   group_name=group_name,
-                                                  nic_id=nic_id,
+                                                  nic_id=nic.id,
                                                   region=cloud_provider_model.region,
                                                   storage_name=storage_account_name,
                                                   vm_name=vm_name,
@@ -87,7 +89,6 @@ class DeployAzureVMOperation(object):
 
         public_ip = self.network_service.get_public_ip(group_name=group_name, ip_name=ip_name)
         public_ip_address = public_ip.ip_address
-        # private_ip_address = public_ip.ip_configuration.private_ip_address
 
         deployed_app_attributes = self._prepare_deployed_app_attributes(admin_username, admin_password, public_ip_address)
 

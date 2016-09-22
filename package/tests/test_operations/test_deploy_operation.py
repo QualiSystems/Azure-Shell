@@ -8,7 +8,7 @@ from cloudshell.cp.azure.domain.services.virtual_machine_service import VirtualM
 from cloudshell.cp.azure.domain.vm_management.operations.deploy_operation import DeployAzureVMOperation
 from cloudshell.cp.azure.models.azure_cloud_provider_resource_model import AzureCloudProviderResourceModel
 from cloudshell.cp.azure.models.deploy_azure_vm_resource_model import DeployAzureVMResourceModel
-from tests.test_helpers.test_helper import TestHelper
+from test_helpers.test_helper import TestHelper
 
 
 class TestAzureShell(TestCase):

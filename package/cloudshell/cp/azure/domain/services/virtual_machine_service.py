@@ -66,10 +66,10 @@ class VirtualMachineService(object):
         )
         return vm_result.result()
 
-    def create_resource_group(self, group_name, region):
+    def create_resource_group(self, group_name, region, tags):
         return self.resource_management_client.resource_groups.create_or_update(
             group_name,
-            ResourceGroup(location=region)
+            ResourceGroup(location=region,tags=tags)
         )
 
 

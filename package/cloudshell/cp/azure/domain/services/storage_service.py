@@ -6,7 +6,7 @@ class StorageService(object):
     def __init__(self, storage_client):
         self.storage_client = storage_client
 
-    def create_storage_account(self, group_name, region, storage_account_name):
+    def create_storage_account(self, group_name, region, storage_account_name, tags):
         kind_storage_value = azure.mgmt.storage.models.Kind.storage.value
         sku_name = SkuName.standard_lrs
         sku = azure.mgmt.storage.models.Sku(sku_name)
@@ -14,5 +14,6 @@ class StorageService(object):
                                                                               StorageAccountCreateParameters(
                                                                                   sku=sku,
                                                                                   kind=kind_storage_value,
-                                                                                  location=region))
+                                                                                  location=region,
+                                                                              tags=tags))
         storage_accounts_create.wait()  # async operation

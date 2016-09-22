@@ -6,27 +6,30 @@ class NetworkService(object):
     def __init__(self, network_client):
         self.network_client = network_client
 
-    def create_network(self, group_name, interface_name, ip_name, region, subnet_name, network_name):
-        nic_id = self.create_network_interface(
+    def create_network(self, group_name, interface_name, ip_name, region, subnet_name, network_name, tags):
+        nic = self.create_network_interface(
             region,
             group_name,
             interface_name,
             network_name,
             subnet_name,
-            ip_name)
-        return nic_id
+            ip_name,
+            tags)
+        return nic
 
     def create_network_interface(self, region,
                                  management_group_name,
                                  interface_name,
                                  network_name,
                                  subnet_name,
-                                 ip_name):
+                                 ip_name,
+                                 tags):
         result = self.network_client.virtual_networks.create_or_update(
             management_group_name,
             network_name,
             azure.mgmt.network.models.VirtualNetwork(
                 location=region,
+                tags=tags,
                 address_space=azure.mgmt.network.models.AddressSpace(
                     address_prefixes=[
                         '10.1.0.0/16',
@@ -39,6 +42,7 @@ class NetworkService(object):
                     ),
                 ],
             ),
+            tags=tags
         )
 
         result.wait()
@@ -52,6 +56,7 @@ class NetworkService(object):
                 location=region,
                 public_ip_allocation_method=azure.mgmt.network.models.IPAllocationMethod.dynamic,
                 idle_timeout_in_minutes=4,
+                tags=tags
             ),
         )
 
@@ -75,6 +80,32 @@ class NetworkService(object):
                         ),
                     ),
                 ],
+                tags=tags
+            ),
+        )
+
+        result.wait()
+
+        private_ip_address = result.result().ip_configurations[0].private_ip_address
+
+        # update the type of private ip from dynamic to static (ip itself must be supplied)
+        result = self.network_client.network_interfaces.create_or_update(
+            management_group_name,
+            interface_name,
+            NetworkInterface(
+                location=region,
+                ip_configurations=[
+                    NetworkInterfaceIPConfiguration(
+                        name='default',
+                        private_ip_allocation_method=IPAllocationMethod.static,
+                        private_ip_address=private_ip_address,
+                        subnet=subnet,
+                        public_ip_address=azure.mgmt.network.models.PublicIPAddress(
+                            id=public_ip_id,
+                        ),
+                    ),
+                ],
+                tags=tags
             ),
         )
 
@@ -85,7 +116,7 @@ class NetworkService(object):
             interface_name,
         )
 
-        return network_interface.id
+        return network_interface
 
     def get_public_ip(self, group_name, ip_name):
         """
