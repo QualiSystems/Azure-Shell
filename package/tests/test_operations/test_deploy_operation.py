@@ -1,6 +1,7 @@
 from unittest import TestCase
-import uuid
+
 from mock import Mock
+
 from cloudshell.cp.azure.domain.services.network_service import NetworkService
 from cloudshell.cp.azure.domain.services.storage_service import StorageService
 from cloudshell.cp.azure.domain.services.tags import TagService
@@ -14,9 +15,9 @@ from test_helpers.test_helper import TestHelper
 class TestAzureShell(TestCase):
     def setUp(self):
         self.logger = Mock()
-        self.storage_service = StorageService(Mock())
-        self.vm_service = VirtualMachineService(Mock(), Mock())
-        self.network_service = NetworkService(Mock())
+        self.storage_service = StorageService()
+        self.vm_service = VirtualMachineService()
+        self.network_service = NetworkService()
         self.tag_service = TagService()
         self.deploy_operation = DeployAzureVMOperation(logger=self.logger,
                                                        vm_service=self.vm_service,
@@ -37,7 +38,13 @@ class TestAzureShell(TestCase):
         self.vm_service.create_vm = Mock(return_value=Mock())
 
         # Act
-        self.deploy_operation.deploy(DeployAzureVMResourceModel(), AzureCloudProviderResourceModel(), Mock())
+        self.deploy_operation.deploy(DeployAzureVMResourceModel(),
+                                     AzureCloudProviderResourceModel(),
+                                     Mock(),
+                                     Mock(),
+                                     Mock(),
+                                     Mock(),
+                                     Mock())
 
         # Verify
         self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.vm_service.create_resource_group))

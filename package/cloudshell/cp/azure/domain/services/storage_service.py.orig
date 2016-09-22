@@ -6,7 +6,11 @@ class StorageService(object):
     def __init__(self):
         pass
 
-    def create_storage_account(self,storage_client, group_name, region, storage_account_name, tags):
+<<<<<<< HEAD
+    def create_storage_account(self, group_name, region, storage_account_name, tags):
+=======
+    def create_storage_account(self,storage_client, group_name, region, storage_account_name):
+>>>>>>> 1ae0feb3c47ebf025aeb64855aee58556cb274e8
         kind_storage_value = azure.mgmt.storage.models.Kind.storage.value
         sku_name = SkuName.standard_lrs
         sku = azure.mgmt.storage.models.Sku(sku_name)

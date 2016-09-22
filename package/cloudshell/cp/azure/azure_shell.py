@@ -18,6 +18,10 @@ class AzureShell(object):
     def __init__(self):
         self.command_result_parser = CommandResultsParser()
         self.model_parser = AzureModelsParser()
+        self.vm_service = VirtualMachineService()
+        self.network_service = NetworkService()
+        self.storage_service = StorageService()
+        self.tags_service = TagService()
 
     def deploy_azure_vm(self, command_context, deployment_request):
         """
@@ -29,9 +33,9 @@ class AzureShell(object):
         cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(command_context.resource)
         azure_vm_deployment_model = self.model_parser.convert_to_deployment_resource_model(deployment_request)
 
-        with AzureClientFactoryContext(cloud_provider_model) as azure_clients_factory:
-            with LoggingSessionContext(command_context) as logger:
-                with ErrorHandlingContext(logger):
+        with LoggingSessionContext(command_context) as logger:
+            with ErrorHandlingContext(logger):
+                with AzureClientFactoryContext(cloud_provider_model) as azure_clients_factory:
                     logger.info('Deploying Azure VM')
 
                     compute_client = azure_clients_factory.get_client(ComputeManagementClient)
@@ -39,25 +43,21 @@ class AzureShell(object):
                     network_client = azure_clients_factory.get_client(NetworkManagementClient)
                     storage_client = azure_clients_factory.get_client(StorageManagementClient)
 
-                    vm_service = VirtualMachineService(compute_management_client=compute_client,
-                                                       resource_management_client=resource_client)
-
-                    network_service = NetworkService(network_client=network_client)
-
-                    storage_service = StorageService(storage_client=storage_client)
-
-                    tags_service = TagService()
-
                     deploy_azure_vm_operation = DeployAzureVMOperation(logger=logger,
-                                                                       vm_service=vm_service,
-                                                                       network_service=network_service,
-                                                                       storage_service=storage_service,
-                                                                       tags_service=tags_service)
+                                                                       vm_service=self.vm_service,
+                                                                       network_service=self.network_service,
+                                                                       storage_service=self.storage_service,
+                                                                       tags_service=self.tags_service)
 
                     deploy_data = deploy_azure_vm_operation.deploy(azure_vm_deployment_model=azure_vm_deployment_model,
                                                                    cloud_provider_model=cloud_provider_model,
-                                                                   reservation=self.model_parser.convert_to_reservation_model(
-                                                                       command_context.reservation))
+                                                                   reservation=self.model_parser
+                                                                   .convert_to_reservation_model(
+                                                                       command_context.reservation),
+                                                                   storage_client=storage_client,
+                                                                   network_client=network_client,
+                                                                   compute_client=compute_client,
+                                                                   resource_client=resource_client)
 
                     # ---Remove this----
                     # deploy_data = None

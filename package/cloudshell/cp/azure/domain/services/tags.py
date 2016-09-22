@@ -27,7 +27,6 @@ class TagService(object):
                 TagNames.Name: vm_name,
                 TagNames.CreatedBy: TagService.CREATED_BY_QUALI,
                 TagNames.Owner: reservation.owner,
-                TagNames.Isolation: subnet_name,
                 TagNames.ReservationId: reservation.reservation_id,
                 TagNames.Blueprint: reservation.blueprint,
                 TagNames.Domain: reservation.domain
