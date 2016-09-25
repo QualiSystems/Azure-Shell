@@ -73,7 +73,7 @@ class TestNetworkService(TestCase):
         self.assertEqual(network_client.network_interfaces.create_or_update.call_args_list[0][0][2].ip_configurations[0].private_ip_allocation_method,
                          IPAllocationMethod.dynamic)
 
-        # first time static
+        # second time static
         self.assertEqual(network_client.network_interfaces.create_or_update.call_args_list[1][0][2].ip_configurations[0].private_ip_allocation_method,
                          IPAllocationMethod.static)
 
