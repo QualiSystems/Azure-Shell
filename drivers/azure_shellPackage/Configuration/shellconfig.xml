@@ -4,20 +4,25 @@
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xmlns="http://schemas.qualisystems.com/ResourceManagement/ShellsConfigurationSchema.xsd">
     <ResourceTemplates>
-        <ResourceTemplate Name="AWS EC2" Model="AWS EC2" Driver="AWS Shell Driver" AddressRequired="false">
-            <Description>AWS EC2 template will create a AWS EC2 resource in CloudShell. Once the AWS EC2 is modeled correctly in CloudShell it will be possible to deploy Apps on this AWS EC2.</Description>
+        <ResourceTemplate Name="Azure" Model="Azure" Driver="Azure Shell Driver" AddressRequired="false">
+            <Description>Azure </Description>
             <AutoLoad Enable="true">
                 <Description>After filling in all the inputs click Start Discovery to complete the cloud provider creation process</Description>
             </AutoLoad>
             <Attributes>
                 <Attribute Name="Region" Value="" />
-                <Attribute Name="AWS Mgmt SG ID" Value="" />
-                <Attribute Name="AWS Mgmt VPC ID" Value="" />
-                <Attribute Name="Keypairs Location" Value="" />
-                <Attribute Name="Max Storage Size" Value="0" />
-                <Attribute Name="Max Storage IOPS" Value="0" />
-                <Attribute Name="Networks In Use" Value="" />
-                <Attribute Name="Instance Type" Value="" />
+                <Attribute Value="" Name="Instance Type"/>
+                <Attribute Value="" Name="Azure Mgmt NSG ID"/>
+                <Attribute Value="" Name="Azure Mgmt Network ID"/>
+                <Attribute Value="" Name="Keypairs Location"/>
+                <Attribute Value="" Name="Networks In Use"/>
+                <Attribute Value="" Name="Azure Subscription ID"/>
+                <Attribute Value="" Name="Azure Tenant"/>
+                <Attribute Value="" Name="Azure Secret"/>
+                <Attribute Value="" Name="Azure Client ID"/>
+                <Attribute Value="" Name="Azure Mgmt VNET"/>
+                <Attribute Value="" Name="Storage Type"/>
+
             </Attributes>
         </ResourceTemplate>
     </ResourceTemplates>

@@ -1,6 +1,5 @@
-azure==2.0.0rc6
 cloudshell-automation-api>=7.1.0.0,<7.2.0.0
-cloudshell-core>=2.1.0,<2.2.0
 cloudshell-shell-core>=2.2.0,<2.3.0
 jsonpickle==0.9.3
-enum==0.4.6
+cloudshell-cp-azure>=1.0.0
+azure==2.0.0rc6

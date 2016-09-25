@@ -1,0 +1,21 @@
+<Driver Description="This driver orchestrate all the command that will be executed on Azure" MainClass="driver.AzureShellDriver" Name="Azure Shell Driver" Version="1.0.0 ">
+    <Layout>
+        <Category Name="Deployment">
+            <Command Description="" DisplayName="Deploy VM" Name="deploy_vm" Tags="allow_unreserved" />
+        </Category>
+        <Category Name="Connectivity">
+            <Command Description="" DisplayName="Refresh IP" EnableCancellation="true" Name="remote_refresh_ip" Tags="remote_connectivity,allow_shared" />
+            <Command Description="" DisplayName="Get Application Ports" EnableCancellation="true" Name="GetApplicationPorts" Tags="remote_connectivity,allow_shared" />
+            <Command Description="" DisplayName="Prepare Connectivity" Name="PrepareConnectivity" Tags="allow_unreserved" />
+            <Command Description="" DisplayName="Cleanup Connectivity" Name="CleanupConnectivity" Tags="allow_unreserved" />
+        </Category>
+        <Category Name="Hidden Commands">
+            <Command Description="" DisplayName="Power Cycle" Name="PowerCycle" Tags="power" />
+            <Command Description="" Name="destroy_vm_only" />
+        </Category>
+        <Category Name="Power">
+            <Command Description="" DisplayName="Power On" Name="PowerOn" Tags="power" />
+            <Command Description="" DisplayName="Power Off" Name="PowerOff" Tags="power" />
+        </Category>
+    </Layout>
+</Driver>
