@@ -99,7 +99,8 @@ class DeployAzureVMOperation(object):
                                                   region=cloud_provider_model.region,
                                                   storage_name=storage_account_name,
                                                   vm_name=vm_name,
-                                                  tags=tags)
+                                                  tags=tags,
+                                                  instance_type=azure_vm_deployment_model.instance_type)
 
         public_ip = self.network_service.get_public_ip(network_client=network_client,
                                                        group_name=group_name,

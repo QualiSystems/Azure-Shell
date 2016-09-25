@@ -35,9 +35,11 @@ class VirtualMachineService(object):
                   region,
                   storage_name,
                   vm_name,
-                  tags):
+                  tags,
+                  instance_type):
         """
 
+        :param instance_type:
         :param compute_management_client:
         :param image_offer:
         :param image_publisher:
@@ -54,10 +56,11 @@ class VirtualMachineService(object):
         :param tags:
         :return:
         """
-        os_profile = OSProfile(admin_username=admin_username, admin_password=admin_password,
+        os_profile = OSProfile(admin_username=admin_username,
+                               admin_password=admin_password,
                                computer_name=computer_name)
 
-        hardware_profile = HardwareProfile(vm_size=VirtualMachineSizeTypes.basic_a0)
+        hardware_profile = HardwareProfile(vm_size=instance_type)
 
         network_profile = NetworkProfile(network_interfaces=[NetworkInterfaceReference(id=nic_id)])
 
