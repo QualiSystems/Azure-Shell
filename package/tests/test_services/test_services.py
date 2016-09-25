@@ -1,10 +1,11 @@
 from unittest import TestCase
 
+from azure.mgmt.network.models import IPAllocationMethod
 from azure.mgmt.storage.models import StorageAccountCreateParameters
-from mock import Mock
-
+from cloudshell.cp.azure.domain.services.network_service import NetworkService
 from cloudshell.cp.azure.domain.services.storage_service import StorageService
 from cloudshell.cp.azure.domain.services.virtual_machine_service import VirtualMachineService
+from mock import Mock
 
 
 class TestStorageService(TestCase):
@@ -32,6 +33,49 @@ class TestStorageService(TestCase):
                                                                       kind=kind_storage_value,
                                                                       location=region,
                                                                       tags=tags))
+
+
+class TestNetworkService(TestCase):
+    def setUp(self):
+        self.network_service = NetworkService()
+
+    def test_vm_created_with_private_ip_static(self):
+        # Arrange
+
+        region = "us"
+        management_group_name = "company"
+        interface_name = "interface"
+        network_name = "network"
+        subnet_name = "subnet"
+        ip_name = "ip"
+        tags = "tags"
+
+        network_client = Mock()
+        network_client.virtual_networks.create_or_update = Mock()
+        network_client.subnets.get = Mock()
+        network_client.public_ip_addresses.create_or_update = Mock()
+        network_client.public_ip_addresses.get = Mock()
+        result = Mock()
+        result.result().ip_configurations = [Mock()]
+        network_client.network_interfaces.create_or_update = Mock(return_value=result)
+
+        # Act
+
+        self.network_service.create_network_interface(network_client, region, management_group_name,
+                                                      interface_name, network_name, subnet_name,
+                                                      ip_name, tags)
+
+        # Verify
+
+        self.assertEqual(network_client.network_interfaces.create_or_update.call_count, 2)
+
+        # first time dynamic
+        self.assertEqual(network_client.network_interfaces.create_or_update.call_args_list[0][0][2].ip_configurations[0].private_ip_allocation_method,
+                         IPAllocationMethod.dynamic)
+
+        # first time static
+        self.assertEqual(network_client.network_interfaces.create_or_update.call_args_list[1][0][2].ip_configurations[0].private_ip_allocation_method,
+                         IPAllocationMethod.static)
 
 
 class TestVMService(TestCase):
