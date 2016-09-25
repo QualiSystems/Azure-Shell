@@ -108,7 +108,8 @@ class TestVMService(TestCase):
                                   region=region,
                                   storage_name=mock,
                                   vm_name=vm_name,
-                                  tags=tags)
+                                  tags=tags,
+                                  instance_type=mock)
 
         # Verify
         compute_management_client.virtual_machines.create_or_update.assert_called_with(group_name, vm_name, vm)
