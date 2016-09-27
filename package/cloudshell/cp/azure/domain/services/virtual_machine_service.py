@@ -115,3 +115,13 @@ class VirtualMachineService(object):
     def create_resource_group(self, resource_management_client, group_name, region, tags):
         return resource_management_client.resource_groups.create_or_update(group_name,
                                                                            ResourceGroup(location=region, tags=tags))
+
+    def delete_vm(self, compute_management_client, group_name, vm_name):
+        """
+
+        :param azure.mgmt.compute.compute_management_client.ComputeManagementClient compute_management_client:
+        :param group_name:
+        :param vm_name:
+        :return:
+        """
+        compute_management_client

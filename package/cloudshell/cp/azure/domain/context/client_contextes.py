@@ -50,3 +50,18 @@ class StorageManagementClientContext(object):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         pass
+
+
+class CleanUpOnDriverErrorContext(object):
+    def __init__(self, vm_srvice, nic, ip):
+        self.nic = nic
+        self.ip = ip
+
+    def __enter__(self):
+        pass
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if not exc_val:
+            return True
+        # will delete the IP and the NIC
+        return False

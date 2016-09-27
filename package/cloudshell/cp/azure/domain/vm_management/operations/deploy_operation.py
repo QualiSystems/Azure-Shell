@@ -13,8 +13,8 @@ class DeployAzureVMOperation(object):
         """
 
         :param logger:
-        :param vm_service:
-        :param network_service:
+        :param cloudshell.cp.azure.domain.services.virtual_machine_service.VirtualMachineService vm_service:
+        :param cloudshell.cp.azure.domain.services.network_service.NetworkService network_service:
         :param cloudshell.cp.azure.domain.services.storage_service.StorageService storage_service:
         :param tags_service:
         :return:
@@ -62,45 +62,64 @@ class DeployAzureVMOperation(object):
         vm_name = random_name
         tags = self.tags_service.get_tags(vm_name, admin_username, subnet_name, reservation)
 
-        # 1. Crate a resource group
-        self.vm_service.create_resource_group(resource_management_client=resource_client,
-                                              group_name=group_name,
-                                              region=cloud_provider_model.region,
-                                              tags=tags)
-
-        # 2. Create a storage account
-        self.storage_service.create_storage_account(storage_client=storage_client,
-                                                    group_name=group_name,
-                                                    region=cloud_provider_model.region,
-                                                    storage_account_name=storage_account_name,
-                                                    tags=tags)
-
-        # 3. Create the network interface
-        nic = self.network_service.create_network(network_client=network_client,
+        try:
+            # 1. Crate a resource group
+            self.vm_service.create_resource_group(resource_management_client=resource_client,
                                                   group_name=group_name,
-                                                  interface_name=interface_name,
-                                                  ip_name=ip_name,
-                                                  network_name=network_name,
                                                   region=cloud_provider_model.region,
-                                                  subnet_name=subnet_name,
                                                   tags=tags)
 
-        # 4. create Vm
-        result_create = self.vm_service.create_vm(compute_management_client=compute_client,
-                                                  image_offer=azure_vm_deployment_model.image_offer,
-                                                  image_publisher=azure_vm_deployment_model.image_publisher,
-                                                  image_sku=azure_vm_deployment_model.image_sku,
-                                                  image_version='latest',
-                                                  admin_password=admin_password,
-                                                  admin_username=admin_username,
-                                                  computer_name=computer_name,
-                                                  group_name=group_name,
-                                                  nic_id=nic.id,
-                                                  region=cloud_provider_model.region,
-                                                  storage_name=storage_account_name,
-                                                  vm_name=vm_name,
-                                                  tags=tags,
-                                                  instance_type=azure_vm_deployment_model.instance_type)
+            # 2. Create a storage account
+            self.storage_service.create_storage_account(storage_client=storage_client,
+                                                        group_name=group_name,
+                                                        region=cloud_provider_model.region,
+                                                        storage_account_name=storage_account_name,
+                                                        tags=tags)
+
+            # 3. Create the network interface
+            nic = self.network_service.create_network(network_client=network_client,
+                                                      group_name=group_name,
+                                                      interface_name=interface_name,
+                                                      ip_name=ip_name,
+                                                      network_name=network_name,
+                                                      region=cloud_provider_model.region,
+                                                      subnet_name=subnet_name,
+                                                      tags=tags)
+
+            # 4. create Vm
+            result_create = self.vm_service.create_vm(compute_management_client=compute_client,
+                                                      image_offer=azure_vm_deployment_model.image_offer,
+                                                      image_publisher=azure_vm_deployment_model.image_publisher,
+                                                      image_sku=azure_vm_deployment_model.image_sku,
+                                                      image_version='latest',
+                                                      admin_password=admin_password,
+                                                      admin_username=admin_username,
+                                                      computer_name=computer_name,
+                                                      group_name=group_name,
+                                                      nic_id=nic.id,
+                                                      region=cloud_provider_model.region,
+                                                      storage_name=storage_account_name,
+                                                      vm_name=vm_name,
+                                                      tags=tags,
+                                                      instance_type=azure_vm_deployment_model.instance_type)
+
+        except Exception as e:
+
+            self.network_service.delete_nic(network_client=network_client,
+                                           group_name=group_name,
+                                           interface_name=interface_name,
+                                           region=cloud_provider_model.region)
+
+            self.network_service.delete_ip(network_client=network_client,
+                                            group_name=group_name,
+                                            ip_name=ip_name,
+                                            region=cloud_provider_model.region)
+
+            self.vm_service.delete_vm(compute_management_client=compute_client,
+                                      group_name=group_name,
+                                      vm_name=vm_name)
+
+            raise e
 
         public_ip = self.network_service.get_public_ip(network_client=network_client,
                                                        group_name=group_name,

@@ -131,3 +131,9 @@ class NetworkService(object):
         """
 
         return network_client.public_ip_addresses.get(group_name, ip_name)
+
+    def delete_nic(self, network_client, group_name, interface_name, region):
+        pass
+
+    def delete_ip(self, network_client, group_name, ip_name, region):
+        pass
