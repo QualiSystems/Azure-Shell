@@ -4,6 +4,7 @@ from azure.mgmt.resource import ResourceManagementClient
 from azure.mgmt.storage import StorageManagementClient
 from cloudshell.core.context.error_handling_context import ErrorHandlingContext
 from cloudshell.cp.azure.domain.services.tags import TagService
+from cloudshell.cp.azure.domain.vm_management.operations.delete_operation import DeleteAzureVMOperation
 from cloudshell.shell.core.session.logging_session import LoggingSessionContext
 from cloudshell.cp.azure.domain.context.azure_client_context import AzureClientFactoryContext
 from cloudshell.cp.azure.domain.services.network_service import NetworkService
@@ -60,3 +61,33 @@ class AzureShell(object):
                                                                    resource_client=resource_client)
 
                     return self.command_result_parser.set_command_result(deploy_data)
+
+    def delete_azure_vm(self, command_context):
+
+        cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(command_context.resource)
+
+        with LoggingSessionContext(command_context) as logger:
+            with ErrorHandlingContext(logger):
+                with AzureClientFactoryContext(cloud_provider_model) as azure_clients_factory:
+                    logger.info('Deleting Azure VM')
+
+                    compute_client = azure_clients_factory.get_client(ComputeManagementClient)
+                    resource_client = azure_clients_factory.get_client(ResourceManagementClient)
+                    network_client = azure_clients_factory.get_client(NetworkManagementClient)
+                    storage_client = azure_clients_factory.get_client(StorageManagementClient)
+
+                    delete_azure_vm_operation = DeleteAzureVMOperation(logger=logger,
+                                                                       vm_service=self.vm_service,
+                                                                       network_service=self.network_service)
+
+                    deploy_data = deploy_azure_vm_operation.deploy(azure_vm_deployment_model=azure_vm_deployment_model,
+                                                                   cloud_provider_model=cloud_provider_model,
+                                                                   reservation=self.model_parser
+                                                                   .convert_to_reservation_model(
+                                                                       command_context.reservation),
+                                                                   storage_client=storage_client,
+                                                                   network_client=network_client,
+                                                                   compute_client=compute_client,
+                                                                   resource_client=resource_client)
+
+

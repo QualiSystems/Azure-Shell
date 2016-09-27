@@ -17,6 +17,7 @@ class DeleteAzureVMOperation(object):
 
     def delete(self, compute_client, network_client, resource_group_name, vm_name):
         """
+        :param network_client:
         :param vm_name:
         :param resource_group_name:
         :param compute_client:
@@ -28,6 +29,10 @@ class DeleteAzureVMOperation(object):
                                       vm_name=vm_name)
 
             self.network_service.delete_nic(network_client=network_client)
+
+            self.vm_service.delete_vm(compute_management_client=compute_client,
+                                      group_name=resource_group_name,
+                                      vm_name=vm_name)
 
         except Exception as e:
             raise e
