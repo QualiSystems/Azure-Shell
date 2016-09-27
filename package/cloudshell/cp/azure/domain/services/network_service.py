@@ -6,7 +6,8 @@ class NetworkService(object):
     def __init__(self):
         pass
 
-    def create_network(self, network_client, group_name, interface_name, ip_name, region, subnet_name, network_name, tags):
+    def create_network(self, network_client, group_name, interface_name, ip_name, region, subnet_name, network_name,
+                       tags):
         nic = self.create_network_interface(
             network_client,
             region,
@@ -132,8 +133,22 @@ class NetworkService(object):
 
         return network_client.public_ip_addresses.get(group_name, ip_name)
 
-    def delete_nic(self, network_client, group_name, interface_name, region):
-        pass
+    def delete_nic(self, network_client, group_name, interface_name):
+        """
+
+        :param azure.mgmt.network.network_management_client.NetworkManagementClient network_client:
+        :param group_name:
+        :param interface_name:
+        :return:
+        """
+        network_client.network_interfaces.delete(group_name, interface_name)
 
     def delete_ip(self, network_client, group_name, ip_name, region):
-        pass
+        """
+
+        :param azure.mgmt.network.network_management_client.NetworkManagementClient network_client:
+        :param group_name:
+        :param ip_name:
+        :return:
+        """
+        network_client.network_interfaces.delete(group_name, ip_name)
