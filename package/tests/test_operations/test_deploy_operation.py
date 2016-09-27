@@ -51,3 +51,38 @@ class TestAzureShell(TestCase):
         self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.storage_service.create_storage_account))
         self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.network_service.create_network))
         self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.vm_service.create_vm))
+
+    def test_should_delete_all_created_on_error(self):
+        """
+        This method verifies the basic deployment of vm.
+        :return:
+        """
+
+        # Arrange
+        self.vm_service.create_resource_group = Mock(return_value=True)
+        self.storage_service.create_storage_account = Mock(return_value=True)
+        self.network_service.create_network = Mock(return_value=Mock())
+        self.vm_service.create_vm = Mock(side_effect=Exception('Boom!'))
+        self.network_service.delete_nic = Mock()
+        self.network_service.delete_ip = Mock()
+        self.vm_service.delete_vm = Mock()
+
+        # Act
+        self.assertRaises(Exception,
+                          self.deploy_operation.deploy,
+                          DeployAzureVMResourceModel(),
+                          AzureCloudProviderResourceModel(),
+                          Mock(),
+                          Mock(),
+                          Mock(),
+                          Mock(),
+                          Mock())
+
+        # Verify
+        self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.vm_service.create_resource_group))
+        self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.storage_service.create_storage_account))
+        self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.network_service.create_network))
+        self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.vm_service.create_vm))
+        self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.network_service.delete_nic))
+        self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.network_service.delete_ip))
+        self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.vm_service.delete_vm))

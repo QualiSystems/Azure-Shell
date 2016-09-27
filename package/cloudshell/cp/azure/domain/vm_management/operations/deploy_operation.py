@@ -106,12 +106,12 @@ class DeployAzureVMOperation(object):
         except Exception as e:
 
             self.network_service.delete_nic(network_client=network_client,
-                                           group_name=group_name,
-                                           interface_name=interface_name)
+                                            group_name=group_name,
+                                            interface_name=interface_name)
 
             self.network_service.delete_ip(network_client=network_client,
-                                            group_name=group_name,
-                                            ip_name=ip_name)
+                                           group_name=group_name,
+                                           ip_name=ip_name)
 
             self.vm_service.delete_vm(compute_management_client=compute_client,
                                       group_name=group_name,
