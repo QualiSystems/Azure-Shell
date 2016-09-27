@@ -12,6 +12,8 @@ from cloudshell.cp.azure.domain.services.parsers.command_result_parser import Co
 from cloudshell.cp.azure.domain.services.virtual_machine_service import VirtualMachineService
 from cloudshell.cp.azure.domain.services.storage_service import StorageService
 from cloudshell.cp.azure.domain.vm_management.operations.deploy_operation import DeployAzureVMOperation
+from cloudshell.cp.azure.domain.vm_management.operations.prepare_connectivity_operation import \
+    PrepareConnectivityOperation
 
 
 class AzureShell(object):
@@ -60,3 +62,9 @@ class AzureShell(object):
                                                                    resource_client=resource_client)
 
                     return self.command_result_parser.set_command_result(deploy_data)
+
+    def prepare_connectivity(self, context, request):
+        prepare_connectivity_operation = PrepareConnectivityOperation()
+        prepare_connectivity_operation.prepare_connectivity()
+
+
