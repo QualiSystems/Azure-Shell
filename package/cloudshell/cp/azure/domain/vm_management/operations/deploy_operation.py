@@ -13,8 +13,8 @@ class DeployAzureVMOperation(object):
         """
 
         :param logger:
-        :param vm_service:
-        :param network_service:
+        :param cloudshell.cp.azure.domain.services.virtual_machine_service.VirtualMachineService vm_service:
+        :param cloudshell.cp.azure.domain.services.network_service.NetworkService network_service:
         :param cloudshell.cp.azure.domain.services.storage_service.StorageService storage_service:
         :param tags_service:
         :return:
@@ -104,6 +104,21 @@ class DeployAzureVMOperation(object):
                                                       instance_type=azure_vm_deployment_model.instance_type)
 
         except Exception as e:
+
+            self.network_service.delete_nic(network_client=network_client,
+                                           group_name=group_name,
+                                           interface_name=interface_name,
+                                           region=cloud_provider_model.region)
+
+            self.network_service.delete_ip(network_client=network_client,
+                                            group_name=group_name,
+                                            ip_name=ip_name,
+                                            region=cloud_provider_model.region)
+
+            self.vm_service.delete_vm(compute_management_client=compute_client,
+                                      group_name=group_name,
+                                      vm_name=vm_name)
+
             raise e
 
         public_ip = self.network_service.get_public_ip(network_client=network_client,
