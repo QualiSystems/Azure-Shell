@@ -143,7 +143,7 @@ class NetworkService(object):
         """
         network_client.network_interfaces.delete(group_name, interface_name)
 
-    def delete_ip(self, network_client, group_name, ip_name, region):
+    def delete_ip(self, network_client, group_name, ip_name):
         """
 
         :param azure.mgmt.network.network_management_client.NetworkManagementClient network_client:
@@ -151,4 +151,4 @@ class NetworkService(object):
         :param ip_name:
         :return:
         """
-        network_client.network_interfaces.delete(group_name, ip_name)
+        network_client.public_ip_addresses.delete(group_name, ip_name)
