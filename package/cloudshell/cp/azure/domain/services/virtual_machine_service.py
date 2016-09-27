@@ -1,9 +1,7 @@
-import azure
-from azure.mgmt.compute.models import OSProfile, HardwareProfile, VirtualMachineSizeTypes, NetworkProfile, \
+from azure.mgmt.compute.models import OSProfile, HardwareProfile, NetworkProfile, \
     NetworkInterfaceReference, CachingTypes, DiskCreateOptionTypes, VirtualHardDisk, ImageReference, OSDisk, \
     VirtualMachine, StorageProfile
 from azure.mgmt.resource.resources.models import ResourceGroup
-from azure.mgmt.storage.models import SkuName
 
 
 class VirtualMachineService(object):
@@ -124,4 +122,5 @@ class VirtualMachineService(object):
         :param vm_name:
         :return:
         """
-        compute_management_client
+        compute_management_client.virtual_machines.delete(resource_group_name=group_name,
+                                                          vm_name=vm_name)

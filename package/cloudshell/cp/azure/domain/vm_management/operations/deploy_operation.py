@@ -36,7 +36,7 @@ class DeployAzureVMOperation(object):
         """
         :param storage_client:
         :param resource_client:
-        :param compute_client:
+        :param azure.mgmt.compute.compute_management_client.ComputeManagementClient compute_client:
         :param network_client:
         :param reservation: cloudshell.cp.azure.models.reservation_model.ReservationModel
         :param cloudshell.cp.azure.models.deploy_azure_vm_resource_model.DeployAzureVMResourceModel azure_vm_deployment_model:
@@ -107,13 +107,11 @@ class DeployAzureVMOperation(object):
 
             self.network_service.delete_nic(network_client=network_client,
                                            group_name=group_name,
-                                           interface_name=interface_name,
-                                           region=cloud_provider_model.region)
+                                           interface_name=interface_name)
 
             self.network_service.delete_ip(network_client=network_client,
                                             group_name=group_name,
-                                            ip_name=ip_name,
-                                            region=cloud_provider_model.region)
+                                            ip_name=ip_name)
 
             self.vm_service.delete_vm(compute_management_client=compute_client,
                                       group_name=group_name,
