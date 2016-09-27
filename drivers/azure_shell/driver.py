@@ -32,7 +32,9 @@ class AzureShellDriver(ResourceDriverInterface):
         pass
 
     def destroy_vm_only(self, context, ports):
-        pass
+        azure_shell = AzureShell()
+        azure_shell.delete_azure_vm(command_context=context)
+
 
     def PrepareConnectivity(self, context, request):
         pass

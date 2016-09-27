@@ -63,7 +63,6 @@ class AzureShell(object):
                     return self.command_result_parser.set_command_result(deploy_data)
 
     def delete_azure_vm(self, command_context):
-
         cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(command_context.resource)
 
         with LoggingSessionContext(command_context) as logger:
@@ -72,22 +71,18 @@ class AzureShell(object):
                     logger.info('Deleting Azure VM')
 
                     compute_client = azure_clients_factory.get_client(ComputeManagementClient)
-                    resource_client = azure_clients_factory.get_client(ResourceManagementClient)
                     network_client = azure_clients_factory.get_client(NetworkManagementClient)
-                    storage_client = azure_clients_factory.get_client(StorageManagementClient)
+
+                    vm_name = command_context.remote_endpoints[0].fullname
+                    resource_group_name = command_context.remote_reservation.reservation_id
 
                     delete_azure_vm_operation = DeleteAzureVMOperation(logger=logger,
                                                                        vm_service=self.vm_service,
                                                                        network_service=self.network_service)
 
-                    deploy_data = deploy_azure_vm_operation.deploy(azure_vm_deployment_model=azure_vm_deployment_model,
-                                                                   cloud_provider_model=cloud_provider_model,
-                                                                   reservation=self.model_parser
-                                                                   .convert_to_reservation_model(
-                                                                       command_context.reservation),
-                                                                   storage_client=storage_client,
-                                                                   network_client=network_client,
-                                                                   compute_client=compute_client,
-                                                                   resource_client=resource_client)
-
-
+                    delete_azure_vm_operation.delete(
+                        compute_client=compute_client,
+                        network_client=network_client,
+                        group_name=resource_group_name,
+                        vm_name=vm_name
+                    )
