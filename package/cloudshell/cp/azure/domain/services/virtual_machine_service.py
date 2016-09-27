@@ -1,9 +1,7 @@
-import azure
-from azure.mgmt.compute.models import OSProfile, HardwareProfile, VirtualMachineSizeTypes, NetworkProfile, \
+from azure.mgmt.compute.models import OSProfile, HardwareProfile, NetworkProfile, \
     NetworkInterfaceReference, CachingTypes, DiskCreateOptionTypes, VirtualHardDisk, ImageReference, OSDisk, \
     VirtualMachine, StorageProfile
 from azure.mgmt.resource.resources.models import ResourceGroup
-from azure.mgmt.storage.models import SkuName
 
 
 class VirtualMachineService(object):
@@ -20,6 +18,21 @@ class VirtualMachineService(object):
         """
 
         return compute_management_client.virtual_machines.get(group_name, vm_name)
+
+    def delete_vm(self,
+                  compute_management_client,
+                  resource_group_name,
+                  vm_name):
+        """
+        :param compute_management_client:
+        :param resource_group_name:
+        :param vm_name:
+        :return:
+        """
+
+        result = compute_management_client.virtual_machines.delete(resource_group_name, vm_name)
+
+        return result.result()
 
     def create_vm(self,
                   compute_management_client,
@@ -100,3 +113,14 @@ class VirtualMachineService(object):
     def create_resource_group(self, resource_management_client, group_name, region, tags):
         return resource_management_client.resource_groups.create_or_update(group_name,
                                                                            ResourceGroup(location=region, tags=tags))
+
+    def delete_vm(self, compute_management_client, group_name, vm_name):
+        """
+
+        :param azure.mgmt.compute.compute_management_client.ComputeManagementClient compute_management_client:
+        :param group_name:
+        :param vm_name:
+        :return:
+        """
+        compute_management_client.virtual_machines.delete(resource_group_name=group_name,
+                                                          vm_name=vm_name)
