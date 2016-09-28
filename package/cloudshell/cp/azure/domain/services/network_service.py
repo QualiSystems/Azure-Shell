@@ -28,30 +28,13 @@ class NetworkService(object):
                                  subnet_name,
                                  ip_name,
                                  tags):
-        result = network_client.virtual_networks.create_or_update(
-            management_group_name,
-            network_name,
-            azure.mgmt.network.models.VirtualNetwork(
-                location=region,
-                tags=tags,
-                address_space=azure.mgmt.network.models.AddressSpace(
-                    address_prefixes=[
-                        '10.1.0.0/16',
-                    ],
-                ),
-                subnets=[
-                    azure.mgmt.network.models.Subnet(
-                        name=subnet_name,
-                        address_prefix='10.1.0.0/24',
-                    ),
-                ],
-            ),
-            tags=tags
-        )
 
-        result.wait()
-
-        subnet = network_client.subnets.get(management_group_name, network_name, subnet_name)
+        subnet = self.create_virtual_network(management_group_name,
+                                             network_client,
+                                             network_name,
+                                             region,
+                                             subnet_name,
+                                             tags)
 
         result = network_client.public_ip_addresses.create_or_update(
             management_group_name,
@@ -121,6 +104,31 @@ class NetworkService(object):
         )
 
         return network_interface
+
+    def create_virtual_network(self, management_group_name, network_client, network_name, region, subnet_name, tags):
+        result = network_client.virtual_networks.create_or_update(
+            management_group_name,
+            network_name,
+            azure.mgmt.network.models.VirtualNetwork(
+                location=region,
+                tags=tags,
+                address_space=azure.mgmt.network.models.AddressSpace(
+                    address_prefixes=[
+                        '10.1.0.0/16',
+                    ],
+                ),
+                subnets=[
+                    azure.mgmt.network.models.Subnet(
+                        name=subnet_name,
+                        address_prefix='10.1.0.0/24',
+                    ),
+                ],
+            ),
+            tags=tags
+        )
+        result.wait()
+        subnet = network_client.subnets.get(management_group_name, network_name, subnet_name)
+        return subnet
 
     def get_public_ip(self, network_client, group_name, ip_name):
         """
