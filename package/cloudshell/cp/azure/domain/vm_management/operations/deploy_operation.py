@@ -9,6 +9,7 @@ class DeployAzureVMOperation(object):
                  vm_service,
                  network_service,
                  storage_service,
+                 vm_credentials_service,
                  tags_service):
         """
 
@@ -16,15 +17,42 @@ class DeployAzureVMOperation(object):
         :param cloudshell.cp.azure.domain.services.virtual_machine_service.VirtualMachineService vm_service:
         :param cloudshell.cp.azure.domain.services.network_service.NetworkService network_service:
         :param cloudshell.cp.azure.domain.services.storage_service.StorageService storage_service:
+        :param cloudshell.cp.azure.domain.services.vm_credentials.VMCredentialsService vm_credentials_service:
         :param tags_service:
         :return:
         """
-
         self.logger = logger
         self.vm_service = vm_service
         self.network_service = network_service
         self.storage_service = storage_service
+        self.vm_credentials_service = vm_credentials_service
         self.tags_service = tags_service
+
+    def _get_image_operation_system(self, cloud_provider_model, azure_vm_deployment_model, compute_client):
+        """Gets operation system from the given image
+
+        :param cloud_provider_model: cloudshell.cp.azure.models.azure_cloud_provider_resource_model.AzureCloudProviderResourceModel
+        :param azure_vm_deployment_model: cloudshell.cp.azure.models.deploy_azure_vm_resource_model.DeployAzureVMResourceModel
+        :param compute_client: azure.mgmt.compute.compute_management_client.ComputeManagementClient
+        :return:
+        """
+        # get last version first (required for the virtual machine images GET Api)
+        image_resources = compute_client.virtual_machine_images.list(
+            location=cloud_provider_model.region,
+            publisher_name=azure_vm_deployment_model.image_publisher,
+            offer=azure_vm_deployment_model.image_offer,
+            skus=azure_vm_deployment_model.image_sku)
+
+        version = image_resources[-1].name
+
+        deployed_image = compute_client.virtual_machine_images.get(
+            location=cloud_provider_model.region,
+            publisher_name=azure_vm_deployment_model.image_publisher,
+            offer=azure_vm_deployment_model.image_offer,
+            skus=azure_vm_deployment_model.image_sku,
+            version=version)
+
+        return deployed_image.os_disk_image.operating_system
 
     def deploy(self, azure_vm_deployment_model,
                cloud_provider_model,
@@ -57,13 +85,24 @@ class DeployAzureVMOperation(object):
         ip_name = random_name
         storage_account_name = base_name
         computer_name = random_name
-        admin_username = resource_name
-        admin_password = 'ScJaw12deDFG'
         vm_name = random_name
-        tags = self.tags_service.get_tags(vm_name, admin_username, subnet_name, reservation)
+
+        tags = self.tags_service.get_tags(vm_name, resource_name, subnet_name, reservation)
+
+        os_type = self._get_image_operation_system(
+            cloud_provider_model=cloud_provider_model,
+            azure_vm_deployment_model=azure_vm_deployment_model,
+            compute_client=compute_client)
+
+        vm_credentials = self.vm_credentials_service.prepare_credentials(
+            username=azure_vm_deployment_model.username,
+            password=azure_vm_deployment_model.password,
+            group_name=group_name,
+            os_type=os_type,
+            storage_client=storage_client)
 
         try:
-            # 1. Crate a resource group
+            # 1. Create a resource group
             self.vm_service.create_resource_group(resource_management_client=resource_client,
                                                   group_name=group_name,
                                                   region=cloud_provider_model.region,
@@ -94,8 +133,7 @@ class DeployAzureVMOperation(object):
                                                       image_publisher=azure_vm_deployment_model.image_publisher,
                                                       image_sku=azure_vm_deployment_model.image_sku,
                                                       image_version='latest',
-                                                      admin_password=admin_password,
-                                                      admin_username=admin_username,
+                                                      vm_credentials=vm_credentials,
                                                       computer_name=computer_name,
                                                       group_name=group_name,
                                                       nic_id=nic.id,
@@ -129,8 +167,10 @@ class DeployAzureVMOperation(object):
         else:
             public_ip_address = None
 
-        deployed_app_attributes = self._prepare_deployed_app_attributes(admin_username, admin_password,
-                                                                        public_ip_address)
+        deployed_app_attributes = self._prepare_deployed_app_attributes(
+            vm_credentials.admin_username,
+            vm_credentials.admin_password,
+            public_ip_address)
 
         return DeployResult(vm_name=vm_name,
                             vm_uuid=result_create.vm_id,

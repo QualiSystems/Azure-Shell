@@ -1,7 +1,10 @@
 from azure.mgmt.compute.models import OSProfile, HardwareProfile, NetworkProfile, \
     NetworkInterfaceReference, CachingTypes, DiskCreateOptionTypes, VirtualHardDisk, ImageReference, OSDisk, \
     VirtualMachine, StorageProfile
+from azure.mgmt.compute.models.linux_configuration import LinuxConfiguration
+from azure.mgmt.compute.models.ssh_configuration import SshConfiguration
 from azure.mgmt.resource.resources.models import ResourceGroup
+from azure.mgmt.compute.models.ssh_public_key import SshPublicKey
 
 
 class VirtualMachineService(object):
@@ -34,14 +37,24 @@ class VirtualMachineService(object):
 
         return result.result()
 
+    def _prepare_linux_configuration(self, ssh_key):
+        """Create LinuxConfiguration object with nested SshPublicKey object for Azure client
+
+        :param ssh_key: cloudshell.cp.azure.models.ssh_key.SSHKey instance
+        :return: azure.mgmt.compute.models.linux_configuration.LinuxConfiguration instance
+        """
+        ssh_public_key = SshPublicKey(path=ssh_key.path_to_key, key_data=ssh_key.key_data)
+        ssh_config = SshConfiguration(public_keys=[ssh_public_key])
+
+        return LinuxConfiguration(disable_password_authentication=True, ssh=ssh_config)
+
     def create_vm(self,
                   compute_management_client,
                   image_offer,
                   image_publisher,
                   image_sku,
                   image_version,
-                  admin_password,
-                  admin_username,
+                  vm_credentials,
                   computer_name,
                   group_name,
                   nic_id,
@@ -58,8 +71,7 @@ class VirtualMachineService(object):
         :param image_publisher:
         :param image_sku:
         :param image_version:
-        :param admin_password:
-        :param admin_username:
+        :param vm_credentials:
         :param computer_name:
         :param group_name:
         :param nic_id:
@@ -69,8 +81,14 @@ class VirtualMachineService(object):
         :param tags:
         :return:
         """
-        os_profile = OSProfile(admin_username=admin_username,
-                               admin_password=admin_password,
+        if vm_credentials.ssh_key:
+            linux_configuration = self._prepare_linux_configuration(vm_credentials.ssh_key)
+        else:
+            linux_configuration = None
+
+        os_profile = OSProfile(admin_username=vm_credentials.admin_username,
+                               admin_password=vm_credentials.admin_password,
+                               linux_configuration=linux_configuration,
                                computer_name=computer_name)
 
         hardware_profile = HardwareProfile(vm_size=instance_type)
