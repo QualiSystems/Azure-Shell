@@ -8,6 +8,7 @@ class AzureShellDriver(ResourceDriverInterface):
         """
         ctor must be without arguments, it is created with reflection at run time
         """
+        self.azure_shell = AzureShell()
         self.azure_shell = None
 
     def initialize(self, context):
@@ -21,10 +22,10 @@ class AzureShellDriver(ResourceDriverInterface):
         return azure_shell.deploy_azure_vm(command_context=context, deployment_request=request)
 
     def PowerOn(self, context, ports):
-        pass
+        return self.azure_shell.power_on_vm(context)
 
     def PowerOff(self, context, ports):
-        pass
+        return self.azure_shell.power_off_vm(context)
 
     def PowerCycle(self, context, ports, delay):
         pass

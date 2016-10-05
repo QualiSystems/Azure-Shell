@@ -8,6 +8,12 @@ from cloudshell.cp.azure.models.reservation_model import ReservationModel
 
 class AzureModelsParser(object):
     @staticmethod
+    def convert_app_resource_to_deployed_app(resource):
+        json_str = jsonpickle.decode(resource.app_context.deployed_app_json)
+        data_holder = DeployDataHolder(json_str)
+        return data_holder
+
+    @staticmethod
     def convert_to_deployment_resource_model(deployment_request):
         data = jsonpickle.decode(deployment_request)
         data_holder = DeployDataHolder(data)

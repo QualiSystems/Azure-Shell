@@ -2,7 +2,9 @@ from azure.mgmt.compute import ComputeManagementClient
 from azure.mgmt.network import NetworkManagementClient
 from azure.mgmt.resource import ResourceManagementClient
 from azure.mgmt.storage import StorageManagementClient
+
 from cloudshell.core.context.error_handling_context import ErrorHandlingContext
+from cloudshell.shell.core.session.cloudshell_session import CloudShellSessionContext
 from cloudshell.cp.azure.domain.services.tags import TagService
 from cloudshell.shell.core.session.logging_session import LoggingSessionContext
 from cloudshell.cp.azure.domain.context.azure_client_context import AzureClientFactoryContext
@@ -68,3 +70,62 @@ class AzureShell(object):
         prepare_connectivity_operation.prepare_connectivity()
 
 
+    def power_on_vm(self, command_context):
+        """Power on Azure VM
+
+        :param ResourceCommandContext command_context:
+        :return:
+        """
+        cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(command_context.resource)
+        reservation = self.model_parser.convert_to_reservation_model(command_context.remote_reservation)
+        group_name = reservation.reservation_id
+
+        resource = command_context.remote_endpoints[0]
+        data_holder = self.model_parser.convert_app_resource_to_deployed_app(resource)
+        vm_name = data_holder.name
+
+        with LoggingSessionContext(command_context) as logger:
+            with ErrorHandlingContext(logger):
+                with AzureClientFactoryContext(cloud_provider_model) as azure_clients_factory:
+                    logger.info('Starting power on operation on Azure VM {}'.format(vm_name))
+
+                    compute_client = azure_clients_factory.get_client(ComputeManagementClient)
+                    power_vm_operation = PowerAzureVMOperation(logger=logger, vm_service=self.vm_service)
+
+                    power_vm_operation.power_on(compute_client=compute_client, resource_group_name=group_name,
+                                                vm_name=vm_name)
+
+                    logger.info('Azure VM {} was successfully powered on'.format(vm_name))
+
+                    with CloudShellSessionContext(command_context) as cloudshell_session:
+                        cloudshell_session.SetResourceLiveStatus(resource.fullname, "Online", "Active")
+
+    def power_off_vm(self, command_context):
+        """Power off Azure VM
+
+        :param ResourceCommandContext command_context:
+        :return:
+        """
+        cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(command_context.resource)
+        reservation = self.model_parser.convert_to_reservation_model(command_context.remote_reservation)
+        group_name = reservation.reservation_id
+
+        resource = command_context.remote_endpoints[0]
+        data_holder = self.model_parser.convert_app_resource_to_deployed_app(resource)
+        vm_name = data_holder.name
+
+        with LoggingSessionContext(command_context) as logger:
+            with ErrorHandlingContext(logger):
+                with AzureClientFactoryContext(cloud_provider_model) as azure_clients_factory:
+                    logger.info('Starting power off operation on Azure VM {}'.format(vm_name))
+
+                    compute_client = azure_clients_factory.get_client(ComputeManagementClient)
+                    power_vm_operation = PowerAzureVMOperation(logger=logger, vm_service=self.vm_service)
+
+                    power_vm_operation.power_off(compute_client=compute_client, resource_group_name=group_name,
+                                                 vm_name=vm_name)
+
+                    logger.info('Azure VM {} was successfully powered off'.format(vm_name))
+
+                    with CloudShellSessionContext(command_context) as cloudshell_session:
+                        cloudshell_session.SetResourceLiveStatus(resource.fullname, "Offline", "Powered Off")
