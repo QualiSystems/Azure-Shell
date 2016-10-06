@@ -37,8 +37,6 @@ class DeleteAzureVMOperation(object):
                                            group_name=group_name,
                                            ip_name=vm_name)
 
-
-
         except Exception as e:
             self.logger.info('Deleting Azure VM Exception...')
             raise e

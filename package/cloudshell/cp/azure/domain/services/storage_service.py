@@ -17,7 +17,7 @@ class StorageService(object):
         :return:
         """
 
-        kind_storage_value = azure.mgmt.storage.models.Kind.storage.value
+        kind_storage_value = azure.mgmt.storage.models.Kind.storage
         sku_name = SkuName.standard_lrs
         sku = azure.mgmt.storage.models.Sku(sku_name)
         storage_accounts_create = storage_client.storage_accounts.create(group_name, storage_account_name,
