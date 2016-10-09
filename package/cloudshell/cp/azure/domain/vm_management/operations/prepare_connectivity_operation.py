@@ -1,5 +1,7 @@
 from platform import machine
 
+from cloudshell.cp.azure.domain.services.tags import TagNames
+
 
 class PrepareConnectivityOperation(object):
     def __init__(self,
@@ -50,7 +52,7 @@ class PrepareConnectivityOperation(object):
 
         # todo this should be reafctored the tags service should not return
         # all of these tags for the creation of a resource group
-        tags = self.tags_service.get_tags("", admin_username, "", reservation)
+        tags = {TagNames.ReservationId: reservation.reservation_id}
 
         # 1. Crate a resource group
         self.vm_service.create_resource_group(resource_management_client=resource_client,
