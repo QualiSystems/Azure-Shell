@@ -44,10 +44,11 @@ class PrepareConnectivityOperation(object):
 
         resource_name = "base name"
         admin_username = resource_name
+        admin_password = 'ScJaw12deDFG'
 
         reservation_id = reservation.reservation_id
         group_name = str(reservation_id)
-        admin_password = 'ScJaw12deDFG'
+
         storage_account_name = reservation_id
 
         # todo this should be reafctored the tags service should not return
@@ -75,4 +76,3 @@ class PrepareConnectivityOperation(object):
                                                     subnet_name=resource_name,
                                                     tags=tags)
 
-        raise Exception("the prepare connectivity is not working")

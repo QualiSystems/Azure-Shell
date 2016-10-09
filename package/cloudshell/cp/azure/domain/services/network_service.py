@@ -12,8 +12,6 @@ class NetworkService(object):
                               interface_name,
                               ip_name,
                               region,
-                              subnet_name,
-                              network_name,
                               subnet,
                               tags):
         """
@@ -23,8 +21,6 @@ class NetworkService(object):
         :param interface_name:
         :param ip_name:
         :param region:
-        :param subnet_name:
-        :param network_name:
         :param subnet:
         :param tags:
         :return:
@@ -38,7 +34,8 @@ class NetworkService(object):
                                  group_name,
                                  network_client,
                                  public_ip_id,
-                                 region, subnet,
+                                 region,
+                                 subnet,
                                  IPAllocationMethod.dynamic,
                                  tags)
 

@@ -52,7 +52,6 @@ class DeployAzureVMOperation(object):
         random_name = self._generate_name(base_name)
         group_name = str(reservation_id)
         interface_name = random_name
-        network_name = base_name
         subnet_name = base_name
         ip_name = random_name
         storage_account_name = base_name
@@ -81,9 +80,7 @@ class DeployAzureVMOperation(object):
                                                                 group_name=group_name,
                                                                 interface_name=interface_name,
                                                                 ip_name=ip_name,
-                                                                network_name=network_name,
                                                                 region=cloud_provider_model.region,
-                                                                subnet_name=subnet_name,
                                                                 subnet=None,
                                                                 tags=tags)
 
