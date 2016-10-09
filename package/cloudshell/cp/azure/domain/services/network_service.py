@@ -28,7 +28,6 @@ class NetworkService(object):
                                  subnet_name,
                                  ip_name,
                                  tags):
-
         subnet = self.create_virtual_network(management_group_name,
                                              network_client,
                                              network_name,
@@ -105,7 +104,14 @@ class NetworkService(object):
 
         return network_interface
 
-    def create_virtual_network(self, management_group_name, network_client, network_name, region, subnet_name, tags):
+    def create_virtual_network(self, management_group_name,
+                               network_client, network_name,
+                               region,
+                               subnet_name,
+                               tags,
+                               vnet_cidr = '10.1.0.0/16',
+                               subnet_cidr ='10.1.0.0/24'):
+
         result = network_client.virtual_networks.create_or_update(
             management_group_name,
             network_name,
@@ -114,13 +120,13 @@ class NetworkService(object):
                 tags=tags,
                 address_space=azure.mgmt.network.models.AddressSpace(
                     address_prefixes=[
-                        '10.1.0.0/16',
+                        vnet_cidr,
                     ],
                 ),
                 subnets=[
                     azure.mgmt.network.models.Subnet(
                         name=subnet_name,
-                        address_prefix='10.1.0.0/24',
+                        address_prefix=subnet_cidr,
                     ),
                 ],
             ),
