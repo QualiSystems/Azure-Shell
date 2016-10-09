@@ -76,15 +76,16 @@ class DeployAzureVMOperation(object):
                                                         storage_account_name=storage_account_name,
                                                         tags=tags)
 
-            # 3. Create the network interface
-            nic = self.network_service.create_network(network_client=network_client,
-                                                      group_name=group_name,
-                                                      interface_name=interface_name,
-                                                      ip_name=ip_name,
-                                                      network_name=network_name,
-                                                      region=cloud_provider_model.region,
-                                                      subnet_name=subnet_name,
-                                                      tags=tags)
+            # 3. Create network for vm
+            nic_id = self.network_service.create_network_for_vm(network_client=network_client,
+                                                                group_name=group_name,
+                                                                interface_name=interface_name,
+                                                                ip_name=ip_name,
+                                                                network_name=network_name,
+                                                                region=cloud_provider_model.region,
+                                                                subnet_name=subnet_name,
+                                                                subnet=None,
+                                                                tags=tags)
 
             # 4. create Vm
             result_create = self.vm_service.create_vm(compute_management_client=compute_client,
@@ -96,15 +97,16 @@ class DeployAzureVMOperation(object):
                                                       admin_username=admin_username,
                                                       computer_name=computer_name,
                                                       group_name=group_name,
-                                                      nic_id=nic.id,
+                                                      nic_id=nic_id,
                                                       region=cloud_provider_model.region,
                                                       storage_name=storage_account_name,
                                                       vm_name=vm_name,
                                                       tags=tags,
                                                       instance_type=azure_vm_deployment_model.instance_type)
 
-        except Exception as e:
 
+        except Exception as e:
+            # On any exception removes all the created resources
             self.vm_service.delete_vm(compute_management_client=compute_client,
                                       group_name=group_name,
                                       vm_name=vm_name)
@@ -116,8 +118,6 @@ class DeployAzureVMOperation(object):
             self.network_service.delete_ip(network_client=network_client,
                                            group_name=group_name,
                                            ip_name=ip_name)
-
-
 
             raise e
 

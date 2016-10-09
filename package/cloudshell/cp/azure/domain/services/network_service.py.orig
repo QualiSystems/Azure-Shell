@@ -7,10 +7,10 @@ class NetworkService(object):
         pass
 
 <<<<<<< HEAD
-    def create_network(self, group_name, interface_name, ip_name, region, subnet_name, network_name, tags):
+    def create_network_for_vm(self, group_name, interface_name, ip_name, region, subnet_name, network_name, tags):
         nic = self.create_network_interface(
 =======
-    def create_network(self, network_client, group_name, interface_name, ip_name, region, subnet_name, network_name):
+    def create_network_for_vm(self, network_client, group_name, interface_name, ip_name, region, subnet_name, network_name):
         nic_id = self.create_network_interface(
             network_client,
 >>>>>>> 1ae0feb3c47ebf025aeb64855aee58556cb274e8
