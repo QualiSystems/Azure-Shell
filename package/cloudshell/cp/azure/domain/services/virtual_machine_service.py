@@ -114,6 +114,9 @@ class VirtualMachineService(object):
         return resource_management_client.resource_groups.create_or_update(group_name,
                                                                            ResourceGroup(location=region, tags=tags))
 
+    def delete_resource_group(self, resource_management_client, group_name):
+        resource_management_client.resource_groups.delete(group_name)
+
     def delete_vm(self, compute_management_client, group_name, vm_name):
         """
 
@@ -122,5 +125,6 @@ class VirtualMachineService(object):
         :param vm_name:
         :return:
         """
-        compute_management_client.virtual_machines.delete(resource_group_name=group_name,
+        result = compute_management_client.virtual_machines.delete(resource_group_name=group_name,
                                                           vm_name=vm_name)
+        result.wait()

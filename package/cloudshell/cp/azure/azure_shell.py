@@ -62,6 +62,27 @@ class AzureShell(object):
 
                     return self.command_result_parser.set_command_result(deploy_data)
 
+    def teardown(self, command_context):
+        cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(command_context.resource)
+
+        with LoggingSessionContext(command_context) as logger:
+            with ErrorHandlingContext(logger):
+                with AzureClientFactoryContext(cloud_provider_model) as azure_clients_factory:
+                    logger.info('Teardown...')
+
+                    resource_client = azure_clients_factory.get_client(ResourceManagementClient)
+
+                    resource_group_name = command_context.remote_reservation.reservation_id
+
+                    delete_azure_vm_operation = DeleteAzureVMOperation(logger=logger,
+                                                                       vm_service=self.vm_service,
+                                                                       network_service=self.network_service)
+
+                    delete_azure_vm_operation.delete_resource_group(
+                        resource_client=resource_client,
+                        group_name=resource_group_name
+                    )
+
     def delete_azure_vm(self, command_context):
         cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(command_context.resource)
 

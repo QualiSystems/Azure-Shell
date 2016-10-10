@@ -17,6 +17,7 @@
             <Command Description="" DisplayName="Power On" Name="PowerOn" Tags="power" />
             <Command Description="" DisplayName="Power Off" Name="PowerOff" Tags="power" />
             <Command Description="" DisplayName="Delete VM Only" Name="destroy_vm_only" Tags="remote_app_management,allow_shared" />
+            <Command Description="" DisplayName="Teardown" Name="teardown" Tags="remote_app_management,allow_shared" />
         </Category>
     </Layout>
 </Driver>
