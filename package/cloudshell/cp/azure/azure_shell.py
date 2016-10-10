@@ -14,6 +14,7 @@ from cloudshell.cp.azure.domain.services.parsers.command_result_parser import Co
 from cloudshell.cp.azure.domain.services.virtual_machine_service import VirtualMachineService
 from cloudshell.cp.azure.domain.services.storage_service import StorageService
 from cloudshell.cp.azure.domain.vm_management.operations.deploy_operation import DeployAzureVMOperation
+from cloudshell.cp.azure.domain.vm_management.operations.power_operation import PowerAzureVMOperation
 from cloudshell.cp.azure.domain.vm_management.operations.prepare_connectivity_operation import \
     PrepareConnectivityOperation
 

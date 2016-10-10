@@ -20,10 +20,12 @@ class StorageService(object):
         kind_storage_value = azure.mgmt.storage.models.Kind.storage.value
         sku_name = SkuName.standard_lrs
         sku = azure.mgmt.storage.models.Sku(sku_name)
-        storage_accounts_create = storage_client.storage_accounts.create(group_name, storage_account_name,
+        storage_accounts_create = storage_client.storage_accounts.create(group_name,
+                                                                         storage_account_name,
                                                                          StorageAccountCreateParameters(
                                                                              sku=sku,
                                                                              kind=kind_storage_value,
                                                                              location=region,
-                                                                             tags=tags))
+                                                                             tags=tags),
+                                                                         raw=True)
         storage_accounts_create.wait()  # async operation

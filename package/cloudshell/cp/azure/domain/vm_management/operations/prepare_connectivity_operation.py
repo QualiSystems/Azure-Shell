@@ -1,5 +1,6 @@
 from platform import machine
 
+from cloudshell.cp.azure.common.operations_helper import OperationsHelper
 from cloudshell.cp.azure.domain.services.tags import TagNames
 
 
@@ -49,13 +50,13 @@ class PrepareConnectivityOperation(object):
         reservation_id = reservation.reservation_id
         group_name = str(reservation_id)
 
-        storage_account_name = reservation_id
+        storage_account_name = OperationsHelper.generate_name(reservation_id[0:8])
 
         # todo this should be reafctored the tags service should not return
         # all of these tags for the creation of a resource group
         tags = {TagNames.ReservationId: reservation.reservation_id}
 
-        # 1. Crate a resource group
+        # 1. Create a resource group
         self.vm_service.create_resource_group(resource_management_client=resource_client,
                                               group_name=group_name,
                                               region=cloud_provider_model.region,
@@ -75,4 +76,3 @@ class PrepareConnectivityOperation(object):
                                                     region=cloud_provider_model.region,
                                                     subnet_name=resource_name,
                                                     tags=tags)
-
