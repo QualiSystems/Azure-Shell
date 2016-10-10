@@ -55,7 +55,7 @@ class DeployAzureVMOperation(object):
         network_name = base_name
         subnet_name = base_name
         ip_name = random_name
-        storage_account_name = base_name
+        storage_account_name = reservation_id.replace("-", "")[:24]
         computer_name = random_name
         admin_username = resource_name
         admin_password = 'ScJaw12deDFG'
