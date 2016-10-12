@@ -137,7 +137,7 @@ class DeployAzureVMOperation(object):
                             inbound_ports=azure_vm_deployment_model.inbound_ports,
                             outbound_ports=azure_vm_deployment_model.outbound_ports,
                             deployed_app_attributes=deployed_app_attributes,
-                            deployed_app_address=public_ip_address,
+                            deployed_app_address=nic.ip_configurations[0].private_ip_address,
                             public_ip=public_ip_address)
 
     @staticmethod
