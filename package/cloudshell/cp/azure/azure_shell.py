@@ -70,7 +70,6 @@ class AzureShell(object):
         cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(context.resource)
         with LoggingSessionContext(context) as logger:
             with AzureClientFactoryContext(cloud_provider_model) as azure_clients_factory:
-
                 logger.info('Preparing Connectivity for Azure VM')
                 resource_client = azure_clients_factory.get_client(ResourceManagementClient)
                 network_client = azure_clients_factory.get_client(NetworkManagementClient)
@@ -81,11 +80,13 @@ class AzureShell(object):
                                                                               storage_service=self.storage_service,
                                                                               tags_service=self.tags_service)
 
-                prepare_connectivity_operation.prepare_connectivity(reservation=context.reservation,
-                                                                    cloud_provider_model=cloud_provider_model,
-                                                                    storage_client=storage_client,
-                                                                    resource_client=resource_client,
-                                                                    network_client=network_client)
+                result = prepare_connectivity_operation.prepare_connectivity(reservation=context.reservation,
+                                                                             cloud_provider_model=cloud_provider_model,
+                                                                             storage_client=storage_client,
+                                                                             resource_client=resource_client,
+                                                                             network_client=network_client)
+
+                return self.command_result_parser.set_command_result({'driverResponse': {'actionResults': result}})
 
     def power_on_vm(self, command_context):
         """Power on Azure VM

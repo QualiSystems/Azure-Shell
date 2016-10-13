@@ -2,6 +2,7 @@ from platform import machine
 
 from cloudshell.cp.azure.common.operations_helper import OperationsHelper
 from cloudshell.cp.azure.domain.services.tags import TagNames
+from cloudshell.cp.azure.models.prepare_connectivity_action_result import PrepareConnectivityActionResult
 
 
 class PrepareConnectivityOperation(object):
@@ -43,10 +44,7 @@ class PrepareConnectivityOperation(object):
         :return:
         """
 
-        resource_name = "base name"
-        admin_username = resource_name
-        admin_password = 'ScJaw12deDFG'
-
+        resource_name = OperationsHelper.generate_name("base")
         reservation_id = reservation.reservation_id
         group_name = str(reservation_id)
 
@@ -55,24 +53,26 @@ class PrepareConnectivityOperation(object):
         # todo this should be reafctored the tags service should not return
         # all of these tags for the creation of a resource group
         tags = {TagNames.ReservationId: reservation.reservation_id}
+        result=[]
+        action_result = PrepareConnectivityActionResult()
 
         # 1. Create a resource group
-        self.vm_service.create_resource_group(resource_management_client=resource_client,
-                                              group_name=group_name,
-                                              region=cloud_provider_model.region,
-                                              tags=tags)
+        self.vm_service.create_resource_group(resource_management_client=resource_client, group_name=group_name,
+                                              region=cloud_provider_model.region, tags=tags)
 
         # 2. Create a storage account
-        self.storage_service.create_storage_account(storage_client=storage_client,
-                                                    group_name=group_name,
-                                                    region=cloud_provider_model.region,
-                                                    storage_account_name=storage_account_name,
-                                                    tags=tags)
+        action_result.storage_name = self.storage_service.create_storage_account(storage_client=storage_client,
+                                                                                 group_name=group_name,
+                                                                                 region=cloud_provider_model.region,
+                                                                                 storage_account_name=storage_account_name,
+                                                                                 tags=tags)
 
         # 3. Create the network interface
-        self.network_service.create_virtual_network(management_group_name=group_name,
-                                                    network_client=network_client,
-                                                    network_name=resource_name,
-                                                    region=cloud_provider_model.region,
-                                                    subnet_name=resource_name,
-                                                    tags=tags)
+        action_result.subnet_name = self.network_service.create_virtual_network(management_group_name=group_name,
+                                                                                network_client=network_client,
+                                                                                network_name=resource_name,
+                                                                                region=cloud_provider_model.region,
+                                                                                subnet_name=resource_name,
+                                                                                tags=tags).name
+        result.append(action_result)
+        return result

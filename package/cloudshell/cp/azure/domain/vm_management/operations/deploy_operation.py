@@ -53,13 +53,15 @@ class DeployAzureVMOperation(object):
         random_name = OperationsHelper.generate_name(base_name)
         group_name = str(reservation_id)
         interface_name = random_name
-        subnet_name = base_name
         ip_name = random_name
         storage_account_name = base_name
         computer_name = random_name
         admin_username = resource_name
         admin_password = 'ScJaw12deDFG'
         vm_name = random_name
+
+        subnet_name = base_name
+        subnet = None  # self.network_client.getsubnet
         tags = self.tags_service.get_tags(vm_name, admin_username, subnet_name, reservation)
 
         try:
@@ -70,7 +72,7 @@ class DeployAzureVMOperation(object):
                                                                 interface_name=interface_name,
                                                                 ip_name=ip_name,
                                                                 region=cloud_provider_model.region,
-                                                                subnet=None,
+                                                                subnet=subnet,
                                                                 tags=tags)
 
             # 2. create Vm
@@ -126,8 +128,6 @@ class DeployAzureVMOperation(object):
                             deployed_app_attributes=deployed_app_attributes,
                             deployed_app_address=public_ip_address,
                             public_ip=public_ip_address)
-
-
 
     @staticmethod
     def _prepare_deployed_app_attributes(admin_username, admin_password, public_ip):
