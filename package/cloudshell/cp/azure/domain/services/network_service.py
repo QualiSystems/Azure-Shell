@@ -224,3 +224,14 @@ class NetworkService(object):
         :return:
         """
         network_client.public_ip_addresses.delete(group_name, ip_name)
+
+    def get_virtual_networks(self, network_client, group_name):
+        """
+
+        :param azure.mgmt.network.network_management_client.NetworkManagementClient network_client:
+        :param group_name:
+        :return:
+        """
+        networks_list = network_client.virtual_networks.list(group_name)
+        return list(networks_list)
+

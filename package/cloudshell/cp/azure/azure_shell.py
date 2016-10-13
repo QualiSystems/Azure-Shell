@@ -41,10 +41,9 @@ class AzureShell(object):
         with LoggingSessionContext(command_context) as logger:
             with ErrorHandlingContext(logger):
                 with AzureClientFactoryContext(cloud_provider_model) as azure_clients_factory:
-                    logger.info('Deploying Azure VM')
 
+                    logger.info('Deploying Azure VM')
                     compute_client = azure_clients_factory.get_client(ComputeManagementClient)
-                    resource_client = azure_clients_factory.get_client(ResourceManagementClient)
                     network_client = azure_clients_factory.get_client(NetworkManagementClient)
                     storage_client = azure_clients_factory.get_client(StorageManagementClient)
 
@@ -54,23 +53,29 @@ class AzureShell(object):
                                                                        storage_service=self.storage_service,
                                                                        tags_service=self.tags_service)
 
+                    reservation = self.model_parser.convert_to_reservation_model(command_context.reservation)
+
                     deploy_data = deploy_azure_vm_operation.deploy(azure_vm_deployment_model=azure_vm_deployment_model,
                                                                    cloud_provider_model=cloud_provider_model,
-                                                                   reservation=self.model_parser
-                                                                   .convert_to_reservation_model(
-                                                                       command_context.reservation),
-                                                                   storage_client=storage_client,
+                                                                   reservation=reservation,
                                                                    network_client=network_client,
                                                                    compute_client=compute_client,
-                                                                   resource_client=resource_client)
+                                                                   storage_client=storage_client)
 
                     return self.command_result_parser.set_command_result(deploy_data)
 
     def prepare_connectivity(self, context, request):
+        """
+
+        :param context:
+        :param request:
+        :return:
+        """
         cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(context.resource)
         with LoggingSessionContext(context) as logger:
             with AzureClientFactoryContext(cloud_provider_model) as azure_clients_factory:
                 logger.info('Preparing Connectivity for Azure VM')
+
                 resource_client = azure_clients_factory.get_client(ResourceManagementClient)
                 network_client = azure_clients_factory.get_client(NetworkManagementClient)
                 storage_client = azure_clients_factory.get_client(StorageManagementClient)

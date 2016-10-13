@@ -38,3 +38,13 @@ class StorageService(object):
                                                    tags=tags),
                                                raw=True)
         return storage_account_name
+
+    def get_storage_per_resource_group(self, storage_client, group_name):
+        """
+
+        :param azure.mgmt.storage.storage_management_client.StorageManagementClient storage_client:
+        :param group_name:
+        :return:
+        """
+        return list(storage_client.storage_accounts.list_by_resource_group(group_name))
+

@@ -30,15 +30,13 @@ class DeployAzureVMOperation(object):
     def deploy(self, azure_vm_deployment_model,
                cloud_provider_model,
                reservation,
-               storage_client,
                network_client,
                compute_client,
-               resource_client):
+               storage_client):
         """
-        :param storage_client:
-        :param resource_client:
+        :param azure.mgmt.storage.storage_management_client.StorageManagementClient storage_client:
         :param azure.mgmt.compute.compute_management_client.ComputeManagementClient compute_client:
-        :param network_client:
+        :param azure.mgmt.network.network_management_client.NetworkManagementClient network_client:
         :param reservation: cloudshell.cp.azure.models.reservation_model.ReservationModel
         :param cloudshell.cp.azure.models.deploy_azure_vm_resource_model.DeployAzureVMResourceModel azure_vm_deployment_model:
         :param cloudshell.cp.azure.models.azure_cloud_provider_resource_model.AzureCloudProviderResourceModel cloud_provider_model:cloud provider
@@ -54,15 +52,32 @@ class DeployAzureVMOperation(object):
         group_name = str(reservation_id)
         interface_name = random_name
         ip_name = random_name
-        storage_account_name = base_name
         computer_name = random_name
         admin_username = resource_name
         admin_password = 'ScJaw12deDFG'
         vm_name = random_name
 
-        subnet_name = base_name
-        subnet = None  # self.network_client.getsubnet
-        tags = self.tags_service.get_tags(vm_name, admin_username, subnet_name, reservation)
+        all_networks = self.network_service.get_virtual_networks(network_client, group_name)
+
+        if len(all_networks) > 1:
+            raise Exception("The resource group {0} contains more than one virtual network.".format({group_name}))
+
+        if len(all_networks) == 0:
+            raise Exception("The resource group {0} does not contain a virtual network.".format({group_name}))
+
+        subnet = all_networks[0].subnets[0]
+
+        storage_accounts_list = self.storage_service.get_storage_per_resource_group(storage_client, group_name)
+
+        if len(storage_accounts_list) > 1:
+            raise Exception("The resource group {0} contains more than one storage account.".format({group_name}))
+
+        if len(storage_accounts_list) == 0:
+            raise Exception("The resource group {0} does not contain a storage account.".format({group_name}))
+
+        storage_account_name = storage_accounts_list[0].name
+
+        tags = self.tags_service.get_tags(vm_name, admin_username, subnet.name, reservation)
 
         try:
 
