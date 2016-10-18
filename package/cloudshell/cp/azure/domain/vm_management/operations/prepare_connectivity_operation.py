@@ -54,10 +54,7 @@ class PrepareConnectivityOperation(object):
         reservation_id = reservation.reservation_id
         group_name = str(reservation_id)
         vnet = cloud_provider_model.azure_mgmt_vnet
-
-        # todo this should be reafctored the tags service should not return
-        # all of these tags for the creation of a resource group
-        tags = {TagNames.ReservationId: reservation.reservation_id}
+        tags = self.tags_service.get_tags(reservation=reservation)
         result = []
         action_result = PrepareConnectivityActionResult()
 

@@ -69,11 +69,13 @@ class DeployAzureVMOperation(object):
 
         storage_accounts_list = self.storage_service.get_storage_per_resource_group(storage_client, group_name)
 
-        if len(storage_accounts_list) > 1:
-            raise Exception("The resource group {0} contains more than one storage account.".format({group_name}))
 
-        if len(storage_accounts_list) == 0:
-            raise Exception("The resource group {0} does not contain a storage account.".format({group_name}))
+        if len(storage_accounts_list) > 1:
+            raise Exception("The resource group {0} contains more than one virtual network.".format({group_name}))
+
+        if len(all_networks) == 0:
+            raise Exception("The resource group {0} does not contain a virtual network.".format({group_name}))
+
 
         storage_account_name = storage_accounts_list[0].name
 
