@@ -131,3 +131,55 @@ class TestVMService(TestCase):
         from azure.mgmt.resource.resources.models import ResourceGroup
         resource_management_client.resource_groups.create_or_update(group_name,
                                                                     ResourceGroup(location=region, tags=tags))
+
+    def test_start_vm(self):
+        """Check that method calls azure client to start VM action and returns it result"""
+        compute_management_client = Mock()
+        group_name = "test_group_name"
+        vm_name = "test_group_name"
+
+        res = self.vm_service.start_vm(compute_management_client, group_name, vm_name)
+
+        compute_management_client.virtual_machines.start.assert_called_with(resource_group_name=group_name,
+                                                                            vm_name=vm_name)
+
+        self.assertEqual(res, compute_management_client.virtual_machines.start().result())
+
+    def test_stop_vm(self):
+        """Check that method calls azure client to stop VM action and returns it result"""
+        compute_management_client = Mock()
+        group_name = "test_group_name"
+        vm_name = "test_group_name"
+
+        res = self.vm_service.stop_vm(compute_management_client, group_name, vm_name)
+
+        compute_management_client.virtual_machines.power_off.assert_called_with(resource_group_name=group_name,
+                                                                                vm_name=vm_name)
+
+        self.assertEqual(res, compute_management_client.virtual_machines.power_off().result())
+
+    def test_start_vm_with_async_mode_true(self):
+        """Check that method calls azure client to start VM action and doesn't wait for it result"""
+        compute_management_client = Mock()
+        operation_poller = Mock()
+        group_name = "test_group_name"
+        vm_name = "test_group_name"
+        compute_management_client.virtual_machines.power_off.return_value = operation_poller
+
+        res = self.vm_service.start_vm(compute_management_client, group_name, vm_name, async=True)
+
+        operation_poller.result.assert_not_called()
+        self.assertIsNone(res)
+
+    def test_stop_vm_with_async_mode_true(self):
+        """Check that method calls azure client to stop VM action and doesn't wait for it result"""
+        compute_management_client = Mock()
+        operation_poller = Mock()
+        group_name = "test_group_name"
+        vm_name = "test_group_name"
+        compute_management_client.virtual_machines.power_off.return_value = operation_poller
+
+        res = self.vm_service.stop_vm(compute_management_client, group_name, vm_name, async=True)
+
+        operation_poller.result.assert_not_called()
+        self.assertIsNone(res)

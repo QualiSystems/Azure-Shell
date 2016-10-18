@@ -65,12 +65,29 @@ class AzureShell(object):
 
                     return self.command_result_parser.set_command_result(deploy_data)
 
+<<<<<<< HEAD
     def teardown(self, command_context):
         cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(command_context.resource)
+=======
+    def power_on_vm(self, command_context):
+        """Power on Azure VM
+
+        :param ResourceCommandContext command_context:
+        :return:
+        """
+        cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(command_context.resource)
+        reservation = self.model_parser.convert_to_reservation_model(command_context.remote_reservation)
+        group_name = reservation.reservation_id
+
+        resource = command_context.remote_endpoints[0]
+        data_holder = self.model_parser.convert_app_resource_to_deployed_app(resource)
+        vm_name = data_holder.name
+>>>>>>> 249047198aa2b74dfd3085b4415b70d1095dcc14
 
         with LoggingSessionContext(command_context) as logger:
             with ErrorHandlingContext(logger):
                 with AzureClientFactoryContext(cloud_provider_model) as azure_clients_factory:
+<<<<<<< HEAD
                     logger.info('Teardown...')
 
                     resource_client = azure_clients_factory.get_client(ResourceManagementClient)
@@ -88,45 +105,7 @@ class AzureShell(object):
 
     def delete_azure_vm(self, command_context):
         cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(command_context.resource)
-
-        with LoggingSessionContext(command_context) as logger:
-            with ErrorHandlingContext(logger):
-                with AzureClientFactoryContext(cloud_provider_model) as azure_clients_factory:
-                    logger.info('Deleting Azure VM')
-
-                    compute_client = azure_clients_factory.get_client(ComputeManagementClient)
-                    network_client = azure_clients_factory.get_client(NetworkManagementClient)
-
-                    vm_name = command_context.remote_endpoints[0].fullname
-                    resource_group_name = command_context.remote_reservation.reservation_id
-
-                    delete_azure_vm_operation = DeleteAzureVMOperation(logger=logger,
-                                                                       vm_service=self.vm_service,
-                                                                       network_service=self.network_service)
-
-                    delete_azure_vm_operation.delete(
-                        compute_client=compute_client,
-                        network_client=network_client,
-                        group_name=resource_group_name,
-                        vm_name=vm_name
-                    )
-    def power_on_vm(self, command_context):
-        """Power on Azure VM
-
-        :param ResourceCommandContext command_context:
-        :return:
-        """
-        cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(command_context.resource)
-        reservation = self.model_parser.convert_to_reservation_model(command_context.remote_reservation)
-        group_name = reservation.reservation_id
-
-        resource = command_context.remote_endpoints[0]
-        data_holder = self.model_parser.convert_app_resource_to_deployed_app(resource)
-        vm_name = data_holder.name
-
-        with LoggingSessionContext(command_context) as logger:
-            with ErrorHandlingContext(logger):
-                with AzureClientFactoryContext(cloud_provider_model) as azure_clients_factory:
+=======
                     logger.info('Starting power on operation on Azure VM {}'.format(vm_name))
 
                     compute_client = azure_clients_factory.get_client(ComputeManagementClient)
@@ -153,10 +132,31 @@ class AzureShell(object):
         resource = command_context.remote_endpoints[0]
         data_holder = self.model_parser.convert_app_resource_to_deployed_app(resource)
         vm_name = data_holder.name
+>>>>>>> 249047198aa2b74dfd3085b4415b70d1095dcc14
 
         with LoggingSessionContext(command_context) as logger:
             with ErrorHandlingContext(logger):
                 with AzureClientFactoryContext(cloud_provider_model) as azure_clients_factory:
+<<<<<<< HEAD
+                    logger.info('Deleting Azure VM')
+
+                    compute_client = azure_clients_factory.get_client(ComputeManagementClient)
+                    network_client = azure_clients_factory.get_client(NetworkManagementClient)
+
+                    vm_name = command_context.remote_endpoints[0].fullname
+                    resource_group_name = command_context.remote_reservation.reservation_id
+
+                    delete_azure_vm_operation = DeleteAzureVMOperation(logger=logger,
+                                                                       vm_service=self.vm_service,
+                                                                       network_service=self.network_service)
+
+                    delete_azure_vm_operation.delete(
+                        compute_client=compute_client,
+                        network_client=network_client,
+                        group_name=resource_group_name,
+                        vm_name=vm_name
+                    )
+=======
                     logger.info('Starting power off operation on Azure VM {}'.format(vm_name))
 
                     compute_client = azure_clients_factory.get_client(ComputeManagementClient)
@@ -169,3 +169,4 @@ class AzureShell(object):
 
                     with CloudShellSessionContext(command_context) as cloudshell_session:
                         cloudshell_session.SetResourceLiveStatus(resource.fullname, "Offline", "Powered Off")
+>>>>>>> 249047198aa2b74dfd3085b4415b70d1095dcc14

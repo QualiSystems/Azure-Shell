@@ -128,3 +128,30 @@ class VirtualMachineService(object):
         result = compute_management_client.virtual_machines.delete(resource_group_name=group_name,
                                                           vm_name=vm_name)
         result.wait()
+    def start_vm(self, compute_management_client, group_name, vm_name, async=False):
+        """Start Azure VM instance
+
+        :param azure.mgmt.compute.compute_management_client.ComputeManagementClient compute_management_client:
+        :param group_name: The name of the resource group.
+        :param vm_name: The name of the virtual machine.
+        :param async: (bool) whether wait for VM operation result or not
+        :return:
+        """
+        operation_poller = compute_management_client.virtual_machines.start(resource_group_name=group_name,
+                                                                            vm_name=vm_name)
+        if not async:
+            return operation_poller.result()
+
+    def stop_vm(self, compute_management_client, group_name, vm_name, async=False):
+        """Stop Azure VM instance
+
+        :param azure.mgmt.compute.compute_management_client.ComputeManagementClient compute_management_client:
+        :param group_name: The name of the resource group.
+        :param vm_name: The name of the virtual machine.
+        :param async: (bool) whether wait for VM operation result or not
+        :return:
+        """
+        operation_poller = compute_management_client.virtual_machines.power_off(resource_group_name=group_name,
+                                                                                vm_name=vm_name)
+        if not async:
+            return operation_poller.result()
