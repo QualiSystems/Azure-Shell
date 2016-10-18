@@ -1,3 +1,4 @@
+import jsonpickle
 from azure.mgmt.compute import ComputeManagementClient
 from azure.mgmt.network import NetworkManagementClient
 from azure.mgmt.resource import ResourceManagementClient
@@ -5,6 +6,8 @@ from azure.mgmt.storage import StorageManagementClient
 
 from cloudshell.core.context.error_handling_context import ErrorHandlingContext
 from cloudshell.shell.core.session.cloudshell_session import CloudShellSessionContext
+
+from cloudshell.cp.azure.common.deploy_data_holder import DeployDataHolder
 from cloudshell.cp.azure.domain.services.tags import TagService
 from cloudshell.shell.core.session.logging_session import LoggingSessionContext
 from cloudshell.cp.azure.domain.context.azure_client_context import AzureClientFactoryContext
@@ -85,11 +88,16 @@ class AzureShell(object):
                                                                               storage_service=self.storage_service,
                                                                               tags_service=self.tags_service)
 
+                prepare_connectivity_request = DeployDataHolder(jsonpickle.decode(request))
+                prepare_connectivity_request = getattr(prepare_connectivity_request, 'driverRequest', None)
+
                 result = prepare_connectivity_operation.prepare_connectivity(reservation=context.reservation,
                                                                              cloud_provider_model=cloud_provider_model,
                                                                              storage_client=storage_client,
                                                                              resource_client=resource_client,
-                                                                             network_client=network_client)
+                                                                             network_client=network_client,
+                                                                             logger=logger,
+                                                                             request=prepare_connectivity_request)
 
                 return self.command_result_parser.set_command_result({'driverResponse': {'actionResults': result}})
 

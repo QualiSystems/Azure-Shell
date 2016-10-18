@@ -156,8 +156,8 @@ class NetworkService(object):
                                region,
                                subnet_name,
                                tags,
-                               vnet_cidr='10.1.0.0/16',
-                               subnet_cidr='10.1.0.0/24'):
+                               vnet_cidr,
+                               subnet_cidr):
         """
         Creates a virtual network with a subnet
         :param management_group_name:
