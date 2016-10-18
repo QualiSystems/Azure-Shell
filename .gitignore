@@ -8,3 +8,4 @@ debug_info.txt
 *debug.xml
 package/cloudshell_cp_azure.egg-info/*
 drivers/killPython.bat
+*.orig

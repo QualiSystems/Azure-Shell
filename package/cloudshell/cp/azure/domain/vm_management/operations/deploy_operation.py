@@ -1,5 +1,6 @@
 import uuid
 
+from cloudshell.cp.azure.common.operations_helper import OperationsHelper
 from cloudshell.cp.azure.models.deploy_result_model import DeployResult
 
 
@@ -29,15 +30,13 @@ class DeployAzureVMOperation(object):
     def deploy(self, azure_vm_deployment_model,
                cloud_provider_model,
                reservation,
-               storage_client,
                network_client,
                compute_client,
-               resource_client):
+               storage_client):
         """
-        :param storage_client:
-        :param resource_client:
+        :param azure.mgmt.storage.storage_management_client.StorageManagementClient storage_client:
         :param azure.mgmt.compute.compute_management_client.ComputeManagementClient compute_client:
-        :param network_client:
+        :param azure.mgmt.network.network_management_client.NetworkManagementClient network_client:
         :param reservation: cloudshell.cp.azure.models.reservation_model.ReservationModel
         :param cloudshell.cp.azure.models.deploy_azure_vm_resource_model.DeployAzureVMResourceModel azure_vm_deployment_model:
         :param cloudshell.cp.azure.models.azure_cloud_provider_resource_model.AzureCloudProviderResourceModel cloud_provider_model:cloud provider
@@ -49,44 +48,51 @@ class DeployAzureVMOperation(object):
         app_name = azure_vm_deployment_model.app_name.lower().replace(" ", "")
         resource_name = app_name
         base_name = resource_name
-        random_name = self._generate_name(base_name)
+        random_name = OperationsHelper.generate_name(base_name)
         group_name = str(reservation_id)
         interface_name = random_name
-        network_name = base_name
-        subnet_name = base_name
         ip_name = random_name
-        storage_account_name = base_name
         computer_name = random_name
         admin_username = resource_name
         admin_password = 'ScJaw12deDFG'
         vm_name = random_name
-        tags = self.tags_service.get_tags(vm_name, admin_username, subnet_name, reservation)
+
+        all_networks = self.network_service.get_virtual_networks(network_client, group_name)
+
+        if len(all_networks) > 1:
+            raise Exception("The resource group {0} contains more than one virtual network.".format({group_name}))
+
+        if len(all_networks) == 0:
+            raise Exception("The resource group {0} does not contain a virtual network.".format({group_name}))
+
+        subnet = all_networks[0].subnets[0]
+
+        storage_accounts_list = self.storage_service.get_storage_per_resource_group(storage_client, group_name)
+
+
+        if len(storage_accounts_list) > 1:
+            raise Exception("The resource group {0} contains more than one virtual network.".format({group_name}))
+
+        if len(all_networks) == 0:
+            raise Exception("The resource group {0} does not contain a virtual network.".format({group_name}))
+
+
+        storage_account_name = storage_accounts_list[0].name
+
+        tags = self.tags_service.get_tags(vm_name, admin_username, subnet.name, reservation)
 
         try:
-            # 1. Crate a resource group
-            self.vm_service.create_resource_group(resource_management_client=resource_client,
-                                                  group_name=group_name,
-                                                  region=cloud_provider_model.region,
-                                                  tags=tags)
 
-            # 2. Create a storage account
-            self.storage_service.create_storage_account(storage_client=storage_client,
-                                                        group_name=group_name,
-                                                        region=cloud_provider_model.region,
-                                                        storage_account_name=storage_account_name,
-                                                        tags=tags)
+            # 1. Create network for vm
+            nic_id = self.network_service.create_network_for_vm(network_client=network_client,
+                                                                group_name=group_name,
+                                                                interface_name=interface_name,
+                                                                ip_name=ip_name,
+                                                                region=cloud_provider_model.region,
+                                                                subnet=subnet,
+                                                                tags=tags)
 
-            # 3. Create the network interface
-            nic = self.network_service.create_network(network_client=network_client,
-                                                      group_name=group_name,
-                                                      interface_name=interface_name,
-                                                      ip_name=ip_name,
-                                                      network_name=network_name,
-                                                      region=cloud_provider_model.region,
-                                                      subnet_name=subnet_name,
-                                                      tags=tags)
-
-            # 4. create Vm
+            # 2. create Vm
             result_create = self.vm_service.create_vm(compute_management_client=compute_client,
                                                       image_offer=azure_vm_deployment_model.image_offer,
                                                       image_publisher=azure_vm_deployment_model.image_publisher,
@@ -96,7 +102,7 @@ class DeployAzureVMOperation(object):
                                                       admin_username=admin_username,
                                                       computer_name=computer_name,
                                                       group_name=group_name,
-                                                      nic_id=nic.id,
+                                                      nic_id=nic_id,
                                                       region=cloud_provider_model.region,
                                                       storage_name=storage_account_name,
                                                       vm_name=vm_name,
@@ -104,18 +110,18 @@ class DeployAzureVMOperation(object):
                                                       instance_type=azure_vm_deployment_model.instance_type)
 
         except Exception as e:
-
-            self.network_service.delete_nic(network_client=network_client,
-                                           group_name=group_name,
-                                           interface_name=interface_name)
-
-            self.network_service.delete_ip(network_client=network_client,
-                                            group_name=group_name,
-                                            ip_name=ip_name)
-
+            # On any exception removes all the created resources
             self.vm_service.delete_vm(compute_management_client=compute_client,
                                       group_name=group_name,
                                       vm_name=vm_name)
+
+            self.network_service.delete_nic(network_client=network_client,
+                                            group_name=group_name,
+                                            interface_name=interface_name)
+
+            self.network_service.delete_ip(network_client=network_client,
+                                           group_name=group_name,
+                                           ip_name=ip_name)
 
             raise e
 
@@ -139,10 +145,6 @@ class DeployAzureVMOperation(object):
                             deployed_app_attributes=deployed_app_attributes,
                             deployed_app_address=public_ip_address,
                             public_ip=public_ip_address)
-
-    @staticmethod
-    def _generate_name(name):
-        return name.replace(" ", "") + ((str(uuid.uuid4())).replace("-", ""))[0:8]
 
     @staticmethod
     def _prepare_deployed_app_attributes(admin_username, admin_password, public_ip):
