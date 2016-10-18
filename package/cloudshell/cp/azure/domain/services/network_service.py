@@ -141,7 +141,9 @@ class NetworkService(object):
         :param interface_name:
         :return:
         """
-        network_client.network_interfaces.delete(group_name, interface_name)
+        result = network_client.network_interfaces.delete(group_name, interface_name)
+
+        result.wait()
 
     def delete_ip(self, network_client, group_name, ip_name):
         """
@@ -151,4 +153,6 @@ class NetworkService(object):
         :param ip_name:
         :return:
         """
-        network_client.public_ip_addresses.delete(group_name, ip_name)
+        result = network_client.public_ip_addresses.delete(group_name, ip_name)
+
+        result.wait()

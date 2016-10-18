@@ -25,5 +25,6 @@ class StorageService(object):
                                                                              sku=sku,
                                                                              kind=kind_storage_value,
                                                                              location=region,
-                                                                             tags=tags))
-        storage_accounts_create.wait()  # async operation
+                                                                             tags=tags),
+                                                                         raw=True)
+        #storage_accounts_create.wait()  # async operation

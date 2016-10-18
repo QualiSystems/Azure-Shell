@@ -15,6 +15,13 @@ class DeleteAzureVMOperation(object):
         self.vm_service = vm_service
         self.network_service = network_service
 
+    def delete_resource_group(self, resource_client, group_name):
+
+        try:
+            self.vm_service.delete_resource_group(resource_management_client=resource_client, group_name=group_name)
+        except Exception as e:
+            raise e
+
     def delete(self, compute_client, network_client, group_name, vm_name):
         """
         :param group_name:
