@@ -14,7 +14,7 @@ class TagService(object):
     def __init__(self):
         pass
 
-    def get_tags(self, vm_name, admin_username, subnet_name, reservation):
+    def get_tags(self, vm_name=None, admin_username=None, subnet_name=None, reservation=None):
         """
 
         :param vm_name:
@@ -28,13 +28,13 @@ class TagService(object):
 
         if vm_name:
             result.update({TagNames.Name: vm_name})
-        if reservation:
+        if reservation.owner:
             result.update({TagNames.Owner: reservation.owner})
-        if reservation:
+        if reservation.reservation_id:
             result.update({TagNames.ReservationId: reservation.reservation_id})
-        if reservation:
+        if reservation.blueprint:
             result.update({TagNames.Blueprint: reservation.blueprint})
-        if reservation:
+        if reservation.domain:
             result.update({TagNames.Domain: reservation.domain})
 
         return result

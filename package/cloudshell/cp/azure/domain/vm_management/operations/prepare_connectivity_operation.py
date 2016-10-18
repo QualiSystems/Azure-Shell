@@ -45,7 +45,7 @@ class PrepareConnectivityOperation(object):
         :param network_client:
         :param storage_client:
         :param resource_client:
-        :param reservation: cloudshell.cp.azure.models.reservation_model.ReservationModel
+        :param cloudshell.cp.azure.models.reservation_model.ReservationModel reservation:
         :param cloudshell.cp.azure.models.azure_cloud_provider_resource_model.AzureCloudProviderResourceModel cloud_provider_model:cloud provider
         :return:
         """

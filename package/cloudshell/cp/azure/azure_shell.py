@@ -44,7 +44,6 @@ class AzureShell(object):
         with LoggingSessionContext(command_context) as logger:
             with ErrorHandlingContext(logger):
                 with AzureClientFactoryContext(cloud_provider_model) as azure_clients_factory:
-
                     logger.info('Deploying Azure VM')
                     compute_client = azure_clients_factory.get_client(ComputeManagementClient)
                     network_client = azure_clients_factory.get_client(NetworkManagementClient)
@@ -91,13 +90,14 @@ class AzureShell(object):
                 prepare_connectivity_request = DeployDataHolder(jsonpickle.decode(request))
                 prepare_connectivity_request = getattr(prepare_connectivity_request, 'driverRequest', None)
 
-                result = prepare_connectivity_operation.prepare_connectivity(reservation=context.reservation,
-                                                                             cloud_provider_model=cloud_provider_model,
-                                                                             storage_client=storage_client,
-                                                                             resource_client=resource_client,
-                                                                             network_client=network_client,
-                                                                             logger=logger,
-                                                                             request=prepare_connectivity_request)
+                result = prepare_connectivity_operation.prepare_connectivity(
+                    reservation = self.model_parser.convert_to_reservation_model(context.reservation),
+                    cloud_provider_model=cloud_provider_model,
+                    storage_client=storage_client,
+                    resource_client=resource_client,
+                    network_client=network_client,
+                    logger=logger,
+                    request=prepare_connectivity_request)
 
                 return self.command_result_parser.set_command_result({'driverResponse': {'actionResults': result}})
 
