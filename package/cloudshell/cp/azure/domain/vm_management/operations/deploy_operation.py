@@ -32,8 +32,10 @@ class DeployAzureVMOperation(object):
                reservation,
                network_client,
                compute_client,
-               storage_client):
+               storage_client,
+               validator_factory):
         """
+        :param cloudshell.cp.azure.common.validtors.validator_factory.ValidatorFactory validator_factory:
         :param azure.mgmt.storage.storage_management_client.StorageManagementClient storage_client:
         :param azure.mgmt.compute.compute_management_client.ComputeManagementClient compute_client:
         :param azure.mgmt.network.network_management_client.NetworkManagementClient network_client:
@@ -69,13 +71,12 @@ class DeployAzureVMOperation(object):
 
         storage_accounts_list = self.storage_service.get_storage_per_resource_group(storage_client, group_name)
 
-
+        #validator_factory.try_validate(storage_accounts_list)
         if len(storage_accounts_list) > 1:
             raise Exception("The resource group {0} contains more than one virtual network.".format({group_name}))
 
         if len(all_networks) == 0:
             raise Exception("The resource group {0} does not contain a virtual network.".format({group_name}))
-
 
         storage_account_name = storage_accounts_list[0].name
 

@@ -8,6 +8,9 @@ from cloudshell.core.context.error_handling_context import ErrorHandlingContext
 from cloudshell.shell.core.session.cloudshell_session import CloudShellSessionContext
 
 from cloudshell.cp.azure.common.deploy_data_holder import DeployDataHolder
+from cloudshell.cp.azure.common.validtors.validator_factory import ValidatorFactory
+from cloudshell.cp.azure.common.validtors.validators import Validator, SubnetValidator, StorageValidator, \
+    StorageValidationManyVnet, StorageValidationRuleNoneVnet
 from cloudshell.cp.azure.domain.services.tags import TagService
 from cloudshell.shell.core.session.logging_session import LoggingSessionContext
 from cloudshell.cp.azure.domain.context.azure_client_context import AzureClientFactoryContext
@@ -57,12 +60,23 @@ class AzureShell(object):
 
                     reservation = self.model_parser.convert_to_reservation_model(command_context.reservation)
 
+                    vl = []
+                    storage_validation_rule_none_vnet = StorageValidationRuleNoneVnet('StorageValidationRuleNoneVnet',
+                                                                                      'Resource Group should contain Vnet')
+                    storage_validation_many_vnet = StorageValidationManyVnet('StorageValidationManyVnet',
+                                                                             'Resource Group should contain only one Vnet')
+
+                    vl.append(StorageValidator([storage_validation_many_vnet, storage_validation_rule_none_vnet]))
+
+                    validator_factory = ValidatorFactory(validators_list=vl)
+
                     deploy_data = deploy_azure_vm_operation.deploy(azure_vm_deployment_model=azure_vm_deployment_model,
                                                                    cloud_provider_model=cloud_provider_model,
                                                                    reservation=reservation,
                                                                    network_client=network_client,
                                                                    compute_client=compute_client,
-                                                                   storage_client=storage_client)
+                                                                   storage_client=storage_client,
+                                                                   validator_factory=validator_factory)
 
                     return self.command_result_parser.set_command_result(deploy_data)
 
@@ -91,7 +105,7 @@ class AzureShell(object):
                 prepare_connectivity_request = getattr(prepare_connectivity_request, 'driverRequest', None)
 
                 result = prepare_connectivity_operation.prepare_connectivity(
-                    reservation = self.model_parser.convert_to_reservation_model(context.reservation),
+                    reservation=self.model_parser.convert_to_reservation_model(context.reservation),
                     cloud_provider_model=cloud_provider_model,
                     storage_client=storage_client,
                     resource_client=resource_client,

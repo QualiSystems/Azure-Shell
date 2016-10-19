@@ -1,4 +1,7 @@
 # Validators
+from azure.mgmt.storage.models import StorageAccount
+
+
 class Validator(object):
     def __init__(self, rules_list):
         """
@@ -20,7 +23,7 @@ class Validator(object):
             err_msg = ""
             for failed_rule in failed_rules:
                 err_msg += " failed validating " + failed_rule.description + "rule name:" + failed_rule.name + "\n"
-            raise Exception("Valiation error "+err_msg)
+            raise Exception("Valiation error " + err_msg)
 
 
 class SubnetValidator(Validator):
@@ -30,7 +33,7 @@ class SubnetValidator(Validator):
 
 class StorageValidator(Validator):
     def can_handle(self, resource):
-        pass
+        return type(resource) is StorageAccount
 
 
 # Rules
@@ -43,16 +46,11 @@ class ValidationRule(object):
         return False
 
 
-# Creation
-class ValidatorFactory:
-    def __init__(self, validators_list):
-        """
-        :param [Validator] validators_list:
-        """
-        self.validators_list = validators_list
+class StorageValidationManyVnet(ValidationRule):
+    def validate_rule(self, storage_accounts_list):
+        return len(storage_accounts_list) > 1
 
-    def try_validate(self, resource):
-        validator = next(validator for validator in self.validators_list if validator.can_handle(resource=resource))
-        if validator is None:
-            raise Exception("Could find validation for {}".format(resource))
-        return validator.validate(resource=resource)
+
+class StorageValidationRuleNoneVnet(ValidationRule):
+    def validate_rule(self, storage_accounts_list):
+        return len(storage_accounts_list) == 1
