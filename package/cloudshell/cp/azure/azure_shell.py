@@ -65,7 +65,7 @@ class AzureShell(object):
 
                     return self.command_result_parser.set_command_result(deploy_data)
 
-    def teardown(self, command_context):
+    def cleanup_connectivity(self, command_context):
         cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(command_context.resource)
 
         with LoggingSessionContext(command_context) as logger:
