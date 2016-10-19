@@ -88,6 +88,9 @@ class AzureShell(object):
 
     def delete_azure_vm(self, command_context):
         cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(command_context.resource)
+        data_holder = self.model_parser.convert_app_resource_to_deployed_app(command_context.remote_endpoints[0])
+        resource_group_name = next(o.value for o in
+                                   data_holder.vmdetails.vmCustomParams if o.name == 'resource_group')
 
         with LoggingSessionContext(command_context) as logger:
             with ErrorHandlingContext(logger):
@@ -98,7 +101,6 @@ class AzureShell(object):
                     network_client = azure_clients_factory.get_client(NetworkManagementClient)
 
                     vm_name = command_context.remote_endpoints[0].fullname
-                    resource_group_name = command_context.remote_reservation.reservation_id
 
                     delete_azure_vm_operation = DeleteAzureVMOperation(logger=logger,
                                                                        vm_service=self.vm_service,
@@ -110,6 +112,7 @@ class AzureShell(object):
                         group_name=resource_group_name,
                         vm_name=vm_name
                     )
+
     def power_on_vm(self, command_context):
         """Power on Azure VM
 

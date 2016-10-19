@@ -138,7 +138,8 @@ class DeployAzureVMOperation(object):
                             outbound_ports=azure_vm_deployment_model.outbound_ports,
                             deployed_app_attributes=deployed_app_attributes,
                             deployed_app_address=public_ip_address,
-                            public_ip=public_ip_address)
+                            public_ip=public_ip_address,
+                            resource_group=reservation_id)
 
     @staticmethod
     def _generate_name(name):
