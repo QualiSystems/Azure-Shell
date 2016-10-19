@@ -5,8 +5,8 @@ class ValidatorFactory:
         """
         self.validators_list = validators_list
 
-    def try_validate(self, resource):
-        validator = next(validator for validator in self.validators_list if validator.can_handle(resource=resource))
+    def try_validate(self, resource_type,resource):
+        validator = next(validator for validator in self.validators_list if validator.can_handle(resource_type=resource_type))
         if validator is None:
             raise Exception("Could find validation for {}".format(resource))
         return validator.validate(resource=resource)

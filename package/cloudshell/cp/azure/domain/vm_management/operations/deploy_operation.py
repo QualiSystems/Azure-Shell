@@ -1,5 +1,7 @@
 import uuid
 
+from azure.mgmt.storage.models import StorageAccount
+
 from cloudshell.cp.azure.common.operations_helper import OperationsHelper
 from cloudshell.cp.azure.models.deploy_result_model import DeployResult
 
@@ -71,12 +73,7 @@ class DeployAzureVMOperation(object):
 
         storage_accounts_list = self.storage_service.get_storage_per_resource_group(storage_client, group_name)
 
-        #validator_factory.try_validate(storage_accounts_list)
-        if len(storage_accounts_list) > 1:
-            raise Exception("The resource group {0} contains more than one virtual network.".format({group_name}))
-
-        if len(all_networks) == 0:
-            raise Exception("The resource group {0} does not contain a virtual network.".format({group_name}))
+        validator_factory.try_validate(resource_type=StorageAccount, resource=storage_accounts_list)
 
         storage_account_name = storage_accounts_list[0].name
 
