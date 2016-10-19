@@ -84,6 +84,8 @@ class DeployAzureVMOperation(object):
                                                       network_name=network_name,
                                                       region=cloud_provider_model.region,
                                                       subnet_name=subnet_name,
+                                                      add_public_ip=azure_vm_deployment_model.add_public_ip,
+                                                      public_ip_type=azure_vm_deployment_model.public_ip_type,
                                                       tags=tags)
 
             # 4. create Vm
@@ -106,12 +108,12 @@ class DeployAzureVMOperation(object):
         except Exception as e:
 
             self.network_service.delete_nic(network_client=network_client,
-                                           group_name=group_name,
-                                           interface_name=interface_name)
+                                            group_name=group_name,
+                                            interface_name=interface_name)
 
             self.network_service.delete_ip(network_client=network_client,
-                                            group_name=group_name,
-                                            ip_name=ip_name)
+                                           group_name=group_name,
+                                           ip_name=ip_name)
 
             self.vm_service.delete_vm(compute_management_client=compute_client,
                                       group_name=group_name,
@@ -119,10 +121,13 @@ class DeployAzureVMOperation(object):
 
             raise e
 
-        public_ip = self.network_service.get_public_ip(network_client=network_client,
-                                                       group_name=group_name,
-                                                       ip_name=ip_name)
-        public_ip_address = public_ip.ip_address
+        if azure_vm_deployment_model.add_public_ip:
+            public_ip = self.network_service.get_public_ip(network_client=network_client,
+                                                           group_name=group_name,
+                                                           ip_name=ip_name)
+            public_ip_address = public_ip.ip_address
+        else:
+            public_ip_address = None
 
         deployed_app_attributes = self._prepare_deployed_app_attributes(admin_username, admin_password,
                                                                         public_ip_address)
