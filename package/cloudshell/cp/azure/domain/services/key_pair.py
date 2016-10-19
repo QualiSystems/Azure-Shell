@@ -25,30 +25,15 @@ class KeyPairService(object):
 
         return SSHKey(private_key=private_key, public_key=public_key)
 
-    def _get_storage_account_key(self, storage_client, group_name, storage_name):
-        """Get firsts storage account access key for some storage
-
-        :param storage_client: azure.mgmt.storage.StorageManagementClient instance
-        :param group_name: (str) the name of the resource group on Azure
-        :param storage_name: (str) the name of the storage on Azure
-        :return: (str) storage access key
-        """
-        account_keys = storage_client.storage_accounts.list_keys(group_name, storage_name)
-        account_key = account_keys.keys[0]
-
-        return account_key.value
-
-    def save_key_pair(self, storage_client, key_pair, group_name, storage_name):
+    def save_key_pair(self, account_key, key_pair, group_name, storage_name):
         """Save SSH key pair to the Azure storage
 
-        :param storage_client: azure.mgmt.storage.StorageManagementClient instance
+        :param account_key: (str) access key for storage account
         :param key_pair: cloudshell.cp.azure.models.ssh_key.SSHKey instance
         :param group_name: (str) the name of the resource group on Azure
         :param storage_name: (str) the name of the storage on Azure
         :return:
         """
-        account_key = self._get_storage_account_key(storage_client, group_name, storage_name)
-
         file_service = FileService(account_name=storage_name,
                                    account_key=account_key)
 
@@ -64,16 +49,14 @@ class KeyPairService(object):
                                             file_name=self.SSH_PRIVATE_KEY_NAME,
                                             file=key_pair.private_key)
 
-    def get_key_pair(self, storage_client, group_name, storage_name):
+    def get_key_pair(self, account_key, group_name, storage_name):
         """Get SSH key pair from the Azure storage
 
-        :param storage_client: azure.mgmt.storage.StorageManagementClient instance
+        :param account_key: (str) access key for storage account
         :param group_name: (str) the name of the resource group on Azure
         :param storage_name: (str) the name of the storage on Azure
         :return: cloudshell.cp.azure.models.ssh_key.SSHKey instance
         """
-        account_key = self._get_storage_account_key(storage_client, group_name, storage_name)
-
         file_service = FileService(account_name=storage_name,
                                    account_key=account_key)
 
