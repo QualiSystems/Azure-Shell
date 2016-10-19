@@ -66,3 +66,26 @@ class AzureModelsParser(object):
         :rtype: ReservationModel
         """
         return ReservationModel(reservation_context)
+
+    @staticmethod
+    def get_public_ip_from_connected_resource_details(resource_context):
+        public_ip = ""
+        if resource_context.remote_endpoints is not None:
+            public_ip = resource_context.remote_endpoints[0].attributes.get("Public IP", public_ip)
+
+        return public_ip
+
+    @staticmethod
+    def get_private_ip_from_connected_resource_details(resource_context):
+        private_ip = ""
+        if resource_context.remote_endpoints is not None:
+            private_ip = resource_context.remote_endpoints[0].address
+
+        return private_ip
+
+    @staticmethod
+    def get_connected_resource_fullname(resource_context):
+        if resource_context.remote_endpoints[0]:
+            return resource_context.remote_endpoints[0].fullname
+        else:
+            raise ValueError('Could not find resource fullname on the deployed app.')
