@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from mock import Mock
+from mock import MagicMock
 
 from cloudshell.cp.azure.domain.services.network_service import NetworkService
 from cloudshell.cp.azure.domain.services.storage_service import StorageService
@@ -14,7 +14,7 @@ from tests.helpers.test_helper import TestHelper
 
 class TestAzureShell(TestCase):
     def setUp(self):
-        self.logger = Mock()
+        self.logger = MagicMock()
         self.storage_service = StorageService()
         self.vm_service = VirtualMachineService()
         self.network_service = NetworkService()
@@ -32,19 +32,19 @@ class TestAzureShell(TestCase):
         """
 
         # Arrange
-        self.vm_service.create_resource_group = Mock(return_value=True)
-        self.storage_service.create_storage_account = Mock(return_value=True)
-        self.network_service.create_network = Mock(return_value=Mock())
-        self.vm_service.create_vm = Mock(return_value=Mock())
+        self.vm_service.create_resource_group = MagicMock(return_value=True)
+        self.storage_service.create_storage_account = MagicMock(return_value=True)
+        self.network_service.create_network = MagicMock(return_value=MagicMock())
+        self.vm_service.create_vm = MagicMock(return_value=MagicMock())
 
         # Act
         self.deploy_operation.deploy(DeployAzureVMResourceModel(),
                                      AzureCloudProviderResourceModel(),
-                                     Mock(),
-                                     Mock(),
-                                     Mock(),
-                                     Mock(),
-                                     Mock())
+                                     MagicMock(),
+                                     MagicMock(),
+                                     MagicMock(),
+                                     MagicMock(),
+                                     MagicMock())
 
         # Verify
         self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.vm_service.create_resource_group))
