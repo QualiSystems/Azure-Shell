@@ -1,4 +1,5 @@
 import uuid
+import re
 
 from cloudshell.cp.azure.models.deploy_result_model import DeployResult
 
@@ -83,7 +84,7 @@ class DeployAzureVMOperation(object):
         network_name = base_name
         subnet_name = base_name
         ip_name = random_name
-        storage_account_name = base_name
+        storage_account_name = random_name
         computer_name = random_name
         vm_name = random_name
 
@@ -186,8 +187,18 @@ class DeployAzureVMOperation(object):
                             public_ip=public_ip_address)
 
     @staticmethod
-    def _generate_name(name):
-        return name.replace(" ", "") + ((str(uuid.uuid4())).replace("-", ""))[0:8]
+    def _generate_name(name, length=24):
+        """Generate name based on the given one with a fixed length.
+
+        Will replace all special characters (some Azure resources have this requirements).
+        :param name:
+        :param length:
+        :return:
+        """
+        name = re.sub("[^a-zA-Z0-9]", "", name)
+        generated_name = "{:.8}{}".format(uuid.uuid4().hex, name)
+
+        return generated_name[:length]
 
     @staticmethod
     def _prepare_deployed_app_attributes(admin_username, admin_password, public_ip):
