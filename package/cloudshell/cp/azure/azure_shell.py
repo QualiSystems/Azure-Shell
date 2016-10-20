@@ -22,6 +22,7 @@ from cloudshell.cp.azure.domain.services.parsers.azure_model_parser import Azure
 from cloudshell.cp.azure.domain.services.parsers.command_result_parser import CommandResultsParser
 from cloudshell.cp.azure.domain.services.virtual_machine_service import VirtualMachineService
 from cloudshell.cp.azure.domain.services.storage_service import StorageService
+from cloudshell.cp.azure.domain.services.security_group import SecurityGroupService
 from cloudshell.cp.azure.domain.vm_management.operations.deploy_operation import DeployAzureVMOperation
 from cloudshell.cp.azure.domain.vm_management.operations.power_operation import PowerAzureVMOperation
 from cloudshell.cp.azure.domain.vm_management.operations.refresh_ip_operation import RefreshIPOperation
@@ -38,6 +39,7 @@ class AzureShell(object):
         self.storage_service = StorageService()
         self.tags_service = TagService()
         self.key_pair_service = KeyPairService()
+        self.security_group_service = SecurityGroupService()
 
     def deploy_azure_vm(self, command_context, deployment_request):
         """
@@ -58,11 +60,13 @@ class AzureShell(object):
                         network_client = azure_clients_factory.get_client(NetworkManagementClient)
                         storage_client = azure_clients_factory.get_client(StorageManagementClient)
 
-                        deploy_azure_vm_operation = DeployAzureVMOperation(logger=logger,
-                                                                           vm_service=self.vm_service,
-                                                                           network_service=self.network_service,
-                                                                           storage_service=self.storage_service,
-                                                                           tags_service=self.tags_service)
+                        deploy_azure_vm_operation = DeployAzureVMOperation(
+                            logger=logger,
+                            vm_service=self.vm_service,
+                            network_service=self.network_service,
+                            storage_service=self.storage_service,
+                            tags_service=self.tags_service,
+                            security_group_service=self.security_group_service)
 
                         reservation = self.model_parser.convert_to_reservation_model(command_context.reservation)
 
@@ -88,16 +92,18 @@ class AzureShell(object):
         with LoggingSessionContext(context) as logger:
             with AzureClientFactoryContext(cloud_provider_model) as azure_clients_factory:
                 logger.info('Preparing Connectivity for Azure VM')
-
                 resource_client = azure_clients_factory.get_client(ResourceManagementClient)
                 network_client = azure_clients_factory.get_client(NetworkManagementClient)
                 storage_client = azure_clients_factory.get_client(StorageManagementClient)
 
-                prepare_connectivity_operation = PrepareConnectivityOperation(logger=logger, vm_service=self.vm_service,
-                                                                              network_service=self.network_service,
-                                                                              storage_service=self.storage_service,
-                                                                              tags_service=self.tags_service,
-                                                                              key_pair_service=self.key_pair_service)
+                prepare_connectivity_operation = PrepareConnectivityOperation(
+                    logger=logger,
+                    vm_service=self.vm_service,
+                    network_service=self.network_service,
+                    storage_service=self.storage_service,
+                    tags_service=self.tags_service,
+                    key_pair_service=self.key_pair_service,
+                    security_group_service=self.security_group_service)
 
                 prepare_connectivity_request = DeployDataHolder(jsonpickle.decode(request))
                 prepare_connectivity_request = getattr(prepare_connectivity_request, 'driverRequest', None)

@@ -66,7 +66,7 @@ class NetworkService(object):
             interface_name,
         )
 
-        return network_interface.id
+        return network_interface
 
     def create_nic_with_dynamic_private_ip(self, interface_name, management_group_name, network_client, private_ip_address,
                                            public_ip_address, region, subnet, tags):
@@ -186,7 +186,8 @@ class NetworkService(object):
                                subnet_name,
                                tags,
                                vnet_cidr,
-                               subnet_cidr):
+                               subnet_cidr,
+                               network_security_group):
         """
         Creates a virtual network with a subnet
         :param management_group_name:
@@ -197,6 +198,7 @@ class NetworkService(object):
         :param tags:
         :param vnet_cidr:
         :param subnet_cidr:
+        :param network_security_group:
         :return:
         """
         result = network_client.virtual_networks.create_or_update(
@@ -212,6 +214,7 @@ class NetworkService(object):
                 ),
                 subnets=[
                     azure.mgmt.network.models.Subnet(
+                        network_security_group=network_security_group,
                         name=subnet_name,
                         address_prefix=subnet_cidr,
                     ),

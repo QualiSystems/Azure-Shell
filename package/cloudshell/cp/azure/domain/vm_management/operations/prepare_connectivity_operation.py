@@ -14,7 +14,8 @@ class PrepareConnectivityOperation(object):
                  network_service,
                  storage_service,
                  tags_service,
-                 key_pair_service):
+                 key_pair_service,
+                 security_group_service):
         """
 
         :param logger:
@@ -23,6 +24,7 @@ class PrepareConnectivityOperation(object):
         :param cloudshell.cp.azure.domain.services.storage_service.StorageService storage_service:
         :param cloudshell.cp.azure.domain.services.tags.TagService tags_service:
         :param cloudshell.cp.azure.domain.services.key_pair.KeyPairService key_pair_service:
+        :param cloudshell.cp.azure.domain.services.security_group.SecurityGroupService security_group_service:
         :return:
         """
 
@@ -32,6 +34,7 @@ class PrepareConnectivityOperation(object):
         self.storage_service = storage_service
         self.tags_service = tags_service
         self.key_pair_service = key_pair_service
+        self.security_group_service = security_group_service
 
     def prepare_connectivity(self,
                              reservation,
@@ -88,7 +91,15 @@ class PrepareConnectivityOperation(object):
             cidr = self._extract_cidr(action)
             logger.info("Received CIDR {0} from server".format(cidr))
 
-            # 4. Create the network interface
+            # 4. Create the Network Security Group object
+            nsg = self.security_group_service.create_network_security_group(
+                network_client=network_client,
+                group_name=group_name,
+                security_group_name=resource_name,
+                region=cloud_provider_model.region,
+                tags=tags)
+
+            # 5. Create the network interface
             # todo: change that to create a subnet
             action_result.subnet_name = self.network_service.create_virtual_network(management_group_name=group_name,
                                                                                     network_client=network_client,
@@ -97,13 +108,11 @@ class PrepareConnectivityOperation(object):
                                                                                     subnet_name=resource_name,
                                                                                     tags=tags,
                                                                                     subnet_cidr=cidr,
-                                                                                    vnet_cidr=vnet).name
+                                                                                    vnet_cidr=vnet,
+                                                                                    network_security_group=nsg).name
 
-            # 5.Create the NSG object
-            # todo: crete the subnet
+        result.append(action_result)
 
-
-            result.append(action_result)
         return result
 
     @staticmethod
