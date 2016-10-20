@@ -69,14 +69,14 @@ class NetworkService(object):
         return network_interface.id
 
     def create_nic_with_dynamic_private_ip(self, interface_name, management_group_name, network_client, private_ip_address,
-                                           public_ip_id, region, subnet, tags):
+                                           public_ip_address, region, subnet, tags):
         """
 
         :param interface_name:
         :param management_group_name:
         :param network_client:
         :param private_ip_address:
-        :param public_ip_id:
+        :param public_ip_address:
         :param region:
         :param subnet:
         :param tags:
@@ -93,9 +93,7 @@ class NetworkService(object):
                         private_ip_allocation_method=IPAllocationMethod.static,
                         private_ip_address=private_ip_address,
                         subnet=subnet,
-                        public_ip_address=azure.mgmt.network.models.PublicIPAddress(
-                            id=public_ip_id,
-                        ),
+                        public_ip_address=public_ip_address,
                     ),
                 ],
                 tags=tags
