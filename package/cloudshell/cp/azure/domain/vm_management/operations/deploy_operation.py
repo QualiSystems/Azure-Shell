@@ -85,6 +85,8 @@ class DeployAzureVMOperation(object):
                                                                 ip_name=ip_name,
                                                                 region=cloud_provider_model.region,
                                                                 subnet=subnet,
+                                                                add_public_ip=azure_vm_deployment_model.add_public_ip,
+                                                                public_ip_type=azure_vm_deployment_model.public_ip_type,
                                                                 tags=tags)
 
             # 2. create Vm
