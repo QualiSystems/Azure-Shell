@@ -1,4 +1,5 @@
 import uuid
+import re
 
 from cloudshell.cp.azure.models.deploy_result_model import DeployResult
 
@@ -55,7 +56,7 @@ class DeployAzureVMOperation(object):
         network_name = base_name
         subnet_name = base_name
         ip_name = random_name
-        storage_account_name = base_name
+        storage_account_name = random_name
         computer_name = random_name
         admin_username = resource_name
         admin_password = 'ScJaw12deDFG'
@@ -84,6 +85,8 @@ class DeployAzureVMOperation(object):
                                                       network_name=network_name,
                                                       region=cloud_provider_model.region,
                                                       subnet_name=subnet_name,
+                                                      add_public_ip=azure_vm_deployment_model.add_public_ip,
+                                                      public_ip_type=azure_vm_deployment_model.public_ip_type,
                                                       tags=tags)
 
             # 4. create Vm
@@ -106,12 +109,12 @@ class DeployAzureVMOperation(object):
         except Exception as e:
 
             self.network_service.delete_nic(network_client=network_client,
-                                           group_name=group_name,
-                                           interface_name=interface_name)
+                                            group_name=group_name,
+                                            interface_name=interface_name)
 
             self.network_service.delete_ip(network_client=network_client,
-                                            group_name=group_name,
-                                            ip_name=ip_name)
+                                           group_name=group_name,
+                                           ip_name=ip_name)
 
             self.vm_service.delete_vm(compute_management_client=compute_client,
                                       group_name=group_name,
@@ -119,10 +122,13 @@ class DeployAzureVMOperation(object):
 
             raise e
 
-        public_ip = self.network_service.get_public_ip(network_client=network_client,
-                                                       group_name=group_name,
-                                                       ip_name=ip_name)
-        public_ip_address = public_ip.ip_address
+        if azure_vm_deployment_model.add_public_ip:
+            public_ip = self.network_service.get_public_ip(network_client=network_client,
+                                                           group_name=group_name,
+                                                           ip_name=ip_name)
+            public_ip_address = public_ip.ip_address
+        else:
+            public_ip_address = None
 
         deployed_app_attributes = self._prepare_deployed_app_attributes(admin_username, admin_password,
                                                                         public_ip_address)
@@ -137,13 +143,23 @@ class DeployAzureVMOperation(object):
                             inbound_ports=azure_vm_deployment_model.inbound_ports,
                             outbound_ports=azure_vm_deployment_model.outbound_ports,
                             deployed_app_attributes=deployed_app_attributes,
-                            deployed_app_address=public_ip_address,
+                            deployed_app_address=nic.ip_configurations[0].private_ip_address,
                             public_ip=public_ip_address,
                             resource_group=reservation_id)
 
     @staticmethod
-    def _generate_name(name):
-        return name.replace(" ", "") + ((str(uuid.uuid4())).replace("-", ""))[0:8]
+    def _generate_name(name, length=24):
+        """Generate name based on the given one with a fixed length.
+
+        Will replace all special characters (some Azure resources have this requirements).
+        :param name:
+        :param length:
+        :return:
+        """
+        name = re.sub("[^a-zA-Z0-9]", "", name)
+        generated_name = "{:.8}{}".format(uuid.uuid4().hex, name)
+
+        return generated_name[:length]
 
     @staticmethod
     def _prepare_deployed_app_attributes(admin_username, admin_password, public_ip):
