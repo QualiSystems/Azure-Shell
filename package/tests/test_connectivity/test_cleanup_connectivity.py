@@ -24,9 +24,13 @@ class TestCleanupConnectivity(TestCase):
 
         # Arrange
         self.vm_service.delete_resource_group = Mock()
+        tested_group_name = "test_group"
+        resource_client = Mock()
 
         # Act
-        self.delete_operation.delete_resource_group(resource_client=Mock(),group_name=Mock())
+        self.delete_operation.delete_resource_group(resource_client=resource_client, group_name=tested_group_name)
 
         # Verify
         self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.vm_service.delete_resource_group))
+        self.vm_service.delete_resource_group.assert_called_with(resource_management_client=resource_client,
+                                                                 group_name=tested_group_name)

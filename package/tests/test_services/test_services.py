@@ -32,7 +32,8 @@ class TestStorageService(TestCase):
                                                                       sku=Mock(),
                                                                       kind=kind_storage_value,
                                                                       location=region,
-                                                                      tags=tags))
+                                                                      tags=tags),
+                                                                  raw=False)
 
 
 class TestNetworkService(TestCase):
