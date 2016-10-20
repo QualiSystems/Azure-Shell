@@ -63,11 +63,7 @@ class DeployAzureVMOperation(object):
 
         all_networks = self.network_service.get_virtual_networks(network_client, group_name)
 
-        if len(all_networks) > 1:
-            raise Exception("The resource group {0} contains more than one virtual network.".format({group_name}))
-
-        if len(all_networks) == 0:
-            raise Exception("The resource group {0} does not contain a virtual network.".format({group_name}))
+        self.validate_network(all_networks, group_name)
 
         subnet = all_networks[0].subnets[0]
 
@@ -143,6 +139,12 @@ class DeployAzureVMOperation(object):
                             deployed_app_attributes=deployed_app_attributes,
                             deployed_app_address=public_ip_address,
                             public_ip=public_ip_address)
+
+    def validate_network(self, all_networks, group_name):
+        if len(all_networks) > 1:
+            raise Exception("The resource group {0} contains more than one virtual network.".format({group_name}))
+        if len(all_networks) == 0:
+            raise Exception("The resource group {0} does not contain a virtual network.".format({group_name}))
 
     @staticmethod
     def _prepare_deployed_app_attributes(admin_username, admin_password, public_ip):

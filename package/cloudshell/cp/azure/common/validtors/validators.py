@@ -1,6 +1,7 @@
 # Validators
 from azure.mgmt.storage.models import StorageAccount
 
+
 class ValidationRule(object):
     def __init__(self, rule_name, decription):
         self.rule_name = rule_name
@@ -8,7 +9,6 @@ class ValidationRule(object):
 
     def validate_rule(self, resource):
         return False
-
 
 
 class Validator(object):
@@ -19,13 +19,13 @@ class Validator(object):
         """
         self.rules_list = rules_list
 
-    def can_handle(self,resource_type):
+    def can_handle(self, resource_type):
         pass
 
     def validate(self, resource):
         failed_rules = []
         for rule in self.rules_list:
-            if not rule.validate_rule(resource=resource):
+            if not rule.validate_rule(resource):
                 failed_rules.append(rule)
 
         if failed_rules:
@@ -35,20 +35,21 @@ class Validator(object):
             raise Exception("Validation error " + err_msg)
 
 
-class SubnetValidator(Validator):
+class NetworkValidator(Validator):
     def can_handle(self, resource_type):
         pass
+
+
+class NetWorkValidationRuleOneVnet(ValidationRule):
+    def validate_rule(self, network):
+        return len(network) == 1
 
 
 class StorageValidator(Validator):
     def can_handle(self, resource_type):
         return resource_type is StorageAccount
 
-class StorageValidationManyVnet(ValidationRule):
-    def validate_rule(self, storage_accounts_list):
-        return len(storage_accounts_list) > 1
 
-
-class StorageValidationRuleNoneVnet(ValidationRule):
+class StorageValidationRuleOneVnet(ValidationRule):
     def validate_rule(self, storage_accounts_list):
         return len(storage_accounts_list) == 1
