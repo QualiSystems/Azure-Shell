@@ -2,15 +2,21 @@ from unittest import TestCase
 
 from azure.mgmt.network.models import IPAllocationMethod
 from azure.mgmt.storage.models import StorageAccountCreateParameters
+from mock import MagicMock
+import mock
+
 from cloudshell.cp.azure.domain.services.network_service import NetworkService
+from cloudshell.cp.azure.domain.services.key_pair import KeyPairService
 from cloudshell.cp.azure.domain.services.storage_service import StorageService
 from cloudshell.cp.azure.domain.services.virtual_machine_service import VirtualMachineService
-from mock import Mock
 
 
 class TestStorageService(TestCase):
     def setUp(self):
         self.storage_service = StorageService()
+        self.group_name = "test_group_name"
+        self.storage_name = "teststoragename"
+        self.storage_client = mock.MagicMock()
 
     def test_create_storage_account(self):
         # Arrange
@@ -19,9 +25,9 @@ class TestStorageService(TestCase):
         tags = {}
         group_name = "a group name"
 
-        storage_client = Mock()
-        storage_client.storage_accounts.create = Mock(return_value=Mock())
-        kind_storage_value = Mock()
+        storage_client = MagicMock()
+        storage_client.storage_accounts.create = MagicMock()
+        kind_storage_value = MagicMock()
         # Act
 
         self.storage_service.create_storage_account(storage_client, group_name, region, account_name, tags)
@@ -29,10 +35,23 @@ class TestStorageService(TestCase):
         # Verify
         storage_client.storage_accounts.create.assert_called_with(group_name, account_name,
                                                                   StorageAccountCreateParameters(
-                                                                      sku=Mock(),
+                                                                      sku=MagicMock(),
                                                                       kind=kind_storage_value,
                                                                       location=region,
                                                                       tags=tags))
+
+    def test_get_storage_account_key(self):
+        """Check that method uses storage client to retrieve first access key for the storage account"""
+        storage_key = mock.MagicMock()
+
+        self.storage_client.storage_accounts.list_keys.return_value = mock.MagicMock(keys=[storage_key])
+
+        key = self.storage_service.get_storage_account_key(
+            storage_client=self.storage_client,
+            group_name=self.group_name,
+            storage_name=self.storage_name)
+
+        self.assertEqual(key, storage_key.value)
 
 
 class TestNetworkService(TestCase):
@@ -50,20 +69,27 @@ class TestNetworkService(TestCase):
         ip_name = "ip"
         tags = "tags"
 
-        network_client = Mock()
-        network_client.virtual_networks.create_or_update = Mock()
-        network_client.subnets.get = Mock()
-        network_client.public_ip_addresses.create_or_update = Mock()
-        network_client.public_ip_addresses.get = Mock()
-        result = Mock()
-        result.result().ip_configurations = [Mock()]
-        network_client.network_interfaces.create_or_update = Mock(return_value=result)
+        network_client = MagicMock()
+        network_client.virtual_networks.create_or_update = MagicMock()
+        network_client.subnets.get = MagicMock()
+        network_client.public_ip_addresses.create_or_update = MagicMock()
+        network_client.public_ip_addresses.get = MagicMock()
+        result = MagicMock()
+        result.result().ip_configurations = [MagicMock()]
+        network_client.network_interfaces.create_or_update = MagicMock(return_value=result)
 
         # Act
-
-        self.network_service.create_network_interface(network_client, region, management_group_name,
-                                                      interface_name, network_name, subnet_name,
-                                                      ip_name, tags)
+        self.network_service.create_network(
+            network_client=network_client,
+            group_name=management_group_name,
+            interface_name=interface_name,
+            ip_name=ip_name,
+            region=region,
+            subnet_name=subnet_name,
+            network_name=network_name,
+            add_public_ip=True,
+            public_ip_type="Static",
+            tags=tags)
 
         # Verify
 
@@ -83,16 +109,16 @@ class TestVMService(TestCase):
         self.vm_service = VirtualMachineService()
 
     def test_vm_service_create_vm(self):
-        mock = Mock()
+        mock = MagicMock()
         compute_management_client = mock
         group_name = mock
         vm_name = mock
         region = 'a region'
         tags = {}
         compute_management_client.virtual_machines = mock
-        compute_management_client.virtual_machines.create_or_update = Mock(return_value=mock)
+        compute_management_client.virtual_machines.create_or_update = MagicMock(return_value=mock)
         vm = 'some returned vm'
-        self.vm_service._get_virtual_machine = Mock(return_value=vm)
+        self.vm_service._get_virtual_machine = MagicMock(return_value=vm)
 
         # Act
         self.vm_service.create_vm(compute_management_client=compute_management_client,
@@ -116,12 +142,12 @@ class TestVMService(TestCase):
 
     def test_vm_service_create_resource_group(self):
         # Arrange
-        resource_management_client = Mock()
-        resource_management_client.resource_groups.create_or_update = Mock(return_value="A test group")
+        resource_management_client = MagicMock()
+        resource_management_client.resource_groups.create_or_update = MagicMock(return_value="A test group")
 
         # Act
         region = 'region'
-        group_name = Mock()
+        group_name = MagicMock()
         tags = {}
         self.vm_service.create_resource_group(resource_management_client=resource_management_client,
                                               region=region,
@@ -134,7 +160,7 @@ class TestVMService(TestCase):
 
     def test_start_vm(self):
         """Check that method calls azure client to start VM action and returns it result"""
-        compute_management_client = Mock()
+        compute_management_client = MagicMock()
         group_name = "test_group_name"
         vm_name = "test_group_name"
 
@@ -147,7 +173,7 @@ class TestVMService(TestCase):
 
     def test_stop_vm(self):
         """Check that method calls azure client to stop VM action and returns it result"""
-        compute_management_client = Mock()
+        compute_management_client = MagicMock()
         group_name = "test_group_name"
         vm_name = "test_group_name"
 
@@ -160,8 +186,8 @@ class TestVMService(TestCase):
 
     def test_start_vm_with_async_mode_true(self):
         """Check that method calls azure client to start VM action and doesn't wait for it result"""
-        compute_management_client = Mock()
-        operation_poller = Mock()
+        compute_management_client = MagicMock()
+        operation_poller = MagicMock()
         group_name = "test_group_name"
         vm_name = "test_group_name"
         compute_management_client.virtual_machines.power_off.return_value = operation_poller
@@ -173,8 +199,8 @@ class TestVMService(TestCase):
 
     def test_stop_vm_with_async_mode_true(self):
         """Check that method calls azure client to stop VM action and doesn't wait for it result"""
-        compute_management_client = Mock()
-        operation_poller = Mock()
+        compute_management_client = MagicMock()
+        operation_poller = MagicMock()
         group_name = "test_group_name"
         vm_name = "test_group_name"
         compute_management_client.virtual_machines.power_off.return_value = operation_poller
@@ -183,3 +209,77 @@ class TestVMService(TestCase):
 
         operation_poller.result.assert_not_called()
         self.assertIsNone(res)
+
+
+class TestKeyPairService(TestCase):
+    def setUp(self):
+        self.key_pair_service = KeyPairService()
+        self.group_name = "test_group_name"
+        self.storage_name = "teststoragename"
+        self.account_key = "test_account_key"
+        self.storage_client = mock.MagicMock()
+
+    @mock.patch("cloudshell.cp.azure.domain.services.key_pair.RSA")
+    @mock.patch("cloudshell.cp.azure.domain.services.key_pair.SSHKey")
+    def test_generate_key_pair(self, ssh_key_class, rsa_module):
+        """Check that method uses RSA module to generate key pair and returns SSHKey model"""
+        ssh_key_class.return_value = ssh_key_mock = mock.MagicMock()
+
+        ssh_key = self.key_pair_service.generate_key_pair()
+
+        ssh_key_class.assert_called_with(private_key=rsa_module.generate().exportKey(),
+                                         public_key=rsa_module.generate().publickey().exportKey())
+        self.assertIs(ssh_key, ssh_key_mock)
+
+    @mock.patch("cloudshell.cp.azure.domain.services.key_pair.FileService")
+    def test_save_key_pair(self, file_service_class):
+        """Check that method uses storage client to save key pair to the Azure"""
+        key_pair = mock.MagicMock()
+        file_service = mock.MagicMock()
+        file_service_class.return_value = file_service
+
+        self.key_pair_service.save_key_pair(
+            account_key=self.account_key,
+            key_pair=key_pair,
+            group_name=self.group_name,
+            storage_name=self.storage_name)
+
+        file_service_class.assert_called_once_with(account_key=self.account_key, account_name=self.storage_name)
+        file_service.create_share.assert_called_once_with(self.key_pair_service.FILE_SHARE_NAME)
+
+        file_service.create_file_from_bytes.assert_any_call(share_name=self.key_pair_service.FILE_SHARE_NAME,
+                                                            directory_name=self.key_pair_service.FILE_SHARE_DIRECTORY,
+                                                            file_name=self.key_pair_service.SSH_PUB_KEY_NAME,
+                                                            file=key_pair.public_key)
+
+        file_service.create_file_from_bytes.assert_any_call(share_name=self.key_pair_service.FILE_SHARE_NAME,
+                                                            directory_name=self.key_pair_service.FILE_SHARE_DIRECTORY,
+                                                            file_name=self.key_pair_service.SSH_PRIVATE_KEY_NAME,
+                                                            file=key_pair.private_key)
+
+    @mock.patch("cloudshell.cp.azure.domain.services.key_pair.SSHKey")
+    @mock.patch("cloudshell.cp.azure.domain.services.key_pair.FileService")
+    def test_get_key_pair(self, file_service_class, ssh_key_class):
+        """Check that method uses storage client to retrieve key pair from the Azure"""
+        file_service = mock.MagicMock()
+        file_service_class.return_value = file_service
+        ssh_key_class.return_value = mocked_key_pair = mock.MagicMock()
+
+        key_pair = self.key_pair_service.get_key_pair(
+            account_key=self.account_key,
+            group_name=self.group_name,
+            storage_name=self.storage_name)
+
+        file_service_class.assert_called_once_with(account_key=self.account_key, account_name=self.storage_name)
+
+        file_service.get_file_to_bytes.assert_any_call(
+            share_name=self.key_pair_service.FILE_SHARE_NAME,
+            directory_name=self.key_pair_service.FILE_SHARE_DIRECTORY,
+            file_name=self.key_pair_service.SSH_PUB_KEY_NAME)
+
+        file_service.get_file_to_bytes.assert_any_call(
+            share_name=self.key_pair_service.FILE_SHARE_NAME,
+            directory_name=self.key_pair_service.FILE_SHARE_DIRECTORY,
+            file_name=self.key_pair_service.SSH_PRIVATE_KEY_NAME)
+
+        self.assertIs(key_pair, mocked_key_pair)

@@ -1,4 +1,5 @@
 import uuid
+import re
 
 from azure.mgmt.storage.models import StorageAccount
 
@@ -52,7 +53,7 @@ class DeployAzureVMOperation(object):
         app_name = azure_vm_deployment_model.app_name.lower().replace(" ", "")
         resource_name = app_name
         base_name = resource_name
-        random_name = OperationsHelper.generate_name(base_name)
+        random_name = self._generate_name(base_name)
         group_name = str(reservation_id)
         interface_name = random_name
         ip_name = random_name
@@ -119,10 +120,13 @@ class DeployAzureVMOperation(object):
 
             raise e
 
-        public_ip = self.network_service.get_public_ip(network_client=network_client,
-                                                       group_name=group_name,
-                                                       ip_name=ip_name)
-        public_ip_address = public_ip.ip_address
+        if azure_vm_deployment_model.add_public_ip:
+            public_ip = self.network_service.get_public_ip(network_client=network_client,
+                                                           group_name=group_name,
+                                                           ip_name=ip_name)
+            public_ip_address = public_ip.ip_address
+        else:
+            public_ip_address = None
 
         deployed_app_attributes = self._prepare_deployed_app_attributes(admin_username, admin_password,
                                                                         public_ip_address)
@@ -145,6 +149,19 @@ class DeployAzureVMOperation(object):
             raise Exception("The resource group {0} contains more than one virtual network.".format({group_name}))
         if len(all_networks) == 0:
             raise Exception("The resource group {0} does not contain a virtual network.".format({group_name}))
+    @staticmethod
+    def _generate_name(name, length=24):
+        """Generate name based on the given one with a fixed length.
+
+        Will replace all special characters (some Azure resources have this requirements).
+        :param name:
+        :param length:
+        :return:
+        """
+        name = re.sub("[^a-zA-Z0-9]", "", name)
+        generated_name = "{:.8}{}".format(uuid.uuid4().hex, name)
+
+        return generated_name[:length]
 
     @staticmethod
     def _prepare_deployed_app_attributes(admin_username, admin_password, public_ip):

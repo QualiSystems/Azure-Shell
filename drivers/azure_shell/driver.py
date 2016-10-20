@@ -29,7 +29,7 @@ class AzureShellDriver(ResourceDriverInterface):
         pass
 
     def remote_refresh_ip(self, context, ports, cancellation_context):
-        pass
+        return self.azure_shell.refresh_ip(context)
 
     def destroy_vm_only(self, context, ports):
         pass

@@ -48,3 +48,16 @@ class StorageService(object):
         """
         return list(storage_client.storage_accounts.list_by_resource_group(group_name))
 
+    def get_storage_account_key(self, storage_client, group_name, storage_name):
+        """Get firsts storage account access key for some storage
+
+        :param storage_client: azure.mgmt.storage.StorageManagementClient instance
+        :param group_name: (str) the name of the resource group on Azure
+        :param storage_name: (str) the name of the storage on Azure
+        :return: (str) storage access key
+        """
+        account_keys = storage_client.storage_accounts.list_keys(group_name, storage_name)
+        account_key = account_keys.keys[0]
+
+        return account_key.value
+
