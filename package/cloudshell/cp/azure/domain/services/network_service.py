@@ -13,9 +13,13 @@ class NetworkService(object):
                               ip_name,
                               region,
                               subnet,
-                              tags):
+                              tags,
+                              add_public_ip,
+                              public_ip_type):
         """
         This method creates a an ip address and a nic for the vm
+        :param public_ip_type:
+        :param add_public_ip:
         :param network_client:
         :param group_name:
         :param interface_name:
@@ -26,14 +30,21 @@ class NetworkService(object):
         :return:
         """
         # 1. Create ip address
-        public_ip_address = self.create_public_ip_address(ip_name, group_name, network_client, region, tags)
-        public_ip_id = public_ip_address.id
+        public_ip_address = None
+        if add_public_ip:
+            public_ip_address = self._create_public_ip(
+                network_client=network_client,
+                region=region,
+                group_name=group_name,
+                ip_name=ip_name,
+                public_ip_type=public_ip_type,
+                tags=tags)
 
         # 2. Create NIC
         result = self.create_nic(interface_name,
                                  group_name,
                                  network_client,
-                                 public_ip_id,
+                                 public_ip_address,
                                  region,
                                  subnet,
                                  IPAllocationMethod.dynamic,
@@ -41,14 +52,14 @@ class NetworkService(object):
 
         # 3. update the type of private ip from dynamic to static (ip itself must be supplied)
         private_ip_address = result.result().ip_configurations[0].private_ip_address
-        self.create_nic_with_private_ip(interface_name,
-                                        group_name,
-                                        network_client,
-                                        private_ip_address,
-                                        public_ip_id,
-                                        region,
-                                        subnet,
-                                        tags)
+        self.create_nic_with_dynamic_private_ip(interface_name,
+                                                group_name,
+                                                network_client,
+                                                private_ip_address,
+                                                public_ip_address,
+                                                region,
+                                                subnet,
+                                                tags)
 
         network_interface = network_client.network_interfaces.get(
             group_name,
@@ -57,8 +68,8 @@ class NetworkService(object):
 
         return network_interface.id
 
-    def create_nic_with_private_ip(self, interface_name, management_group_name, network_client, private_ip_address,
-                                   public_ip_id, region, subnet, tags):
+    def create_nic_with_dynamic_private_ip(self, interface_name, management_group_name, network_client, private_ip_address,
+                                           public_ip_id, region, subnet, tags):
         """
 
         :param interface_name:
@@ -92,14 +103,14 @@ class NetworkService(object):
         )
         result.wait()
 
-    def create_nic(self, interface_name, management_group_name, network_client, public_ip_id, region, subnet,
+    def create_nic(self, interface_name, management_group_name, network_client, public_ip_address, region, subnet,
                    private_ip_allocation_method, tags):
         """
 
         :param interface_name:
         :param management_group_name:
         :param network_client:
-        :param public_ip_id:
+        :param public_ip_address:
         :param region:
         :param subnet:
         :param private_ip_allocation_method:
@@ -116,9 +127,7 @@ class NetworkService(object):
                         name='default',
                         private_ip_allocation_method=private_ip_allocation_method,
                         subnet=subnet,
-                        public_ip_address=azure.mgmt.network.models.PublicIPAddress(
-                            id=public_ip_id,
-                        ),
+                        public_ip_address=public_ip_address,
                     ),
                 ],
                 tags=tags
@@ -127,29 +136,51 @@ class NetworkService(object):
         result.wait()
         return result
 
-    def create_public_ip_address(self, ip_name, management_group_name, network_client, region, tags):
-        """
+    def _create_public_ip(self, network_client, region, group_name, ip_name, public_ip_type, tags):
+        """Create Azure Public IP resource
 
-        :param ip_name:
-        :param management_group_name:
-        :param network_client:
-        :param region:
-        :param tags:
-        :return:
+        :param network_client: azure.mgmt.network.NetworkManagementClient instance
+        :param region: (str) Azure region
+        :param group_name: (str) resource group name (reservation id)
+        :param ip_name: (str) name for Azure Public IP resource
+        :param public_ip_type: (str) IP Allocation method for the Public IP ("Static"/"Dynamic")
+        :param tags: Azure tags
+        :return: azure.mgmt.network.models.PublicIPAddress instance
         """
-        result = network_client.public_ip_addresses.create_or_update(
-            management_group_name,
+        public_ip_allocation_method = self._get_ip_allocation_type(public_ip_type)
+
+        operation_poller = network_client.public_ip_addresses.create_or_update(
+            group_name,
             ip_name,
             azure.mgmt.network.models.PublicIPAddress(
                 location=region,
-                public_ip_allocation_method=azure.mgmt.network.models.IPAllocationMethod.static,
+                public_ip_allocation_method=public_ip_allocation_method,
                 idle_timeout_in_minutes=4,
                 tags=tags
             ),
         )
-        result.wait()
-        public_ip_address = network_client.public_ip_addresses.get(management_group_name, ip_name)
-        return public_ip_address
+
+        return operation_poller.result()
+
+    def _get_ip_allocation_type(self, ip_type):
+        """Get corresponding Enum type by string ip_type
+
+        :param ip_type: (str) IP Allocation method for the Public IP ("Static"/"Dynamic")
+        :return: static/dynamic property from azure.mgmt.network.models.IPAllocationMethod Enum
+        :raise Exception if ip_type is invalid
+        """
+        types_map = {
+            "static": azure.mgmt.network.models.IPAllocationMethod.static,
+            "dynamic": azure.mgmt.network.models.IPAllocationMethod.dynamic,
+        }
+
+        allocation_type = types_map.get(ip_type.lower())
+
+        if not allocation_type:
+            raise Exception("Incorrect allocation type {}. Possible values are {}"
+                            .format(ip_type, [type_map.title() for type_map in types_map.iterkeys()]))
+
+        return allocation_type
 
     def create_virtual_network(self, management_group_name,
                                network_client, network_name,
@@ -234,4 +265,3 @@ class NetworkService(object):
         """
         networks_list = network_client.virtual_networks.list(group_name)
         return list(networks_list)
-
