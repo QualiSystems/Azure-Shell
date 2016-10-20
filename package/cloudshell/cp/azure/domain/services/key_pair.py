@@ -25,12 +25,11 @@ class KeyPairService(object):
 
         return SSHKey(private_key=private_key, public_key=public_key)
 
-    def save_key_pair(self, account_key, key_pair, group_name, storage_name):
+    def save_key_pair(self, account_key, key_pair, storage_name):
         """Save SSH key pair to the Azure storage
 
         :param account_key: (str) access key for storage account
         :param key_pair: cloudshell.cp.azure.models.ssh_key.SSHKey instance
-        :param group_name: (str) the name of the resource group on Azure
         :param storage_name: (str) the name of the storage on Azure
         :return:
         """
@@ -49,11 +48,10 @@ class KeyPairService(object):
                                             file_name=self.SSH_PRIVATE_KEY_NAME,
                                             file=key_pair.private_key)
 
-    def get_key_pair(self, account_key, group_name, storage_name):
+    def get_key_pair(self, account_key, storage_name):
         """Get SSH key pair from the Azure storage
 
         :param account_key: (str) access key for storage account
-        :param group_name: (str) the name of the resource group on Azure
         :param storage_name: (str) the name of the storage on Azure
         :return: cloudshell.cp.azure.models.ssh_key.SSHKey instance
         """

@@ -4,7 +4,7 @@ import string
 from azure.mgmt.compute.models import OperatingSystemTypes
 
 from cloudshell.cp.azure.models.vm_credentials import VMCredentials
-from cloudshell.cp.azure.models.ssh_key import SSHKey
+from cloudshell.cp.azure.models.authorized_key import AuthorizedKey
 
 
 class VMCredentialsService(object):
@@ -23,14 +23,18 @@ class VMCredentialsService(object):
 
         return ''.join(random.choice(chars) for _ in xrange(length))
 
-    def prepare_credentials(self, username, password, os_type, storage_client, group_name):
+    def prepare_credentials(self, os_type, username, password, storage_service, key_pair_service,
+                            storage_client, group_name, storage_name):
         """Prepare credentials for Windows/Linux VM
 
+        :param os_type: azure.mgmt.compute.models.OperatingSystemTypes os type (linux/windows)
         :param username: VM username
         :param password: VM password
-        :param os_type: azure.mgmt.compute.models.OperatingSystemTypes os type (linux/windows)
-        :param storage_client: azure.mgmt.storage.StorageManagementClient
+        :param storage_service: cloudshell.cp.azure.services.storage_service.StorageService instance
+        :param key_pair_service: cloudshell.cp.azure.services.key_pair.KeyPairService instance
+        :param storage_client: azure.mgmt.storage.StorageManagementClient instance
         :param group_name: resource group name (reservation id)
+        :param storage_name: Azure storage name
         :return: cloudshell.cp.azure.models.vm_credentials.VMCredentials instance
         """
         ssh_key = None
@@ -39,8 +43,11 @@ class VMCredentialsService(object):
             username, password, ssh_key = self._prepare_linux_credentials(
                 username=username,
                 password=password,
+                storage_service=storage_service,
+                key_pair_service=key_pair_service,
                 storage_client=storage_client,
-                group_name=group_name)
+                group_name=group_name,
+                storage_name=storage_name)
         else:
             username, password = self._prepare_windows_credentials(username, password)
 
@@ -60,24 +67,40 @@ class VMCredentialsService(object):
 
         return username, password
 
-    def _get_ssh_key(self, username, storage_client, group_name):
-        """Get SSH pub key from the Azure storage
+    def _get_ssh_key(self, username, storage_service, key_pair_service, storage_client, group_name, storage_name):
+        """Retrieve SSH key pair from Azure storage and return Azure SSH Key model
 
         :param username: VM username
-        :param storage_client: azure.mgmt.storage.StorageManagementClient
+        :param storage_service: cloudshell.cp.azure.services.storage_service.StorageService instance
+        :param key_pair_service: cloudshell.cp.azure.services.key_pair.KeyPairService instance
+        :param storage_client: azure.mgmt.storage.StorageManagementClient instance
         :param group_name: resource group name (reservation id)
-        :return:
+        :param storage_name: Azure storage name
+        :return: cloudshell.cp.azure.models.authorized_key.AuthorizedKey
         """
+        storage_account_key = storage_service.get_storage_account_key(
+            storage_client=storage_client,
+            group_name=group_name,
+            storage_name=storage_name)
+
+        key_pair = key_pair_service.get_key_pair(account_key=storage_account_key,
+                                                 storage_name=storage_name)
+
         path_to_key = self.LINUX_PATH_TO_SSH_KEY.format(username=username)
-        key_data = ""  # todo(A.Piddubny): retrieve key pair from the storage
 
-        return SSHKey(path_to_key, key_data)
+        return AuthorizedKey(path_to_key, key_pair.public_key)
 
-    def _prepare_linux_credentials(self, username, password, storage_client, group_name):
+    def _prepare_linux_credentials(self, username, password, storage_service, key_pair_service, storage_client,
+                                   group_name, storage_name):
         """Prepare Linux credentials for the VM (prepare SSH key, set default user if credentials weren't provided)
 
         :param username: VM username
         :param password: VM password
+        :param storage_service: cloudshell.cp.azure.services.storage_service.StorageService instance
+        :param key_pair_service: cloudshell.cp.azure.services.key_pair.KeyPairService instance
+        :param storage_client: azure.mgmt.storage.StorageManagementClient instance
+        :param group_name: resource group name (reservation id)
+        :param storage_name: Azure storage name
         :return: (tuple) username, password and ssh_key
         """
         ssh_key = None
@@ -85,6 +108,12 @@ class VMCredentialsService(object):
         if not username:
             username = self.DEFAULT_LINUX_USERNAME
         if not password:
-            ssh_key = self._get_ssh_key(username, storage_client, group_name)
+            ssh_key = self._get_ssh_key(
+                username=username,
+                storage_service=storage_service,
+                key_pair_service=key_pair_service,
+                storage_client=storage_client,
+                group_name=group_name,
+                storage_name=storage_name)
 
         return username, password, ssh_key

@@ -14,6 +14,7 @@ from cloudshell.cp.azure.domain.services.parsers.command_result_parser import Co
 from cloudshell.cp.azure.domain.services.virtual_machine_service import VirtualMachineService
 from cloudshell.cp.azure.domain.services.storage_service import StorageService
 from cloudshell.cp.azure.domain.services.vm_credentials_service import VMCredentialsService
+from cloudshell.cp.azure.domain.services.key_pair import KeyPairService
 from cloudshell.cp.azure.domain.vm_management.operations.deploy_operation import DeployAzureVMOperation
 from cloudshell.cp.azure.domain.vm_management.operations.power_operation import PowerAzureVMOperation
 from cloudshell.cp.azure.domain.vm_management.operations.refresh_ip_operation import RefreshIPOperation
@@ -28,6 +29,7 @@ class AzureShell(object):
         self.storage_service = StorageService()
         self.tags_service = TagService()
         self.vm_credentials_service = VMCredentialsService()
+        self.key_pair_service = KeyPairService()
 
     def deploy_azure_vm(self, command_context, deployment_request):
         """
@@ -55,6 +57,7 @@ class AzureShell(object):
                         network_service=self.network_service,
                         storage_service=self.storage_service,
                         vm_credentials_service=self.vm_credentials_service,
+                        key_pair_service=self.key_pair_service,
                         tags_service=self.tags_service)
 
                     if azure_vm_deployment_model.password:

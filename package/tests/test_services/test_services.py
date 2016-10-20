@@ -10,7 +10,6 @@ from cloudshell.cp.azure.domain.services.key_pair import KeyPairService
 from cloudshell.cp.azure.domain.services.storage_service import StorageService
 from cloudshell.cp.azure.domain.services.virtual_machine_service import VirtualMachineService
 from cloudshell.cp.azure.domain.services.vm_credentials_service import VMCredentialsService
-from cloudshell.cp.azure.models.ssh_key import SSHKey
 from cloudshell.cp.azure.models.vm_credentials import VMCredentials
 
 
@@ -229,6 +228,9 @@ class TestVMCredentialsService(TestCase):
         self.test_username = "test_username"
         self.test_password = "testPassword123"
         self.test_group_name = "test_username"
+        self.test_storage_name = "test_storage_name"
+        self.test_storage_service = mock.MagicMock()
+        self.test_key_pair_service = mock.MagicMock()
         self.test_storage_client = mock.MagicMock()
         self.vm_credentials = VMCredentialsService()
 
@@ -237,11 +239,20 @@ class TestVMCredentialsService(TestCase):
         password = self.vm_credentials._generate_password(19)
         self.assertEqual(len(password), 19)
 
-    def test_get_ssh_key(self):
-        """Check that method will return cloudshell.cp.azure.models.ssh_key.SSHKey instance"""
-        ssh_key = self.vm_credentials._get_ssh_key(self.test_username, self.test_storage_client, self.test_group_name)
+    @mock.patch("cloudshell.cp.azure.domain.services.vm_credentials_service.AuthorizedKey")
+    def test_get_ssh_key(self, authorized_key_class):
+        """Check that method will return cloudshell.cp.azure.models.authorized_key.AuthorizedKey instance"""
+        authorized_key_class.return_value = authorized_key = mock.MagicMock()
 
-        self.assertIsInstance(ssh_key, SSHKey)
+        ssh_key = self.vm_credentials._get_ssh_key(
+            username=self.test_username,
+            storage_service=self.test_storage_service,
+            key_pair_service=self.test_key_pair_service,
+            storage_client=self.test_storage_client,
+            group_name=self.test_group_name,
+            storage_name=self.test_storage_name)
+
+        self.assertIs(ssh_key, authorized_key)
 
     @mock.patch("cloudshell.cp.azure.domain.services.vm_credentials_service.OperatingSystemTypes")
     def test_prepare_credentials_with_windows_os_type(self, os_types):
@@ -250,11 +261,14 @@ class TestVMCredentialsService(TestCase):
                                                                                         self.test_password))
 
         vm_creds = self.vm_credentials.prepare_credentials(
+            os_type=os_types.windows,
             username=self.test_username,
             password=self.test_password,
-            os_type=os_types.windows,
+            storage_service=self.test_storage_service,
+            key_pair_service=self.test_key_pair_service,
             storage_client=self.test_storage_client,
-            group_name=self.test_group_name)
+            group_name=self.test_group_name,
+            storage_name=self.test_storage_name)
 
         self.vm_credentials._prepare_windows_credentials.assert_called_once_with(self.test_username, self.test_password)
         self.assertIsInstance(vm_creds, VMCredentials)
@@ -267,17 +281,23 @@ class TestVMCredentialsService(TestCase):
                                                                                       self.test_password,
                                                                                       mock.MagicMock()))
         vm_creds = self.vm_credentials.prepare_credentials(
+            os_type=os_types.linux,
             username=self.test_username,
             password=self.test_password,
-            os_type=os_types.linux,
+            storage_service=self.test_storage_service,
+            key_pair_service=self.test_key_pair_service,
             storage_client=self.test_storage_client,
-            group_name=self.test_group_name)
+            group_name=self.test_group_name,
+            storage_name=self.test_storage_name)
 
         self.vm_credentials._prepare_linux_credentials.assert_called_once_with(
             username=self.test_username,
             password=self.test_password,
+            storage_service=self.test_storage_service,
+            key_pair_service=self.test_key_pair_service,
             storage_client=self.test_storage_client,
-            group_name=self.test_group_name)
+            group_name=self.test_group_name,
+            storage_name=self.test_storage_name)
 
         self.assertIsInstance(vm_creds, VMCredentials)
 
@@ -303,8 +323,11 @@ class TestVMCredentialsService(TestCase):
         username, password, ssh_key = self.vm_credentials._prepare_linux_credentials(
             username=self.test_username,
             password=self.test_password,
+            storage_service=self.test_storage_service,
+            key_pair_service=self.test_key_pair_service,
             storage_client=self.test_storage_client,
-            group_name=self.test_group_name)
+            group_name=self.test_group_name,
+            storage_name=self.test_storage_name)
 
         self.assertEqual(username, self.test_username)
         self.assertEqual(password, self.test_password)
@@ -318,8 +341,11 @@ class TestVMCredentialsService(TestCase):
         username, password, ssh_key = self.vm_credentials._prepare_linux_credentials(
             username="",
             password="",
+            storage_service=self.test_storage_service,
+            key_pair_service=self.test_key_pair_service,
             storage_client=self.test_storage_client,
-            group_name=self.test_group_name)
+            group_name=self.test_group_name,
+            storage_name=self.test_storage_name)
 
         self.assertEqual(username, self.vm_credentials.DEFAULT_LINUX_USERNAME)
         self.assertEqual(password, "")
@@ -356,7 +382,6 @@ class TestKeyPairService(TestCase):
         self.key_pair_service.save_key_pair(
             account_key=self.account_key,
             key_pair=key_pair,
-            group_name=self.group_name,
             storage_name=self.storage_name)
 
         file_service_class.assert_called_once_with(account_key=self.account_key, account_name=self.storage_name)
@@ -382,7 +407,6 @@ class TestKeyPairService(TestCase):
 
         key_pair = self.key_pair_service.get_key_pair(
             account_key=self.account_key,
-            group_name=self.group_name,
             storage_name=self.storage_name)
 
         file_service_class.assert_called_once_with(account_key=self.account_key, account_name=self.storage_name)

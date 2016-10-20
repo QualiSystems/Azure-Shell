@@ -11,6 +11,7 @@ class DeployAzureVMOperation(object):
                  network_service,
                  storage_service,
                  vm_credentials_service,
+                 key_pair_service,
                  tags_service):
         """
 
@@ -19,6 +20,7 @@ class DeployAzureVMOperation(object):
         :param cloudshell.cp.azure.domain.services.network_service.NetworkService network_service:
         :param cloudshell.cp.azure.domain.services.storage_service.StorageService storage_service:
         :param cloudshell.cp.azure.domain.services.vm_credentials.VMCredentialsService vm_credentials_service:
+        :param cloudshell.cp.azure.domain.services.key_pair.KeyPairService key_pair_service:
         :param tags_service:
         :return:
         """
@@ -27,6 +29,7 @@ class DeployAzureVMOperation(object):
         self.network_service = network_service
         self.storage_service = storage_service
         self.vm_credentials_service = vm_credentials_service
+        self.key_pair_service = key_pair_service
         self.tags_service = tags_service
 
     def _get_image_operation_system(self, cloud_provider_model, azure_vm_deployment_model, compute_client):
@@ -90,17 +93,12 @@ class DeployAzureVMOperation(object):
 
         tags = self.tags_service.get_tags(vm_name, resource_name, subnet_name, reservation)
 
-        os_type = self._get_image_operation_system(
-            cloud_provider_model=cloud_provider_model,
-            azure_vm_deployment_model=azure_vm_deployment_model,
-            compute_client=compute_client)
-
-        vm_credentials = self.vm_credentials_service.prepare_credentials(
-            username=azure_vm_deployment_model.username,
-            password=azure_vm_deployment_model.password,
-            group_name=group_name,
-            os_type=os_type,
-            storage_client=storage_client)
+        os_type = self.vm_service.get_image_operation_system(
+            compute_management_client=compute_client,
+            location=cloud_provider_model.region,
+            publisher_name=azure_vm_deployment_model.image_publisher,
+            offer=azure_vm_deployment_model.image_offer,
+            skus=azure_vm_deployment_model.image_sku)
 
         try:
             # 1. Create a resource group
@@ -128,7 +126,18 @@ class DeployAzureVMOperation(object):
                                                       public_ip_type=azure_vm_deployment_model.public_ip_type,
                                                       tags=tags)
 
-            # 4. create Vm
+            # 4. Prepare credentials for VM
+            vm_credentials = self.vm_credentials_service.prepare_credentials(
+                os_type=os_type,
+                username=azure_vm_deployment_model.username,
+                password=azure_vm_deployment_model.password,
+                storage_service=self.storage_service,
+                key_pair_service=self.key_pair_service,
+                storage_client=storage_client,
+                group_name=group_name,
+                storage_name=storage_account_name)
+
+            # 5. Create VM
             result_create = self.vm_service.create_vm(compute_management_client=compute_client,
                                                       image_offer=azure_vm_deployment_model.image_offer,
                                                       image_publisher=azure_vm_deployment_model.image_publisher,
