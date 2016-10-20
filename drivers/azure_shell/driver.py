@@ -8,7 +8,7 @@ class AzureShellDriver(ResourceDriverInterface):
         """
         ctor must be without arguments, it is created with reflection at run time
         """
-        self.azure_shell = AzureShell()
+        self.azure_shell = None
 
     def initialize(self, context):
         pass
@@ -17,13 +17,13 @@ class AzureShellDriver(ResourceDriverInterface):
         pass
 
     def deploy_vm(self, context, request):
-        return self.azure_shell.deploy_azure_vm(command_context=context, deployment_request=request)
+        return self._get_azure_shell().deploy_azure_vm(command_context=context, deployment_request=request)
 
     def PowerOn(self, context, ports):
-        return self.azure_shell.power_on_vm(context)
+        return self._get_azure_shell().power_on_vm(context)
 
     def PowerOff(self, context, ports):
-        return self.azure_shell.power_off_vm(context)
+        return self._get_azure_shell().power_off_vm(context)
 
     def PowerCycle(self, context, ports, delay):
         pass
@@ -35,7 +35,7 @@ class AzureShellDriver(ResourceDriverInterface):
         self.azure_shell.delete_azure_vm(command_context=context)
 
     def PrepareConnectivity(self, context, request):
-        pass
+        return self._get_azure_shell().prepare_connectivity(context, request)
 
     def CleanupConnectivity(self, context, request):
         self.azure_shell.cleanup_connectivity(command_context=context)
@@ -45,3 +45,12 @@ class AzureShellDriver(ResourceDriverInterface):
 
     def get_inventory(self, context):
         pass
+
+    def _get_azure_shell(self):
+        """
+        This is not a real singelton it's nice just for now ^_^
+        :return: cloudshell.cp.azure.azure_shell.AzureShell
+        """
+        if self.azure_shell is None:
+            self.azure_shell = AzureShell()
+        return self.azure_shell

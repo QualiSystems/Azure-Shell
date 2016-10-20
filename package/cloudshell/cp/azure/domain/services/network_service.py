@@ -3,33 +3,34 @@ from azure.mgmt.network.models import NetworkInterface, NetworkInterfaceIPConfig
 
 
 class NetworkService(object):
+    def __init__(self):
+        pass
 
-    def create_network(self, network_client, group_name, interface_name, ip_name, region, subnet_name, network_name,
-                       add_public_ip, public_ip_type, tags):
-        """Create all required Azure Network components (virtual network, interface, private/public IPs)
-
-        :param network_client: azure.mgmt.network.NetworkManagementClient instance
-        :param group_name: (str) resource group name (reservation id)
-        :param interface_name: (str) name for Azure Network Interface resource
-        :param ip_name: (str) name for Azure Public IP resource
-        :param region: (str) Azure region
-        :param subnet_name: (str) name for Azure Subnet resource
-        :param network_name: (str) name for Azure Virtual Network resource
-        :param add_public_ip: (bool) whether create Public IP resource or not
-        :param public_ip_type: (str) IP Allocation method for the Public IP ("Static"/"Dynamic")
-        :param tags: Azure tags
-        :return: azure.mgmt.network.models.NetworkInterface instance
+    def create_network_for_vm(self,
+                              network_client,
+                              group_name,
+                              interface_name,
+                              ip_name,
+                              region,
+                              subnet,
+                              tags,
+                              add_public_ip,
+                              public_ip_type):
         """
-        virtual_network = self._create_virtual_network(
-            network_client=network_client,
-            region=region,
-            group_name=group_name,
-            network_name=network_name,
-            subnet_name=subnet_name,
-            tags=tags)
-
-        subnet = virtual_network.subnets[0]
-
+        This method creates a an ip address and a nic for the vm
+        :param public_ip_type:
+        :param add_public_ip:
+        :param network_client:
+        :param group_name:
+        :param interface_name:
+        :param ip_name:
+        :param region:
+        :param subnet:
+        :param tags:
+        :return:
+        """
+        # 1. Create ip address
+        public_ip_address = None
         if add_public_ip:
             public_ip_address = self._create_public_ip(
                 network_client=network_client,
@@ -38,50 +39,102 @@ class NetworkService(object):
                 ip_name=ip_name,
                 public_ip_type=public_ip_type,
                 tags=tags)
-        else:
-            public_ip_address = None
 
-        return self._create_network_interface(
-            network_client=network_client,
-            region=region,
-            group_name=group_name,
-            interface_name=interface_name,
-            subnet=subnet,
-            public_ip_address=public_ip_address,
-            tags=tags)
+        # 2. Create NIC
+        result = self.create_nic(interface_name,
+                                 group_name,
+                                 network_client,
+                                 public_ip_address,
+                                 region,
+                                 subnet,
+                                 IPAllocationMethod.dynamic,
+                                 tags)
 
-    def _create_virtual_network(self, network_client, region, group_name, network_name, subnet_name, tags):
-        """Create Azure Virtual Network resource
+        # 3. update the type of private ip from dynamic to static (ip itself must be supplied)
+        private_ip_address = result.result().ip_configurations[0].private_ip_address
+        self.create_nic_with_dynamic_private_ip(interface_name,
+                                                group_name,
+                                                network_client,
+                                                private_ip_address,
+                                                public_ip_address,
+                                                region,
+                                                subnet,
+                                                tags)
 
-        :param network_client: azure.mgmt.network.NetworkManagementClient instance
-        :param region: (str) Azure region
-        :param group_name: (str) resource group name (reservation id)
-        :param network_name: (str) name for Azure Virtual Network resource
-        :param subnet_name: (str) name for Azure Subnet resource
-        :param tags: Azure tags
-        :return: azure.mgmt.network.models.VirtualNetwork instance
-        """
-        operation_poller = network_client.virtual_networks.create_or_update(
+        network_interface = network_client.network_interfaces.get(
             group_name,
-            network_name,
-            azure.mgmt.network.models.VirtualNetwork(
-                location=region,
-                tags=tags,
-                address_space=azure.mgmt.network.models.AddressSpace(
-                    address_prefixes=[
-                        '10.1.0.0/16',
-                    ],
-                ),
-                subnets=[
-                    azure.mgmt.network.models.Subnet(
-                        name=subnet_name,
-                        address_prefix='10.1.0.0/24')
-                ],
-            ),
-            tags=tags
+            interface_name,
         )
 
-        return operation_poller.result()
+        return network_interface.id
+
+    def create_nic_with_dynamic_private_ip(self, interface_name, management_group_name, network_client, private_ip_address,
+                                           public_ip_id, region, subnet, tags):
+        """
+
+        :param interface_name:
+        :param management_group_name:
+        :param network_client:
+        :param private_ip_address:
+        :param public_ip_id:
+        :param region:
+        :param subnet:
+        :param tags:
+        :return:
+        """
+        result = network_client.network_interfaces.create_or_update(
+            management_group_name,
+            interface_name,
+            NetworkInterface(
+                location=region,
+                ip_configurations=[
+                    NetworkInterfaceIPConfiguration(
+                        name='default',
+                        private_ip_allocation_method=IPAllocationMethod.static,
+                        private_ip_address=private_ip_address,
+                        subnet=subnet,
+                        public_ip_address=azure.mgmt.network.models.PublicIPAddress(
+                            id=public_ip_id,
+                        ),
+                    ),
+                ],
+                tags=tags
+            ),
+        )
+        result.wait()
+
+    def create_nic(self, interface_name, management_group_name, network_client, public_ip_address, region, subnet,
+                   private_ip_allocation_method, tags):
+        """
+
+        :param interface_name:
+        :param management_group_name:
+        :param network_client:
+        :param public_ip_address:
+        :param region:
+        :param subnet:
+        :param private_ip_allocation_method:
+        :param tags:
+        :return:
+        """
+        result = network_client.network_interfaces.create_or_update(
+            management_group_name,
+            interface_name,
+            NetworkInterface(
+                location=region,
+                ip_configurations=[
+                    NetworkInterfaceIPConfiguration(
+                        name='default',
+                        private_ip_allocation_method=private_ip_allocation_method,
+                        subnet=subnet,
+                        public_ip_address=public_ip_address,
+                    ),
+                ],
+                tags=tags
+            ),
+        )
+        result.wait()
+        return result
 
     def _create_public_ip(self, network_client, region, group_name, ip_name, public_ip_type, tags):
         """Create Azure Public IP resource
@@ -129,65 +182,55 @@ class NetworkService(object):
 
         return allocation_type
 
-    def _create_network_interface(self, network_client, region, group_name, interface_name,
-                                  subnet, public_ip_address, tags):
-        """Create Azure Network Interface resource with private/public IPs
-
-        :param network_client: azure.mgmt.network.NetworkManagementClient instance
-        :param region: (str) Azure region
-        :param group_name: (str) resource group name (reservation id)
-        :param interface_name: (str) name for Azure Network Interface resource
-        :param subnet: azure.mgmt.network.models.Subnet instance
-        :param public_ip_address: azure.mgmt.network.models.PublicIPAddress instance
-        :param tags: Azure tags
-        :return: azure.mgmt.network.models.NetworkInterface instance
+    def create_virtual_network(self, management_group_name,
+                               network_client, network_name,
+                               region,
+                               subnet_name,
+                               tags,
+                               vnet_cidr,
+                               subnet_cidr):
         """
-        operation_poller = network_client.network_interfaces.create_or_update(
-            group_name,
-            interface_name,
-            NetworkInterface(
+        Creates a virtual network with a subnet
+        :param management_group_name:
+        :param network_client:
+        :param network_name:
+        :param region:
+        :param subnet_name:
+        :param tags:
+        :param vnet_cidr:
+        :param subnet_cidr:
+        :return:
+        """
+        result = network_client.virtual_networks.create_or_update(
+            management_group_name,
+            network_name,
+            azure.mgmt.network.models.VirtualNetwork(
                 location=region,
-                ip_configurations=[
-                    NetworkInterfaceIPConfiguration(
-                        name='default',
-                        private_ip_allocation_method=IPAllocationMethod.dynamic,
-                        subnet=subnet,
-                        public_ip_address=public_ip_address
+                tags=tags,
+                address_space=azure.mgmt.network.models.AddressSpace(
+                    address_prefixes=[
+                        vnet_cidr,
+                    ],
+                ),
+                subnets=[
+                    azure.mgmt.network.models.Subnet(
+                        name=subnet_name,
+                        address_prefix=subnet_cidr,
                     ),
                 ],
-                tags=tags
             ),
+            tags=tags
         )
-
-        network_interface = operation_poller.result()
-        private_ip_address = network_interface.ip_configurations[0].private_ip_address
-
-        operation_poller = network_client.network_interfaces.create_or_update(
-            group_name,
-            interface_name,
-            NetworkInterface(
-                location=region,
-                ip_configurations=[
-                    NetworkInterfaceIPConfiguration(
-                        name='default',
-                        private_ip_allocation_method=IPAllocationMethod.static,
-                        private_ip_address=private_ip_address,
-                        subnet=subnet,
-                        public_ip_address=public_ip_address,
-                    ),
-                ],
-                tags=tags
-            ),
-        )
-
-        return operation_poller.result()
+        result.wait()
+        subnet = network_client.subnets.get(management_group_name, network_name, subnet_name)
+        return subnet
 
     def get_public_ip(self, network_client, group_name, ip_name):
         """
 
-        :param network_client: azure.mgmt.network.NetworkManagementClient instance
-        :param group_name: (str) resource group name (reservation id)
-        :param ip_name: (str) name for Azure Public IP resource
+        :param network_client:
+        :param group_name:
+        :param ip_name:
         :return:
         """
 
@@ -196,9 +239,9 @@ class NetworkService(object):
     def delete_nic(self, network_client, group_name, interface_name):
         """
 
-        :param network_client: azure.mgmt.network.NetworkManagementClient instance
-        :param group_name: (str) resource group name (reservation id)
-        :param interface_name: (str) name for Azure Network Interface resource
+        :param azure.mgmt.network.network_management_client.NetworkManagementClient network_client:
+        :param group_name:
+        :param interface_name:
         :return:
         """
         result = network_client.network_interfaces.delete(group_name, interface_name)
@@ -208,11 +251,20 @@ class NetworkService(object):
     def delete_ip(self, network_client, group_name, ip_name):
         """
 
-        :param network_client: azure.mgmt.network.NetworkManagementClient instance
-        :param group_name: (str) resource group name (reservation id)
-        :param ip_name: (str) name for Azure Public IP resource
+        :param azure.mgmt.network.network_management_client.NetworkManagementClient network_client:
+        :param group_name:
+        :param ip_name:
         :return:
         """
         result = network_client.public_ip_addresses.delete(group_name, ip_name)
+        
 
-        result.wait()
+    def get_virtual_networks(self, network_client, group_name):
+        """
+
+        :param azure.mgmt.network.network_management_client.NetworkManagementClient network_client:
+        :param group_name:
+        :return:
+        """
+        networks_list = network_client.virtual_networks.list(group_name)
+        return list(networks_list)
