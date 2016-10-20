@@ -3,3 +3,4 @@ cloudshell-shell-core>=2.2.0,<2.3.0
 jsonpickle==0.9.3
 cloudshell-cp-azure>=0.0.1
 azure==2.0.0rc6
+pycrypto==2.6.1

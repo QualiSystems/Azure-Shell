@@ -3,9 +3,6 @@ from azure.mgmt.storage.models import SkuName, StorageAccountCreateParameters
 
 
 class StorageService(object):
-    def __init__(self):
-        pass
-
     def create_storage_account(self, storage_client, group_name, region, storage_account_name, tags):
         """
 
@@ -27,3 +24,16 @@ class StorageService(object):
                                                                              location=region,
                                                                              tags=tags))
         storage_accounts_create.wait()  # async operation
+
+    def get_storage_account_key(self, storage_client, group_name, storage_name):
+        """Get firsts storage account access key for some storage
+
+        :param storage_client: azure.mgmt.storage.StorageManagementClient instance
+        :param group_name: (str) the name of the resource group on Azure
+        :param storage_name: (str) the name of the storage on Azure
+        :return: (str) storage access key
+        """
+        account_keys = storage_client.storage_accounts.list_keys(group_name, storage_name)
+        account_key = account_keys.keys[0]
+
+        return account_key.value
