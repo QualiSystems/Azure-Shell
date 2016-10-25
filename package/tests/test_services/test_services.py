@@ -38,7 +38,8 @@ class TestStorageService(TestCase):
                                                                       sku=MagicMock(),
                                                                       kind=kind_storage_value,
                                                                       location=region,
-                                                                      tags=tags))
+                                                                      tags=tags),
+                                                                  raw=True)
 
     def test_get_storage_account_key(self):
         """Check that method uses storage client to retrieve first access key for the storage account"""
@@ -79,14 +80,13 @@ class TestNetworkService(TestCase):
         network_client.network_interfaces.create_or_update = MagicMock(return_value=result)
 
         # Act
-        self.network_service.create_network(
+        self.network_service.create_network_for_vm(
             network_client=network_client,
             group_name=management_group_name,
             interface_name=interface_name,
             ip_name=ip_name,
             region=region,
-            subnet_name=subnet_name,
-            network_name=network_name,
+            subnet=MagicMock(),
             add_public_ip=True,
             public_ip_type="Static",
             tags=tags)

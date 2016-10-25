@@ -14,7 +14,7 @@ class TagService(object):
     def __init__(self):
         pass
 
-    def get_tags(self, vm_name, admin_username,subnet_name,reservation):
+    def get_tags(self, vm_name=None, admin_username=None, subnet_name=None, reservation=None):
         """
 
         :param vm_name:
@@ -23,13 +23,18 @@ class TagService(object):
         :type reservation: cloudshell.cp.azure.models.reservation_model.ReservationModel
         :return:
         """
-        return {
-                TagNames.Name: vm_name,
-                TagNames.CreatedBy: TagService.CREATED_BY_QUALI,
-                TagNames.Owner: reservation.owner,
-                TagNames.ReservationId: reservation.reservation_id,
-                TagNames.Blueprint: reservation.blueprint,
-                TagNames.Domain: reservation.domain
-                }
 
+        result = {TagNames.CreatedBy: TagService.CREATED_BY_QUALI}
 
+        if vm_name:
+            result.update({TagNames.Name: vm_name})
+        if reservation.owner:
+            result.update({TagNames.Owner: reservation.owner})
+        if reservation.reservation_id:
+            result.update({TagNames.ReservationId: reservation.reservation_id})
+        if reservation.blueprint:
+            result.update({TagNames.Blueprint: reservation.blueprint})
+        if reservation.domain:
+            result.update({TagNames.Domain: reservation.domain})
+
+        return result
