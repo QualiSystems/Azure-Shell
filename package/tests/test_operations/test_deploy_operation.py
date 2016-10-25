@@ -35,21 +35,21 @@ class TestAzureShell(TestCase):
         # Arrange
         self.vm_service.create_resource_group = Mock(return_value=True)
         self.storage_service.create_storage_account = Mock(return_value=True)
-        self.network_service.create_network = MagicMock()
+        self.storage_service.get_storage_per_resource_group = MagicMock()
+        self.network_service.get_virtual_networks = Mock(return_value=[MagicMock()])
+        self.network_service.create_network_for_vm = MagicMock()
         self.vm_service.create_vm = Mock()
 
         # Act
         self.deploy_operation.deploy(DeployAzureVMResourceModel(),
                                      AzureCloudProviderResourceModel(),
                                      Mock(),
-                                     Mock(),
+                                     MagicMock(),
                                      Mock(),
                                      Mock(),
                                      Mock())
 
         # Verify
-        self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.vm_service.create_resource_group))
-        self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.storage_service.create_storage_account))
         self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.network_service.create_network_for_vm))
         self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.vm_service.create_vm))
 
@@ -60,9 +60,10 @@ class TestAzureShell(TestCase):
         """
 
         # Arrange
-        self.vm_service.create_resource_group = Mock(return_value=True)
-        self.storage_service.create_storage_account = Mock(return_value=True)
         self.network_service.create_network_for_vm = Mock(return_value=Mock())
+        all_networks = [MagicMock()]
+        self.network_service.get_virtual_networks = Mock(return_value=all_networks)
+        self.storage_service.get_storage_per_resource_group = MagicMock()
         self.vm_service.create_vm = Mock(side_effect=Exception('Boom!'))
         self.network_service.delete_nic = Mock()
         self.network_service.delete_ip = Mock()
@@ -80,8 +81,7 @@ class TestAzureShell(TestCase):
                           Mock())
 
         # Verify
-        self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.vm_service.create_resource_group))
-        self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.storage_service.create_storage_account))
+
         self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.network_service.create_network_for_vm))
         self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.vm_service.create_vm))
         self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.network_service.delete_nic))
