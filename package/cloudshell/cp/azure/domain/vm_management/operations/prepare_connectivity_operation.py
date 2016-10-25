@@ -13,7 +13,8 @@ class PrepareConnectivityOperation(object):
                  vm_service,
                  network_service,
                  storage_service,
-                 tags_service):
+                 tags_service,
+                 key_pair_service):
         """
 
         :param logger:
@@ -21,6 +22,7 @@ class PrepareConnectivityOperation(object):
         :param cloudshell.cp.azure.domain.services.network_service.NetworkService network_service:
         :param cloudshell.cp.azure.domain.services.storage_service.StorageService storage_service:
         :param cloudshell.cp.azure.domain.services.tags.TagService tags_service:
+        :param cloudshell.cp.azure.domain.services.key_pair.KeyPairService key_pair_service:
         :return:
         """
 
@@ -29,6 +31,7 @@ class PrepareConnectivityOperation(object):
         self.network_service = network_service
         self.storage_service = storage_service
         self.tags_service = tags_service
+        self.key_pair_service = key_pair_service
 
     def prepare_connectivity(self,
                              reservation,
@@ -72,8 +75,19 @@ class PrepareConnectivityOperation(object):
                                                                                      region=cloud_provider_model.region,
                                                                                      storage_account_name=storage_account_name,
                                                                                      tags=tags)
+            # 3 Create a Key pair for the sandbox
+            key_pair = self.key_pair_service.generate_key_pair()
 
-            # 3. Create the network interface
+            account_key = self.storage_service.get_storage_account_key(storage_client=storage_client,
+                                                                       group_name=group_name,
+                                                                       storage_name=storage_account_name)
+            self.key_pair_service.save_key_pair(account_key=account_key,
+                                                key_pair=key_pair,
+                                                group_name=group_name,
+                                                storage_name=storage_account_name)
+
+            # 4. Create the network interface
+            # todo: change that to create a subnet
             action_result.subnet_name = self.network_service.create_virtual_network(management_group_name=group_name,
                                                                                     network_client=network_client,
                                                                                     network_name=resource_name,
@@ -82,6 +96,11 @@ class PrepareConnectivityOperation(object):
                                                                                     tags=tags,
                                                                                     subnet_cidr=cidr,
                                                                                     vnet_cidr=vnet).name
+
+            # 5.Create the NSG object
+            # todo: crete the subnet
+
+
             result.append(action_result)
         return result
 
