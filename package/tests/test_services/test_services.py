@@ -38,7 +38,8 @@ class TestStorageService(TestCase):
                                                                       sku=MagicMock(),
                                                                       kind=kind_storage_value,
                                                                       location=region,
-                                                                      tags=tags))
+                                                                      tags=tags),
+                                                                  raw=True)
 
     def test_get_storage_account_key(self):
         """Check that method uses storage client to retrieve first access key for the storage account"""
