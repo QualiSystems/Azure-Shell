@@ -120,7 +120,7 @@ class AzureShell(object):
 
                     resource_client = azure_clients_factory.get_client(ResourceManagementClient)
 
-                    resource_group_name = command_context.remote_reservation.reservation_id
+                    resource_group_name = command_context.reservation.reservation_id
 
                     delete_azure_vm_operation = DeleteAzureVMOperation(logger=logger,
                                                                        vm_service=self.vm_service,
