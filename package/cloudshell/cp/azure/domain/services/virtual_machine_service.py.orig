@@ -1,9 +1,7 @@
-import azure
-from azure.mgmt.compute.models import OSProfile, HardwareProfile, VirtualMachineSizeTypes, NetworkProfile, \
+from azure.mgmt.compute.models import OSProfile, HardwareProfile, NetworkProfile, \
     NetworkInterfaceReference, CachingTypes, DiskCreateOptionTypes, VirtualHardDisk, ImageReference, OSDisk, \
     VirtualMachine, StorageProfile
 from azure.mgmt.resource.resources.models import ResourceGroup
-from azure.mgmt.storage.models import SkuName
 
 
 class VirtualMachineService(object):
@@ -21,6 +19,21 @@ class VirtualMachineService(object):
 
         return compute_management_client.virtual_machines.get(group_name, vm_name)
 
+    def delete_vm(self,
+                  compute_management_client,
+                  resource_group_name,
+                  vm_name):
+        """
+        :param compute_management_client:
+        :param resource_group_name:
+        :param vm_name:
+        :return:
+        """
+
+        result = compute_management_client.virtual_machines.delete(resource_group_name, vm_name)
+
+        return result.result()
+
     def create_vm(self,
                   compute_management_client,
                   image_offer,
@@ -35,9 +48,11 @@ class VirtualMachineService(object):
                   region,
                   storage_name,
                   vm_name,
-                  tags):
+                  tags,
+                  instance_type):
         """
 
+        :param instance_type:
         :param compute_management_client:
         :param image_offer:
         :param image_publisher:
@@ -54,9 +69,11 @@ class VirtualMachineService(object):
         :param tags:
         :return:
         """
-        os_profile = OSProfile(admin_username=admin_username, admin_password=admin_password,computer_name=computer_name)
+        os_profile = OSProfile(admin_username=admin_username,
+                               admin_password=admin_password,
+                               computer_name=computer_name)
 
-        hardware_profile = HardwareProfile(vm_size=VirtualMachineSizeTypes.basic_a0)
+        hardware_profile = HardwareProfile(vm_size=instance_type)
 
         network_profile = NetworkProfile(network_interfaces=[NetworkInterfaceReference(id=nic_id)])
 
@@ -74,24 +91,71 @@ class VirtualMachineService(object):
 
         storage_profile = StorageProfile(os_disk=os_disk, image_reference=image_reference)
 
-        virtual_machine = VirtualMachine(location=region,
-                                         tags=tags,
-                                         os_profile=os_profile,
-                                         hardware_profile=hardware_profile,
-                                         network_profile=network_profile,
-                                         storage_profile=storage_profile)
+        virtual_machine = self._get_virtual_machine(hardware_profile,
+                                                    network_profile,
+                                                    os_profile,
+                                                    region,
+                                                    storage_profile,
+                                                    tags)
 
         vm_result = compute_management_client.virtual_machines.create_or_update(group_name, vm_name, virtual_machine)
 
         return vm_result.result()
 
-<<<<<<< HEAD
-    def create_resource_group(self, resource_management_client, group_name, region):
-        return resource_management_client.resource_groups.create_or_update(group_name,ResourceGroup(location=region))
-=======
+    def _get_virtual_machine(self, hardware_profile, network_profile, os_profile, region, storage_profile, tags):
+        return VirtualMachine(location=region,
+                              tags=tags,
+                              os_profile=os_profile,
+                              hardware_profile=hardware_profile,
+                              network_profile=network_profile,
+                              storage_profile=storage_profile)
+
     def create_resource_group(self, resource_management_client, group_name, region, tags):
-        return resource_management_client.resource_groups.create_or_update(
-            group_name,
-            ResourceGroup(location=region,tags=tags)
-        )
->>>>>>> 7b32da119b79e9d8b8e853b7d2c8883214943ebb
+        return resource_management_client.resource_groups.create_or_update(group_name,
+                                                                           ResourceGroup(location=region, tags=tags))
+
+    def delete_resource_group(self, resource_management_client, group_name):
+        resource_management_client.resource_groups.delete(group_name)
+
+    def delete_vm(self, compute_management_client, group_name, vm_name):
+        """
+
+        :param azure.mgmt.compute.compute_management_client.ComputeManagementClient compute_management_client:
+        :param group_name:
+        :param vm_name:
+        :return:
+        """
+        result = compute_management_client.virtual_machines.delete(resource_group_name=group_name,
+                                                          vm_name=vm_name)
+<<<<<<< HEAD
+        result.wait()
+=======
+
+    def start_vm(self, compute_management_client, group_name, vm_name, async=False):
+        """Start Azure VM instance
+
+        :param azure.mgmt.compute.compute_management_client.ComputeManagementClient compute_management_client:
+        :param group_name: The name of the resource group.
+        :param vm_name: The name of the virtual machine.
+        :param async: (bool) whether wait for VM operation result or not
+        :return:
+        """
+        operation_poller = compute_management_client.virtual_machines.start(resource_group_name=group_name,
+                                                                            vm_name=vm_name)
+        if not async:
+            return operation_poller.result()
+
+    def stop_vm(self, compute_management_client, group_name, vm_name, async=False):
+        """Stop Azure VM instance
+
+        :param azure.mgmt.compute.compute_management_client.ComputeManagementClient compute_management_client:
+        :param group_name: The name of the resource group.
+        :param vm_name: The name of the virtual machine.
+        :param async: (bool) whether wait for VM operation result or not
+        :return:
+        """
+        operation_poller = compute_management_client.virtual_machines.power_off(resource_group_name=group_name,
+                                                                                vm_name=vm_name)
+        if not async:
+            return operation_poller.result()
+>>>>>>> 249047198aa2b74dfd3085b4415b70d1095dcc14

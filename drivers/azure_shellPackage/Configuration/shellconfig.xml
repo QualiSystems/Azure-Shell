@@ -22,7 +22,7 @@
                 <Attribute Value="" Name="Azure Client ID"/>
                 <Attribute Value="" Name="Azure Mgmt VNET"/>
                 <Attribute Value="" Name="Storage Type"/>
-
+                <Attribute Value="" Name="Management Group Name"/>
             </Attributes>
         </ResourceTemplate>
     </ResourceTemplates>

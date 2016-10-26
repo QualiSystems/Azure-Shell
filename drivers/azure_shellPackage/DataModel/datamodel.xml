@@ -132,6 +132,12 @@
         <Rule Name="Setting" />
       </Rules>
     </AttributeInfo>
+    <AttributeInfo Name="Management Group Name"  DefaultValue="" Description="" IsReadOnly="false" Type="String">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
 
     <!--New Azure Deployment Option Attributes -->
     <AttributeInfo Name="Public IP Type"  DefaultValue="" Description="Static or Dynamic" IsReadOnly="false" Type="String">
@@ -207,6 +213,9 @@
               <AllowedValues />
             </AttachedAttribute>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Storage Type">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Management Group Name">
               <AllowedValues />
             </AttachedAttribute>
           </AttachedAttributes>

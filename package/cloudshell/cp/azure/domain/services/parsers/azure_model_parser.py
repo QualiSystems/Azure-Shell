@@ -58,6 +58,7 @@ class AzureModelsParser(object):
         azure_resource_model.networks_in_use = resource_context['Networks In Use']
         azure_resource_model.region = resource_context['Region']
         azure_resource_model.storage_type = resource_context['Storage Type']
+        azure_resource_model.management_group_name = resource_context['Management Group Name']
 
         return azure_resource_model
 
