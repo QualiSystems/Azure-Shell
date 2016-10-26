@@ -36,11 +36,11 @@ class DeployAzureVMOperation(object):
     def _process_nsg_rules(self, network_client, group_name, azure_vm_deployment_model, nic):
         """Create Network Security Group rules if needed
 
-        :param network_client:
-        :param group_name:
-        :param azure_vm_deployment_model:
-        :param nic:
-        :return:
+        :param network_client: azure.mgmt.network.NetworkManagementClient instance
+        :param group_name: resource group name (reservation id)
+        :param azure_vm_deployment_model: cloudshell.cp.azure.models.deploy_azure_vm_resource_model.DeployAzureVMResourceModel
+        :param nic: azure.mgmt.network.models.NetworkInterface instance
+        :return: None
         """
         network_security_groups = self.security_group_service.list_network_security_group(
             network_client=network_client,

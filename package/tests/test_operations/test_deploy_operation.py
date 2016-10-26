@@ -20,11 +20,13 @@ class TestAzureShell(TestCase):
         self.vm_service = VirtualMachineService()
         self.network_service = NetworkService()
         self.tag_service = TagService()
+        self.security_group_service = MagicMock()
         self.deploy_operation = DeployAzureVMOperation(logger=self.logger,
                                                        vm_service=self.vm_service,
                                                        network_service=self.network_service,
                                                        storage_service=self.storage_service,
-                                                       tags_service=self.tag_service)
+                                                       tags_service=self.tag_service,
+                                                       security_group_service=self.security_group_service)
 
     def test_deploy_operation_deploy_result(self):
         """
@@ -39,6 +41,7 @@ class TestAzureShell(TestCase):
         self.network_service.get_virtual_networks = Mock(return_value=[MagicMock()])
         self.network_service.create_network_for_vm = MagicMock()
         self.vm_service.create_vm = Mock()
+        self.deploy_operation._process_nsg_rules = MagicMock()
 
         # Act
         self.deploy_operation.deploy(DeployAzureVMResourceModel(),
@@ -50,8 +53,9 @@ class TestAzureShell(TestCase):
                                      Mock())
 
         # Verify
-        self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.network_service.create_network_for_vm))
-        self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.vm_service.create_vm))
+        self.network_service.create_network_for_vm.assert_called_once()
+        self.vm_service.create_vm.assert_called_once()
+        self.deploy_operation._process_nsg_rules.assert_called_once()
 
     def test_should_delete_all_created_on_error(self):
         """
@@ -68,6 +72,7 @@ class TestAzureShell(TestCase):
         self.network_service.delete_nic = Mock()
         self.network_service.delete_ip = Mock()
         self.vm_service.delete_vm = Mock()
+        self.deploy_operation._process_nsg_rules = Mock()
 
         # Act
         self.assertRaises(Exception,
@@ -81,7 +86,6 @@ class TestAzureShell(TestCase):
                           Mock())
 
         # Verify
-
         self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.network_service.create_network_for_vm))
         self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.vm_service.create_vm))
         self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.network_service.delete_nic))

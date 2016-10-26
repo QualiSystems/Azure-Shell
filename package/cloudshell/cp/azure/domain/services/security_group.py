@@ -13,20 +13,20 @@ class SecurityGroupService(object):
         """Get all NSG from the Azure for given resource group
 
         :param network_client: azure.mgmt.network.NetworkManagementClient instance
-        :param group_name: resourse group name (reservation id)
-        :return:
+        :param group_name: resource group name (reservation id)
+        :return: list of azure.mgmt.network.models.NetworkSecurityGroup instances
         """
         return list(network_client.network_security_groups.list(group_name))
 
     def create_network_security_group(self, network_client, group_name, security_group_name, region, tags=None):
         """Create NSG on the Azure
 
-        :param network_client:
-        :param group_name:
-        :param security_group_name:
-        :param region:
-        :param tags:
-        :return:
+        :param network_client: azure.mgmt.network.NetworkManagementClient instance
+        :param group_name: resource group name (reservation id)
+        :param security_group_name: name for NSG on Azure
+        :param region: Azure location
+        :param tags: tags
+        :return: azure.mgmt.network.models.NetworkSecurityGroup instance
         """
         nsg_model = NetworkSecurityGroup(location=region, tags=tags)
         operation_poler = network_client.network_security_groups.create_or_update(
@@ -37,11 +37,11 @@ class SecurityGroupService(object):
         return operation_poler.result()
 
     def _prepare_security_group_rule(self, rule_data, private_vm_ip):
-        """
+        """Convert inbound rule data into appropriate Azure client model
 
-        :param rule_data:
-        :param private_vm_ip:
-        :return:
+        :param rule_data: cloudshell.cp.azure.models.rule_data.RuleData instance
+        :param private_vm_ip: Priavate IP of the deployed VM
+        :return: azure.mgmt.network.models.SecurityRule instance
         """
         if rule_data.port:
             port_range = str(rule_data.port)
@@ -61,10 +61,10 @@ class SecurityGroupService(object):
 
     def create_network_security_group_rules(self, network_client, group_name, security_group_name,
                                             inbound_rules, private_vm_ip):
-        """
+        """Create NSG inbound rules on the Azure
 
-        :param network_client:
-        :param group_name:
+        :param network_client: azure.mgmt.network.NetworkManagementClient instance
+        :param group_name: resource group name (reservation id)
         :param security_group_name:
         :param inbound_rules:
         :param private_vm_ip:
