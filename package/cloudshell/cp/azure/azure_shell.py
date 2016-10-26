@@ -37,7 +37,7 @@ class AzureShell(object):
         self.network_service = NetworkService()
         self.storage_service = StorageService()
         self.tags_service = TagService()
-        self.key_pair_service= KeyPairService()
+        self.key_pair_service = KeyPairService()
 
     def deploy_azure_vm(self, command_context, deployment_request):
         """
