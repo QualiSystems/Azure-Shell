@@ -143,9 +143,14 @@ class DeployAzureVMOperation(object):
                             inbound_ports=azure_vm_deployment_model.inbound_ports,
                             outbound_ports=azure_vm_deployment_model.outbound_ports,
                             deployed_app_attributes=deployed_app_attributes,
-                            deployed_app_address=public_ip_address,
+<<<<<<< HEAD
+                            deployed_app_address=nic.ip_configurations[0].private_ip_address,
                             public_ip=public_ip_address,
                             resource_group=reservation_id)
+=======
+                            deployed_app_address=public_ip_address,
+                            public_ip=public_ip_address)
+>>>>>>> 3d5096d45fe7fa4c84335beaf1305283c5367ace
 
     def validate_network(self, all_networks, group_name):
         if len(all_networks) > 1:

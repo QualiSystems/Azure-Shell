@@ -17,7 +17,7 @@ class StorageService(object):
         :return:
         """
 
-        kind_storage_value = azure.mgmt.storage.models.Kind.storage.value
+        kind_storage_value = azure.mgmt.storage.models.Kind.storage
         sku_name = SkuName.standard_lrs
         sku = azure.mgmt.storage.models.Sku(sku_name)
         # storage_accounts_create = storage_client.storage_accounts.create(group_name,
@@ -36,7 +36,7 @@ class StorageService(object):
                                                    kind=kind_storage_value,
                                                    location=region,
                                                    tags=tags),
-                                               raw=True)
+                                               raw=False)
         return storage_account_name
 
     def get_storage_per_resource_group(self, storage_client, group_name):
@@ -47,7 +47,6 @@ class StorageService(object):
         :return:
         """
         return list(storage_client.storage_accounts.list_by_resource_group(group_name))
-
     def get_storage_account_key(self, storage_client, group_name, storage_name):
         """Get firsts storage account access key for some storage
 

@@ -1,7 +1,7 @@
 class DeployResult(object):
     def __init__(self, vm_name, vm_uuid, cloud_provider_resource_name, autoload, auto_delete, wait_for_ip,
                  auto_power_off, inbound_ports, outbound_ports, deployed_app_attributes,
-                 deployed_app_address, public_ip):
+                 deployed_app_address, public_ip, resource_group):
         """
         :param str vm_name: The name of the virtual machine
         :param uuid uuid: The UUID
@@ -18,6 +18,7 @@ class DeployResult(object):
         :return:
         """
 
+        self.resource_group = resource_group
         self.outbound_ports = outbound_ports
         self.inbound_ports = inbound_ports
         self.vm_name = vm_name
