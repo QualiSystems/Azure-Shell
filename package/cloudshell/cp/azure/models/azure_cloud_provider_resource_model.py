@@ -12,4 +12,4 @@ class AzureCloudProviderResourceModel(object):
         self.azure_subscription_id = ''  # type: str
         self.azure_tenant = ''  # type: str
         self.storage_type = ''  # type: str
-        # todo
+        self.management_group_name = ''  # type: str
