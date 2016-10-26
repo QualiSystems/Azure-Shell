@@ -5,6 +5,7 @@ from azure.mgmt.resource import ResourceManagementClient
 from azure.mgmt.storage import StorageManagementClient
 
 from cloudshell.core.context.error_handling_context import ErrorHandlingContext
+from cloudshell.cp.azure.domain.services.key_pair import KeyPairService
 from cloudshell.shell.core.session.cloudshell_session import CloudShellSessionContext
 
 from cloudshell.cp.azure.common.deploy_data_holder import DeployDataHolder
@@ -35,6 +36,7 @@ class AzureShell(object):
         self.network_service = NetworkService()
         self.storage_service = StorageService()
         self.tags_service = TagService()
+        self.key_pair_service= KeyPairService()
 
     def deploy_azure_vm(self, command_context, deployment_request):
         """
@@ -93,7 +95,8 @@ class AzureShell(object):
                 prepare_connectivity_operation = PrepareConnectivityOperation(logger=logger, vm_service=self.vm_service,
                                                                               network_service=self.network_service,
                                                                               storage_service=self.storage_service,
-                                                                              tags_service=self.tags_service)
+                                                                              tags_service=self.tags_service,
+                                                                              key_pair_service=self.key_pair_service)
 
                 prepare_connectivity_request = DeployDataHolder(jsonpickle.decode(request))
                 prepare_connectivity_request = getattr(prepare_connectivity_request, 'driverRequest', None)
