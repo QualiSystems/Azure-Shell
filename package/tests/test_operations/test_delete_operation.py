@@ -15,6 +15,7 @@ class TestDeleteOperation(TestCase):
         self.delete_operation = DeleteAzureVMOperation(logger=self.logger,
                                                        vm_service=self.vm_service,
                                                        network_service=self.network_service)
+        
 
     def test_delete_operation(self):
         """
