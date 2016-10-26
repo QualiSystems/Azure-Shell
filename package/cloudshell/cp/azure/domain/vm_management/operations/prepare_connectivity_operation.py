@@ -81,7 +81,6 @@ class PrepareConnectivityOperation(object):
                                                                    storage_name=storage_account_name)
         self.key_pair_service.save_key_pair(account_key=account_key,
                                             key_pair=key_pair,
-                                            group_name=group_name,
                                             storage_name=storage_account_name)
 
         for action in request.actions:
