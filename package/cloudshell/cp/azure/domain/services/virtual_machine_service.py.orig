@@ -115,8 +115,7 @@ class VirtualMachineService(object):
                                                                            ResourceGroup(location=region, tags=tags))
 
     def delete_resource_group(self, resource_management_client, group_name):
-        result = resource_management_client.resource_groups.delete(group_name)
-        result.wait()
+        resource_management_client.resource_groups.delete(group_name)
 
     def delete_vm(self, compute_management_client, group_name, vm_name):
         """
@@ -128,7 +127,9 @@ class VirtualMachineService(object):
         """
         result = compute_management_client.virtual_machines.delete(resource_group_name=group_name,
                                                           vm_name=vm_name)
+<<<<<<< HEAD
         result.wait()
+=======
 
     def start_vm(self, compute_management_client, group_name, vm_name, async=False):
         """Start Azure VM instance
@@ -157,3 +158,4 @@ class VirtualMachineService(object):
                                                                                 vm_name=vm_name)
         if not async:
             return operation_poller.result()
+>>>>>>> 249047198aa2b74dfd3085b4415b70d1095dcc14

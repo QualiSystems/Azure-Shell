@@ -39,7 +39,7 @@ class TestStorageService(TestCase):
                                                                       kind=kind_storage_value,
                                                                       location=region,
                                                                       tags=tags),
-                                                                  raw=True)
+                                                                  raw=False)
 
     def test_get_storage_account_key(self):
         """Check that method uses storage client to retrieve first access key for the storage account"""
