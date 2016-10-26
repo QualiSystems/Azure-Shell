@@ -4,7 +4,7 @@ from mock import Mock
 from cloudshell.cp.azure.domain.services.network_service import NetworkService
 from cloudshell.cp.azure.domain.services.virtual_machine_service import VirtualMachineService
 from cloudshell.cp.azure.domain.vm_management.operations.delete_operation import DeleteAzureVMOperation
-from helpers.test_helper import TestHelper
+from tests.helpers.test_helper import TestHelper
 
 
 class TestDeleteOperation(TestCase):
