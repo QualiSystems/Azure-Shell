@@ -71,7 +71,8 @@ class PrepareConnectivityOperation(object):
                                                                                  group_name=group_name,
                                                                                  region=cloud_provider_model.region,
                                                                                  storage_account_name=storage_account_name,
-                                                                                 tags=tags)
+                                                                                 tags=tags,
+                                                                                 wait_until_created=True)
         # 3 Create a Key pair for the sandbox
         key_pair = self.key_pair_service.generate_key_pair()
 
@@ -98,8 +99,8 @@ class PrepareConnectivityOperation(object):
                                                                                     subnet_cidr=cidr,
                                                                                     vnet_cidr=vnet).name
 
-        # 5.Create the NSG object
-        # todo: crete the subnet
+            # 5.Create the NSG object
+            # todo: crete the subnet
 
 
             result.append(action_result)
