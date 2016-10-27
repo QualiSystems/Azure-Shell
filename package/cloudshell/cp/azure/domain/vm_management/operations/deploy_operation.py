@@ -35,32 +35,6 @@ class DeployAzureVMOperation(object):
         self.key_pair_service = key_pair_service
         self.tags_service = tags_service
 
-    def _get_image_operation_system(self, cloud_provider_model, azure_vm_deployment_model, compute_client):
-        """Gets operation system from the given image
-
-        :param cloud_provider_model: cloudshell.cp.azure.models.azure_cloud_provider_resource_model.AzureCloudProviderResourceModel
-        :param azure_vm_deployment_model: cloudshell.cp.azure.models.deploy_azure_vm_resource_model.DeployAzureVMResourceModel
-        :param compute_client: azure.mgmt.compute.compute_management_client.ComputeManagementClient
-        :return:
-        """
-        # get last version first (required for the virtual machine images GET Api)
-        image_resources = compute_client.virtual_machine_images.list(
-            location=cloud_provider_model.region,
-            publisher_name=azure_vm_deployment_model.image_publisher,
-            offer=azure_vm_deployment_model.image_offer,
-            skus=azure_vm_deployment_model.image_sku)
-
-        version = image_resources[-1].name
-
-        deployed_image = compute_client.virtual_machine_images.get(
-            location=cloud_provider_model.region,
-            publisher_name=azure_vm_deployment_model.image_publisher,
-            offer=azure_vm_deployment_model.image_offer,
-            skus=azure_vm_deployment_model.image_sku,
-            version=version)
-
-        return deployed_image.os_disk_image.operating_system
-
     def deploy(self, azure_vm_deployment_model,
                cloud_provider_model,
                reservation,

@@ -222,6 +222,23 @@ class TestVMService(TestCase):
 
         self.assertIs(res, linux_configuration)
 
+    def test_get_image_operation_system(self):
+        """Check that method returns operating_system of the provided image"""
+        compute_client = mock.MagicMock()
+        image = mock.MagicMock()
+        compute_client.virtual_machine_images.get.return_value = image
+
+        os_type = self.vm_service.get_image_operation_system(
+            compute_management_client=compute_client,
+            location=mock.MagicMock(),
+            publisher_name=mock.MagicMock(),
+            offer=mock.MagicMock(),
+            skus=mock.MagicMock())
+
+        compute_client.virtual_machine_images.list.assert_called_once()
+        compute_client.virtual_machine_images.get.assert_called_once()
+        self.assertEqual(os_type, image.os_disk_image.operating_system)
+
 
 class TestVMCredentialsService(TestCase):
     def setUp(self):

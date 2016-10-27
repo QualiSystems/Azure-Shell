@@ -59,23 +59,6 @@ class TestDeployAzureVMOperation(TestCase):
         self.network_service.create_network_for_vm.assert_called_once()
         self.vm_service.create_vm.assert_called_once()
 
-    def test_get_image_operation_system(self):
-        """Check that method returns operating_system of the provided image"""
-        cloud_provider_model = mock.MagicMock()
-        azure_vm_deployment_model = mock.MagicMock()
-        compute_client = mock.MagicMock()
-        image = mock.MagicMock()
-        compute_client.virtual_machine_images.get.return_value = image
-
-        os_type = self.deploy_operation._get_image_operation_system(
-            cloud_provider_model=cloud_provider_model,
-            azure_vm_deployment_model=azure_vm_deployment_model,
-            compute_client=compute_client)
-
-        compute_client.virtual_machine_images.list.assert_called_once()
-        compute_client.virtual_machine_images.get.assert_called_once()
-        self.assertEqual(os_type, image.os_disk_image.operating_system)
-
     def test_should_delete_all_created_on_error(self):
         """
         This method verifies the basic deployment of vm.
