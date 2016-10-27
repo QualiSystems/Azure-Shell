@@ -56,7 +56,7 @@ class PrepareConnectivityOperation(object):
         resource_name = OperationsHelper.generate_name("base")
         reservation_id = reservation.reservation_id
         group_name = str(reservation_id)
-        vnet = cloud_provider_model.azure_mgmt_vnet
+        subnet_name = group_name
         tags = self.tags_service.get_tags(reservation=reservation)
         result = []
         action_result = PrepareConnectivityActionResult()
@@ -99,17 +99,19 @@ class PrepareConnectivityOperation(object):
             logger.info("Received CIDR {0} from server".format(cidr))
 
             # 4. Create a subnet
-
             name = cloud_provider_model.management_group_name
-            action_result.subnet_name = self.network_service.create_subnet(network_client=network_client,
-                                                                           resource_group_name=name,
-                                                                           subnet_name=resource_name,
-                                                                           subnet_cidr=cidr,
-                                                                           virtual_network=sandbox_vnet,
-                                                                           region=cloud_provider_model.region)
+            self.network_service.create_subnet(network_client=network_client,
+                                               resource_group_name=name,
+                                               subnet_name=subnet_name,
+                                               subnet_cidr=cidr,
+                                               virtual_network=sandbox_vnet,
+                                               region=cloud_provider_model.region,
+                                               wait_for_result=True)
+
+            action_result.subnet_name = subnet_name
 
             # 5.Create the NSG object
-
+            #todo and add it to the subnet  and point to the mangement VNET
 
             result.append(action_result)
         return result

@@ -181,23 +181,34 @@ class NetworkService(object):
 
         return allocation_type
 
-    def create_subnet(self, network_client, resource_group_name, subnet_name, subnet_cidr, virtual_network, region):
+    def create_subnet(self, network_client,
+                      resource_group_name,
+                      subnet_name,
+                      subnet_cidr,
+                      virtual_network,
+                      region,
+                      wait_for_result=False):
         """
 
+        :param wait_for_result:
         :param subnet_name:
         :param region:
         :param virtual_network:
         :param subnet_cidr:
         :param resource_group_name:
-        :param  azure.mgmt.network.NetworkManagementClient network_client:
+        :param azure.mgmt.network.NetworkManagementClient network_client:
 
         :return:
         """
-        network_client.subnets.create_or_update(
-            self, resource_group_name,
-            virtual_network.name,
-            subnet_name,
-            azure.mgmt.network.models.Subnet(address_prefix=subnet_cidr))
+
+        result = network_client.subnets.create_or_update(resource_group_name,
+                                                         virtual_network.name,
+                                                         subnet_name,
+                                                         azure.mgmt.network.models.Subnet(address_prefix=subnet_cidr))
+
+        if wait_for_result:
+            result.wait()
+
 
     def create_virtual_network(self, management_group_name,
                                network_client,
