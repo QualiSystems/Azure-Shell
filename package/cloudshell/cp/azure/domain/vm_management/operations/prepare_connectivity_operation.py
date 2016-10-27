@@ -98,19 +98,17 @@ class PrepareConnectivityOperation(object):
             cidr = self._extract_cidr(action)
             logger.info("Received CIDR {0} from server".format(cidr))
 
-            # 4. Create the network interface
-            # todo: change that to create a subnet
-            action_result.subnet_name = self.network_service.create_virtual_network(management_group_name=group_name,
-                                                                                    network_client=network_client,
-                                                                                    network_name=resource_name,
-                                                                                    region=cloud_provider_model.region,
-                                                                                    subnet_name=resource_name,
-                                                                                    tags=tags,
-                                                                                    subnet_cidr=cidr,
-                                                                                    vnet_cidr=vnet).name
+            # 4. Create a subnet
+
+            name = cloud_provider_model.management_group_name
+            action_result.subnet_name = self.network_service.create_subnet(network_client=network_client,
+                                                                           resource_group_name=name,
+                                                                           subnet_name=resource_name,
+                                                                           subnet_cidr=cidr,
+                                                                           virtual_network=sandbox_vnet,
+                                                                           region=cloud_provider_model.region)
 
             # 5.Create the NSG object
-            # todo: crete the subnet
 
 
             result.append(action_result)

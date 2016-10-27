@@ -52,14 +52,14 @@ class NetworkService(object):
 
         # 3. update the type of private ip from dynamic to static (ip itself must be supplied)
         private_ip_address = result.result().ip_configurations[0].private_ip_address
-        self.create_nic_with_dynamic_private_ip(interface_name,
-                                                group_name,
-                                                network_client,
-                                                private_ip_address,
-                                                public_ip_address,
-                                                region,
-                                                subnet,
-                                                tags)
+        self.create_nic_with_static_private_ip(interface_name,
+                                               group_name,
+                                               network_client,
+                                               private_ip_address,
+                                               public_ip_address,
+                                               region,
+                                               subnet,
+                                               tags)
 
         network_interface = network_client.network_interfaces.get(
             group_name,
@@ -68,8 +68,9 @@ class NetworkService(object):
 
         return network_interface.id
 
-    def create_nic_with_dynamic_private_ip(self, interface_name, management_group_name, network_client, private_ip_address,
-                                           public_ip_address, region, subnet, tags):
+    def create_nic_with_static_private_ip(self, interface_name, management_group_name, network_client,
+                                          private_ip_address,
+                                          public_ip_address, region, subnet, tags):
         """
 
         :param interface_name:
@@ -180,8 +181,27 @@ class NetworkService(object):
 
         return allocation_type
 
+    def create_subnet(self, network_client, resource_group_name, subnet_name, subnet_cidr, virtual_network, region):
+        """
+
+        :param subnet_name:
+        :param region:
+        :param virtual_network:
+        :param subnet_cidr:
+        :param resource_group_name:
+        :param  azure.mgmt.network.NetworkManagementClient network_client:
+
+        :return:
+        """
+        network_client.subnets.create_or_update(
+            self, resource_group_name,
+            virtual_network.name,
+            subnet_name,
+            azure.mgmt.network.models.Subnet(address_prefix=subnet_cidr))
+
     def create_virtual_network(self, management_group_name,
-                               network_client, network_name,
+                               network_client,
+                               network_name,
                                region,
                                subnet_name,
                                tags,
@@ -255,7 +275,6 @@ class NetworkService(object):
         :return:
         """
         result = network_client.public_ip_addresses.delete(group_name, ip_name)
-        
 
     def get_virtual_networks(self, network_client, group_name):
         """
