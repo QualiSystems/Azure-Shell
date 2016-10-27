@@ -84,6 +84,16 @@ class PrepareConnectivityOperation(object):
                                             group_name=group_name,
                                             storage_name=storage_account_name)
 
+        virtual_networks = self.network_service.get_virtual_networks(network_client=network_client,
+                                                                     group_name=cloud_provider_model.management_group_name)
+
+        management_vnet = self._get_vnet_by_tag(virtual_networks=virtual_networks,
+                                                tag_key='network_type', tag_value='mgmt')
+
+        sandbox_vnet = self._get_vnet_by_tag(virtual_networks=virtual_networks,
+                                             tag_key='network_type',
+                                             tag_value='sandbox')
+
         for action in request.actions:
             cidr = self._extract_cidr(action)
             logger.info("Received CIDR {0} from server".format(cidr))
@@ -116,3 +126,10 @@ class PrepareConnectivityOperation(object):
         if len(cidrs) > 1:
             raise ValueError(INVALID_REQUEST_ERROR.format('Too many CIDRs parameters were found'))
         return cidrs[0]
+
+    def _get_vnet_by_tag(self, virtual_networks, tag_key, tag_value):
+
+        return next((network for network in virtual_networks
+                     if
+                     network and self.tags_service.try_find_tag(tags_list=network.tags, tag_key=tag_key) == tag_value),
+                    None)
