@@ -1,4 +1,6 @@
 import jsonpickle
+from threading import Lock
+
 from azure.mgmt.compute import ComputeManagementClient
 from azure.mgmt.network import NetworkManagementClient
 from azure.mgmt.resource import ResourceManagementClient
@@ -7,7 +9,6 @@ from azure.mgmt.storage import StorageManagementClient
 from cloudshell.core.context.error_handling_context import ErrorHandlingContext
 from cloudshell.cp.azure.domain.services.key_pair import KeyPairService
 from cloudshell.shell.core.session.cloudshell_session import CloudShellSessionContext
-
 from cloudshell.cp.azure.common.deploy_data_holder import DeployDataHolder
 from cloudshell.cp.azure.common.validtors.validator_factory import ValidatorFactory
 from cloudshell.cp.azure.common.validtors.validators import Validator, NetworkValidator, StorageValidator, \
@@ -40,6 +41,7 @@ class AzureShell(object):
         self.tags_service = TagService()
         self.key_pair_service = KeyPairService()
         self.security_group_service = SecurityGroupService()
+        self.lock = Lock()
 
     def deploy_azure_vm(self, command_context, deployment_request):
         """

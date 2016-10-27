@@ -68,7 +68,7 @@ class PrepareConnectivityOperation(object):
         self.vm_service.create_resource_group(resource_management_client=resource_client, group_name=group_name,
                                               region=cloud_provider_model.region, tags=tags)
 
-        storage_account_name = OperationsHelper.generate_name(reservation_id[0:8])
+        storage_account_name = OperationsHelper.generate_name(reservation_id)
         # 2. Create a storage account
         action_result.storage_name = self.storage_service.create_storage_account(storage_client=storage_client,
                                                                                  group_name=group_name,

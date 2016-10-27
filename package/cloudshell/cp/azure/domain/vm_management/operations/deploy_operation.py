@@ -42,25 +42,19 @@ class DeployAzureVMOperation(object):
         :param nic: azure.mgmt.network.models.NetworkInterface instance
         :return: None
         """
-        network_security_groups = self.security_group_service.list_network_security_group(
-            network_client=network_client,
-            group_name=group_name)
 
-        self._validate_resource(network_security_groups, group_name, "network security group")
+        if azure_vm_deployment_model.inbound_ports:
+            inbound_rules = RulesAttributeParser.parse_port_group_attribute(
+                ports_attribute=azure_vm_deployment_model.inbound_ports)
 
-        network_security_group = network_security_groups[0]
+            network_security_groups = self.security_group_service.list_network_security_group(
+                network_client=network_client,
+                group_name=group_name)
 
-        if network_security_group.security_rules:
-            last_rule = max(network_security_group.security_rules, key=lambda x: x.priority)
-            last_priority = last_rule.priority
-        else:
-            last_priority = None
+            self._validate_resource_is_single_per_group(network_security_groups, group_name, "network security group")
 
-        inbound_rules = RulesAttributeParser.parse_port_group_attribute(
-            ports_attribute=azure_vm_deployment_model.inbound_ports,
-            last_priority=last_priority)
+            network_security_group = network_security_groups[0]
 
-        if inbound_rules:
             self.security_group_service.create_network_security_group_rules(
                 network_client=network_client,
                 group_name=group_name,
@@ -91,7 +85,7 @@ class DeployAzureVMOperation(object):
         app_name = azure_vm_deployment_model.app_name.lower().replace(" ", "")
         resource_name = app_name
         base_name = resource_name
-        random_name = self._generate_name(base_name)
+        random_name = OperationsHelper.generate_name(base_name)
         group_name = str(reservation_id)
         interface_name = random_name
         ip_name = random_name
@@ -102,7 +96,7 @@ class DeployAzureVMOperation(object):
 
         all_networks = self.network_service.get_virtual_networks(network_client, group_name)
 
-        self._validate_resource(all_networks, group_name, "virtual network")
+        self._validate_resource_is_single_per_group(all_networks, group_name, "virtual network")
 
         subnet = all_networks[0].subnets[0]
 
@@ -190,25 +184,11 @@ class DeployAzureVMOperation(object):
                             public_ip=public_ip_address,
                             resource_group=reservation_id)
 
-    def _validate_resource(self, resources_list, group_name, resource_name):
+    def _validate_resource_is_single_per_group(self, resources_list, group_name, resource_name):
         if len(resources_list) > 1:
             raise Exception("The resource group {} contains more than one {}.".format(group_name, resource_name))
         if len(resources_list) == 0:
             raise Exception("The resource group {} does not contain a {}.".format(group_name, resource_name))
-
-    @staticmethod
-    def _generate_name(name, length=24):
-        """Generate name based on the given one with a fixed length.
-
-        Will replace all special characters (some Azure resources have this requirements).
-        :param name:
-        :param length:
-        :return:
-        """
-        name = re.sub("[^a-zA-Z0-9]", "", name)
-        generated_name = "{:.8}{}".format(uuid.uuid4().hex, name)
-
-        return generated_name[:length]
 
     @staticmethod
     def _prepare_deployed_app_attributes(admin_username, admin_password, public_ip):
