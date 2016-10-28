@@ -1,8 +1,8 @@
 import jsonpickle
-from azure.mgmt.compute import ComputeManagementClient
-from azure.mgmt.network import NetworkManagementClient
-from azure.mgmt.resource import ResourceManagementClient
-from azure.mgmt.storage import StorageManagementClient
+# from azure.mgmt.compute import ComputeManagementClient
+# from azure.mgmt.network import NetworkManagementClient
+# from azure.mgmt.resource import ResourceManagementClient
+# from azure.mgmt.storage import StorageManagementClient
 
 from cloudshell.core.context.error_handling_context import ErrorHandlingContext
 from cloudshell.cp.azure.domain.services.key_pair import KeyPairService
@@ -51,12 +51,15 @@ class AzureShell(object):
 
         with LoggingSessionContext(command_context) as logger:
             with ErrorHandlingContext(logger):
-                with AzureClientFactoryContext(cloud_provider_model) as azure_clients_factory:
-                    with ValidatorsFactoryContext() as validator_factory:
+                with ValidatorsFactoryContext() as validator_factory:
                         logger.info('Deploying Azure VM')
-                        compute_client = azure_clients_factory.get_client(ComputeManagementClient)
-                        network_client = azure_clients_factory.get_client(NetworkManagementClient)
-                        storage_client = azure_clients_factory.get_client(StorageManagementClient)
+
+                        from cloudshell.cp.azure.common.azure_clients import AzureClientsManager
+                        azure_clients = AzureClientsManager(cloud_provider_model)
+
+                        compute_client = azure_clients.get_compute_client()
+                        network_client = azure_clients.get_network_client()
+                        storage_client = azure_clients.get_storage_client()
 
                         deploy_azure_vm_operation = DeployAzureVMOperation(logger=logger,
                                                                            vm_service=self.vm_service,
@@ -76,6 +79,32 @@ class AzureShell(object):
                             validator_factory=validator_factory)
 
                         return self.command_result_parser.set_command_result(deploy_data)
+
+                # with AzureClientFactoryContext(cloud_provider_model) as azure_clients_factory:
+                #     with ValidatorsFactoryContext() as validator_factory:
+                #         logger.info('Deploying Azure VM')
+                #         compute_client = azure_clients_factory.get_client(ComputeManagementClient)
+                #         network_client = azure_clients_factory.get_client(NetworkManagementClient)
+                #         storage_client = azure_clients_factory.get_client(StorageManagementClient)
+                #
+                #         deploy_azure_vm_operation = DeployAzureVMOperation(logger=logger,
+                #                                                            vm_service=self.vm_service,
+                #                                                            network_service=self.network_service,
+                #                                                            storage_service=self.storage_service,
+                #                                                            tags_service=self.tags_service)
+                #
+                #         reservation = self.model_parser.convert_to_reservation_model(command_context.reservation)
+                #
+                #         deploy_data = deploy_azure_vm_operation.deploy(
+                #             azure_vm_deployment_model=azure_vm_deployment_model,
+                #             cloud_provider_model=cloud_provider_model,
+                #             reservation=reservation,
+                #             network_client=network_client,
+                #             compute_client=compute_client,
+                #             storage_client=storage_client,
+                #             validator_factory=validator_factory)
+                #
+                #         return self.command_result_parser.set_command_result(deploy_data)
 
     def prepare_connectivity(self, context, request):
         """
