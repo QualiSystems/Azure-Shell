@@ -66,7 +66,7 @@ class NetworkService(object):
             interface_name,
         )
 
-        return network_interface.id
+        return network_interface
 
     def create_nic_with_dynamic_private_ip(self, interface_name, management_group_name, network_client, private_ip_address,
                                            public_ip_address, region, subnet, tags):

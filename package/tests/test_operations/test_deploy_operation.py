@@ -60,7 +60,7 @@ class TestAzureShell(TestCase):
         """
 
         # Arrange
-        self.network_service.create_network_for_vm = Mock(return_value=Mock())
+        self.network_service.create_network_for_vm = MagicMock()
         all_networks = [MagicMock()]
         self.network_service.get_virtual_networks = Mock(return_value=all_networks)
         self.storage_service.get_storage_per_resource_group = MagicMock()
