@@ -38,10 +38,13 @@ class TestAzureShell(TestCase):
         self.storage_service.get_storage_per_resource_group = MagicMock()
         self.network_service.get_virtual_networks = Mock(return_value=[MagicMock()])
         self.network_service.create_network_for_vm = MagicMock()
+        self.network_service.get_public_ip = MagicMock()
         self.vm_service.create_vm = Mock()
+        resource_model = DeployAzureVMResourceModel()
+        resource_model.add_public_ip = True
 
         # Act
-        self.deploy_operation.deploy(DeployAzureVMResourceModel(),
+        self.deploy_operation.deploy(resource_model,
                                      AzureCloudProviderResourceModel(),
                                      Mock(),
                                      MagicMock(),
@@ -52,6 +55,47 @@ class TestAzureShell(TestCase):
         # Verify
         self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.network_service.create_network_for_vm))
         self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.vm_service.create_vm))
+        self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.network_service.get_public_ip))
+
+    def test_deploy_operation_virtual_networks_validation(self):
+        # Arrange
+        self.vm_service.create_resource_group = Mock(return_value=True)
+        self.storage_service.create_storage_account = Mock(return_value=True)
+        self.storage_service.get_storage_per_resource_group = MagicMock()
+        self.network_service.create_network_for_vm = MagicMock()
+        self.network_service.get_public_ip = MagicMock()
+        self.vm_service.create_vm = Mock()
+
+        # Arrange 1 - more than one network
+        self.network_service.get_virtual_networks = Mock(return_value=[MagicMock(), MagicMock()])
+
+        # Act 1
+        self.assertRaises(Exception,
+                          self.deploy_operation.deploy,
+                          DeployAzureVMResourceModel(),
+                          AzureCloudProviderResourceModel(),
+                          Mock(),
+                          MagicMock(),
+                          Mock(),
+                          Mock(),
+                          Mock()
+                          )
+
+        # Arrange 2 - no networks
+        self.network_service.get_virtual_networks = Mock(return_value=[])
+
+        # Act 2
+        self.assertRaises(Exception,
+                          self.deploy_operation.deploy,
+                          DeployAzureVMResourceModel(),
+                          AzureCloudProviderResourceModel(),
+                          Mock(),
+                          MagicMock(),
+                          Mock(),
+                          Mock(),
+                          Mock()
+                          )
+
 
     def test_should_delete_all_created_on_error(self):
         """

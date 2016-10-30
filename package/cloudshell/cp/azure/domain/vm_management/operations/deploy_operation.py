@@ -147,11 +147,13 @@ class DeployAzureVMOperation(object):
                             public_ip=public_ip_address,
                             resource_group=reservation_id)
 
-    def validate_network(self, all_networks, group_name):
+    @staticmethod
+    def validate_network(all_networks, group_name):
         if len(all_networks) > 1:
             raise Exception("The resource group {0} contains more than one virtual network.".format({group_name}))
         if len(all_networks) == 0:
             raise Exception("The resource group {0} does not contain a virtual network.".format({group_name}))
+
     @staticmethod
     def _generate_name(name, length=24):
         """Generate name based on the given one with a fixed length.
