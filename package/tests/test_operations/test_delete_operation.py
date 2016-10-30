@@ -15,7 +15,6 @@ class TestDeleteOperation(TestCase):
         self.delete_operation = DeleteAzureVMOperation(logger=self.logger,
                                                        vm_service=self.vm_service,
                                                        network_service=self.network_service)
-        
 
     def test_delete_operation(self):
         """
@@ -38,3 +37,28 @@ class TestDeleteOperation(TestCase):
         self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.vm_service.delete_vm))
         self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.network_service.delete_nic))
         self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.network_service.delete_ip))
+
+    def test_delete_operation_on_error(self):
+        # Arrange
+        self.vm_service.delete_vm = Mock(side_effect=Exception("Boom!"))
+
+        # Act
+        self.assertRaises(Exception,
+                          self.delete_operation.delete,
+                          Mock(),
+                          Mock(),
+                          "AzureTestGroup",
+                          "AzureTestVM")
+
+        # Verify
+        self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.logger.info))
+
+    def test_delete_resource_group_operation_on_error(self):
+        # Arrange
+        self.vm_service.delete_resource_group = Mock(side_effect=Exception("Boom!"))
+
+        # Act
+        self.assertRaises(Exception,
+                          self.delete_operation.delete_resource_group,
+                          Mock(),
+                          "group_name_test")
