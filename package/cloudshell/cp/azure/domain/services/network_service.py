@@ -187,9 +187,11 @@ class NetworkService(object):
                       subnet_cidr,
                       virtual_network,
                       region,
+                      network_security_group=None,
                       wait_for_result=False):
         """
 
+        :param network_security_group:
         :param wait_for_result:
         :param subnet_name:
         :param region:
@@ -204,11 +206,11 @@ class NetworkService(object):
         result = network_client.subnets.create_or_update(resource_group_name,
                                                          virtual_network.name,
                                                          subnet_name,
-                                                         azure.mgmt.network.models.Subnet(address_prefix=subnet_cidr))
+                                                         azure.mgmt.network.models.Subnet(address_prefix=subnet_cidr,
+                                                                                          network_security_group=network_security_group))
 
         if wait_for_result:
             result.wait()
-
 
     def create_virtual_network(self, management_group_name,
                                network_client,
