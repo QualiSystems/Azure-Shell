@@ -6,7 +6,7 @@ class StorageService(object):
     def __init__(self):
         pass
 
-    def create_storage_account(self, storage_client, group_name, region, storage_account_name, tags):
+    def create_storage_account(self, storage_client, group_name, region, storage_account_name, tags,wait_until_created=False):
         """
 
         :param storage_client:
@@ -20,23 +20,17 @@ class StorageService(object):
         kind_storage_value = azure.mgmt.storage.models.Kind.storage
         sku_name = SkuName.standard_lrs
         sku = azure.mgmt.storage.models.Sku(sku_name)
-        # storage_accounts_create = storage_client.storage_accounts.create(group_name,
-        #                                                                  storage_account_name,
-        #                                                                  StorageAccountCreateParameters(
-        #                                                                      sku=sku,
-        #                                                                      kind=kind_storage_value,
-        #                                                                      location=region,
-        #                                                                      tags=tags))
-        # storage_accounts_create.wait()  # async operation
+        storage_accounts_create = storage_client.storage_accounts.create(group_name,
+                                                                         storage_account_name,
+                                                                         StorageAccountCreateParameters(
+                                                                             sku=sku,
+                                                                             kind=kind_storage_value,
+                                                                             location=region,
+                                                                             tags=tags),
+                                                                         raw=False)
+        if wait_until_created:
+            storage_accounts_create.wait()
 
-        storage_client.storage_accounts.create(group_name,
-                                               storage_account_name,
-                                               StorageAccountCreateParameters(
-                                                   sku=sku,
-                                                   kind=kind_storage_value,
-                                                   location=region,
-                                                   tags=tags),
-                                               raw=False)
         return storage_account_name
 
     def get_storage_per_resource_group(self, storage_client, group_name):
