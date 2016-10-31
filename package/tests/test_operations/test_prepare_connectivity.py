@@ -41,7 +41,7 @@ class TestPrepareConnectivity(TestCase):
         # Arrange
         self.key_pair_service.save_key_pair = MagicMock()
         self.key_pair_service.generate_key_pair = MagicMock()
-        self.prepare_connectivity_operation._get_vnet_by_tag = MagicMock()
+        self.network_service.get_virtual_network_by_tag = MagicMock()
         self.storage_service.create_storage_account = MagicMock()
         self.vm_service.create_resource_group = MagicMock()
         self.network_service.get_virtual_networks = MagicMock()
@@ -72,7 +72,7 @@ class TestPrepareConnectivity(TestCase):
 
         # created Storage account
         self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.storage_service.create_storage_account))
-        self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.prepare_connectivity_operation._get_vnet_by_tag, 2))
+        self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.network_service.get_virtual_network_by_tag, 2))
 
         # key pair created
         self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.key_pair_service.save_key_pair))

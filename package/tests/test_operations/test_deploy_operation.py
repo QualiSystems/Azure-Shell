@@ -105,8 +105,17 @@ class TestAzureShell(TestCase):
 
         # Arrange
         self.network_service.create_network_for_vm = Mock(return_value=Mock())
-        all_networks = [MagicMock()]
-        self.network_service.get_virtual_networks = Mock(return_value=all_networks)
+        # all_networks = [MagicMock()]
+        # self.network_service.get_virtual_networks = Mock(return_value=all_networks)
+        vnet = Mock()
+        subnet=MagicMock()
+        name = "name"
+        subnet.name= name
+        vnet.subnets=[subnet]
+        reservation = Mock()
+        reservation.reservation_id = name
+        self.network_service.get_sandbox_virtual_network = Mock(return_value=vnet)
+
         self.storage_service.get_storage_per_resource_group = MagicMock()
         self.vm_service.create_vm = Mock(side_effect=Exception('Boom!'))
         self.network_service.delete_nic = Mock()
@@ -114,11 +123,12 @@ class TestAzureShell(TestCase):
         self.vm_service.delete_vm = Mock()
 
         # Act
+
         self.assertRaises(Exception,
                           self.deploy_operation.deploy,
                           DeployAzureVMResourceModel(),
                           AzureCloudProviderResourceModel(),
-                          Mock(),
+                          reservation,
                           Mock(),
                           Mock(),
                           Mock(),
