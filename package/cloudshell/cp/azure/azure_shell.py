@@ -138,7 +138,8 @@ class AzureShell(object):
 
                     delete_azure_vm_operation.delete_sandbox_subnet(
                         network_client=network_client,
-                        cloud_provider_model=cloud_provider_model
+                        cloud_provider_model=cloud_provider_model,
+                        resource_group_name=resource_group_name
                     )
 
     def delete_azure_vm(self, command_context):
