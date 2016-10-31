@@ -51,7 +51,7 @@ class TestPrepareConnectivity(TestCase):
         action = MagicMock()
         att = MagicMock()
         att.attributeName = 'Network'
-        att.attributeValue = '10.0.0.0/12'
+        att.attributeValue = [1]
         action.customActionAttributes = [att]
         req.actions = [action]
         prepare_connectivity_request = req
