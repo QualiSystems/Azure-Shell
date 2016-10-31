@@ -61,12 +61,15 @@ class DeployAzureVMOperation(object):
         admin_username = resource_name
         admin_password = 'ScJaw12deDFG'
         vm_name = random_name
+        subnet_name = str(reservation_id)
 
-        all_networks = self.network_service.get_virtual_networks(network_client, group_name)
+        sandbox_virtual_network = self.network_service.get_sandbox_virtual_network(network_client=network_client,
+                                                                                   group_name=cloud_provider_model.management_group_name,
+                                                                                   tags_service=self.tags_service)
 
-        self.validate_network(all_networks, group_name)
-
-        subnet = all_networks[0].subnets[0]
+        subnet = next((subnet for subnet in sandbox_virtual_network.subnets if subnet.name == subnet_name), None)
+        if subnet is None:
+            raise Exception("Could not find a valid subnet.")
 
         storage_accounts_list = self.storage_service.get_storage_per_resource_group(storage_client, group_name)
 
@@ -148,11 +151,13 @@ class DeployAzureVMOperation(object):
                             public_ip=public_ip_address,
                             resource_group=reservation_id)
 
-    def validate_network(self, all_networks, group_name):
+    @staticmethod
+    def validate_network(all_networks, group_name):
         if len(all_networks) > 1:
             raise Exception("The resource group {0} contains more than one virtual network.".format({group_name}))
         if len(all_networks) == 0:
             raise Exception("The resource group {0} does not contain a virtual network.".format({group_name}))
+
     @staticmethod
     def _generate_name(name, length=24):
         """Generate name based on the given one with a fixed length.

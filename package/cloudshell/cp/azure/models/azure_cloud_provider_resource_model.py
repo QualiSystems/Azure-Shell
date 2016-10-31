@@ -3,7 +3,6 @@ class AzureCloudProviderResourceModel(object):
         self.azure_client_id = ''  # type: str
         self.azure_mgmt_network_d = ''  # type: str
         self.azure_mgmt_nsg_id = ''  # type: str
-        self.azure_mgmt_vnet = ''  # type: str
         self.azure_secret = ''  # type: str
         self.region = ''  # type: str
         self.instance_type = ''  # type: str
