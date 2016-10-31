@@ -78,12 +78,8 @@ class VMCredentialsService(object):
         :param storage_name: Azure storage name
         :return: cloudshell.cp.azure.models.authorized_key.AuthorizedKey
         """
-        storage_account_key = storage_service.get_storage_account_key(
-            storage_client=storage_client,
-            group_name=group_name,
-            storage_name=storage_name)
-
-        key_pair = key_pair_service.get_key_pair(account_key=storage_account_key,
+        key_pair = key_pair_service.get_key_pair(storage_client=storage_client,
+                                                 group_name=group_name,
                                                  storage_name=storage_name)
 
         path_to_key = self.LINUX_PATH_TO_SSH_KEY.format(username=username)

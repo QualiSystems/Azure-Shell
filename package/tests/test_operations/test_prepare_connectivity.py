@@ -27,7 +27,7 @@ class TestPrepareConnectivity(TestCase):
         self.vm_service = VirtualMachineService()
         self.network_service = NetworkService()
         self.tag_service = TagService()
-        self.key_pair_service = KeyPairService()
+        self.key_pair_service = KeyPairService(storage_service=self.storage_service)
         self.logger = MagicMock()
 
         self.prepare_connectivity_operation = PrepareConnectivityOperation(logger=self.logger,

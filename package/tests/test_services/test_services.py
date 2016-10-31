@@ -49,12 +49,81 @@ class TestStorageService(TestCase):
 
         self.storage_client.storage_accounts.list_keys.return_value = mock.MagicMock(keys=[storage_key])
 
-        key = self.storage_service.get_storage_account_key(
+        key = self.storage_service._get_storage_account_key(
             storage_client=self.storage_client,
             group_name=self.group_name,
             storage_name=self.storage_name)
 
         self.assertEqual(key, storage_key.value)
+
+    @mock.patch("cloudshell.cp.azure.domain.services.storage_service.FileService")
+    def test_get_file_service(self, file_service_class):
+        """Check that method will return FileService instance"""
+        file_service_class.return_value = mocked_file_service = MagicMock()
+        mocked_account_key = MagicMock()
+        self.storage_service._get_storage_account_key = MagicMock(return_value=mocked_account_key)
+
+        # Act
+        file_service = self.storage_service._get_file_service(storage_client=self.storage_client,
+                                                              group_name=self.group_name,
+                                                              storage_name=self.storage_name)
+
+        # Verify
+        self.storage_service._get_storage_account_key.assert_called_once_with(storage_client=self.storage_client,
+                                                                              group_name=self.group_name,
+                                                                              storage_name=self.storage_name)
+
+        file_service_class.assert_called_once_with(account_name=self.storage_name, account_key=mocked_account_key)
+        self.assertEqual(file_service, mocked_file_service)
+
+    def test_create_file(self):
+        """Check that method uses storage client to save file to the Azure"""
+        share_name = "testsharename"
+        directory_name = "testdirectory"
+        file_name = "testfilename"
+        file_content = MagicMock()
+        file_service = MagicMock()
+        self.storage_service._get_file_service = MagicMock(return_value=file_service)
+
+        # Act
+        self.storage_service.create_file(storage_client=self.storage_client,
+                                         group_name=self.group_name,
+                                         storage_name=self.storage_name,
+                                         share_name=share_name,
+                                         directory_name=directory_name,
+                                         file_name=file_name,
+                                         file_content=file_content)
+
+        # Verify
+        file_service.create_share.assert_called_once_with(share_name=share_name, fail_on_exist=False)
+        file_service.create_file_from_bytes.assert_called_once_with(share_name=share_name,
+                                                                    directory_name=directory_name,
+                                                                    file_name=file_name,
+                                                                    file=file_content)
+
+    def test_get_key_pair(self):
+        """Check that method uses storage client to retrieve file from the Azure"""
+        share_name = "testsharename"
+        directory_name = "testdirectory"
+        file_name = "testfilename"
+        file_service = MagicMock()
+        mocked_file = MagicMock()
+        file_service.get_file_to_bytes.return_value = mocked_file
+        self.storage_service._get_file_service = MagicMock(return_value=file_service)
+
+        # Act
+        azure_file = self.storage_service.get_file(storage_client=self.storage_client,
+                                                   group_name=self.group_name,
+                                                   storage_name=self.storage_name,
+                                                   share_name=share_name,
+                                                   directory_name=directory_name,
+                                                   file_name=file_name)
+
+        # Verify
+        file_service.get_file_to_bytes.assert_called_once_with(share_name=share_name,
+                                                               directory_name=directory_name,
+                                                               file_name=file_name)
+        self.assertEqual(azure_file, mocked_file)
 
 
 class TestNetworkService(TestCase):
@@ -371,11 +440,11 @@ class TestVMCredentialsService(TestCase):
 
 class TestKeyPairService(TestCase):
     def setUp(self):
-        self.key_pair_service = KeyPairService()
         self.group_name = "test_group_name"
         self.storage_name = "teststoragename"
         self.account_key = "test_account_key"
-        self.storage_client = mock.MagicMock()
+        self.storage_service = MagicMock()
+        self.key_pair_service = KeyPairService(storage_service=self.storage_service)
 
     @mock.patch("cloudshell.cp.azure.domain.services.key_pair.RSA")
     @mock.patch("cloudshell.cp.azure.domain.services.key_pair.SSHKey")
@@ -389,53 +458,65 @@ class TestKeyPairService(TestCase):
                                          public_key=rsa_module.generate().publickey().exportKey())
         self.assertIs(ssh_key, ssh_key_mock)
 
-    @mock.patch("cloudshell.cp.azure.domain.services.key_pair.FileService")
-    def test_save_key_pair(self, file_service_class):
-        """Check that method uses storage client to save key pair to the Azure"""
-        key_pair = mock.MagicMock()
-        file_service = mock.MagicMock()
-        file_service_class.return_value = file_service
+    def test_save_key_pair(self):
+        """Check that method uses storage service to save key pair to the Azure"""
+        key_pair = MagicMock()
+        storage_client = MagicMock()
 
+        # Act
         self.key_pair_service.save_key_pair(
-            account_key=self.account_key,
-            key_pair=key_pair,
-            storage_name=self.storage_name)
+            storage_client=storage_client,
+            group_name=self.group_name,
+            storage_name=self.storage_name,
+            key_pair=key_pair)
 
-        file_service_class.assert_called_once_with(account_key=self.account_key, account_name=self.storage_name)
-        file_service.create_share.assert_called_once_with(self.key_pair_service.FILE_SHARE_NAME)
+        # Verify
+        self.key_pair_service._storage_service.create_file.assert_any_call(
+            storage_client=storage_client,
+            group_name=self.group_name,
+            storage_name=self.storage_name,
+            share_name=self.key_pair_service.FILE_SHARE_NAME,
+            directory_name=self.key_pair_service.FILE_SHARE_DIRECTORY,
+            file_name=self.key_pair_service.SSH_PUB_KEY_NAME,
+            file_content=key_pair.public_key)
 
-        file_service.create_file_from_bytes.assert_any_call(share_name=self.key_pair_service.FILE_SHARE_NAME,
-                                                            directory_name=self.key_pair_service.FILE_SHARE_DIRECTORY,
-                                                            file_name=self.key_pair_service.SSH_PUB_KEY_NAME,
-                                                            file=key_pair.public_key)
-
-        file_service.create_file_from_bytes.assert_any_call(share_name=self.key_pair_service.FILE_SHARE_NAME,
-                                                            directory_name=self.key_pair_service.FILE_SHARE_DIRECTORY,
-                                                            file_name=self.key_pair_service.SSH_PRIVATE_KEY_NAME,
-                                                            file=key_pair.private_key)
+        self.key_pair_service._storage_service.create_file.assert_any_call(
+            storage_client=storage_client,
+            group_name=self.group_name,
+            storage_name=self.storage_name,
+            share_name=self.key_pair_service.FILE_SHARE_NAME,
+            directory_name=self.key_pair_service.FILE_SHARE_DIRECTORY,
+            file_name=self.key_pair_service.SSH_PRIVATE_KEY_NAME,
+            file_content=key_pair.private_key)
 
     @mock.patch("cloudshell.cp.azure.domain.services.key_pair.SSHKey")
-    @mock.patch("cloudshell.cp.azure.domain.services.key_pair.FileService")
-    def test_get_key_pair(self, file_service_class, ssh_key_class):
-        """Check that method uses storage client to retrieve key pair from the Azure"""
-        file_service = mock.MagicMock()
-        file_service_class.return_value = file_service
-        ssh_key_class.return_value = mocked_key_pair = mock.MagicMock()
+    def test_get_key_pair(self, ssh_key_class):
+        """Check that method uses storage service to retrieve key pair from the Azure"""
+        storage_client = MagicMock()
+        mocked_ssh_key = MagicMock()
+        ssh_key_class.return_value = mocked_ssh_key
 
+        # Act
         key_pair = self.key_pair_service.get_key_pair(
-            account_key=self.account_key,
+            storage_client=storage_client,
+            group_name=self.group_name,
             storage_name=self.storage_name)
 
-        file_service_class.assert_called_once_with(account_key=self.account_key, account_name=self.storage_name)
-
-        file_service.get_file_to_bytes.assert_any_call(
+        # Verify
+        self.key_pair_service._storage_service.get_file.assert_any_call(
+            storage_client=storage_client,
+            group_name=self.group_name,
+            storage_name=self.storage_name,
             share_name=self.key_pair_service.FILE_SHARE_NAME,
             directory_name=self.key_pair_service.FILE_SHARE_DIRECTORY,
             file_name=self.key_pair_service.SSH_PUB_KEY_NAME)
 
-        file_service.get_file_to_bytes.assert_any_call(
+        self.key_pair_service._storage_service.get_file.assert_any_call(
+            storage_client=storage_client,
+            group_name=self.group_name,
+            storage_name=self.storage_name,
             share_name=self.key_pair_service.FILE_SHARE_NAME,
             directory_name=self.key_pair_service.FILE_SHARE_DIRECTORY,
             file_name=self.key_pair_service.SSH_PRIVATE_KEY_NAME)
 
-        self.assertIs(key_pair, mocked_key_pair)
+        self.assertEqual(key_pair, mocked_ssh_key)
