@@ -133,16 +133,23 @@ class AzureShell(object):
                     logger.info('Teardown...')
 
                     resource_client = azure_clients_factory.get_client(ResourceManagementClient)
+                    network_client = azure_clients_factory.get_client(NetworkManagementClient)
 
                     resource_group_name = command_context.reservation.reservation_id
 
                     delete_azure_vm_operation = DeleteAzureVMOperation(logger=logger,
                                                                        vm_service=self.vm_service,
-                                                                       network_service=self.network_service)
+                                                                       network_service=self.network_service,
+                                                                       tags_service=self.tags_service)
 
                     delete_azure_vm_operation.delete_resource_group(
                         resource_client=resource_client,
                         group_name=resource_group_name
+                    )
+
+                    delete_azure_vm_operation.delete_sandbox_subnet(
+                        network_client=network_client,
+                        cloud_provider_model=cloud_provider_model
                     )
 
     def delete_azure_vm(self, command_context):
@@ -162,7 +169,8 @@ class AzureShell(object):
 
                     delete_azure_vm_operation = DeleteAzureVMOperation(logger=logger,
                                                                        vm_service=self.vm_service,
-                                                                       network_service=self.network_service)
+                                                                       network_service=self.network_service,
+                                                                       tags_service=self.tags_service)
 
                     delete_azure_vm_operation.delete(
                         compute_client=compute_client,

@@ -49,7 +49,6 @@ class AzureModelsParser(object):
         azure_resource_model.azure_client_id = resource_context['Azure Client ID']
         azure_resource_model.azure_mgmt_network_d = resource_context['Azure Mgmt Network ID']
         azure_resource_model.azure_mgmt_nsg_id = resource_context['Azure Mgmt NSG ID']
-        azure_resource_model.azure_mgmt_vnet = resource_context['Azure Mgmt VNET']
         azure_resource_model.azure_secret = resource_context['Azure Secret']
         azure_resource_model.azure_subscription_id = resource_context['Azure Subscription ID']
         azure_resource_model.azure_tenant = resource_context['Azure Tenant']
