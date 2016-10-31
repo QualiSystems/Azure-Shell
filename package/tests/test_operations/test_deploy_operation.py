@@ -43,10 +43,19 @@ class TestAzureShell(TestCase):
         resource_model = DeployAzureVMResourceModel()
         resource_model.add_public_ip = True
 
+        vnet = Mock()
+        subnet = MagicMock()
+        name = "name"
+        subnet.name = name
+        vnet.subnets = [subnet]
+        reservation = Mock()
+        reservation.reservation_id = name
+        self.network_service.get_sandbox_virtual_network = Mock(return_value=vnet)
+
         # Act
         self.deploy_operation.deploy(resource_model,
                                      AzureCloudProviderResourceModel(),
-                                     Mock(),
+                                     reservation,
                                      MagicMock(),
                                      Mock(),
                                      Mock(),
@@ -56,6 +65,7 @@ class TestAzureShell(TestCase):
         self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.network_service.create_network_for_vm))
         self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.vm_service.create_vm))
         self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.network_service.get_public_ip))
+        self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.network_service.get_sandbox_virtual_network))
 
     def test_deploy_operation_virtual_networks_validation(self):
         # Arrange
@@ -105,8 +115,6 @@ class TestAzureShell(TestCase):
 
         # Arrange
         self.network_service.create_network_for_vm = Mock(return_value=Mock())
-        # all_networks = [MagicMock()]
-        # self.network_service.get_virtual_networks = Mock(return_value=all_networks)
         vnet = Mock()
         subnet=MagicMock()
         name = "name"
