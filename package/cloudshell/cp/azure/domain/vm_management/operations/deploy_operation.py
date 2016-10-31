@@ -61,12 +61,15 @@ class DeployAzureVMOperation(object):
         admin_username = resource_name
         admin_password = 'ScJaw12deDFG'
         vm_name = random_name
+        subnet_name = str(reservation_id)
 
-        all_networks = self.network_service.get_virtual_networks(network_client, group_name)
+        sandbox_virtual_network = self.network_service.get_sandbox_virtual_network(network_client=network_client,
+                                                                                   group_name=cloud_provider_model.management_group_name,
+                                                                                   tags_service=self.tags_service)
 
-        self.validate_network(all_networks, group_name)
-
-        subnet = all_networks[0].subnets[0]
+        subnet = next((subnet for subnet in sandbox_virtual_network.subnets if subnet.name == subnet_name), None)
+        if subnet is None:
+            raise Exception("Could not find a valid subnet.")
 
         storage_accounts_list = self.storage_service.get_storage_per_resource_group(storage_client, group_name)
 
