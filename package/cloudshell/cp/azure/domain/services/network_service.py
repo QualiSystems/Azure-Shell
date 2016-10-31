@@ -298,3 +298,19 @@ class NetworkService(object):
         """
         networks_list = network_client.virtual_networks.list(group_name)
         return list(networks_list)
+
+    def get_sandbox_virtual_network(self, network_client, group_name, tags_service):
+        virtual_networks = self.get_virtual_networks(network_client=network_client,
+                                                     group_name=group_name)
+
+        return self.get_virtual_network_by_tag(virtual_networks=virtual_networks,
+                                               tag_key='network_type',
+                                               tag_value='sandbox',
+                                               tags_service=tags_service)
+
+    def get_virtual_network_by_tag(self, virtual_networks, tag_key, tag_value, tags_service):
+
+        return next((network for network in virtual_networks
+                     if
+                     network and tags_service.try_find_tag(tags_list=network.tags, tag_key=tag_key) == tag_value),
+                    None)
