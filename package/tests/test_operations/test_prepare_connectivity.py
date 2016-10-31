@@ -19,7 +19,7 @@ from cloudshell.cp.azure.domain.services.storage_service import StorageService
 
 from cloudshell.cp.azure.domain.vm_management.operations.prepare_connectivity_operation import \
     PrepareConnectivityOperation
-from mock import MagicMock
+from mock import MagicMock, Mock
 
 
 class TestPrepareConnectivity(TestCase):
@@ -56,7 +56,7 @@ class TestPrepareConnectivity(TestCase):
         action = MagicMock()
         att = MagicMock()
         att.attributeName = 'Network'
-        att.attributeValue = '10.0.0.0/12'
+        att.attributeValue = [1]
         action.customActionAttributes = [att]
         req.actions = [action]
         prepare_connectivity_request = req
@@ -83,3 +83,64 @@ class TestPrepareConnectivity(TestCase):
         self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.key_pair_service.save_key_pair))
         self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.network_service.get_virtual_networks))
         self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.network_service.create_subnet))
+
+    def test_extract_cidr_throws_error(self):
+        action = MagicMock()
+
+        self.assertRaises(ValueError,
+                          self.prepare_connectivity_operation._extract_cidr,
+                          action)
+
+        action = Mock()
+        att = Mock()
+        att.attributeName = 'Network'
+        att.attributeValue = [1,2,3]
+        action.customActionAttributes = [att]
+
+        self.assertRaises(ValueError,
+                          self.prepare_connectivity_operation._extract_cidr,
+                          action)
+
+    def test_prepare_connectivity_throes_exception_on_unavailable_VNETs(self):
+        # Arrange
+        self.key_pair_service.save_key_pair = MagicMock()
+        self.key_pair_service.generate_key_pair = MagicMock()
+        self.storage_service.create_storage_account = MagicMock()
+        self.vm_service.create_resource_group = MagicMock()
+        self.network_service.get_virtual_networks = MagicMock()
+        self.network_service.create_subnet = MagicMock()
+        self.network_service.get_virtual_network_by_tag = Mock(return_value=None)
+        self.network_service.get_virtual_network_by_tag.side_effect = [None, Mock()]
+
+        req = MagicMock()
+        action = MagicMock()
+        att = MagicMock()
+        att.attributeName = 'Network'
+        att.attributeValue = '10.0.0.0/12'
+        action.customActionAttributes = [att]
+        req.actions = [action]
+        prepare_connectivity_request = req
+        # Act
+
+        self.assertRaises(Exception,
+                          self.prepare_connectivity_operation.prepare_connectivity,
+                          reservation=MagicMock(),
+                          cloud_provider_model=MagicMock(),
+                          storage_client=MagicMock(),
+                          resource_client=MagicMock(),
+                          network_client=MagicMock(),
+                          logger=self.logger,
+                          request=prepare_connectivity_request)
+
+        self.network_service.get_virtual_network_by_tag = Mock(return_value=None)
+        self.network_service.get_virtual_network_by_tag.side_effect = [Mock(), None]
+
+        self.assertRaises(Exception,
+                          self.prepare_connectivity_operation.prepare_connectivity,
+                          reservation=MagicMock(),
+                          cloud_provider_model=MagicMock(),
+                          storage_client=MagicMock(),
+                          resource_client=MagicMock(),
+                          network_client=MagicMock(),
+                          logger=self.logger,
+                          request=prepare_connectivity_request)

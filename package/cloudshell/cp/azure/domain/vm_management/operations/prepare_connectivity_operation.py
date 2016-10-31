@@ -138,9 +138,9 @@ class PrepareConnectivityOperation(object):
 
     @staticmethod
     def _extract_cidr(action):
-        cidrs = [custom_attribute.attributeValue
-                 for custom_attribute in action.customActionAttributes
-                 if custom_attribute.attributeName == 'Network']
+        cidrs = next((custom_attribute.attributeValue
+                      for custom_attribute in action.customActionAttributes
+                      if custom_attribute.attributeName == 'Network'), None)
         if not cidrs:
             raise ValueError(INVALID_REQUEST_ERROR.format('CIDR is missing'))
         if len(cidrs) > 1:
