@@ -89,15 +89,17 @@ class PrepareConnectivityOperation(object):
         virtual_networks = self.network_service.get_virtual_networks(network_client=network_client,
                                                                      group_name=cloud_provider_model.management_group_name)
 
-        management_vnet = self._get_vnet_by_tag(virtual_networks=virtual_networks,
-                                                tag_key='network_type', tag_value='mgmt')
+        management_vnet = self.network_service.get_virtual_network_by_tag(virtual_networks=virtual_networks,
+                                                                          tag_key='network_type', tag_value='mgmt',
+                                                                          tags_service=self.tags_service)
 
         if management_vnet is None:
             raise Exception("Could not find Management Virtual Network in Azure.")
 
-        sandbox_vnet = self._get_vnet_by_tag(virtual_networks=virtual_networks,
-                                             tag_key='network_type',
-                                             tag_value='sandbox')
+        sandbox_vnet = self.network_service.get_virtual_network_by_tag(virtual_networks=virtual_networks,
+                                                                       tag_key='network_type',
+                                                                       tag_value='sandbox',
+                                                                       tags_service=self.tags_service)
 
         if sandbox_vnet is None:
             raise Exception("Could not find Sandbox Virtual Network in Azure.")
@@ -137,10 +139,3 @@ class PrepareConnectivityOperation(object):
         if len(cidrs) > 1:
             raise ValueError(INVALID_REQUEST_ERROR.format('Too many CIDRs parameters were found'))
         return cidrs[0]
-
-    def _get_vnet_by_tag(self, virtual_networks, tag_key, tag_value):
-
-        return next((network for network in virtual_networks
-                     if
-                     network and self.tags_service.try_find_tag(tags_list=network.tags, tag_key=tag_key) == tag_value),
-                    None)

@@ -19,12 +19,12 @@ class TestAzureShell(TestCase):
         self.storage_service = StorageService()
         self.vm_service = VirtualMachineService()
         self.network_service = NetworkService()
-        self.tag_service = TagService()
+        self.tags_service = TagService()
         self.deploy_operation = DeployAzureVMOperation(logger=self.logger,
                                                        vm_service=self.vm_service,
                                                        network_service=self.network_service,
                                                        storage_service=self.storage_service,
-                                                       tags_service=self.tag_service)
+                                                       tags_service=self.tags_service)
 
     def test_deploy_operation_deploy_result(self):
         """
