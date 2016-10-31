@@ -25,11 +25,17 @@ class DeleteAzureVMOperation(object):
         except Exception as e:
             raise e
 
-    def delete_sandbox_subnet(self, network_client, cloud_provider_model):
-        sandbox_vnet = self.network_service.get_sandbox_virtual_network(network_client=network_client,
-                                                                        group_name=cloud_provider_model.management_group_name,
-                                                                        tags_service=self.tags_service
-                                                                        )
+    def delete_sandbox_subnet(self, network_client, cloud_provider_model, resource_group_name):
+        sandbox_virtual_network = self.network_service.get_sandbox_virtual_network(network_client=network_client,
+                                                                                   group_name=cloud_provider_model.management_group_name,
+                                                                                   tags_service=self.tags_service)
+        subnet = next((subnet for subnet in sandbox_virtual_network.subnets if subnet.name == resource_group_name),
+                      None)
+        if subnet is None:
+            raise Exception("Could not find a valid subnet.")
+
+        network_client.subnets.delete(cloud_provider_model.management_group_name, sandbox_virtual_network.name,
+                                      subnet.name)
 
     def delete(self, compute_client, network_client, group_name, vm_name):
         """
