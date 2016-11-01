@@ -4,5 +4,5 @@ omit =
 	*/package/cloudshell/cp/azure/domain/context/validators_factory_context.py*,
 	*/package/cloudshell/cp/azure/common/validtors/validators.py*,
 	*/package/cloudshell/cp/azure/common/validtors/validator_factory.py*,
-	*/package/cloudshell/cp/azure/models/
+	*/package/cloudshell/cp/azure/models/*
 
