@@ -76,6 +76,7 @@ class PrepareConnectivityOperation(object):
                                                                                  tags=tags,
                                                                                  wait_until_created=True)
         # 3 Create a Key pair for the sandbox
+        logger.info("Creating a Key pair for the sandbox.")
         key_pair = self.key_pair_service.generate_key_pair()
 
         account_key = self.storage_service.get_storage_account_key(storage_client=storage_client,
