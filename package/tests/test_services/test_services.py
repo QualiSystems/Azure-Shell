@@ -1,10 +1,10 @@
-from idlelib.idle_test.test_searchengine import Mock
 from unittest import TestCase
 
+import mock
 from azure.mgmt.network.models import IPAllocationMethod
 from azure.mgmt.storage.models import StorageAccountCreateParameters
 from mock import MagicMock
-import mock
+from mock import Mock
 
 from cloudshell.cp.azure.domain.services.network_service import NetworkService
 from cloudshell.cp.azure.domain.services.key_pair import KeyPairService
