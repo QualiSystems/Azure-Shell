@@ -22,21 +22,6 @@ class VirtualMachineService(object):
 
         return compute_management_client.virtual_machines.get(group_name, vm_name)
 
-    def delete_vm(self,
-                  compute_management_client,
-                  resource_group_name,
-                  vm_name):
-        """
-        :param compute_management_client:
-        :param resource_group_name:
-        :param vm_name:
-        :return:
-        """
-
-        result = compute_management_client.virtual_machines.delete(resource_group_name, vm_name)
-
-        return result.result()
-
     def _prepare_linux_configuration(self, ssh_key):
         """Create LinuxConfiguration object with nested SshPublicKey object for Azure client
 

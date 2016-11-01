@@ -119,12 +119,12 @@ class TestDeployAzureVMOperation(TestCase):
         """
 
         # Arrange
-        self.network_service.create_network_for_vm = Mock(return_value=Mock())
+        self.network_service.create_network_for_vm = MagicMock()
         vnet = Mock()
-        subnet=MagicMock()
+        subnet = MagicMock()
         name = "name"
-        subnet.name= name
-        vnet.subnets=[subnet]
+        subnet.name = name
+        vnet.subnets = [subnet]
         reservation = Mock()
         reservation.reservation_id = name
         self.network_service.get_sandbox_virtual_network = Mock(return_value=vnet)
@@ -137,7 +137,6 @@ class TestDeployAzureVMOperation(TestCase):
         self.vm_service.get_image_operation_system = MagicMock()
 
         # Act
-
         self.assertRaises(Exception,
                           self.deploy_operation.deploy,
                           DeployAzureVMResourceModel(),
