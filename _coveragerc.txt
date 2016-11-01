@@ -1,4 +1,0 @@
-[run]
-omit =
-    package/setup.py
-
