@@ -1,5 +1,5 @@
 from unittest import TestCase
-from mock import Mock
+from mock import Mock, MagicMock
 
 from cloudshell.cp.azure.domain.services.network_service import NetworkService
 from cloudshell.cp.azure.domain.services.tags import TagService
@@ -65,3 +65,28 @@ class TestDeleteOperation(TestCase):
                           self.delete_operation.delete_resource_group,
                           Mock(),
                           "group_name_test")
+
+    def test_delete_resource_group(self):
+        # Arrange
+        resource_management_client = Mock()
+        group_name = "test_group_name"
+
+        # Act
+        self.vm_service.delete_resource_group(resource_management_client, group_name)
+
+        # Verify
+        self.assertTrue(TestHelper.CheckMethodCalledXTimes(resource_management_client.resource_groups.delete))
+        resource_management_client.resource_groups.delete.assert_called_with(group_name)
+
+    def test_delete_vm(self):
+        # Arrange
+        compute_management_client = MagicMock()
+        group_name = "test_group_name"
+        vm_name = "test_group_name"
+
+        # Act
+        res = self.vm_service.delete_vm(compute_management_client, group_name, vm_name)
+
+        # Verify
+        compute_management_client.virtual_machines.delete.assert_called_with(resource_group_name=group_name,
+                                                                             vm_name=vm_name)
