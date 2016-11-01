@@ -137,4 +137,4 @@ class PrepareConnectivityOperation(object):
                       if custom_attribute.attributeName == 'Network'), None)
         if not cidrs or len(cidrs) == 0:
             raise ValueError(INVALID_REQUEST_ERROR.format('CIDR is missing'))
-        return cidrs[0]
+        return cidrs
