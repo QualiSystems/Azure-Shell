@@ -134,8 +134,6 @@ class PrepareConnectivityOperation(object):
         cidrs = next((custom_attribute.attributeValue
                       for custom_attribute in action.customActionAttributes
                       if custom_attribute.attributeName == 'Network'), None)
-        if not cidrs:
+        if not cidrs or len(cidrs) == 0:
             raise ValueError(INVALID_REQUEST_ERROR.format('CIDR is missing'))
-        if len(cidrs) > 1:
-            raise ValueError(INVALID_REQUEST_ERROR.format('Too many CIDRs parameters were found'))
         return cidrs[0]
