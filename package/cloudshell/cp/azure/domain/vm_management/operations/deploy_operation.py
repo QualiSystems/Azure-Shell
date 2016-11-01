@@ -80,17 +80,18 @@ class DeployAzureVMOperation(object):
         tags = self.tags_service.get_tags(vm_name, admin_username, subnet.name, reservation)
 
         try:
-
             # 1. Create network for vm
-            nic_id = self.network_service.create_network_for_vm(network_client=network_client,
-                                                                group_name=group_name,
-                                                                interface_name=interface_name,
-                                                                ip_name=ip_name,
-                                                                region=cloud_provider_model.region,
-                                                                subnet=subnet,
-                                                                add_public_ip=azure_vm_deployment_model.add_public_ip,
-                                                                public_ip_type=azure_vm_deployment_model.public_ip_type,
-                                                                tags=tags)
+            nic = self.network_service.create_network_for_vm(network_client=network_client,
+                                                             group_name=group_name,
+                                                             interface_name=interface_name,
+                                                             ip_name=ip_name,
+                                                             region=cloud_provider_model.region,
+                                                             subnet=subnet,
+                                                             add_public_ip=azure_vm_deployment_model.add_public_ip,
+                                                             public_ip_type=azure_vm_deployment_model.public_ip_type,
+                                                             tags=tags)
+
+            private_ip_address = nic.ip_configurations[0].private_ip_address
 
             # 2. create Vm
             result_create = self.vm_service.create_vm(compute_management_client=compute_client,
@@ -102,7 +103,7 @@ class DeployAzureVMOperation(object):
                                                       admin_username=admin_username,
                                                       computer_name=computer_name,
                                                       group_name=group_name,
-                                                      nic_id=nic_id,
+                                                      nic_id=nic.id,
                                                       region=cloud_provider_model.region,
                                                       storage_name=storage_account_name,
                                                       vm_name=vm_name,
@@ -146,7 +147,7 @@ class DeployAzureVMOperation(object):
                             inbound_ports=azure_vm_deployment_model.inbound_ports,
                             outbound_ports=azure_vm_deployment_model.outbound_ports,
                             deployed_app_attributes=deployed_app_attributes,
-                            deployed_app_address=public_ip_address,
+                            deployed_app_address=private_ip_address,
                             public_ip=public_ip_address,
                             resource_group=reservation_id)
 
