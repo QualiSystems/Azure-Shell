@@ -1,5 +1,6 @@
 [report]
 omit =
-    package/setup.py
-	*/package/cloudshell/cp/azure/domain/context/validators_factory_context.py*
+    package/setup.py,
+	*/package/cloudshell/cp/azure/domain/context/validators_factory_context.py*,
+	* /package/cloudshell/cp/azure/common/validtors/validators.py*
 
