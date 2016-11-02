@@ -2,6 +2,7 @@ import uuid
 
 
 class OperationsHelper:
+
     def __init__(self):
         pass
 
