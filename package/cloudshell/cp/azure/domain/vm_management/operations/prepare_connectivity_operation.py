@@ -78,6 +78,7 @@ class PrepareConnectivityOperation(object):
                                                                                  tags=tags,
                                                                                  wait_until_created=True)
         # 3 Create a Key pair for the sandbox
+        logger.info("Creating a Key pair for the sandbox.")
         key_pair = self.key_pair_service.generate_key_pair()
 
         account_key = self.storage_service.get_storage_account_key(storage_client=storage_client,
@@ -142,8 +143,6 @@ class PrepareConnectivityOperation(object):
                       for custom_attribute in action.customActionAttributes
                       if custom_attribute.attributeName == 'Network'), None)
 
-        if not cidrs:
+        if not cidrs or len(cidrs) == 0:
             raise ValueError(INVALID_REQUEST_ERROR.format('CIDR is missing'))
-        if len(cidrs) > 1:
-            raise ValueError(INVALID_REQUEST_ERROR.format('Too many CIDRs parameters were found'))
-        return cidrs[0]
+        return cidrs

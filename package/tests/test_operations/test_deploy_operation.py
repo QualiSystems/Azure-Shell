@@ -117,12 +117,12 @@ class TestAzureShell(TestCase):
         """
 
         # Arrange
-        self.network_service.create_network_for_vm = Mock(return_value=Mock())
+        self.network_service.create_network_for_vm = MagicMock()
         vnet = Mock()
-        subnet=MagicMock()
+        subnet = MagicMock()
         name = "name"
-        subnet.name= name
-        vnet.subnets=[subnet]
+        subnet.name = name
+        vnet.subnets = [subnet]
         reservation = Mock()
         reservation.reservation_id = name
         self.network_service.get_sandbox_virtual_network = Mock(return_value=vnet)
@@ -135,7 +135,6 @@ class TestAzureShell(TestCase):
         self.deploy_operation._process_nsg_rules = Mock()
 
         # Act
-
         self.assertRaises(Exception,
                           self.deploy_operation.deploy,
                           DeployAzureVMResourceModel(),

@@ -112,7 +112,6 @@ class DeployAzureVMOperation(object):
         tags = self.tags_service.get_tags(vm_name, admin_username, subnet.name, reservation)
 
         try:
-
             # 1. Create network for vm
             nic = self.network_service.create_network_for_vm(network_client=network_client,
                                                              group_name=group_name,
@@ -123,6 +122,8 @@ class DeployAzureVMOperation(object):
                                                              add_public_ip=azure_vm_deployment_model.add_public_ip,
                                                              public_ip_type=azure_vm_deployment_model.public_ip_type,
                                                              tags=tags)
+
+            private_ip_address = nic.ip_configurations[0].private_ip_address
 
             self._process_nsg_rules(network_client=network_client,
                                     group_name=group_name,
@@ -183,7 +184,7 @@ class DeployAzureVMOperation(object):
                             inbound_ports=azure_vm_deployment_model.inbound_ports,
                             outbound_ports=azure_vm_deployment_model.outbound_ports,
                             deployed_app_attributes=deployed_app_attributes,
-                            deployed_app_address=public_ip_address,
+                            deployed_app_address=private_ip_address,
                             public_ip=public_ip_address,
                             resource_group=reservation_id)
 

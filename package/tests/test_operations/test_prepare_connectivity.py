@@ -94,7 +94,7 @@ class TestPrepareConnectivity(TestCase):
         action = Mock()
         att = Mock()
         att.attributeName = 'Network'
-        att.attributeValue = [1,2,3]
+        att.attributeValue = ''
         action.customActionAttributes = [att]
 
         self.assertRaises(ValueError,
