@@ -321,6 +321,9 @@
               <AllowedValues />
             </AttachedAttribute>
           </AttachedAttributes>
+          <AttributeValues>
+            <AttributeValue Name="Public IP Type" Value="Dynamic" />
+          </AttributeValues>
           <ParentModels />
           <Drivers>
             <DriverName>Azure Deploy VM Driver</DriverName>
