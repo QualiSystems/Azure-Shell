@@ -10,7 +10,6 @@ omit =
 	*/package/cloudshell/cp/azure/common/handlers.py*,
 	*/package/cloudshell/cp/azure/common/azure_client_factory.py*,
 	*/package/cloudshell/cp/azure/domain/context/client_contextes.py*,
-	*/package/cloudshell/cp/azure/azure_shell.py*
 	
 	
 
