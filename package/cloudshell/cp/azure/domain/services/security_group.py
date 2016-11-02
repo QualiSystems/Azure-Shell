@@ -11,16 +11,30 @@ class SecurityGroupService(object):
     def __init__(self):
         self._lock = Lock()
 
-    def _rule_priority_generator(self, last_priority=None):
-        """Endless priority generator for NSG rules"""
-        if last_priority is None:
-            start_priority = self.RULE_DEFAULT_PRIORITY
-        else:
-            start_priority = last_priority + self.RULE_PRIORITY_INCREASE_STEP
+    def _rule_priority_generator(self, existing_rules, start_from=None):
+        """Endless priority generator for NSG rules
 
+        :param existing_rules: list[azure.mgmt.network.models.SecurityRule] instances
+        :param start_from: (int) rule priority number to start from
+        :return: priority generator => (int) next available priority
+        """
+        if start_from is None:
+            start_from = self.RULE_DEFAULT_PRIORITY
+
+        existing_priorities = [rule.priority for rule in existing_rules]
+        start_limit = start_from - self.RULE_PRIORITY_INCREASE_STEP
+        end_limit = float("inf")
+        existing_priorities.extend([start_limit, end_limit])
+        existing_priorities = sorted(existing_priorities)
+
+        i = 0
         while True:
-            yield start_priority
-            start_priority += self.RULE_PRIORITY_INCREASE_STEP
+            priority = existing_priorities[i] + self.RULE_PRIORITY_INCREASE_STEP
+            if priority < existing_priorities[i+1]:
+                existing_priorities.insert(i+1, priority)
+                yield priority
+
+            i += 1
 
     def list_network_security_group(self, network_client, group_name):
         """Get all NSG from the Azure for given resource group
@@ -49,11 +63,11 @@ class SecurityGroupService(object):
 
         return operation_poler.result()
 
-    def _prepare_security_group_rule(self, rule_data, private_vm_ip, priority):
+    def _prepare_security_group_rule(self, rule_data, destination_addr, priority):
         """Convert inbound rule data into appropriate Azure client model
 
         :param rule_data: cloudshell.cp.azure.models.rule_data.RuleData instance
-        :param private_vm_ip: Priavate IP of the deployed VM
+        :param destination_addr: Destination IP address/CIDR
         :return: azure.mgmt.network.models.SecurityRule instance
         """
         if rule_data.port:
@@ -67,46 +81,59 @@ class SecurityGroupService(object):
             source_address_prefix="*",
             source_port_range="*",
             name="rule_{}".format(priority),
-            destination_address_prefix=private_vm_ip,
+            destination_address_prefix=destination_addr,
             destination_port_range=port_range,
             priority=priority,
             protocol=rule_data.protocol)
 
+    def create_network_security_group_rule(self, network_client, group_name, security_group_name, rule_data,
+                                           destination_addr, priority):
+        """Create NSG inbound rule on the Azure
+
+        :param network_client: azure.mgmt.network.NetworkManagementClient instance
+        :param group_name: resource group name (reservation id)
+        :param security_group_name: NSG name from the Azure
+        :param rule_data: cloudshell.cp.azure.models.rule_data.RuleData instance
+        :param destination_addr: Destination IP address/CIDR
+        :param priority: (int) rule priority number
+        :return: azure.mgmt.network.models.SecurityRule instance
+        """
+        rule = self._prepare_security_group_rule(rule_data=rule_data,
+                                                 destination_addr=destination_addr,
+                                                 priority=priority)
+
+        operation_poller = network_client.security_rules.create_or_update(
+            resource_group_name=group_name,
+            network_security_group_name=security_group_name,
+            security_rule_name=rule.name,
+            security_rule_parameters=rule)
+
+        return operation_poller.result()
+
     def create_network_security_group_rules(self, network_client, group_name, security_group_name,
-                                            inbound_rules, private_vm_ip):
+                                            inbound_rules, destination_addr, start_from=None):
         """Create NSG inbound rules on the Azure
 
         :param network_client: azure.mgmt.network.NetworkManagementClient instance
         :param group_name: resource group name (reservation id)
         :param security_group_name: NSG name from the Azure
         :param inbound_rules: list[cloudshell.cp.azure.models.rule_data.RuleData]
-        :param private_vm_ip: Private IP address from the Azure VM
+        :param destination_addr: Destination IP address/CIDR
+        :param start_from: (int) rule priority number to start from
         :return: None
         """
         with self._lock:
 
             security_rules = network_client.security_rules.list(resource_group_name=group_name,
                                                                 network_security_group_name=security_group_name)
-
             security_rules = list(security_rules)
-
-            if security_rules:
-                last_rule = max(security_rules, key=lambda x: x.priority)
-                last_priority = last_rule.priority
-            else:
-                last_priority = None
-
-            priority_generator = self._rule_priority_generator(last_priority)
+            priority_generator = self._rule_priority_generator(existing_rules=security_rules, start_from=start_from)
 
             for rule_data in inbound_rules:
-                rule = self._prepare_security_group_rule(rule_data=rule_data,
-                                                         private_vm_ip=private_vm_ip,
-                                                         priority=next(priority_generator))
-
-                operation_poller = network_client.security_rules.create_or_update(
-                    resource_group_name=group_name,
-                    network_security_group_name=security_group_name,
-                    security_rule_name=rule.name,
-                    security_rule_parameters=rule)
-
-                operation_poller.wait()
+                self.create_network_security_group_rule(
+                    network_client=network_client,
+                    group_name=group_name,
+                    security_group_name=security_group_name,
+                    rule_data=rule_data,
+                    destination_addr=destination_addr,
+                    priority=next(priority_generator))

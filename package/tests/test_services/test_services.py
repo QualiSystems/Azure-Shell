@@ -295,14 +295,17 @@ class TestSecurityGroupService(TestCase):
 
     def test_rule_priority_generator(self):
         """Check that method creates generator started from the given value plus increase step"""
-        start_value = 100
-        expected_values = [start_value + self.security_group_service.RULE_PRIORITY_INCREASE_STEP,
-                           start_value + self.security_group_service.RULE_PRIORITY_INCREASE_STEP * 2,
-                           start_value + self.security_group_service.RULE_PRIORITY_INCREASE_STEP * 3,
-                           start_value + self.security_group_service.RULE_PRIORITY_INCREASE_STEP * 4]
+        expected_values = [
+            self.security_group_service.RULE_DEFAULT_PRIORITY,
+            (self.security_group_service.RULE_DEFAULT_PRIORITY +
+             self.security_group_service.RULE_PRIORITY_INCREASE_STEP),
+            (self.security_group_service.RULE_DEFAULT_PRIORITY +
+             self.security_group_service.RULE_PRIORITY_INCREASE_STEP * 2),
+            (self.security_group_service.RULE_DEFAULT_PRIORITY +
+             self.security_group_service.RULE_PRIORITY_INCREASE_STEP * 3)]
 
         # Act
-        generator = self.security_group_service._rule_priority_generator(start_value)
+        generator = self.security_group_service._rule_priority_generator([])
 
         # Verify
         generated_values = [next(generator) for _ in xrange(4)]
@@ -353,7 +356,7 @@ class TestSecurityGroupService(TestCase):
         # Act
         prepared_rule = self.security_group_service._prepare_security_group_rule(
             rule_data=rule_data,
-            private_vm_ip=private_vm_ip,
+            destination_addr=private_vm_ip,
             priority=priority)
 
         # Verify
@@ -374,12 +377,12 @@ class TestSecurityGroupService(TestCase):
             group_name=self.group_name,
             security_group_name=self.security_group_name,
             inbound_rules=inbound_rules,
-            private_vm_ip=private_vm_ip)
+            destination_addr=private_vm_ip)
 
         # Verify
         self.security_group_service._prepare_security_group_rule.assert_called_once_with(
             priority=self.security_group_service.RULE_DEFAULT_PRIORITY,
-            private_vm_ip=private_vm_ip,
+            destination_addr=private_vm_ip,
             rule_data=rule_data)
 
         self.network_client.security_rules.create_or_update.assert_called_with(
@@ -389,16 +392,15 @@ class TestSecurityGroupService(TestCase):
             security_rule_parameters=rule_model)
 
     def test_create_network_security_group_rules_with_existing_rules(self):
-        """Check that method will call network_client for NSG rules creation starting from last rule priority"""
+        """Check that method will call network_client for NSG rules creation starting from first available priority"""
         rule_data = mock.MagicMock()
         inbound_rules = [rule_data]
         private_vm_ip = mock.MagicMock()
         rule_model = mock.MagicMock()
-        max_existing_priority = 100500
 
         self.network_client.security_rules.list.return_value = [
             mock.MagicMock(priority=5000),
-            mock.MagicMock(priority=max_existing_priority),
+            mock.MagicMock(priority=100500),
             mock.MagicMock(priority=100000)]
 
         self.security_group_service._prepare_security_group_rule = mock.MagicMock(return_value=rule_model)
@@ -409,12 +411,12 @@ class TestSecurityGroupService(TestCase):
             group_name=self.group_name,
             security_group_name=self.security_group_name,
             inbound_rules=inbound_rules,
-            private_vm_ip=private_vm_ip)
+            destination_addr=private_vm_ip)
 
         # Verify
         self.security_group_service._prepare_security_group_rule.assert_called_once_with(
-            priority=max_existing_priority + self.security_group_service.RULE_PRIORITY_INCREASE_STEP,
-            private_vm_ip=private_vm_ip,
+            priority=self.security_group_service.RULE_DEFAULT_PRIORITY,
+            destination_addr=private_vm_ip,
             rule_data=rule_data)
 
         self.network_client.security_rules.create_or_update.assert_called_with(

@@ -60,7 +60,7 @@ class DeployAzureVMOperation(object):
                 group_name=group_name,
                 security_group_name=network_security_group.name,
                 inbound_rules=inbound_rules,
-                private_vm_ip=nic.ip_configurations[0].private_ip_address)
+                destination_addr=nic.ip_configurations[0].private_ip_address)
 
     def deploy(self, azure_vm_deployment_model,
                cloud_provider_model,
