@@ -1,5 +1,4 @@
 import jsonpickle
-from threading import Lock
 
 from azure.mgmt.compute import ComputeManagementClient
 from azure.mgmt.network import NetworkManagementClient
@@ -41,7 +40,6 @@ class AzureShell(object):
         self.tags_service = TagService()
         self.key_pair_service = KeyPairService()
         self.security_group_service = SecurityGroupService()
-        self.lock = Lock()
 
     def deploy_azure_vm(self, command_context, deployment_request):
         """
