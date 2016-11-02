@@ -1,3 +1,5 @@
+from threading import Lock
+
 import azure
 from azure.mgmt.storage.models import SkuName, StorageAccountCreateParameters
 from azure.storage.file import FileService
@@ -5,6 +7,7 @@ from azure.storage.file import FileService
 
 class StorageService(object):
     def __init__(self):
+        self._lock = Lock()
         self._cached_file_services = {}
 
     def create_storage_account(self, storage_client, group_name, region, storage_account_name, tags,wait_until_created=False):
@@ -66,16 +69,17 @@ class StorageService(object):
         """
         cached_key = (group_name, storage_name)
 
-        try:
-            file_service = self._cached_file_services[cached_key]
-        except KeyError:
-            account_key = self._get_storage_account_key(
-                storage_client=storage_client,
-                group_name=group_name,
-                storage_name=storage_name)
+        with self._lock:
+            try:
+                file_service = self._cached_file_services[cached_key]
+            except KeyError:
+                account_key = self._get_storage_account_key(
+                    storage_client=storage_client,
+                    group_name=group_name,
+                    storage_name=storage_name)
 
-            file_service = FileService(account_name=storage_name, account_key=account_key)
-            self._cached_file_services[cached_key] = file_service
+                file_service = FileService(account_name=storage_name, account_key=account_key)
+                self._cached_file_services[cached_key] = file_service
 
         return file_service
 

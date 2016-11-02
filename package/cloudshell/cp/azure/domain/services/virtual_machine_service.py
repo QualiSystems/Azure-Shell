@@ -50,20 +50,20 @@ class VirtualMachineService(object):
                   instance_type):
         """
 
-        :param instance_type:
-        :param compute_management_client:
-        :param image_offer:
-        :param image_publisher:
-        :param image_sku:
-        :param image_version:
-        :param vm_credentials:
-        :param computer_name:
-        :param group_name:
-        :param nic_id:
-        :param region:
-        :param storage_name:
-        :param vm_name:
-        :param tags:
+        :param instance_type: (str) Azure instance type
+        :param compute_management_client: azure.mgmt.compute.ComputeManagementClient instance
+        :param image_offer: (str) image offer
+        :param image_publisher: (str) image publisher
+        :param image_sku: (str) image SKU
+        :param image_version: (str) image version
+        :param vm_credentials: cloudshell.cp.azure.models.vm_credentials.VMCredentials instance
+        :param computer_name: computer name
+        :param group_name: Azure resource group name (reservation id)
+        :param nic_id: Azure network id
+        :param region: Azure region
+        :param storage_name: Azure storage name
+        :param vm_name: name for VM
+        :param tags: Azure tags
         :return:
         """
         if vm_credentials.ssh_key:
