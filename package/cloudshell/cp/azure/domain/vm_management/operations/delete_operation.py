@@ -1,3 +1,6 @@
+from msrestazure.azure_exceptions import CloudError
+
+
 class DeleteAzureVMOperation(object):
     def __init__(self,
                  logger,
@@ -59,6 +62,11 @@ class DeleteAzureVMOperation(object):
                                            group_name=group_name,
                                            ip_name=vm_name)
 
+        except CloudError as e:
+            if e.response.reason == "Not Found":
+                self.logger.info('Deleting Azure VM Exception... ' + e.message)
+            else:
+                raise e
         except Exception as e:
             self.logger.info('Deleting Azure VM Exception...')
             raise e
