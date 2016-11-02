@@ -1,5 +1,7 @@
 from unittest import TestCase
 from mock import Mock, MagicMock
+from msrestazure.azure_exceptions import CloudError
+from requests import Response
 
 from cloudshell.cp.azure.domain.services.network_service import NetworkService
 from cloudshell.cp.azure.domain.services.tags import TagService
@@ -55,6 +57,39 @@ class TestDeleteOperation(TestCase):
 
         # Verify
         self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.logger.info))
+
+    def test_delete_operation_on_cloud_error_not_found_no_exception(self):
+        # Arrange
+        response = Response()
+        response.reason = "Not Found"
+        error = CloudError(response)
+        self.vm_service.delete_vm = Mock(side_effect=error)
+
+        # Act
+        self.delete_operation.delete(
+            Mock(),
+            Mock(),
+            "group_name",
+            "vm_name"
+        )
+
+        # Verify
+        self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.logger.info))
+
+    def test_delete_operation_on_cloud_any_error_throws_exception(self):
+        # Arrange
+        response = Response()
+        response.reason = "Bla bla error"
+        error = CloudError(response)
+        self.vm_service.delete_vm = Mock(side_effect=error)
+
+        # Act
+        self.assertRaises(Exception,
+                          self.delete_operation.delete,
+                          Mock(),
+                          Mock(),
+                          "AzureTestGroup",
+                          "AzureTestVM")
 
     def test_delete_resource_group_operation_on_error(self):
         # Arrange
