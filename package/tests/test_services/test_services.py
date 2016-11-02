@@ -75,7 +75,11 @@ class TestStorageService(TestCase):
                                                                               storage_name=self.storage_name)
 
         file_service_class.assert_called_once_with(account_name=self.storage_name, account_key=mocked_account_key)
+
         self.assertEqual(file_service, mocked_file_service)
+        expected_cached_key = (self.group_name, self.storage_name)
+        self.assertIn(expected_cached_key, self.storage_service._cached_file_services)
+        self.assertEqual(file_service, self.storage_service._cached_file_services[expected_cached_key])
 
     def test_create_file(self):
         """Check that method uses storage client to save file to the Azure"""

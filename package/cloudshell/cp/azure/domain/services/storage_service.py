@@ -5,7 +5,7 @@ from azure.storage.file import FileService
 
 class StorageService(object):
     def __init__(self):
-        pass
+        self._cached_file_services = {}
 
     def create_storage_account(self, storage_client, group_name, region, storage_account_name, tags,wait_until_created=False):
         """
@@ -64,13 +64,20 @@ class StorageService(object):
         :param storage_name: (str) the name of the storage on Azure
         :return: azure.storage.file.FileService instance
         """
-        # todo(A.Piddubny): add some cashing here?
-        account_key = self._get_storage_account_key(
-            storage_client=storage_client,
-            group_name=group_name,
-            storage_name=storage_name)
+        cached_key = (group_name, storage_name)
 
-        return FileService(account_name=storage_name, account_key=account_key)
+        try:
+            file_service = self._cached_file_services[cached_key]
+        except KeyError:
+            account_key = self._get_storage_account_key(
+                storage_client=storage_client,
+                group_name=group_name,
+                storage_name=storage_name)
+
+            file_service = FileService(account_name=storage_name, account_key=account_key)
+            self._cached_file_services[cached_key] = file_service
+
+        return file_service
 
     def get_file(self, storage_client, group_name, storage_name, share_name, directory_name, file_name):
         """Read file from the Azure storage as a sting
