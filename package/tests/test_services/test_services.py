@@ -5,12 +5,14 @@ from azure.mgmt.network.models import IPAllocationMethod
 from azure.mgmt.storage.models import StorageAccountCreateParameters
 from mock import MagicMock
 from mock import Mock
+from msrestazure.azure_operation import AzureOperationPoller
 
 from cloudshell.cp.azure.domain.services.network_service import NetworkService
 from cloudshell.cp.azure.domain.services.key_pair import KeyPairService
 from cloudshell.cp.azure.domain.services.storage_service import StorageService
 from cloudshell.cp.azure.domain.services.virtual_machine_service import VirtualMachineService
 from cloudshell.cp.azure.domain.services.security_group import SecurityGroupService
+from tests.helpers.test_helper import TestHelper
 
 
 class TestStorageService(TestCase):
@@ -42,6 +44,39 @@ class TestStorageService(TestCase):
                                                                       location=region,
                                                                       tags=tags),
                                                                   raw=False)
+
+    def test_create_storage_account_wait_for_result(self):
+        # Arrange
+        storage_accounts_create = AzureOperationPoller(Mock(), Mock(), Mock())
+        storage_accounts_create.wait = Mock()
+        storage_client = MagicMock()
+        storage_client.storage_accounts.create = Mock(return_value=storage_accounts_create)
+        region = "a region"
+        account_name = "account name"
+        tags = {}
+        group_name = "a group name"
+        wait_until_created = True
+
+        # Act
+        self.storage_service.create_storage_account(storage_client, group_name, region, account_name, tags, wait_until_created)
+
+        # Verify
+        self.assertTrue(TestHelper.CheckMethodCalledXTimes(storage_accounts_create.wait))
+
+    def test_get_storage_per_resource_group(self):
+        # Arrange
+        storage_client = Mock()
+        group_name = "a group name"
+        storage_client.storage_accounts.list_by_resource_group = Mock(return_value=[])
+
+        # Act
+        result = self.storage_service.get_storage_per_resource_group(
+            storage_client,
+            group_name
+        )
+
+        # Verify
+        self.assertTrue(isinstance(result, list))
 
     def test_get_storage_account_key(self):
         """Check that method uses storage client to retrieve first access key for the storage account"""
