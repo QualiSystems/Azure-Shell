@@ -1,7 +1,10 @@
 from unittest import TestCase
-from mock import Mock
+from mock import Mock, MagicMock
+from msrestazure.azure_exceptions import CloudError
+from requests import Response
 
 from cloudshell.cp.azure.domain.services.network_service import NetworkService
+from cloudshell.cp.azure.domain.services.tags import TagService
 from cloudshell.cp.azure.domain.services.virtual_machine_service import VirtualMachineService
 from cloudshell.cp.azure.domain.vm_management.operations.delete_operation import DeleteAzureVMOperation
 from tests.helpers.test_helper import TestHelper
@@ -12,10 +15,11 @@ class TestDeleteOperation(TestCase):
         self.logger = Mock()
         self.vm_service = VirtualMachineService()
         self.network_service = NetworkService()
+        self.tags_service = TagService()
         self.delete_operation = DeleteAzureVMOperation(logger=self.logger,
                                                        vm_service=self.vm_service,
-                                                       network_service=self.network_service)
-        
+                                                       network_service=self.network_service,
+                                                       tags_service=self.tags_service)
 
     def test_delete_operation(self):
         """
@@ -38,3 +42,86 @@ class TestDeleteOperation(TestCase):
         self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.vm_service.delete_vm))
         self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.network_service.delete_nic))
         self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.network_service.delete_ip))
+
+    def test_delete_operation_on_error(self):
+        # Arrange
+        self.vm_service.delete_vm = Mock(side_effect=Exception("Boom!"))
+
+        # Act
+        self.assertRaises(Exception,
+                          self.delete_operation.delete,
+                          Mock(),
+                          Mock(),
+                          "AzureTestGroup",
+                          "AzureTestVM")
+
+        # Verify
+        self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.logger.info))
+
+    def test_delete_operation_on_cloud_error_not_found_no_exception(self):
+        # Arrange
+        response = Response()
+        response.reason = "Not Found"
+        error = CloudError(response)
+        self.vm_service.delete_vm = Mock(side_effect=error)
+
+        # Act
+        self.delete_operation.delete(
+            Mock(),
+            Mock(),
+            "group_name",
+            "vm_name"
+        )
+
+        # Verify
+        self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.logger.info))
+
+    def test_delete_operation_on_cloud_any_error_throws_exception(self):
+        # Arrange
+        response = Response()
+        response.reason = "Bla bla error"
+        error = CloudError(response)
+        self.vm_service.delete_vm = Mock(side_effect=error)
+
+        # Act
+        self.assertRaises(Exception,
+                          self.delete_operation.delete,
+                          Mock(),
+                          Mock(),
+                          "AzureTestGroup",
+                          "AzureTestVM")
+
+    def test_delete_resource_group_operation_on_error(self):
+        # Arrange
+        self.vm_service.delete_resource_group = Mock(side_effect=Exception("Boom!"))
+
+        # Act
+        self.assertRaises(Exception,
+                          self.delete_operation.delete_resource_group,
+                          Mock(),
+                          "group_name_test")
+
+    def test_delete_resource_group(self):
+        # Arrange
+        resource_management_client = Mock()
+        group_name = "test_group_name"
+
+        # Act
+        self.vm_service.delete_resource_group(resource_management_client, group_name)
+
+        # Verify
+        self.assertTrue(TestHelper.CheckMethodCalledXTimes(resource_management_client.resource_groups.delete))
+        resource_management_client.resource_groups.delete.assert_called_with(group_name)
+
+    def test_delete_vm(self):
+        # Arrange
+        compute_management_client = MagicMock()
+        group_name = "test_group_name"
+        vm_name = "test_group_name"
+
+        # Act
+        res = self.vm_service.delete_vm(compute_management_client, group_name, vm_name)
+
+        # Verify
+        compute_management_client.virtual_machines.delete.assert_called_with(resource_group_name=group_name,
+                                                                             vm_name=vm_name)

@@ -53,20 +53,22 @@ class PrepareConnectivityOperation(object):
         :return:
         """
 
-        resource_name = OperationsHelper.generate_name("base")
         reservation_id = reservation.reservation_id
         group_name = str(reservation_id)
-        vnet = cloud_provider_model.azure_mgmt_vnet
+        subnet_name = group_name
         tags = self.tags_service.get_tags(reservation=reservation)
         result = []
         action_result = PrepareConnectivityActionResult()
 
         # 1. Create a resource group
+        logger.info("Creating a resource group: {0} .".format(group_name))
         self.vm_service.create_resource_group(resource_management_client=resource_client, group_name=group_name,
                                               region=cloud_provider_model.region, tags=tags)
 
         storage_account_name = OperationsHelper.generate_name(reservation_id[0:8])
+
         # 2. Create a storage account
+        logger.info("Creating a storage account.")
         action_result.storage_name = self.storage_service.create_storage_account(storage_client=storage_client,
                                                                                  group_name=group_name,
                                                                                  region=cloud_provider_model.region,
@@ -74,6 +76,7 @@ class PrepareConnectivityOperation(object):
                                                                                  tags=tags,
                                                                                  wait_until_created=True)
         # 3 Create a Key pair for the sandbox
+        logger.info("Creating a Key pair for the sandbox.")
         key_pair = self.key_pair_service.generate_key_pair()
 
         account_key = self.storage_service.get_storage_account_key(storage_client=storage_client,
@@ -84,35 +87,54 @@ class PrepareConnectivityOperation(object):
                                             group_name=group_name,
                                             storage_name=storage_account_name)
 
+        virtual_networks = self.network_service.get_virtual_networks(network_client=network_client,
+                                                                     group_name=cloud_provider_model.management_group_name)
+
+        management_vnet = self.network_service.get_virtual_network_by_tag(virtual_networks=virtual_networks,
+                                                                          tag_key='network_type', tag_value='mgmt',
+                                                                          tags_service=self.tags_service)
+
+        if management_vnet is None:
+            raise Exception("Could not find Management Virtual Network in Azure.")
+
+        sandbox_vnet = self.network_service.get_virtual_network_by_tag(virtual_networks=virtual_networks,
+                                                                       tag_key='network_type',
+                                                                       tag_value='sandbox',
+                                                                       tags_service=self.tags_service)
+
+        if sandbox_vnet is None:
+            raise Exception("Could not find Sandbox Virtual Network in Azure.")
+
+        # 4.Create the NSG object
+        logger.info("Creating a network security group.")
+        network_security_group = None
+
+        logger.info("Creating a subnet.")
         for action in request.actions:
             cidr = self._extract_cidr(action)
             logger.info("Received CIDR {0} from server".format(cidr))
 
-            # 4. Create the network interface
-            # todo: change that to create a subnet
-            action_result.subnet_name = self.network_service.create_virtual_network(management_group_name=group_name,
-                                                                                    network_client=network_client,
-                                                                                    network_name=resource_name,
-                                                                                    region=cloud_provider_model.region,
-                                                                                    subnet_name=resource_name,
-                                                                                    tags=tags,
-                                                                                    subnet_cidr=cidr,
-                                                                                    vnet_cidr=vnet).name
+            # 5. Create a subnet
+            name = cloud_provider_model.management_group_name
+            self.network_service.create_subnet(network_client=network_client,
+                                               resource_group_name=name,
+                                               subnet_name=subnet_name,
+                                               subnet_cidr=cidr,
+                                               virtual_network=sandbox_vnet,
+                                               region=cloud_provider_model.region,
+                                               network_security_group=network_security_group,
+                                               wait_for_result=True)
 
-            # 5.Create the NSG object
-            # todo: crete the subnet
-
+            action_result.subnet_name = subnet_name
 
             result.append(action_result)
         return result
 
     @staticmethod
     def _extract_cidr(action):
-        cidrs = [custom_attribute.attributeValue
-                 for custom_attribute in action.customActionAttributes
-                 if custom_attribute.attributeName == 'Network']
-        if not cidrs:
+        cidrs = next((custom_attribute.attributeValue
+                      for custom_attribute in action.customActionAttributes
+                      if custom_attribute.attributeName == 'Network'), None)
+        if not cidrs or len(cidrs) == 0:
             raise ValueError(INVALID_REQUEST_ERROR.format('CIDR is missing'))
-        if len(cidrs) > 1:
-            raise ValueError(INVALID_REQUEST_ERROR.format('Too many CIDRs parameters were found'))
-        return cidrs[0]
+        return cidrs

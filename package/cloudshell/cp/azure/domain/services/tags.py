@@ -38,3 +38,15 @@ class TagService(object):
             result.update({TagNames.Domain: reservation.domain})
 
         return result
+
+
+    def try_find_tag(self,tags_list, tag_key):
+        """
+        Gets a list of tags and a key to find and returns the value or None if not found
+
+        :param tags_list {}: list of tags
+        :param tag_key:
+        :return:
+        """
+        return next((tags_list[key] for key in tags_list.keys() if key == tag_key), None)
+
