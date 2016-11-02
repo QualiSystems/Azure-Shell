@@ -297,7 +297,10 @@
               <AllowedValues />
             </AttachedAttribute>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Public IP Type" UserInput="true">
-              <AllowedValues />
+              <AllowedValues>
+                <AllowedValue>Static</AllowedValue>
+                <AllowedValue>Dynamic</AllowedValue>
+              </AllowedValues>
             </AttachedAttribute>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Inbound Ports" UserInput="true">
               <AllowedValues />
@@ -318,6 +321,9 @@
               <AllowedValues />
             </AttachedAttribute>
           </AttachedAttributes>
+          <AttributeValues>
+            <AttributeValue Name="Public IP Type" Value="Dynamic" />
+          </AttributeValues>
           <ParentModels />
           <Drivers>
             <DriverName>Azure Deploy VM Driver</DriverName>
