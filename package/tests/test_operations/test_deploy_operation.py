@@ -44,11 +44,12 @@ class TestDeployAzureVMOperation(TestCase):
         self.network_service.get_virtual_networks = Mock(return_value=[MagicMock()])
         self.network_service.create_network_for_vm = MagicMock()
         self.vm_service.get_image_operation_system = MagicMock()
-        self.network_service.get_public_ip = MagicMock()
         self.vm_service.create_vm = MagicMock()
         self.deploy_operation._process_nsg_rules = MagicMock()
         resource_model = DeployAzureVMResourceModel()
         resource_model.add_public_ip = True
+        self.network_client = MagicMock()
+        self.network_client.public_ip_addresses.get = Mock()
 
         vnet = Mock()
         subnet = MagicMock()
@@ -60,10 +61,11 @@ class TestDeployAzureVMOperation(TestCase):
         self.network_service.get_sandbox_virtual_network = Mock(return_value=vnet)
 
         # Act
+
         self.deploy_operation.deploy(resource_model,
                                      AzureCloudProviderResourceModel(),
                                      reservation,
-                                     MagicMock(),
+                                     self.network_client,
                                      Mock(),
                                      Mock(),
                                      Mock())
@@ -74,7 +76,7 @@ class TestDeployAzureVMOperation(TestCase):
         self.vm_service.create_vm.assert_called_once()
         self.network_service.create_network_for_vm.assert_called_once()
         self.deploy_operation._process_nsg_rules.assert_called_once()
-        self.network_service.get_public_ip.assert_called_once()
+        self.network_client.public_ip_addresses.get.assert_called_once()
         self.network_service.get_sandbox_virtual_network.assert_called_once()
 
     def test_deploy_operation_virtual_networks_validation(self):
