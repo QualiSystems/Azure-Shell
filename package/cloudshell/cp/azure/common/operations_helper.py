@@ -3,8 +3,6 @@ import uuid
 
 
 class OperationsHelper:
-    def __init__(self):
-        pass
 
     @staticmethod
     def generate_name(name, length=24):
