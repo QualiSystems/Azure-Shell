@@ -60,7 +60,6 @@ class PrepareConnectivityOperation(object):
         group_name = str(reservation_id)
         subnet_name = group_name
         tags = self.tags_service.get_tags(reservation=reservation)
-        result = []
         action_result = PrepareConnectivityActionResult()
 
         # 1. Create a resource group
@@ -132,7 +131,7 @@ class PrepareConnectivityOperation(object):
 
             action_result.subnet_name = subnet_name
 
-        return result
+        return action_result
 
     @staticmethod
     def _extract_cidr(action):
