@@ -15,5 +15,4 @@ class DeployAzureVMResourceModel(object):
         self.image_sku = ''  # type: str
         self.disk_type = ''  # type: str
         self.app_name = ''  # type: str
-        self.username = ''  # type: str
-        self.password = ''  # type: str
+

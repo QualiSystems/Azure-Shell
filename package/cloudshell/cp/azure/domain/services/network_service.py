@@ -224,7 +224,7 @@ class NetworkService(object):
         """
         Creates a virtual network with a subnet
         :param management_group_name:
-        :param network_client:
+        :param azure.mgmt.network.NetworkManagementClient network_client:
         :param network_name:
         :param region:
         :param subnet_name:

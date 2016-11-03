@@ -1,10 +1,7 @@
 from azure.mgmt.compute.models import OSProfile, HardwareProfile, NetworkProfile, \
     NetworkInterfaceReference, CachingTypes, DiskCreateOptionTypes, VirtualHardDisk, ImageReference, OSDisk, \
     VirtualMachine, StorageProfile
-from azure.mgmt.compute.models.linux_configuration import LinuxConfiguration
-from azure.mgmt.compute.models.ssh_configuration import SshConfiguration
 from azure.mgmt.resource.resources.models import ResourceGroup
-from azure.mgmt.compute.models.ssh_public_key import SshPublicKey
 
 
 class VirtualMachineService(object):
@@ -22,24 +19,14 @@ class VirtualMachineService(object):
 
         return compute_management_client.virtual_machines.get(group_name, vm_name)
 
-    def _prepare_linux_configuration(self, ssh_key):
-        """Create LinuxConfiguration object with nested SshPublicKey object for Azure client
-
-        :param ssh_key: cloudshell.cp.azure.models.authorized_key.AuthorizedKey instance
-        :return: azure.mgmt.compute.models.linux_configuration.LinuxConfiguration instance
-        """
-        ssh_public_key = SshPublicKey(path=ssh_key.path_to_key, key_data=ssh_key.key_data)
-        ssh_config = SshConfiguration(public_keys=[ssh_public_key])
-
-        return LinuxConfiguration(disable_password_authentication=True, ssh=ssh_config)
-
     def create_vm(self,
                   compute_management_client,
                   image_offer,
                   image_publisher,
                   image_sku,
                   image_version,
-                  vm_credentials,
+                  admin_password,
+                  admin_username,
                   computer_name,
                   group_name,
                   nic_id,
@@ -50,30 +37,25 @@ class VirtualMachineService(object):
                   instance_type):
         """
 
-        :param instance_type: (str) Azure instance type
-        :param compute_management_client: azure.mgmt.compute.ComputeManagementClient instance
-        :param image_offer: (str) image offer
-        :param image_publisher: (str) image publisher
-        :param image_sku: (str) image SKU
-        :param image_version: (str) image version
-        :param vm_credentials: cloudshell.cp.azure.models.vm_credentials.VMCredentials instance
-        :param computer_name: computer name
-        :param group_name: Azure resource group name (reservation id)
-        :param nic_id: Azure network id
-        :param region: Azure region
-        :param storage_name: Azure storage name
-        :param vm_name: name for VM
-        :param tags: Azure tags
+        :param instance_type:
+        :param compute_management_client:
+        :param image_offer:
+        :param image_publisher:
+        :param image_sku:
+        :param image_version:
+        :param admin_password:
+        :param admin_username:
+        :param computer_name:
+        :param group_name:
+        :param nic_id:
+        :param region:
+        :param storage_name:
+        :param vm_name:
+        :param tags:
         :return:
         """
-        if vm_credentials.ssh_key:
-            linux_configuration = self._prepare_linux_configuration(vm_credentials.ssh_key)
-        else:
-            linux_configuration = None
-
-        os_profile = OSProfile(admin_username=vm_credentials.admin_username,
-                               admin_password=vm_credentials.admin_password,
-                               linux_configuration=linux_configuration,
+        os_profile = OSProfile(admin_username=admin_username,
+                               admin_password=admin_password,
                                computer_name=computer_name)
 
         hardware_profile = HardwareProfile(vm_size=instance_type)
@@ -160,31 +142,3 @@ class VirtualMachineService(object):
                                                                                 vm_name=vm_name)
         if not async:
             return operation_poller.result()
-
-    def get_image_operation_system(self, compute_management_client, location, publisher_name, offer, skus):
-        """Get operation system from the given image
-
-        :param compute_management_client: azure.mgmt.compute.compute_management_client.ComputeManagementClient
-        :param location: (str) Azure region
-        :param publisher_name: (str) Azure publisher name
-        :param offer: (str) Azure Image offer
-        :param skus: (str) Azure Image SKU
-        :return: (enum) azure.mgmt.compute.models.OperatingSystemTypes windows/linux value
-        """
-        # get last version first (required for the virtual machine images GET Api)
-        image_resources = compute_management_client.virtual_machine_images.list(
-            location=location,
-            publisher_name=publisher_name,
-            offer=offer,
-            skus=skus)
-
-        version = image_resources[-1].name
-
-        deployed_image = compute_management_client.virtual_machine_images.get(
-            location=location,
-            publisher_name=publisher_name,
-            offer=offer,
-            skus=skus,
-            version=version)
-
-        return deployed_image.os_disk_image.operating_system
