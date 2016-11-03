@@ -30,7 +30,13 @@ class DeployAzureVM(ResourceDriverInterface):
                     azure_vm_deployment_model = self.resource_context_converter\
                         .resource_context_to_deployment_resource_model(context.resource, '')
 
-                    vm_res_name = jsonpickle.decode(context.resource.app_context.app_request_json)['name']
+                    app_request = jsonpickle.decode(context.resource.app_context.app_request_json)
+
+                    vm_res_name = app_request['name']
+                    cloud_provider_name = app_request["deploymentService"].get("cloudProviderName")
+
+                    if cloud_provider_name:
+                        azure_vm_deployment_model.cloud_provider = str(cloud_provider_name)
 
                     deployment_info = self.deployment_helper.get_deployment_info(azure_vm_deployment_model, vm_res_name)
 
