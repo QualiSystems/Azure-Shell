@@ -14,7 +14,8 @@ class PrepareConnectivityOperation(object):
                  network_service,
                  storage_service,
                  tags_service,
-                 key_pair_service):
+                 key_pair_service,
+                 security_group_service):
         """
 
         :param logger:
@@ -23,6 +24,7 @@ class PrepareConnectivityOperation(object):
         :param cloudshell.cp.azure.domain.services.storage_service.StorageService storage_service:
         :param cloudshell.cp.azure.domain.services.tags.TagService tags_service:
         :param cloudshell.cp.azure.domain.services.key_pair.KeyPairService key_pair_service:
+        :param cloudshell.cp.azure.domain.services.security_group.SecurityGroupService security_group_service:
         :return:
         """
 
@@ -32,6 +34,7 @@ class PrepareConnectivityOperation(object):
         self.storage_service = storage_service
         self.tags_service = tags_service
         self.key_pair_service = key_pair_service
+        self.security_group_service = security_group_service
 
     def prepare_connectivity(self,
                              reservation,
@@ -65,8 +68,7 @@ class PrepareConnectivityOperation(object):
         self.vm_service.create_resource_group(resource_management_client=resource_client, group_name=group_name,
                                               region=cloud_provider_model.region, tags=tags)
 
-        storage_account_name = OperationsHelper.generate_name(reservation_id[0:8])
-
+        storage_account_name = OperationsHelper.generate_name(reservation_id)
         # 2. Create a storage account
         logger.info("Creating a storage account.")
         action_result.storage_name = self.storage_service.create_storage_account(storage_client=storage_client,
@@ -79,13 +81,10 @@ class PrepareConnectivityOperation(object):
         logger.info("Creating a Key pair for the sandbox.")
         key_pair = self.key_pair_service.generate_key_pair()
 
-        account_key = self.storage_service.get_storage_account_key(storage_client=storage_client,
-                                                                   group_name=group_name,
-                                                                   storage_name=storage_account_name)
-        self.key_pair_service.save_key_pair(account_key=account_key,
-                                            key_pair=key_pair,
+        self.key_pair_service.save_key_pair(storage_client=storage_client,
                                             group_name=group_name,
-                                            storage_name=storage_account_name)
+                                            storage_name=storage_account_name,
+                                            key_pair=key_pair)
 
         virtual_networks = self.network_service.get_virtual_networks(network_client=network_client,
                                                                      group_name=cloud_provider_model.management_group_name)
@@ -106,8 +105,14 @@ class PrepareConnectivityOperation(object):
             raise Exception("Could not find Sandbox Virtual Network in Azure.")
 
         # 4.Create the NSG object
-        logger.info("Creating a network security group.")
-        network_security_group = None
+        security_group_name = OperationsHelper.generate_name(reservation_id)
+        logger.info("Creating a network security group '{}' .".format(security_group_name))
+        network_security_group = self.security_group_service.create_network_security_group(
+            network_client=network_client,
+            group_name=group_name,
+            security_group_name=security_group_name,
+            region=cloud_provider_model.region,
+            tags=tags)
 
         logger.info("Creating a subnet.")
         for action in request.actions:
@@ -127,7 +132,6 @@ class PrepareConnectivityOperation(object):
 
             action_result.subnet_name = subnet_name
 
-            result.append(action_result)
         return result
 
     @staticmethod
@@ -135,6 +139,7 @@ class PrepareConnectivityOperation(object):
         cidrs = next((custom_attribute.attributeValue
                       for custom_attribute in action.customActionAttributes
                       if custom_attribute.attributeName == 'Network'), None)
+
         if not cidrs or len(cidrs) == 0:
             raise ValueError(INVALID_REQUEST_ERROR.format('CIDR is missing'))
         return cidrs

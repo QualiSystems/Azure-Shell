@@ -28,20 +28,21 @@ class TestDeleteOperation(TestCase):
 
         # Arrange
         self.vm_service.delete_vm = Mock()
-        self.network_service.delete_nic = Mock()
-        self.network_service.delete_ip = Mock()
+        network_client = Mock()
+        network_client.network_interfaces.delete = Mock()
+        network_client.public_ip_addresses.delete = Mock()
 
         # Act
         self.delete_operation.delete(compute_client=Mock(),
-                                     network_client=Mock(),
+                                     network_client=network_client,
                                      group_name="AzureTestGroup",
                                      vm_name="AzureTestVM"
                                      )
 
         # Verify
         self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.vm_service.delete_vm))
-        self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.network_service.delete_nic))
-        self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.network_service.delete_ip))
+        self.assertTrue(TestHelper.CheckMethodCalledXTimes(network_client.public_ip_addresses.delete))
+        self.assertTrue(TestHelper.CheckMethodCalledXTimes(network_client.network_interfaces.delete))
 
     def test_delete_operation_on_error(self):
         # Arrange
