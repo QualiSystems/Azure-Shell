@@ -1,8 +1,19 @@
+import re
 import uuid
 
 
 class OperationsHelper:
 
     @staticmethod
-    def generate_name(name):
-        return name.replace(" ", "") + ((str(uuid.uuid4())).replace("-", ""))[0:8]
+    def generate_name(name, length=24):
+        """Generate name based on the given one with a fixed length.
+
+        Will replace all special characters (some Azure resources have this requirements).
+        :param name:
+        :param length:
+        :return:
+        """
+        name = re.sub("[^a-zA-Z0-9]", "", name)
+        generated_name = "{:.8}{}".format(uuid.uuid4().hex, name)
+
+        return generated_name[:length]
