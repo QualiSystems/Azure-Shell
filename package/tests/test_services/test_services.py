@@ -1,15 +1,17 @@
 from unittest import TestCase
 
 import mock
+from azure.mgmt.network.models import IPAllocationMethod
 from azure.mgmt.storage.models import StorageAccountCreateParameters
 from mock import MagicMock
 from mock import Mock
 from msrestazure.azure_operation import AzureOperationPoller
 
+from cloudshell.cp.azure.domain.services.network_service import NetworkService
 from cloudshell.cp.azure.domain.services.key_pair import KeyPairService
-from cloudshell.cp.azure.domain.services.security_group import SecurityGroupService
 from cloudshell.cp.azure.domain.services.storage_service import StorageService
 from cloudshell.cp.azure.domain.services.virtual_machine_service import VirtualMachineService
+from cloudshell.cp.azure.domain.services.security_group import SecurityGroupService
 from tests.helpers.test_helper import TestHelper
 
 
@@ -88,6 +90,82 @@ class TestStorageService(TestCase):
             storage_name=self.storage_name)
 
         self.assertEqual(key, storage_key.value)
+
+    @mock.patch("cloudshell.cp.azure.domain.services.storage_service.FileService")
+    def test_get_file_service(self, file_service_class):
+        """Check that method will return FileService instance"""
+        file_service_class.return_value = mocked_file_service = MagicMock()
+        mocked_account_key = MagicMock()
+        self.storage_service._get_storage_account_key = MagicMock(return_value=mocked_account_key)
+
+        # Act
+        file_service = self.storage_service._get_file_service(storage_client=self.storage_client,
+                                                              group_name=self.group_name,
+                                                              storage_name=self.storage_name)
+
+        # Verify
+        self.storage_service._get_storage_account_key.assert_called_once_with(storage_client=self.storage_client,
+                                                                              group_name=self.group_name,
+                                                                              storage_name=self.storage_name)
+
+        file_service_class.assert_called_once_with(account_name=self.storage_name, account_key=mocked_account_key)
+
+        self.assertEqual(file_service, mocked_file_service)
+        expected_cached_key = (self.group_name, self.storage_name)
+        self.assertIn(expected_cached_key, self.storage_service._cached_file_services)
+        self.assertEqual(file_service, self.storage_service._cached_file_services[expected_cached_key])
+
+    def test_create_file(self):
+        """Check that method uses storage client to save file to the Azure"""
+        share_name = "testsharename"
+        directory_name = "testdirectory"
+        file_name = "testfilename"
+        file_content = MagicMock()
+        file_service = MagicMock()
+        self.storage_service._get_file_service = MagicMock(return_value=file_service)
+
+        # Act
+        self.storage_service.create_file(storage_client=self.storage_client,
+                                         group_name=self.group_name,
+                                         storage_name=self.storage_name,
+                                         share_name=share_name,
+                                         directory_name=directory_name,
+                                         file_name=file_name,
+                                         file_content=file_content)
+
+        # Verify
+        file_service.create_share.assert_called_once_with(share_name=share_name, fail_on_exist=False)
+        file_service.create_file_from_bytes.assert_called_once_with(share_name=share_name,
+                                                                    directory_name=directory_name,
+                                                                    file_name=file_name,
+                                                                    file=file_content)
+
+    def test_get_key_pair(self):
+        """Check that method uses storage client to retrieve file from the Azure"""
+        share_name = "testsharename"
+        directory_name = "testdirectory"
+        file_name = "testfilename"
+        file_service = MagicMock()
+        mocked_file = MagicMock()
+        file_service.get_file_to_bytes.return_value = mocked_file
+        self.storage_service._get_file_service = MagicMock(return_value=file_service)
+
+        # Act
+        azure_file = self.storage_service.get_file(storage_client=self.storage_client,
+                                                   group_name=self.group_name,
+                                                   storage_name=self.storage_name,
+                                                   share_name=share_name,
+                                                   directory_name=directory_name,
+                                                   file_name=file_name)
+
+        # Verify
+        file_service.get_file_to_bytes.assert_called_once_with(share_name=share_name,
+                                                               directory_name=directory_name,
+                                                               file_name=file_name)
+        self.assertEqual(azure_file, mocked_file)
+
+
+
 
 
 class TestVMService(TestCase):
