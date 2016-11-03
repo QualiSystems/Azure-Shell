@@ -49,7 +49,7 @@ class TestPrepareConnectivity(TestCase):
         self.network_service.get_virtual_network_by_tag = MagicMock()
         self.storage_service.create_storage_account = MagicMock()
         self.vm_service.create_resource_group = MagicMock()
-        self.network_service.get_virtual_networks = MagicMock()
+
 
         req = MagicMock()
         action = MagicMock()
@@ -65,6 +65,7 @@ class TestPrepareConnectivity(TestCase):
 
         network_client = MagicMock()
         network_client.subnets.create_or_update = Mock(return_value=result)
+        network_client.virtual_networks.list = Mock(return_value="test")
 
         self.prepare_connectivity_operation.prepare_connectivity(
             reservation=MagicMock(),
@@ -85,7 +86,7 @@ class TestPrepareConnectivity(TestCase):
 
         # key pair created
         self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.key_pair_service.save_key_pair))
-        self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.network_service.get_virtual_networks))
+        self.assertTrue(TestHelper.CheckMethodCalledXTimes(network_client.virtual_networks.list ))
         self.assertTrue(TestHelper.CheckMethodCalledXTimes(network_client.subnets.create_or_update))
 
     def test_extract_cidr_throws_error(self):
