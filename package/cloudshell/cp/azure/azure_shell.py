@@ -22,6 +22,8 @@ from cloudshell.cp.azure.domain.services.parsers.azure_model_parser import Azure
 from cloudshell.cp.azure.domain.services.parsers.command_result_parser import CommandResultsParser
 from cloudshell.cp.azure.domain.services.virtual_machine_service import VirtualMachineService
 from cloudshell.cp.azure.domain.services.storage_service import StorageService
+from cloudshell.cp.azure.domain.services.vm_credentials_service import VMCredentialsService
+from cloudshell.cp.azure.domain.services.key_pair import KeyPairService
 from cloudshell.cp.azure.domain.services.security_group import SecurityGroupService
 from cloudshell.cp.azure.domain.vm_management.operations.deploy_operation import DeployAzureVMOperation
 from cloudshell.cp.azure.domain.vm_management.operations.power_operation import PowerAzureVMOperation
@@ -38,7 +40,8 @@ class AzureShell(object):
         self.network_service = NetworkService()
         self.storage_service = StorageService()
         self.tags_service = TagService()
-        self.key_pair_service = KeyPairService()
+        self.vm_credentials_service = VMCredentialsService()
+        self.key_pair_service = KeyPairService(storage_service=self.storage_service)
         self.security_group_service = SecurityGroupService()
 
     def deploy_azure_vm(self, command_context, deployment_request):
@@ -65,10 +68,17 @@ class AzureShell(object):
                             vm_service=self.vm_service,
                             network_service=self.network_service,
                             storage_service=self.storage_service,
+                            key_pair_service=self.key_pair_service,
                             tags_service=self.tags_service,
+                            vm_credentials_service=self.vm_credentials_service,
                             security_group_service=self.security_group_service)
 
                         reservation = self.model_parser.convert_to_reservation_model(command_context.reservation)
+
+                        if azure_vm_deployment_model.password:
+                            with CloudShellSessionContext(command_context) as cloudshell_session:
+                                decrypted_pass = cloudshell_session.DecryptPassword(azure_vm_deployment_model.password)
+                                azure_vm_deployment_model.password = decrypted_pass.Value
 
                         deploy_data = deploy_azure_vm_operation.deploy(
                             azure_vm_deployment_model=azure_vm_deployment_model,
@@ -161,7 +171,6 @@ class AzureShell(object):
 
                     compute_client = azure_clients_factory.get_client(ComputeManagementClient)
                     network_client = azure_clients_factory.get_client(NetworkManagementClient)
-
                     vm_name = command_context.remote_endpoints[0].fullname
 
                     delete_azure_vm_operation = DeleteAzureVMOperation(logger=logger,

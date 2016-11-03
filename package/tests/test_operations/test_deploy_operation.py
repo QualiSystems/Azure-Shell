@@ -10,21 +10,24 @@ from cloudshell.cp.azure.domain.services.virtual_machine_service import VirtualM
 from cloudshell.cp.azure.domain.vm_management.operations.deploy_operation import DeployAzureVMOperation
 from cloudshell.cp.azure.models.azure_cloud_provider_resource_model import AzureCloudProviderResourceModel
 from cloudshell.cp.azure.models.deploy_azure_vm_resource_model import DeployAzureVMResourceModel
-from tests.helpers.test_helper import TestHelper
 
 
-class TestAzureShell(TestCase):
+class TestDeployAzureVMOperation(TestCase):
     def setUp(self):
         self.logger = Mock()
         self.storage_service = StorageService()
         self.vm_service = VirtualMachineService()
         self.network_service = NetworkService()
+        self.vm_credentials_service = Mock()
+        self.key_pair_service = Mock()
         self.security_group_service = MagicMock()
         self.tags_service = TagService()
         self.deploy_operation = DeployAzureVMOperation(logger=self.logger,
                                                        vm_service=self.vm_service,
                                                        network_service=self.network_service,
                                                        storage_service=self.storage_service,
+                                                       vm_credentials_service=self.vm_credentials_service,
+                                                       key_pair_service=self.key_pair_service,
                                                        tags_service=self.tags_service,
                                                        security_group_service=self.security_group_service)
 
@@ -40,8 +43,9 @@ class TestAzureShell(TestCase):
         self.storage_service.get_storage_per_resource_group = MagicMock()
         self.network_service.get_virtual_networks = Mock(return_value=[MagicMock()])
         self.network_service.create_network_for_vm = MagicMock()
+        self.vm_service.get_image_operation_system = MagicMock()
         self.network_service.get_public_ip = MagicMock()
-        self.vm_service.create_vm = Mock()
+        self.vm_service.create_vm = MagicMock()
         self.deploy_operation._process_nsg_rules = MagicMock()
         resource_model = DeployAzureVMResourceModel()
         resource_model.add_public_ip = True
@@ -65,8 +69,10 @@ class TestAzureShell(TestCase):
                                      Mock())
 
         # Verify
+        self.vm_service.get_image_operation_system.assert_called_once()
         self.network_service.create_network_for_vm.assert_called_once()
         self.vm_service.create_vm.assert_called_once()
+        self.network_service.create_network_for_vm.assert_called_once()
         self.deploy_operation._process_nsg_rules.assert_called_once()
         self.network_service.get_public_ip.assert_called_once()
         self.network_service.get_sandbox_virtual_network.assert_called_once()
@@ -132,6 +138,7 @@ class TestAzureShell(TestCase):
         self.network_service.delete_nic = Mock()
         self.network_service.delete_ip = Mock()
         self.vm_service.delete_vm = Mock()
+        self.vm_service.get_image_operation_system = MagicMock()
         self.deploy_operation._process_nsg_rules = Mock()
 
         # Act
@@ -146,11 +153,11 @@ class TestAzureShell(TestCase):
                           Mock())
 
         # Verify
-        self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.network_service.create_network_for_vm))
-        self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.vm_service.create_vm))
-        self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.network_service.delete_nic))
-        self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.network_service.delete_ip))
-        self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.vm_service.delete_vm))
+        self.network_service.create_network_for_vm.assert_called_once()
+        self.vm_service.create_vm.assert_called_once()
+        self.network_service.delete_nic.assert_called_once()
+        self.network_service.delete_ip.assert_called_once()
+        self.vm_service.delete_vm.assert_called_once()
 
     def test_process_nsg_rules(self):
         """Check that method validates NSG is single per group and uses security group service for rules creation"""

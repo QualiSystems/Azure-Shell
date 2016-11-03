@@ -81,13 +81,10 @@ class PrepareConnectivityOperation(object):
         logger.info("Creating a Key pair for the sandbox.")
         key_pair = self.key_pair_service.generate_key_pair()
 
-        account_key = self.storage_service.get_storage_account_key(storage_client=storage_client,
-                                                                   group_name=group_name,
-                                                                   storage_name=storage_account_name)
-        self.key_pair_service.save_key_pair(account_key=account_key,
-                                            key_pair=key_pair,
+        self.key_pair_service.save_key_pair(storage_client=storage_client,
                                             group_name=group_name,
-                                            storage_name=storage_account_name)
+                                            storage_name=storage_account_name,
+                                            key_pair=key_pair)
 
         virtual_networks = self.network_service.get_virtual_networks(network_client=network_client,
                                                                      group_name=cloud_provider_model.management_group_name)

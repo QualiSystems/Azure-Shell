@@ -14,6 +14,8 @@ class DeployAzureVMOperation(object):
                  vm_service,
                  network_service,
                  storage_service,
+                 vm_credentials_service,
+                 key_pair_service,
                  tags_service,
                  security_group_service):
         """
@@ -22,6 +24,8 @@ class DeployAzureVMOperation(object):
         :param cloudshell.cp.azure.domain.services.virtual_machine_service.VirtualMachineService vm_service:
         :param cloudshell.cp.azure.domain.services.network_service.NetworkService network_service:
         :param cloudshell.cp.azure.domain.services.storage_service.StorageService storage_service:
+        :param cloudshell.cp.azure.domain.services.vm_credentials.VMCredentialsService vm_credentials_service:
+        :param cloudshell.cp.azure.domain.services.key_pair.KeyPairService key_pair_service:
         :param cloudshell.cp.azure.domain.services.tags.TagService tags_service:
         :param cloudshell.cp.azure.domain.services.security_group.SecurityGroupService security_group_service:
         :return:
@@ -30,6 +34,8 @@ class DeployAzureVMOperation(object):
         self.vm_service = vm_service
         self.network_service = network_service
         self.storage_service = storage_service
+        self.vm_credentials_service = vm_credentials_service
+        self.key_pair_service = key_pair_service
         self.tags_service = tags_service
         self.security_group_service = security_group_service
 
@@ -90,8 +96,6 @@ class DeployAzureVMOperation(object):
         interface_name = random_name
         ip_name = random_name
         computer_name = random_name
-        admin_username = resource_name
-        admin_password = 'ScJaw12deDFG'
         vm_name = random_name
         subnet_name = str(reservation_id)
 
@@ -109,7 +113,14 @@ class DeployAzureVMOperation(object):
 
         storage_account_name = storage_accounts_list[0].name
 
-        tags = self.tags_service.get_tags(vm_name, admin_username, subnet.name, reservation)
+        tags = self.tags_service.get_tags(vm_name, resource_name, subnet.name, reservation)
+
+        os_type = self.vm_service.get_image_operation_system(
+            compute_management_client=compute_client,
+            location=cloud_provider_model.region,
+            publisher_name=azure_vm_deployment_model.image_publisher,
+            offer=azure_vm_deployment_model.image_offer,
+            skus=azure_vm_deployment_model.image_sku)
 
         try:
             # 1. Create network for vm
@@ -125,19 +136,30 @@ class DeployAzureVMOperation(object):
 
             private_ip_address = nic.ip_configurations[0].private_ip_address
 
+            # 2. Prepare credentials for VM
+            vm_credentials = self.vm_credentials_service.prepare_credentials(
+                os_type=os_type,
+                username=azure_vm_deployment_model.username,
+                password=azure_vm_deployment_model.password,
+                storage_service=self.storage_service,
+                key_pair_service=self.key_pair_service,
+                storage_client=storage_client,
+                group_name=group_name,
+                storage_name=storage_account_name)
+
+            # 3. create NSG rules
             self._process_nsg_rules(network_client=network_client,
                                     group_name=group_name,
                                     azure_vm_deployment_model=azure_vm_deployment_model,
                                     nic=nic)
 
-            # 2. create Vm
+            # 4. create Vm
             result_create = self.vm_service.create_vm(compute_management_client=compute_client,
                                                       image_offer=azure_vm_deployment_model.image_offer,
                                                       image_publisher=azure_vm_deployment_model.image_publisher,
                                                       image_sku=azure_vm_deployment_model.image_sku,
                                                       image_version='latest',
-                                                      admin_password=admin_password,
-                                                      admin_username=admin_username,
+                                                      vm_credentials=vm_credentials,
                                                       computer_name=computer_name,
                                                       group_name=group_name,
                                                       nic_id=nic.id,
@@ -171,8 +193,10 @@ class DeployAzureVMOperation(object):
         else:
             public_ip_address = None
 
-        deployed_app_attributes = self._prepare_deployed_app_attributes(admin_username, admin_password,
-                                                                        public_ip_address)
+        deployed_app_attributes = self._prepare_deployed_app_attributes(
+            vm_credentials.admin_username,
+            vm_credentials.admin_password,
+            public_ip_address)
 
         return DeployResult(vm_name=vm_name,
                             vm_uuid=result_create.vm_id,
