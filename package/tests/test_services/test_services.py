@@ -1,5 +1,6 @@
 from unittest import TestCase
 
+import azure
 import mock
 from azure.mgmt.network.models import IPAllocationMethod
 from azure.mgmt.storage.models import StorageAccountCreateParameters
@@ -170,6 +171,49 @@ class TestStorageService(TestCase):
 class TestNetworkService(TestCase):
     def setUp(self):
         self.network_service = NetworkService()
+    def test_create_virtual_network(self):
+        network_client = Mock(return_value=Mock())
+        network_client.subnets.get = Mock(return_value="subnet")
+        network_client.virtual_networks.create_or_update=Mock(return_value=Mock())
+        management_group_name = Mock()
+        region = Mock()
+        network_name = Mock()
+        subnet_name = Mock()
+        vnet_cidr = Mock()
+        subnet_cidr = Mock()
+        network_security_group = Mock()
+        tags = Mock()
+        self.network_service.create_virtual_network(management_group_name=management_group_name,
+                                                    network_client=network_client,
+                                                    network_name=network_name,
+                                                    region=region,
+                                                    subnet_name=subnet_name,
+                                                    tags=tags,
+                                                    vnet_cidr=vnet_cidr,
+                                                    subnet_cidr=subnet_cidr,
+                                                    network_security_group=network_security_group)
+
+        network_client.subnets.get.assert_called()
+        network_client.virtual_networks.create_or_update.assert_called_with(management_group_name,
+            network_name,
+            azure.mgmt.network.models.VirtualNetwork(
+                location=region,
+                tags=tags,
+                address_space=azure.mgmt.network.models.AddressSpace(
+                    address_prefixes=[
+                        vnet_cidr,
+                    ],
+                ),
+                subnets=[
+                    azure.mgmt.network.models.Subnet(
+                        network_security_group=network_security_group,
+                        name=subnet_name,
+                        address_prefix=subnet_cidr,
+                    ),
+                ],
+            ),
+            tags=tags)
+
 
     def test_network_for_vm_fails_when_public_ip_type_is_not_correct(self):
 
