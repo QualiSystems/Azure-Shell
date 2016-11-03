@@ -1,4 +1,5 @@
 from unittest import TestCase
+import mock
 
 import jsonpickle
 
@@ -28,16 +29,20 @@ class TestPrepareConnectivity(TestCase):
         self.network_service = NetworkService()
         self.tag_service = TagService()
         self.key_pair_service = KeyPairService(storage_service=self.storage_service)
+        self.security_group_service = MagicMock()
         self.logger = MagicMock()
 
-        self.prepare_connectivity_operation = PrepareConnectivityOperation(logger=self.logger,
-                                                                           vm_service=self.vm_service,
-                                                                           network_service=self.network_service,
-                                                                           storage_service=self.storage_service,
-                                                                           tags_service=self.tag_service,
-                                                                           key_pair_service=self.key_pair_service)
+        self.prepare_connectivity_operation = PrepareConnectivityOperation(
+            logger=self.logger,
+            vm_service=self.vm_service,
+            network_service=self.network_service,
+            storage_service=self.storage_service,
+            tags_service=self.tag_service,
+            key_pair_service=self.key_pair_service,
+            security_group_service=self.security_group_service)
 
-    def test_prepare_connectivity(self):
+    @mock.patch("cloudshell.cp.azure.domain.vm_management.operations.prepare_connectivity_operation.OperationsHelper")
+    def test_prepare_connectivity(self, operation_helper_class):
         # Arrange
         self.key_pair_service.save_key_pair = MagicMock()
         self.key_pair_service.generate_key_pair = MagicMock()

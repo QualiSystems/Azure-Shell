@@ -5,6 +5,7 @@ from azure.mgmt.storage.models import StorageAccount
 
 from cloudshell.cp.azure.common.operations_helper import OperationsHelper
 from cloudshell.cp.azure.models.deploy_result_model import DeployResult
+from cloudshell.cp.azure.domain.services.parsers.rules_attribute_parser import RulesAttributeParser
 
 
 class DeployAzureVMOperation(object):
@@ -15,7 +16,8 @@ class DeployAzureVMOperation(object):
                  storage_service,
                  vm_credentials_service,
                  key_pair_service,
-                 tags_service):
+                 tags_service,
+                 security_group_service):
         """
 
         :param logger:
@@ -24,7 +26,8 @@ class DeployAzureVMOperation(object):
         :param cloudshell.cp.azure.domain.services.storage_service.StorageService storage_service:
         :param cloudshell.cp.azure.domain.services.vm_credentials.VMCredentialsService vm_credentials_service:
         :param cloudshell.cp.azure.domain.services.key_pair.KeyPairService key_pair_service:
-        :param tags_service:
+        :param cloudshell.cp.azure.domain.services.tags.TagService tags_service:
+        :param cloudshell.cp.azure.domain.services.security_group.SecurityGroupService security_group_service:
         :return:
         """
         self.logger = logger
@@ -34,6 +37,36 @@ class DeployAzureVMOperation(object):
         self.vm_credentials_service = vm_credentials_service
         self.key_pair_service = key_pair_service
         self.tags_service = tags_service
+        self.security_group_service = security_group_service
+
+    def _process_nsg_rules(self, network_client, group_name, azure_vm_deployment_model, nic):
+        """Create Network Security Group rules if needed
+
+        :param network_client: azure.mgmt.network.NetworkManagementClient instance
+        :param group_name: resource group name (reservation id)
+        :param azure_vm_deployment_model: cloudshell.cp.azure.models.deploy_azure_vm_resource_model.DeployAzureVMResourceModel
+        :param nic: azure.mgmt.network.models.NetworkInterface instance
+        :return: None
+        """
+
+        if azure_vm_deployment_model.inbound_ports:
+            inbound_rules = RulesAttributeParser.parse_port_group_attribute(
+                ports_attribute=azure_vm_deployment_model.inbound_ports)
+
+            network_security_groups = self.security_group_service.list_network_security_group(
+                network_client=network_client,
+                group_name=group_name)
+
+            self._validate_resource_is_single_per_group(network_security_groups, group_name, "network security group")
+
+            network_security_group = network_security_groups[0]
+
+            self.security_group_service.create_network_security_group_rules(
+                network_client=network_client,
+                group_name=group_name,
+                security_group_name=network_security_group.name,
+                inbound_rules=inbound_rules,
+                destination_addr=nic.ip_configurations[0].private_ip_address)
 
     def deploy(self, azure_vm_deployment_model,
                cloud_provider_model,
@@ -58,7 +91,7 @@ class DeployAzureVMOperation(object):
         app_name = azure_vm_deployment_model.app_name.lower().replace(" ", "")
         resource_name = app_name
         base_name = resource_name
-        random_name = self._generate_name(base_name)
+        random_name = OperationsHelper.generate_name(base_name)
         group_name = str(reservation_id)
         interface_name = random_name
         ip_name = random_name
@@ -114,7 +147,13 @@ class DeployAzureVMOperation(object):
                 group_name=group_name,
                 storage_name=storage_account_name)
 
-            # 3. create Vm
+            # 3. create NSG rules
+            self._process_nsg_rules(network_client=network_client,
+                                    group_name=group_name,
+                                    azure_vm_deployment_model=azure_vm_deployment_model,
+                                    nic=nic)
+
+            # 4. create Vm
             result_create = self.vm_service.create_vm(compute_management_client=compute_client,
                                                       image_offer=azure_vm_deployment_model.image_offer,
                                                       image_publisher=azure_vm_deployment_model.image_publisher,
@@ -173,26 +212,11 @@ class DeployAzureVMOperation(object):
                             public_ip=public_ip_address,
                             resource_group=reservation_id)
 
-    @staticmethod
-    def validate_network(all_networks, group_name):
-        if len(all_networks) > 1:
-            raise Exception("The resource group {0} contains more than one virtual network.".format({group_name}))
-        if len(all_networks) == 0:
-            raise Exception("The resource group {0} does not contain a virtual network.".format({group_name}))
-
-    @staticmethod
-    def _generate_name(name, length=24):
-        """Generate name based on the given one with a fixed length.
-
-        Will replace all special characters (some Azure resources have this requirements).
-        :param name:
-        :param length:
-        :return:
-        """
-        name = re.sub("[^a-zA-Z0-9]", "", name)
-        generated_name = "{:.8}{}".format(uuid.uuid4().hex, name)
-
-        return generated_name[:length]
+    def _validate_resource_is_single_per_group(self, resources_list, group_name, resource_name):
+        if len(resources_list) > 1:
+            raise Exception("The resource group {} contains more than one {}.".format(group_name, resource_name))
+        if len(resources_list) == 0:
+            raise Exception("The resource group {} does not contain a {}.".format(group_name, resource_name))
 
     @staticmethod
     def _prepare_deployed_app_attributes(admin_username, admin_password, public_ip):
