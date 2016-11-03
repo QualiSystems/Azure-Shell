@@ -2,12 +2,14 @@ from msrestazure.azure_exceptions import CloudError
 
 
 class RefreshIPOperation(object):
-    def __init__(self, logger):
+    def __init__(self, logger, vm_service):
         """
         :param logger:
+        :param cloudshell.cp.azure.domain.services.virtual_machine_service.VirtualMachineService vm_service:
         :return:
         """
         self.logger = logger
+        self.vm_service = vm_service
 
     def refresh_ip(self, cloudshell_session, compute_client, network_client, resource_group_name, vm_name,
                    private_ip_on_resource, public_ip_on_resource, resource_fullname):
@@ -24,8 +26,18 @@ class RefreshIPOperation(object):
         :return
         """
         # NOTE: NIC and IP Address names must be same as a VM name
-        nic = network_client.network_interfaces.get(resource_group_name, vm_name)
-        private_ip_on_azure = nic.ip_configurations[0].private_ip_address
+        # check if VM exists and in the correct state
+        self.vm_service.get_active_vm(
+            compute_management_client=compute_client,
+            group_name=resource_group_name,
+            vm_name=vm_name)
+
+        try:
+            nic = network_client.network_interfaces.get(resource_group_name, vm_name)
+            private_ip_on_azure = nic.ip_configurations[0].private_ip_address
+        except CloudError:
+            private_ip_on_azure = ""
+
         try:
             pub_ip_addr = network_client.public_ip_addresses.get(resource_group_name, vm_name)
             public_ip_on_azure = pub_ip_addr.ip_address

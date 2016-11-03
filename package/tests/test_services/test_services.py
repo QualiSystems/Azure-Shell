@@ -409,6 +409,31 @@ class TestVMService(TestCase):
         compute_client.virtual_machine_images.get.assert_called_once()
         self.assertEqual(os_type, image.os_disk_image.operating_system)
 
+    def test_get_active_vm(self):
+        """Check that method will return Azure VM if instance exists and is in "Succeeded" provision state"""
+        vm_name = "test_vm_name"
+        group_name = "test_group_name"
+        compute_client = mock.MagicMock()
+        mocked_vm = mock.MagicMock(provision_state=self.vm_service.SUCCEEDED_PROVISION_STATE)
+        self.vm_service.get_vm = mock.MagicMock(return_value=mocked_vm)
+
+        # Act
+        vm = self.vm_service.get_active_vm(compute_management_client=compute_client, group_name=group_name, vm_name=vm_name)
+
+        # Verify
+        self.assertIs(vm, mocked_vm)
+
+    def test_get_active_vm_raises_exception(self):
+        """Check that method will raise exception if VM is not in "Succeeded" provision state"""
+        vm_name = "test_vm_name"
+        group_name = "test_group_name"
+        compute_client = mock.MagicMock()
+        mocked_vm = mock.MagicMock(provision_state="SOME_PROVISION_STATE")
+        self.vm_service.get_vm = mock.MagicMock(return_value=mocked_vm)
+
+        with self.assertRaises(Exception):
+            self.vm_service.get_active_vm(compute_management_client=compute_client, group_name=group_name, vm_name=vm_name)
+
 
 class TestVMCredentialsService(TestCase):
     def setUp(self):
