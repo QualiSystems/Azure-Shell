@@ -1,8 +1,11 @@
 from platform import machine
 
+from cloudshell.cp import azure
+
 from cloudshell.cp.azure.common.operations_helper import OperationsHelper
 from cloudshell.cp.azure.domain.services.tags import TagNames
 from cloudshell.cp.azure.models.prepare_connectivity_action_result import PrepareConnectivityActionResult
+from cloudshell.cp.azure.models.rule_data import RuleData
 
 INVALID_REQUEST_ERROR = 'Invalid request: {0}'
 
@@ -131,6 +134,22 @@ class PrepareConnectivityOperation(object):
                                                wait_for_result=True)
 
             action_result.subnet_name = subnet_name
+
+            # Create Rule 1
+            self.security_group_service.create_network_security_group_rule(network_client=network_client,
+                                                                           group_name=group_name,
+                                                                           security_group_name=security_group_name,
+                                                                           rule_data=RuleData("UDP"),
+                                                                           destination_addr=management_vnet.cidr,
+                                                                           priority=3900)
+
+            # Create Rule 2
+            self.security_group_service.create_network_security_group_rule(network_client=network_client,
+                                                                           group_name=group_name,
+                                                                           security_group_name=security_group_name,
+                                                                           rule_data=RuleData("UDP"),
+                                                                           destination_addr=management_vnet.subnet,
+                                                                           priority=4010)
 
         result.append(action_result)
         return result
