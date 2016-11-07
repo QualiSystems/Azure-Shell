@@ -17,8 +17,9 @@ class TestRefreshIPOperation(TestCase):
         self.vm_name = "test_vm_name"
         self.private_ip_on_resource = "10.0.0.1"
         self.public_ip_on_resource = "172.29.128.255"
+        self.vm_service = mock.MagicMock()
 
-        self.refresh_ip_operation = RefreshIPOperation(logger=self.logger)
+        self.refresh_ip_operation = RefreshIPOperation(logger=self.logger, vm_service=self.vm_service)
 
     def test_refresh_ip(self):
         """Check that method uses network client to get public IP value and updates it on CloudShell"""

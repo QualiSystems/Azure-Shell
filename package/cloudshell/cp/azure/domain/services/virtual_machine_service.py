@@ -8,15 +8,34 @@ from azure.mgmt.compute.models.ssh_public_key import SshPublicKey
 
 
 class VirtualMachineService(object):
+    SUCCEEDED_PROVISIONING_STATE = "Succeeded"
+
     def __init__(self):
         pass
+
+    def get_active_vm(self, compute_management_client, group_name, vm_name):
+        """Get VM from Azure and check if it exists and in "Succeeded" provisioning state
+
+        :param compute_management_client: azure.mgmt.compute.ComputeManagementClient instance
+        :param group_name: Azure resource group name (reservation id)
+        :param vm_name: name for VM
+        :return: azure.mgmt.compute.models.VirtualMachine
+        """
+        vm = self.get_vm(compute_management_client=compute_management_client,
+                         group_name=group_name,
+                         vm_name=vm_name)
+
+        if vm.provisioning_state != self.SUCCEEDED_PROVISIONING_STATE:
+            raise Exception("Can't perform action. Azure instance is not in active state")
+
+        return vm
 
     def get_vm(self, compute_management_client, group_name, vm_name):
         """
 
-        :param compute_management_client:
-        :param group_name:
-        :param vm_name:
+        :param compute_management_client: azure.mgmt.compute.ComputeManagementClient instance
+        :param group_name: Azure resource group name (reservation id)
+        :param vm_name: name for VM
         :return: azure.mgmt.compute.models.VirtualMachine
         """
 

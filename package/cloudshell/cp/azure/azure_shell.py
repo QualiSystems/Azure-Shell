@@ -252,7 +252,7 @@ class AzureShell(object):
                 resource_fullname = self.model_parser.get_connected_resource_fullname(command_context)
                 azure_clients = AzureClientsManager(cloud_provider_model, lock=self.lock)
 
-                refresh_ip_operation = RefreshIPOperation(logger=logger)
+                refresh_ip_operation = RefreshIPOperation(logger=logger, vm_service=self.vm_service)
 
                 with CloudShellSessionContext(command_context) as cloudshell_session:
                     refresh_ip_operation.refresh_ip(cloudshell_session=cloudshell_session,
