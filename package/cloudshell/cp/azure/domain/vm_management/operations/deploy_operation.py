@@ -10,7 +10,6 @@ from cloudshell.cp.azure.domain.services.parsers.rules_attribute_parser import R
 
 class DeployAzureVMOperation(object):
     def __init__(self,
-                 logger,
                  vm_service,
                  network_service,
                  storage_service,
@@ -20,7 +19,6 @@ class DeployAzureVMOperation(object):
                  security_group_service):
         """
 
-        :param logger:
         :param cloudshell.cp.azure.domain.services.virtual_machine_service.VirtualMachineService vm_service:
         :param cloudshell.cp.azure.domain.services.network_service.NetworkService network_service:
         :param cloudshell.cp.azure.domain.services.storage_service.StorageService storage_service:
@@ -30,7 +28,6 @@ class DeployAzureVMOperation(object):
         :param cloudshell.cp.azure.domain.services.security_group.SecurityGroupService security_group_service:
         :return:
         """
-        self.logger = logger
         self.vm_service = vm_service
         self.network_service = network_service
         self.storage_service = storage_service

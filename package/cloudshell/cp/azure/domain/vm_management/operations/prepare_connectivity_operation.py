@@ -1,20 +1,13 @@
-from platform import machine
-
 from azure.mgmt.network.models import SecurityRuleProtocol, SecurityRule, SecurityRuleAccess
 
-from cloudshell.cp import azure
-
 from cloudshell.cp.azure.common.operations_helper import OperationsHelper
-from cloudshell.cp.azure.domain.services.tags import TagNames
 from cloudshell.cp.azure.models.prepare_connectivity_action_result import PrepareConnectivityActionResult
-from cloudshell.cp.azure.models.rule_data import RuleData
 
 INVALID_REQUEST_ERROR = 'Invalid request: {0}'
 
 
 class PrepareConnectivityOperation(object):
     def __init__(self,
-                 logger,
                  vm_service,
                  network_service,
                  storage_service,
@@ -23,7 +16,6 @@ class PrepareConnectivityOperation(object):
                  security_group_service):
         """
 
-        :param logger:
         :param cloudshell.cp.azure.domain.services.virtual_machine_service.VirtualMachineService vm_service:
         :param cloudshell.cp.azure.domain.services.network_service.NetworkService network_service:
         :param cloudshell.cp.azure.domain.services.storage_service.StorageService storage_service:
@@ -33,7 +25,6 @@ class PrepareConnectivityOperation(object):
         :return:
         """
 
-        self.logger = logger
         self.vm_service = vm_service
         self.network_service = network_service
         self.storage_service = storage_service

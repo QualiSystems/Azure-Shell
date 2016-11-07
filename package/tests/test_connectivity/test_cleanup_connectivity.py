@@ -11,12 +11,10 @@ from tests.helpers.test_helper import TestHelper
 
 class TestCleanupConnectivity(TestCase):
     def setUp(self):
-        self.logger = Mock()
         self.vm_service = VirtualMachineService()
         self.network_service = NetworkService()
         self.tags_service = TagService()
-        self.delete_operation = DeleteAzureVMOperation(logger=self.logger,
-                                                       vm_service=self.vm_service,
+        self.delete_operation = DeleteAzureVMOperation(vm_service=self.vm_service,
                                                        network_service=self.network_service,
                                                        tags_service=self.tags_service)
 
