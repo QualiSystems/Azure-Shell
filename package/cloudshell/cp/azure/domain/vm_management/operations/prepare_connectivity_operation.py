@@ -1,5 +1,7 @@
 from platform import machine
 
+from azure.mgmt.network.models import SecurityRuleProtocol, SecurityRule, SecurityRuleAccess
+
 from cloudshell.cp import azure
 
 from cloudshell.cp.azure.common.operations_helper import OperationsHelper
@@ -135,24 +137,45 @@ class PrepareConnectivityOperation(object):
 
             action_result.subnet_name = subnet_name
 
-            # Create Rule 1
-            self.security_group_service.create_network_security_group_rule(network_client=network_client,
-                                                                           group_name=group_name,
-                                                                           security_group_name=security_group_name,
-                                                                           rule_data=RuleData("UDP"),
-                                                                           destination_addr=management_vnet.cidr,
-                                                                           priority=3900)
-
-            # Create Rule 2
-            self.security_group_service.create_network_security_group_rule(network_client=network_client,
-                                                                           group_name=group_name,
-                                                                           security_group_name=security_group_name,
-                                                                           rule_data=RuleData("UDP"),
-                                                                           destination_addr=management_vnet.subnet,
-                                                                           priority=4010)
+            self.create_management_rules(group_name, management_vnet, network_client, security_group_name)
 
         result.append(action_result)
         return result
+
+    def create_management_rules(self, group_name, management_vnet, network_client, security_group_name):
+
+        # Rule 1: Deny inbound other subnets
+        priority = 4000
+        all = SecurityRuleProtocol.asterisk
+        self.security_group_service.create_network_security_group_custom_rule(network_client=network_client,
+                                                                              group_name=group_name,
+                                                                              security_group_name=security_group_name,
+                                                                              rule=SecurityRule(
+                                                                                  access=SecurityRuleAccess.deny,
+                                                                                  direction="Inbound",
+                                                                                  source_address_prefix='VirtualNetwork',
+                                                                                  source_port_range=all,
+                                                                                  name="rule_{}".format(priority),
+                                                                                  destination_address_prefix=all,
+                                                                                  destination_port_range=all,
+                                                                                  priority=priority,
+                                                                                  protocol=all))
+        # Rule 2: Allow management subnet traffic rule
+        source_address_prefix = management_vnet.address_space.address_prefixes[0]
+        priority = 3900
+        self.security_group_service.create_network_security_group_custom_rule(network_client=network_client,
+                                                                              group_name=group_name,
+                                                                              security_group_name=security_group_name,
+                                                                              rule=SecurityRule(
+                                                                                  access=SecurityRuleAccess.allow,
+                                                                                  direction="Inbound",
+                                                                                  source_address_prefix=source_address_prefix,
+                                                                                  source_port_range=all,
+                                                                                  name="rule_{}".format(priority),
+                                                                                  destination_address_prefix=all,
+                                                                                  destination_port_range=all,
+                                                                                  priority=priority,
+                                                                                  protocol=all))
 
     @staticmethod
     def _extract_cidr(action):
