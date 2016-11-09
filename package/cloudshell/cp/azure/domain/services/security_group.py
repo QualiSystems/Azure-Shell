@@ -30,8 +30,8 @@ class SecurityGroupService(object):
         i = 0
         while True:
             priority = existing_priorities[i] + self.RULE_PRIORITY_INCREASE_STEP
-            if priority < existing_priorities[i+1]:
-                existing_priorities.insert(i+1, priority)
+            if priority < existing_priorities[i + 1]:
+                existing_priorities.insert(i + 1, priority)
                 yield priority
 
             i += 1
@@ -63,7 +63,7 @@ class SecurityGroupService(object):
 
         return operation_poler.result()
 
-    def _prepare_security_group_rule(self, rule_data, destination_addr, priority):
+    def _prepare_security_group_rule(self, rule_data, destination_addr, priority, access="Allow"):
         """Convert inbound rule data into appropriate Azure client model
 
         :param rule_data: cloudshell.cp.azure.models.rule_data.RuleData instance
@@ -76,7 +76,7 @@ class SecurityGroupService(object):
             port_range = "{}-{}".format(rule_data.from_port, rule_data.to_port)
 
         return SecurityRule(
-            access="Allow",
+            access=access,
             direction="Inbound",
             source_address_prefix="*",
             source_port_range="*",
@@ -87,7 +87,7 @@ class SecurityGroupService(object):
             protocol=rule_data.protocol)
 
     def create_network_security_group_rule(self, network_client, group_name, security_group_name, rule_data,
-                                           destination_addr, priority):
+                                           destination_addr, priority, access="Allow"):
         """Create NSG inbound rule on the Azure
 
         :param network_client: azure.mgmt.network.NetworkManagementClient instance
@@ -110,6 +110,33 @@ class SecurityGroupService(object):
 
         return operation_poller.result()
 
+    def create_network_security_group_custom_rule(self, network_client, group_name, security_group_name, rule):
+        """Create NSG inbound rule on the Azure
+
+        :param rule: azure.mgmt.network.models.security_rule.SecurityRule
+        :param network_client: azure.mgmt.network.NetworkManagementClient instance
+        :param group_name: resource group name (reservation id)
+        :param security_group_name: NSG name from the Azure
+        :param rule_data: cloudshell.cp.azure.models.rule_data.RuleData instance
+        :param destination_addr: Destination IP address/CIDR
+        :param priority: (int) rule priority number
+        :return: azure.mgmt.network.models.SecurityRule instance
+        """
+        with self._lock:
+            security_rules = network_client.security_rules.list(resource_group_name=group_name,
+                                                                network_security_group_name=security_group_name)
+            security_rules = list(security_rules)
+            priority = self._rule_priority_generator(existing_rules=security_rules, start_from=rule.priority)
+            rule.priority = next(priority)
+
+            operation_poller = network_client.security_rules.create_or_update(
+                resource_group_name=group_name,
+                network_security_group_name=security_group_name,
+                security_rule_name=rule.name,
+                security_rule_parameters=rule)
+
+            return operation_poller.result()
+
     def create_network_security_group_rules(self, network_client, group_name, security_group_name,
                                             inbound_rules, destination_addr, start_from=None):
         """Create NSG inbound rules on the Azure
@@ -123,7 +150,6 @@ class SecurityGroupService(object):
         :return: None
         """
         with self._lock:
-
             security_rules = network_client.security_rules.list(resource_group_name=group_name,
                                                                 network_security_group_name=security_group_name)
             security_rules = list(security_rules)

@@ -269,7 +269,7 @@ class AzureShell(object):
                 with AzureClientFactoryContext(cloud_provider_model) as azure_clients_factory:
                     compute_client = azure_clients_factory.get_client(ComputeManagementClient)
                     network_client = azure_clients_factory.get_client(NetworkManagementClient)
-                    refresh_ip_operation = RefreshIPOperation(logger=logger)
+                    refresh_ip_operation = RefreshIPOperation(logger=logger, vm_service=self.vm_service)
 
                     with CloudShellSessionContext(command_context) as cloudshell_session:
                         refresh_ip_operation.refresh_ip(cloudshell_session=cloudshell_session,
