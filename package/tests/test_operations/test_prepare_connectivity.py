@@ -1,9 +1,11 @@
+import uuid
 from unittest import TestCase
 import mock
 
 import jsonpickle
 
 from cloudshell.cp.azure.common.deploy_data_holder import DeployDataHolder
+from cloudshell.cp.azure.common.exceptions.virtual_network_not_found_exception import VirtualNetworkNotFoundException
 from cloudshell.cp.azure.domain.services.security_group import SecurityGroupService
 
 from tests.helpers.test_helper import TestHelper
@@ -132,11 +134,13 @@ class TestPrepareConnectivity(TestCase):
         action.customActionAttributes = [att]
         req.actions = [action]
         prepare_connectivity_request = req
+        reservation = MagicMock()
+        reservation.reservation_id = str(uuid.uuid4())
         # Act
 
-        self.assertRaises(Exception,
+        self.assertRaises(VirtualNetworkNotFoundException,
                           self.prepare_connectivity_operation.prepare_connectivity,
-                          reservation=MagicMock(),
+                          reservation=reservation,
                           cloud_provider_model=MagicMock(),
                           storage_client=MagicMock(),
                           resource_client=MagicMock(),
@@ -147,9 +151,9 @@ class TestPrepareConnectivity(TestCase):
         self.network_service.get_virtual_network_by_tag = Mock(return_value=None)
         self.network_service.get_virtual_network_by_tag.side_effect = [Mock(), None]
 
-        self.assertRaises(Exception,
+        self.assertRaises(VirtualNetworkNotFoundException,
                           self.prepare_connectivity_operation.prepare_connectivity,
-                          reservation=MagicMock(),
+                          reservation=reservation,
                           cloud_provider_model=MagicMock(),
                           storage_client=MagicMock(),
                           resource_client=MagicMock(),

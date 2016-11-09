@@ -3,6 +3,7 @@ from platform import machine
 from azure.mgmt.network.models import SecurityRuleProtocol, SecurityRule, SecurityRuleAccess
 
 from cloudshell.cp import azure
+from cloudshell.cp.azure.common.exceptions.virtual_network_not_found_exception import VirtualNetworkNotFoundException
 
 from cloudshell.cp.azure.common.operations_helper import OperationsHelper
 from cloudshell.cp.azure.domain.services.tags import TagNames
@@ -99,7 +100,7 @@ class PrepareConnectivityOperation(object):
                                                                           tags_service=self.tags_service)
 
         if management_vnet is None:
-            raise Exception("Could not find Management Virtual Network in Azure.")
+            raise VirtualNetworkNotFoundException("Could not find Management Virtual Network in Azure.")
 
         sandbox_vnet = self.network_service.get_virtual_network_by_tag(virtual_networks=virtual_networks,
                                                                        tag_key='network_type',
@@ -107,7 +108,7 @@ class PrepareConnectivityOperation(object):
                                                                        tags_service=self.tags_service)
 
         if sandbox_vnet is None:
-            raise Exception("Could not find Sandbox Virtual Network in Azure.")
+            raise VirtualNetworkNotFoundException("Could not find Sandbox Virtual Network in Azure.")
 
         # 4.Create the NSG object
         security_group_name = OperationsHelper.generate_name(reservation_id)
