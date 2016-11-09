@@ -4,6 +4,7 @@ from azure.mgmt.compute import ComputeManagementClient
 from azure.mgmt.network import NetworkManagementClient
 from azure.mgmt.resource import ResourceManagementClient
 from azure.mgmt.storage import StorageManagementClient
+from azure.mgmt.storage.models import StorageAccount
 
 from cloudshell.core.context.error_handling_context import ErrorHandlingContext
 from cloudshell.cp.azure.domain.services.key_pair import KeyPairService
@@ -289,23 +290,23 @@ class AzureShell(object):
         :param ResourceRemoteCommandContext command_context:
         :rtype str:
         """
+        cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(
+            command_context.resource)
+
         with LoggingSessionContext(command_context) as logger:
             with ErrorHandlingContext(logger):
-                logger.info("Starting GetAccessKey operation")
-
-                cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(command_context.resource)
-                reservation = self.model_parser.convert_to_reservation_model(command_context.remote_reservation)
-                group_name = reservation.reservation_id
-                #storage_accounts_list = self.storage_service.get_storage_per_resource_group(storage_client, group_name)
-
-                #validator_factory.try_validate(resource_type=StorageAccount, resource=storage_accounts_list)
-
-                #storage_account_name = storage_accounts_list[0].name
-                storage_name = ""
-
                 with AzureClientFactoryContext(cloud_provider_model) as azure_clients_factory:
-                    storage_client = azure_clients_factory.get_client(StorageManagementClient)
+                    with ValidatorsFactoryContext() as validator_factory:
+                        logger.info("Starting GetAccessKey operation")
 
-                self.access_key_operation.get_access_key(storage_client=storage_client,
-                                                         group_name=group_name,
-                                                         storage_name=storage_name)
+                        storage_client = azure_clients_factory.get_client(StorageManagementClient)
+
+                        group_name = cloud_provider_model.management_group_name
+                        storage_accounts_list = self.storage_service.get_storage_per_resource_group(storage_client,
+                                                                                                    group_name)
+                        validator_factory.try_validate(resource_type=StorageAccount, resource=storage_accounts_list)
+                        storage_account_name = storage_accounts_list[0].name
+
+                        self.access_key_operation.get_access_key(storage_client=storage_client,
+                                                                 group_name=group_name,
+                                                                 storage_name=storage_account_name)
