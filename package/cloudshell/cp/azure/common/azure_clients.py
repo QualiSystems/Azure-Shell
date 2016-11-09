@@ -7,9 +7,6 @@ from msrestazure.azure_active_directory import ServicePrincipalCredentials
 from cloudshell.cp.azure.common.singletons import SingletonByArgsMeta
 from cloudshell.cp.azure.common.singletons import AbstractComparableInstance
 
-from threading import Lock
-import time
-
 
 class AzureClientsManager(AbstractComparableInstance):
     __metaclass__ = SingletonByArgsMeta
@@ -63,32 +60,32 @@ class AzureClientsManager(AbstractComparableInstance):
 
     @property
     def compute_client(self):
-        if self._compute_client is None:
-            with SingletonByArgsMeta.lock:
+        with SingletonByArgsMeta.lock:
+            if self._compute_client is None:
                 self._compute_client = ComputeManagementClient(self._service_credentials, self._subscription_id)
 
         return self._compute_client
 
     @property
     def network_client(self):
-        if self._network_client is None:
-            with SingletonByArgsMeta.lock:
+        with SingletonByArgsMeta.lock:
+            if self._network_client is None:
                 self._network_client = NetworkManagementClient(self._service_credentials, self._subscription_id)
 
             return self._network_client
 
     @property
     def storage_client(self):
-        if self._storage_client is None:
-            with SingletonByArgsMeta.lock:
+        with SingletonByArgsMeta.lock:
+            if self._storage_client is None:
                 self._storage_client = StorageManagementClient(self._service_credentials, self._subscription_id)
 
             return self._storage_client
 
     @property
     def resource_client(self):
-        if self._resource_client is None:
-            with SingletonByArgsMeta.lock:
+        with SingletonByArgsMeta.lock:
+            if self._resource_client is None:
                 self._resource_client = ResourceManagementClient(self._service_credentials, self._subscription_id)
 
         return self._resource_client

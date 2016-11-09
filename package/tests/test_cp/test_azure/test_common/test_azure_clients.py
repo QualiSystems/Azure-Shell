@@ -8,10 +8,9 @@ from cloudshell.cp.azure.common.azure_clients import AzureClientsManager
 class TesAzureClientsManager(TestCase):
     def setUp(self):
         self.cloud_provider = mock.MagicMock()
-        self.lock = mock.MagicMock()
 
         with mock.patch("cloudshell.cp.azure.common.azure_clients.ServicePrincipalCredentials"):
-            self.azure_clients_manager = AzureClientsManager(cloud_provider=self.cloud_provider, lock=self.lock)
+            self.azure_clients_manager = AzureClientsManager(cloud_provider=self.cloud_provider)
 
     def test_init(self):
         """Check that __init__ method sets correct params for the instance"""
@@ -29,7 +28,7 @@ class TesAzureClientsManager(TestCase):
                         with mock.patch.object(AzureClientsManager, "_get_service_credentials",
                                                return_value=service_credentials):
                             # Act
-                            azure_clients_manager = AzureClientsManager(cloud_provider=cloud_provider, lock=self.lock)
+                            azure_clients_manager = AzureClientsManager(cloud_provider=cloud_provider)
 
                             # Verify
                             self.assertEqual(azure_clients_manager._subscription_id, subscription_id)
@@ -56,7 +55,7 @@ class TesAzureClientsManager(TestCase):
         cloud_provider = mock.MagicMock()
         # Act
         with mock.patch("cloudshell.cp.azure.common.azure_clients.ServicePrincipalCredentials"):
-            azure_clients_manager = AzureClientsManager(cloud_provider=cloud_provider, lock=self.lock)
+            azure_clients_manager = AzureClientsManager(cloud_provider=cloud_provider)
 
         # Verify
         self.assertIsNot(self.azure_clients_manager, azure_clients_manager)

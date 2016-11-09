@@ -41,15 +41,14 @@ class SingletonByArgsMeta(type):
     lock = threading.Lock()
 
     def __call__(cls, *args, **kwargs):
-
         if not issubclass(cls, AbstractComparableInstance):
             raise NotImplementedError("Class {} must inherit 'AbstractComparableInstance' "
                                       "if used with SingletonByArgsMeta metaclass".format(cls))
 
-        instance = cls.__instances_by_cls.get(cls)
+        with SingletonByArgsMeta.lock:
+            instance = cls.__instances_by_cls.get(cls)
 
-        if not (instance and instance.check_params_equality(*args, **kwargs)):
-            with SingletonByArgsMeta.lock:
+            if not (instance and instance.check_params_equality(*args, **kwargs)):
                 instance = super(SingletonByArgsMeta, cls).__call__(*args, **kwargs)
                 cls.__instances_by_cls[cls] = instance
 
