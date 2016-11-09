@@ -126,7 +126,7 @@ class PrepareConnectivityOperation(object):
             # 5. Create a subnet
             name = cloud_provider_model.management_group_name
 
-            logger.info("Creating a subnet {0} under: {1)/{2}.".format(name,name,sandbox_vnet.name))
+            logger.info("Creating a subnet {0} under: {1}/{2}.".format(name,name,sandbox_vnet.name))
 
             self.network_service.create_subnet(network_client=network_client,
                                                resource_group_name=name,
