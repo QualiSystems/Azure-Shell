@@ -297,16 +297,16 @@ class AzureShell(object):
             with ErrorHandlingContext(logger):
                 with AzureClientFactoryContext(cloud_provider_model) as azure_clients_factory:
                     with ValidatorsFactoryContext() as validator_factory:
-                        logger.info("Starting GetAccessKey operation")
+                        logger.info("Starting GetAccessKey")
 
                         storage_client = azure_clients_factory.get_client(StorageManagementClient)
 
-                        group_name = cloud_provider_model.management_group_name
+                        resource_group_name = command_context.remote_reservation.reservation_id
                         storage_accounts_list = self.storage_service.get_storage_per_resource_group(storage_client,
-                                                                                                    group_name)
+                                                                                                    resource_group_name)
                         validator_factory.try_validate(resource_type=StorageAccount, resource=storage_accounts_list)
                         storage_account_name = storage_accounts_list[0].name
 
                         self.access_key_operation.get_access_key(storage_client=storage_client,
-                                                                 group_name=group_name,
+                                                                 group_name=resource_group_name,
                                                                  storage_name=storage_account_name)

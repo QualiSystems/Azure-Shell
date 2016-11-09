@@ -19,4 +19,4 @@ class AccessKeyOperation(object):
                                                      group_name=group_name,
                                                      storage_name=storage_name)
 
-        return ssh_key.public_key # only public key is returned to the client
+        return ssh_key.public_key  # only public key is returned to the client
