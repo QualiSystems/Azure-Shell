@@ -75,7 +75,7 @@ class PrepareConnectivityOperation(object):
 
         storage_account_name = OperationsHelper.generate_name(reservation_id)
         # 2. Create a storage account
-        logger.info("Creating a storage account.")
+        logger.info("Creating a storage account {0} .".format(storage_account_name))
         action_result.storage_name = self.storage_service.create_storage_account(storage_client=storage_client,
                                                                                  group_name=group_name,
                                                                                  region=cloud_provider_model.region,
@@ -119,13 +119,15 @@ class PrepareConnectivityOperation(object):
             region=cloud_provider_model.region,
             tags=tags)
 
-        logger.info("Creating a subnet.")
         for action in request.actions:
             cidr = self._extract_cidr(action)
             logger.info("Received CIDR {0} from server".format(cidr))
 
             # 5. Create a subnet
             name = cloud_provider_model.management_group_name
+
+            logger.info("Creating a subnet {0} under: {1)/{2}.".format(name,name,sandbox_vnet.name))
+
             self.network_service.create_subnet(network_client=network_client,
                                                resource_group_name=name,
                                                subnet_name=subnet_name,
@@ -136,7 +138,6 @@ class PrepareConnectivityOperation(object):
                                                wait_for_result=True)
 
             action_result.subnet_name = subnet_name
-
             self.create_management_rules(group_name, management_vnet, network_client, security_group_name)
 
         result.append(action_result)
