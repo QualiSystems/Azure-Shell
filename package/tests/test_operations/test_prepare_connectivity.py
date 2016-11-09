@@ -50,8 +50,6 @@ class TestPrepareConnectivity(TestCase):
         self.network_service.get_virtual_network_by_tag = MagicMock()
         self.storage_service.create_storage_account = MagicMock()
         self.vm_service.create_resource_group = MagicMock()
-        self.security_group_service.create_network_security_group = Mock(return_value=Mock())
-        self.security_group_service.create_network_security_group_custom_rule = Mock()
 
         req = MagicMock()
         action = MagicMock()
@@ -68,6 +66,10 @@ class TestPrepareConnectivity(TestCase):
         network_client = MagicMock()
         network_client.subnets.create_or_update = Mock(return_value=result)
         network_client.virtual_networks.list = Mock(return_value="test")
+        network_client.security_rules.list = Mock(return_value=[])
+        network_client._rule_priority_generator = Mock(return_value=[1111, 2222, 3333, 4444])
+        network_client.security_rules.create_or_update = Mock()
+        network_client.network_security_groups.create_or_update = Mock()
 
         self.prepare_connectivity_operation.prepare_connectivity(
             reservation=MagicMock(),
@@ -91,9 +93,8 @@ class TestPrepareConnectivity(TestCase):
         self.assertTrue(TestHelper.CheckMethodCalledXTimes(network_client.virtual_networks.list))
         self.assertTrue(TestHelper.CheckMethodCalledXTimes(network_client.subnets.create_or_update))
 
-        # check the creation of the NSG
-        self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.security_group_service.create_network_security_group))
-        self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.security_group_service.create_network_security_group_custom_rule,2))
+        self.assertTrue(TestHelper.CheckMethodCalledXTimes(network_client.security_rules.create_or_update, 2))
+        network_client.network_security_groups.create_or_update.assert_called_once()
 
     def test_extract_cidr_throws_error(self):
         action = MagicMock()
