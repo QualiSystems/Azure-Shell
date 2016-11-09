@@ -1,14 +1,24 @@
-from threading import Lock
+from datetime import datetime
+from datetime import timedelta
+from threading import RLock
+import time
+from urlparse import urlparse
 
 import azure
 from azure.mgmt.storage.models import SkuName, StorageAccountCreateParameters
 from azure.storage.file import FileService
+from azure.storage.blob import BlockBlobService
+from azure.storage.blob.models import BlobPermissions
 
 
 class StorageService(object):
+    SAS_TOKEN_EXPIRATION_DAYS = 365
+
     def __init__(self):
-        self._lock = Lock()
+        self._lock = RLock()
+        self._cached_account_keys = {}
         self._cached_file_services = {}
+        self._cached_blob_services = {}
 
     def create_storage_account(self, storage_client, group_name, region, storage_account_name, tags,wait_until_created=False):
         """
@@ -54,10 +64,21 @@ class StorageService(object):
         :param storage_name: (str) the name of the storage on Azure
         :return: (str) storage access key
         """
-        account_keys = storage_client.storage_accounts.list_keys(group_name, storage_name)
-        account_key = account_keys.keys[0]
+        cached_key = (group_name, storage_name)
 
-        return account_key.value
+        if cached_key in self._cached_account_keys:
+            account_key = self._cached_account_keys[cached_key]
+        else:
+            with self._lock:
+                try:
+                    account_key = self._cached_account_keys[cached_key]
+                except KeyError:
+                    account_keys = storage_client.storage_accounts.list_keys(group_name, storage_name)
+                    account_key = account_keys.keys[0]
+                    account_key = account_key.value
+                    self._cached_account_keys[cached_key] = account_key
+
+        return account_key
 
     def _get_file_service(self, storage_client, group_name, storage_name):
         """Get Azure file service for given storage
@@ -69,19 +90,49 @@ class StorageService(object):
         """
         cached_key = (group_name, storage_name)
 
-        with self._lock:
-            try:
-                file_service = self._cached_file_services[cached_key]
-            except KeyError:
-                account_key = self._get_storage_account_key(
-                    storage_client=storage_client,
-                    group_name=group_name,
-                    storage_name=storage_name)
+        if cached_key in self._cached_file_services:
+            file_service = self._cached_file_services[cached_key]
+        else:
+            with self._lock:
+                try:
+                    file_service = self._cached_file_services[cached_key]
+                except KeyError:
+                    account_key = self._get_storage_account_key(
+                        storage_client=storage_client,
+                        group_name=group_name,
+                        storage_name=storage_name)
 
-                file_service = FileService(account_name=storage_name, account_key=account_key)
-                self._cached_file_services[cached_key] = file_service
+                    file_service = FileService(account_name=storage_name, account_key=account_key)
+                    self._cached_file_services[cached_key] = file_service
 
         return file_service
+
+    def _get_blob_service(self, storage_client, group_name, storage_name):
+        """Get Azure Blob service for given storage
+
+        :param storage_client: azure.mgmt.storage.StorageManagementClient instance
+        :param group_name: (str) the name of the resource group on Azure
+        :param storage_name: (str) the name of the storage on Azure
+        :return: azure.storage.file.FileService instance
+        """
+        cached_key = (group_name, storage_name)
+
+        if cached_key in self._cached_blob_services:
+            blob_service = self._cached_blob_services[cached_key]
+        else:
+            with self._lock:
+                try:
+                    blob_service = self._cached_blob_services[cached_key]
+                except KeyError:
+                    account_key = self._get_storage_account_key(
+                        storage_client=storage_client,
+                        group_name=group_name,
+                        storage_name=storage_name)
+
+                    blob_service = BlockBlobService(account_name=storage_name, account_key=account_key)
+                    self._cached_blob_services[cached_key] = blob_service
+
+        return blob_service
 
     def get_file(self, storage_client, group_name, storage_name, share_name, directory_name, file_name):
         """Read file from the Azure storage as a sting
@@ -129,3 +180,69 @@ class StorageService(object):
                                             directory_name=directory_name,
                                             file_name=file_name,
                                             file=file_content)
+
+    def parse_blob_url(self, blob_url):
+        """Parses Blob URL into Azure parameters
+
+        :param blob_url: (str) Azure Blob URL ("https://someaccount.blob.core.windows.net/container/blobname")
+        :return: tuple(storage_name, container_name, blob_name)
+        """
+        parsed_blob_url = urlparse(blob_url)
+        splitted_path = parsed_blob_url.path.split('/')
+        blob_name = splitted_path[-1]
+        container_name = splitted_path[-2]
+        storage_name = parsed_blob_url.netloc.split('.', 1)[0]
+
+        return storage_name, container_name, blob_name
+
+    def copy_blob(self, storage_client, group_name_copy_to, storage_name_copy_to, container_name_copy_to,
+                  blob_name_copy_to, source_copy_from, group_name_copy_from):
+        """Copy Blob from the given source_copy_from URL
+
+        :param storage_client: azure.mgmt.storage.StorageManagementClient instance
+        :param group_name_copy_to: (str) resource group where Blob will be copied
+        :param storage_name_copy_to: (str) storage account where Blob will be copied
+        :param container_name_copy_to: (str) storage container where Blob will be copied
+        :param blob_name_copy_to: (str) name for copied Blob file
+        :param source_copy_from: (str) Azure Blob URL ("https://someaccount.blob.core.windows.net/container/blobname")
+        :param group_name_copy_from: (str) resource group of the copied Blob
+        :return: copied image URL (str) Azure Blob URL
+        """
+        storage_name_copy_from, container_name_copy_from, blob_name_copy_from = self.parse_blob_url(source_copy_from)
+
+        blob_service_copy_from = self._get_blob_service(
+            storage_client=storage_client,
+            group_name=group_name_copy_from,
+            storage_name=storage_name_copy_from)
+
+        expiration_date = datetime.now() + timedelta(days=self.SAS_TOKEN_EXPIRATION_DAYS)
+
+        sas_token = blob_service_copy_from.generate_blob_shared_access_signature(
+            container_name=container_name_copy_from,
+            blob_name=blob_name_copy_from,
+            permission=BlobPermissions.READ,
+            expiry=expiration_date)
+
+        copy_source = blob_service_copy_from.make_blob_url(container_name=container_name_copy_from,
+                                                           blob_name=blob_name_copy_from,
+                                                           sas_token=sas_token)
+
+        blob_service_copy_to = self._get_blob_service(
+            storage_client=storage_client,
+            group_name=group_name_copy_to,
+            storage_name=storage_name_copy_to)
+
+        if not blob_service_copy_to.exists(container_name=container_name_copy_to, blob_name=blob_name_copy_to):
+            blob_service_copy_to.create_container(container_name=container_name_copy_to, fail_on_exist=False)
+            blob_service_copy_to.copy_blob(container_name=container_name_copy_to,
+                                           blob_name=blob_name_copy_to,
+                                           copy_source=copy_source)
+
+            while True:
+                blob = blob_service_copy_to.get_blob_properties(container_name_copy_to, blob_name_copy_to)
+                if blob.properties.copy.status == "success":
+                    break
+                else:
+                    time.sleep(1)
+
+        return blob_service_copy_to.make_blob_url(container_name_copy_to, blob_name_copy_to)

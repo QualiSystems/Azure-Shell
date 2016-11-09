@@ -29,8 +29,8 @@ class TestAzureModelsParser(TestCase):
     @mock.patch("cloudshell.cp.azure.domain.services.parsers.azure_model_parser.DeployAzureVMResourceModel")
     @mock.patch("cloudshell.cp.azure.domain.services.parsers.azure_model_parser.jsonpickle")
     @mock.patch("cloudshell.cp.azure.domain.services.parsers.azure_model_parser.DeployDataHolder")
-    def test_convert_to_deployment_resource_model(self, deploy_data_holder_class, jsonpickle,
-                                                  deploy_azure_vm_model_class):
+    def test_convert_to_deploy_azure_vm_resource_model(self, deploy_data_holder_class, jsonpickle,
+                                                       deploy_azure_vm_model_class):
         """Check that method returns DeployAzureVMResourceModel instance with attrs from DeployDataHolder"""
         data_holder = mock.MagicMock()
         deploy_azure_vm_model = mock.MagicMock()
@@ -39,24 +39,65 @@ class TestAzureModelsParser(TestCase):
         deploy_azure_vm_model_class.return_value = deploy_azure_vm_model
 
         # Act
-        result = self.tested_class.convert_to_deployment_resource_model(deployment_request)
+        with mock.patch.object(self.tested_class, "_set_base_deploy_azure_vm_model_params") as set_base_params:
+            result = self.tested_class.convert_to_deploy_azure_vm_resource_model(deployment_request)
 
         # Verify
         self.assertIs(result, deploy_azure_vm_model)
-        self.assertEqual(result.add_public_ip, data_holder.ami_params.add_public_ip)
-        self.assertEqual(result.autoload, data_holder.ami_params.autoload)
-        self.assertEqual(result.cloud_provider, data_holder.ami_params.cloud_provider)
-        self.assertEqual(result.group_name, data_holder.ami_params.group_name)
+        set_base_params.assert_called_once_with(deploy_azure_vm_model, data_holder)
+
         self.assertEqual(result.image_offer, data_holder.ami_params.image_offer)
         self.assertEqual(result.image_publisher, data_holder.ami_params.image_publisher)
         self.assertEqual(result.image_sku, data_holder.ami_params.image_sku)
-        self.assertEqual(result.inbound_ports, data_holder.ami_params.inbound_ports)
-        self.assertEqual(result.instance_type, data_holder.ami_params.instance_type)
-        self.assertEqual(result.outbound_ports, data_holder.ami_params.outbound_ports)
-        self.assertEqual(result.public_ip_type, data_holder.ami_params.public_ip_type)
-        self.assertEqual(result.vm_name, data_holder.ami_params.vm_name)
-        self.assertEqual(result.wait_for_ip, data_holder.ami_params.wait_for_ip)
-        self.assertEqual(result.app_name, data_holder.app_name)
+
+    @mock.patch("cloudshell.cp.azure.domain.services.parsers.azure_model_parser.jsonpickle")
+    @mock.patch("cloudshell.cp.azure.domain.services.parsers.azure_model_parser.DeployDataHolder")
+    def test_set_base_deploy_azure_vm_model_params(self, deploy_data_holder_class, jsonpickle):
+        """Check that method set basic params for the deploy VM model from DeployDataHolder"""
+        data_holder = mock.MagicMock()
+        deploy_data_holder_class.return_value = data_holder
+        deploy_azure_vm_model = mock.MagicMock()
+
+        # Act
+        self.tested_class._set_base_deploy_azure_vm_model_params(deploy_azure_vm_model, data_holder)
+
+        # Verify
+        self.assertEqual(deploy_azure_vm_model.add_public_ip, data_holder.ami_params.add_public_ip)
+        self.assertEqual(deploy_azure_vm_model.autoload, data_holder.ami_params.autoload)
+        self.assertEqual(deploy_azure_vm_model.cloud_provider, data_holder.ami_params.cloud_provider)
+        self.assertEqual(deploy_azure_vm_model.group_name, data_holder.ami_params.group_name)
+        self.assertEqual(deploy_azure_vm_model.inbound_ports, data_holder.ami_params.inbound_ports)
+        self.assertEqual(deploy_azure_vm_model.instance_type, data_holder.ami_params.instance_type)
+        self.assertEqual(deploy_azure_vm_model.outbound_ports, data_holder.ami_params.outbound_ports)
+        self.assertEqual(deploy_azure_vm_model.public_ip_type, data_holder.ami_params.public_ip_type)
+        self.assertEqual(deploy_azure_vm_model.vm_name, data_holder.ami_params.vm_name)
+        self.assertEqual(deploy_azure_vm_model.wait_for_ip, data_holder.ami_params.wait_for_ip)
+        self.assertEqual(deploy_azure_vm_model.app_name, data_holder.app_name)
+
+    @mock.patch("cloudshell.cp.azure.domain.services.parsers.azure_model_parser"
+                ".DeployAzureVMFromCustomImageResourceModel")
+    @mock.patch("cloudshell.cp.azure.domain.services.parsers.azure_model_parser.jsonpickle")
+    @mock.patch("cloudshell.cp.azure.domain.services.parsers.azure_model_parser.DeployDataHolder")
+    def test_convert_to_deploy_azure_vm_from_custom_image_resource_model(self,
+                                                                         deploy_data_holder_class,
+                                                                         jsonpickle,
+                                                                         deploy_azure_vm_model_class):
+        """Check that method returns DeployAzureVMFromCustomImageResourceModel with attrs from DeployDataHolder"""
+        data_holder = mock.MagicMock()
+        deploy_azure_vm_model = mock.MagicMock()
+        deploy_data_holder_class.return_value = data_holder
+        deployment_request = mock.MagicMock()
+        deploy_azure_vm_model_class.return_value = deploy_azure_vm_model
+
+        # Act
+        with mock.patch.object(self.tested_class, "_set_base_deploy_azure_vm_model_params") as set_base_params:
+            result = self.tested_class.convert_to_deploy_azure_vm_from_custom_image_resource_model(deployment_request)
+
+        # Verify
+        self.assertIs(result, deploy_azure_vm_model)
+        set_base_params.assert_called_once_with(deploy_azure_vm_model, data_holder)
+        self.assertEqual(result.image_urn, data_holder.ami_params.image_urn)
+        self.assertEqual(result.image_os_type, data_holder.ami_params.image_os_type)
 
     @mock.patch("cloudshell.cp.azure.domain.services.parsers.azure_model_parser.AzureCloudProviderResourceModel")
     def test_convert_to_cloud_provider_resource_model(self, azure_cp_model_class):

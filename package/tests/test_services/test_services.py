@@ -280,7 +280,8 @@ class TestVMService(TestCase):
     def setUp(self):
         self.vm_service = VirtualMachineService()
 
-    def test_vm_service_create_vm(self):
+    @mock.patch("cloudshell.cp.azure.domain.services.virtual_machine_service.VirtualMachine")
+    def test_vm_service_create_vm(self, virtual_machine_class):
         mock = MagicMock()
         compute_management_client = mock
         group_name = mock
@@ -290,7 +291,7 @@ class TestVMService(TestCase):
         compute_management_client.virtual_machines = mock
         compute_management_client.virtual_machines.create_or_update = MagicMock(return_value=mock)
         vm = 'some returned vm'
-        self.vm_service._get_virtual_machine = MagicMock(return_value=vm)
+        virtual_machine_class.return_value = vm
 
         # Act
         self.vm_service.create_vm(compute_management_client=compute_management_client,

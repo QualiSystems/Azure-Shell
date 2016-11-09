@@ -2,6 +2,7 @@
     <Layout>
         <Category Name="Deployment">
             <Command Description="" DisplayName="Deploy VM" Name="deploy_vm" Tags="allow_unreserved" />
+            <Command Description="" DisplayName="Deploy Azure VM From Custom Image" Name="deploy_vm_from_custom_image" Tags="allow_unreserved" />
         </Category>
         <Category Name="Connectivity">
             <Command Description="" DisplayName="Refresh IP" EnableCancellation="true" Name="remote_refresh_ip" Tags="remote_connectivity,allow_shared" />

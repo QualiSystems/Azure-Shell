@@ -7,6 +7,9 @@ from azure.mgmt.resource.resources.models import ResourceGroup
 from azure.mgmt.compute.models.ssh_public_key import SshPublicKey
 
 
+from azure.mgmt.compute.models import OperatingSystemTypes
+
+
 class VirtualMachineService(object):
     SUCCEEDED_PROVISIONING_STATE = "Succeeded"
 
@@ -52,6 +55,112 @@ class VirtualMachineService(object):
 
         return LinuxConfiguration(disable_password_authentication=True, ssh=ssh_config)
 
+    def _create_vm(self, compute_management_client, region, group_name, vm_name, hardware_profile, network_profile,
+                   os_profile, storage_profile, tags):
+
+        virtual_machine = VirtualMachine(location=region,
+                                         tags=tags,
+                                         os_profile=os_profile,
+                                         hardware_profile=hardware_profile,
+                                         network_profile=network_profile,
+                                         storage_profile=storage_profile)
+
+        vm_result = compute_management_client.virtual_machines.create_or_update(group_name, vm_name, virtual_machine)
+        return vm_result.result()
+
+    def _prepare_os_profile(self, vm_credentials, computer_name):
+
+        if vm_credentials.ssh_key:
+            linux_configuration = self._prepare_linux_configuration(vm_credentials.ssh_key)
+        else:
+            linux_configuration = None
+
+        return OSProfile(admin_username=vm_credentials.admin_username,
+                         admin_password=vm_credentials.admin_password,
+                         linux_configuration=linux_configuration,
+                         computer_name=computer_name)
+
+    def _prepare_vhd(self, storage_name, vm_name):
+        """
+
+        :param storage_name:
+        :param vm_name:
+        :return:
+        """
+        vhd_format = 'https://{}.blob.core.windows.net/vhds/{}.vhd'.format(storage_name, vm_name)
+        return VirtualHardDisk(uri=vhd_format)
+
+    def _prepare_image_os_type(self, image_os_type):
+        """
+
+        :param image_os_type:
+        :return:
+        """
+        if image_os_type.lower() == "linux":
+            return OperatingSystemTypes.linux
+
+        return OperatingSystemTypes.windows
+
+    def create_vm_from_custom_image(self,
+                                    compute_management_client,
+                                    image_urn,
+                                    image_os_type,
+                                    vm_credentials,
+                                    computer_name,
+                                    group_name,
+                                    nic_id,
+                                    region,
+                                    storage_name,
+                                    vm_name,
+                                    tags,
+                                    instance_type):
+        """Create VM from custom image URN
+
+        :param instance_type: (str) Azure instance type
+        :param compute_management_client: azure.mgmt.compute.ComputeManagementClient instance
+        :param image_urn: Azure custom image URL
+        :param image_os_type: Operation system type for deployed image
+        :param vm_credentials: cloudshell.cp.azure.models.vm_credentials.VMCredentials instance
+        :param computer_name: computer name
+        :param group_name: Azure resource group name (reservation id)
+        :param nic_id: Azure network id
+        :param region: Azure region
+        :param storage_name: Azure storage name
+        :param vm_name: name for VM
+        :param tags: Azure tags
+        :return:
+        """
+        os_profile = self._prepare_os_profile(vm_credentials=vm_credentials,
+                                              computer_name=computer_name)
+
+        hardware_profile = HardwareProfile(vm_size=instance_type)
+        network_profile = NetworkProfile(network_interfaces=[NetworkInterfaceReference(id=nic_id)])
+
+        vhd = self._prepare_vhd(storage_name, vm_name)
+        image = VirtualHardDisk(uri=image_urn)
+
+        os_type = self._prepare_image_os_type(image_os_type)
+
+        os_disk = OSDisk(os_type=os_type,
+                         caching=CachingTypes.none,
+                         create_option=DiskCreateOptionTypes.from_image,
+                         name=storage_name,
+                         vhd=vhd,
+                         image=image)
+
+        storage_profile = StorageProfile(os_disk=os_disk)
+
+        return self._create_vm(
+            compute_management_client=compute_management_client,
+            region=region,
+            group_name=group_name,
+            vm_name=vm_name,
+            hardware_profile=hardware_profile,
+            network_profile=network_profile,
+            os_profile=os_profile,
+            storage_profile=storage_profile,
+            tags=tags)
+
     def create_vm(self,
                   compute_management_client,
                   image_offer,
@@ -85,23 +194,14 @@ class VirtualMachineService(object):
         :param tags: Azure tags
         :return:
         """
-        if vm_credentials.ssh_key:
-            linux_configuration = self._prepare_linux_configuration(vm_credentials.ssh_key)
-        else:
-            linux_configuration = None
-
-        os_profile = OSProfile(admin_username=vm_credentials.admin_username,
-                               admin_password=vm_credentials.admin_password,
-                               linux_configuration=linux_configuration,
-                               computer_name=computer_name)
+        os_profile = self._prepare_os_profile(vm_credentials=vm_credentials,
+                                              computer_name=computer_name)
 
         hardware_profile = HardwareProfile(vm_size=instance_type)
 
         network_profile = NetworkProfile(network_interfaces=[NetworkInterfaceReference(id=nic_id)])
 
-        vhd_format = 'https://{0}.blob.core.windows.net/vhds/{1}.vhd'.format(storage_name, vm_name)
-
-        vhd = VirtualHardDisk(uri=vhd_format)
+        vhd = self._prepare_vhd(storage_name, vm_name)
 
         os_disk = OSDisk(caching=CachingTypes.none,
                          create_option=DiskCreateOptionTypes.from_image,
@@ -113,14 +213,16 @@ class VirtualMachineService(object):
 
         storage_profile = StorageProfile(os_disk=os_disk, image_reference=image_reference)
 
-        virtual_machine = self._get_virtual_machine(hardware_profile,
-                                                    network_profile,
-                                                    os_profile,
-                                                    region,
-                                                    storage_profile,
-                                                    tags)
-
-        vm_result = compute_management_client.virtual_machines.create_or_update(group_name, vm_name, virtual_machine)
+        return self._create_vm(
+            compute_management_client=compute_management_client,
+            region=region,
+            group_name=group_name,
+            vm_name=vm_name,
+            hardware_profile=hardware_profile,
+            network_profile=network_profile,
+            os_profile=os_profile,
+            storage_profile=storage_profile,
+            tags=tags)
 
         return vm_result.result()
 
