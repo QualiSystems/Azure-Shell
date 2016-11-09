@@ -40,7 +40,6 @@ class AzureShell(object):
         self.vm_credentials_service = VMCredentialsService()
         self.key_pair_service = KeyPairService(storage_service=self.storage_service)
         self.security_group_service = SecurityGroupService()
-        self.lock = Lock()
 
     def deploy_azure_vm(self, command_context, deployment_request):
         """
@@ -54,7 +53,7 @@ class AzureShell(object):
 
         with LoggingSessionContext(command_context) as logger:
             with ErrorHandlingContext(logger):
-                azure_clients = AzureClientsManager(cloud_provider_model, lock=self.lock)
+                azure_clients = AzureClientsManager(cloud_provider_model)
 
                 with ValidatorsFactoryContext() as validator_factory:
                     logger.info('Deploying Azure VM')
@@ -96,7 +95,7 @@ class AzureShell(object):
         """
         cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(context.resource)
         with LoggingSessionContext(context) as logger:
-            azure_clients = AzureClientsManager(cloud_provider_model, lock=self.lock)
+            azure_clients = AzureClientsManager(cloud_provider_model)
 
             logger.info('Preparing Connectivity for Azure VM')
 
@@ -128,7 +127,7 @@ class AzureShell(object):
 
         with LoggingSessionContext(command_context) as logger:
             with ErrorHandlingContext(logger):
-                azure_clients = AzureClientsManager(cloud_provider_model, lock=self.lock)
+                azure_clients = AzureClientsManager(cloud_provider_model)
                 logger.info('Teardown...')
 
                 resource_group_name = command_context.reservation.reservation_id
@@ -156,7 +155,7 @@ class AzureShell(object):
 
         with LoggingSessionContext(command_context) as logger:
             with ErrorHandlingContext(logger):
-                azure_clients = AzureClientsManager(cloud_provider_model, lock=self.lock)
+                azure_clients = AzureClientsManager(cloud_provider_model)
                 logger.info('Deleting Azure VM')
 
                 vm_name = command_context.remote_endpoints[0].fullname
@@ -188,7 +187,7 @@ class AzureShell(object):
 
         with LoggingSessionContext(command_context) as logger:
             with ErrorHandlingContext(logger):
-                azure_clients = AzureClientsManager(cloud_provider_model, lock=self.lock)
+                azure_clients = AzureClientsManager(cloud_provider_model)
                 logger.info('Starting power on operation on Azure VM {}'.format(vm_name))
 
                 power_vm_operation = PowerAzureVMOperation(logger=logger, vm_service=self.vm_service)
@@ -217,7 +216,7 @@ class AzureShell(object):
 
         with LoggingSessionContext(command_context) as logger:
             with ErrorHandlingContext(logger):
-                azure_clients = AzureClientsManager(cloud_provider_model, lock=self.lock)
+                azure_clients = AzureClientsManager(cloud_provider_model)
 
                 logger.info('Starting power off operation on Azure VM {}'.format(vm_name))
 
@@ -250,7 +249,7 @@ class AzureShell(object):
                 private_ip = self.model_parser.get_private_ip_from_connected_resource_details(command_context)
                 public_ip = self.model_parser.get_public_ip_from_connected_resource_details(command_context)
                 resource_fullname = self.model_parser.get_connected_resource_fullname(command_context)
-                azure_clients = AzureClientsManager(cloud_provider_model, lock=self.lock)
+                azure_clients = AzureClientsManager(cloud_provider_model)
 
                 refresh_ip_operation = RefreshIPOperation(logger=logger, vm_service=self.vm_service)
 

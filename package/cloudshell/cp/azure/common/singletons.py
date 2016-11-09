@@ -1,3 +1,6 @@
+import threading
+
+
 class AbstractComparableInstance(object):
     """Abstract class that must be used together with SingletonByArgsMeta class"""
 
@@ -35,6 +38,7 @@ class SingletonByArgsMeta(type):
         >>> False
     """
     __instances_by_cls = {}
+    lock = threading.Lock()
 
     def __call__(cls, *args, **kwargs):
 
@@ -42,13 +46,11 @@ class SingletonByArgsMeta(type):
             raise NotImplementedError("Class {} must inherit 'AbstractComparableInstance' "
                                       "if used with SingletonByArgsMeta metaclass".format(cls))
 
-        cls_instances = cls.__instances_by_cls.get(cls, [])
+        instance = cls.__instances_by_cls.get(cls)
 
-        for instance in cls_instances:
-            if instance.check_params_equality(*args, **kwargs):
-                return instance
-        else:
-            instance = super(SingletonByArgsMeta, cls).__call__(*args, **kwargs)
-            cls_instances = cls.__instances_by_cls.setdefault(cls, [])
-            cls_instances.append(instance)
-            return instance
+        if not (instance and instance.check_params_equality(*args, **kwargs)):
+            with SingletonByArgsMeta.lock:
+                instance = super(SingletonByArgsMeta, cls).__call__(*args, **kwargs)
+                cls.__instances_by_cls[cls] = instance
+
+        return instance

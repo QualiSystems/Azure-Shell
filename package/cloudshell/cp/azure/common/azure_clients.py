@@ -31,23 +31,20 @@ class AzureClientsManager(AbstractComparableInstance):
             secret == self._secret,
             tenant == self._tenant])
 
-    def __init__(self, cloud_provider, lock):
+    def __init__(self, cloud_provider):
         """
         :param cloud_provider: AzureCloudProviderResourceModel instance
-        :param lock threading.Lock instance
         :return
         """
-        with lock:
-            self._lock = lock
-            self._subscription_id = self._get_subscription(cloud_provider)
-            self._client_id = self._get_azure_client_id(cloud_provider)
-            self._secret = self._get_azure_secret(cloud_provider)
-            self._tenant = self._get_azure_tenant(cloud_provider)
-            self._service_credentials = self._get_service_credentials()
-            self._compute_client = None
-            self._network_client = None
-            self._storage_client = None
-            self._resource_client = None
+        self._subscription_id = self._get_subscription(cloud_provider)
+        self._client_id = self._get_azure_client_id(cloud_provider)
+        self._secret = self._get_azure_secret(cloud_provider)
+        self._tenant = self._get_azure_tenant(cloud_provider)
+        self._service_credentials = self._get_service_credentials()
+        self._compute_client = None
+        self._network_client = None
+        self._storage_client = None
+        self._resource_client = None
 
     def _get_service_credentials(self):
         return ServicePrincipalCredentials(client_id=self._client_id, secret=self._secret, tenant=self._tenant)
@@ -66,32 +63,32 @@ class AzureClientsManager(AbstractComparableInstance):
 
     @property
     def compute_client(self):
-        with self._lock:
-            if self._compute_client is None:
+        if self._compute_client is None:
+            with SingletonByArgsMeta.lock:
                 self._compute_client = ComputeManagementClient(self._service_credentials, self._subscription_id)
 
-            return self._compute_client
+        return self._compute_client
 
     @property
     def network_client(self):
-        with self._lock:
-            if self._network_client is None:
+        if self._network_client is None:
+            with SingletonByArgsMeta.lock:
                 self._network_client = NetworkManagementClient(self._service_credentials, self._subscription_id)
 
             return self._network_client
 
     @property
     def storage_client(self):
-        with self._lock:
-            if self._storage_client is None:
+        if self._storage_client is None:
+            with SingletonByArgsMeta.lock:
                 self._storage_client = StorageManagementClient(self._service_credentials, self._subscription_id)
 
             return self._storage_client
 
     @property
     def resource_client(self):
-        with self._lock:
-            if self._resource_client is None:
+        if self._resource_client is None:
+            with SingletonByArgsMeta.lock:
                 self._resource_client = ResourceManagementClient(self._service_credentials, self._subscription_id)
 
-            return self._resource_client
+        return self._resource_client
