@@ -93,6 +93,12 @@ class AzureShell(object):
 
     def prepare_connectivity(self, context, request):
         """
+        Creates a connectivity for the Sandbox:
+        1.Resource group
+        2.Storage account
+        3.Key pair
+        4.Network Security Group
+        5.Creating a subnet under the
 
         :param context:
         :param request:
@@ -100,8 +106,9 @@ class AzureShell(object):
         """
         cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(context.resource)
         with LoggingSessionContext(context) as logger:
+            with ErrorHandlingContext(logger):
             with AzureClientFactoryContext(cloud_provider_model) as azure_clients_factory:
-                logger.info('Preparing Connectivity for Azure VM')
+                logger.info('Preparing Connectivity for Azure VM.')
                 resource_client = azure_clients_factory.get_client(ResourceManagementClient)
                 network_client = azure_clients_factory.get_client(NetworkManagementClient)
                 storage_client = azure_clients_factory.get_client(StorageManagementClient)
