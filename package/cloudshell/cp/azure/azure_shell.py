@@ -104,37 +104,39 @@ class AzureShell(object):
         :param request:
         :return:
         """
-        cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(context.resource)
+
         with LoggingSessionContext(context) as logger:
             with ErrorHandlingContext(logger):
-            with AzureClientFactoryContext(cloud_provider_model) as azure_clients_factory:
-                logger.info('Preparing Connectivity for Azure VM.')
-                resource_client = azure_clients_factory.get_client(ResourceManagementClient)
-                network_client = azure_clients_factory.get_client(NetworkManagementClient)
-                storage_client = azure_clients_factory.get_client(StorageManagementClient)
 
-                prepare_connectivity_operation = PrepareConnectivityOperation(
-                    logger=logger,
-                    vm_service=self.vm_service,
-                    network_service=self.network_service,
-                    storage_service=self.storage_service,
-                    tags_service=self.tags_service,
-                    key_pair_service=self.key_pair_service,
-                    security_group_service=self.security_group_service)
+                cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(context.resource)
+                with AzureClientFactoryContext(cloud_provider_model) as azure_clients_factory:
+                    logger.info('Preparing Connectivity for Azure VM.')
+                    resource_client = azure_clients_factory.get_client(ResourceManagementClient)
+                    network_client = azure_clients_factory.get_client(NetworkManagementClient)
+                    storage_client = azure_clients_factory.get_client(StorageManagementClient)
 
-                prepare_connectivity_request = DeployDataHolder(jsonpickle.decode(request))
-                prepare_connectivity_request = getattr(prepare_connectivity_request, 'driverRequest', None)
+                    prepare_connectivity_operation = PrepareConnectivityOperation(
+                        logger=logger,
+                        vm_service=self.vm_service,
+                        network_service=self.network_service,
+                        storage_service=self.storage_service,
+                        tags_service=self.tags_service,
+                        key_pair_service=self.key_pair_service,
+                        security_group_service=self.security_group_service)
 
-                result = prepare_connectivity_operation.prepare_connectivity(
-                    reservation=self.model_parser.convert_to_reservation_model(context.reservation),
-                    cloud_provider_model=cloud_provider_model,
-                    storage_client=storage_client,
-                    resource_client=resource_client,
-                    network_client=network_client,
-                    logger=logger,
-                    request=prepare_connectivity_request)
+                    prepare_connectivity_request = DeployDataHolder(jsonpickle.decode(request))
+                    prepare_connectivity_request = getattr(prepare_connectivity_request, 'driverRequest', None)
 
-                return self.command_result_parser.set_command_result({'driverResponse': {'actionResults': result}})
+                    result = prepare_connectivity_operation.prepare_connectivity(
+                        reservation=self.model_parser.convert_to_reservation_model(context.reservation),
+                        cloud_provider_model=cloud_provider_model,
+                        storage_client=storage_client,
+                        resource_client=resource_client,
+                        network_client=network_client,
+                        logger=logger,
+                        request=prepare_connectivity_request)
+
+                    return self.command_result_parser.set_command_result({'driverResponse': {'actionResults': result}})
 
     def cleanup_connectivity(self, command_context):
         cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(command_context.resource)
