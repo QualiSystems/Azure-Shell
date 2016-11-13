@@ -1,3 +1,4 @@
+from azure.mgmt.network.models import Subnet
 from msrestazure.azure_exceptions import CloudError
 
 
@@ -10,13 +11,31 @@ class DeleteAzureVMOperation(object):
 
         :param cloudshell.cp.azure.domain.services.virtual_machine_service.VirtualMachineService vm_service:
         :param cloudshell.cp.azure.domain.services.network_service.NetworkService network_service:
-        :param cloudshell.cp.azure.domain.services.tags.TagService network_service:
+        :param cloudshell.cp.azure.domain.services.tags.TagService tags_service:
         :return:
         """
 
         self.vm_service = vm_service
         self.network_service = network_service
         self.tags_service = tags_service
+
+    def remove_nsg_from_subnet(self, network_client, resource_group_name, cloud_provider_model):
+        management_group_name = cloud_provider_model.management_group_name
+
+        sandbox_virtual_network = self.network_service.get_sandbox_virtual_network(network_client=network_client,
+                                                                                   group_name=management_group_name,
+                                                                                   tags_service=self.tags_service)
+
+        subnet = next((subnet for subnet in sandbox_virtual_network.subnets if subnet.name == resource_group_name),
+                      None)
+
+        if subnet is None:
+            raise Exception("Could not find a valid subnet.")
+
+        subnet.network_security_group = None
+
+        self.network_service.update_subnet(network_client, management_group_name, sandbox_virtual_network.name,
+                                           subnet.name, subnet)
 
     def delete_resource_group(self, resource_client, group_name):
 

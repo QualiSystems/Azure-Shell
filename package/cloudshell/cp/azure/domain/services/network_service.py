@@ -212,6 +212,21 @@ class NetworkService(object):
         if wait_for_result:
             result.wait()
 
+    def update_subnet(self, network_client, resource_group_name, virtual_network_name, subnet_name, subnet):
+        """
+
+        :param azure.mgmt.network.NetworkManagementClient network_client:
+        :param resource_group_name:
+        :param virtual_network_name:
+        :param subnet_name:
+        :param azure.mgmt.network.models.Subnet subnet:
+        """
+        result = network_client.subnets.create_or_update(resource_group_name,
+                                                         virtual_network_name,
+                                                         subnet_name,
+                                                         subnet)
+        result.wait()
+
     def create_virtual_network(self, management_group_name,
                                network_client,
                                network_name,
