@@ -1,11 +1,9 @@
 class PowerAzureVMOperation(object):
-    def __init__(self, logger, vm_service):
+    def __init__(self, vm_service):
         """
-        :param logger:
         :param cloudshell.cp.azure.domain.services.virtual_machine_service.VirtualMachineService vm_service:
         :return:
         """
-        self.logger = logger
         self.vm_service = vm_service
 
     def power_on(self, compute_client, resource_group_name, vm_name):

@@ -8,7 +8,6 @@ from cloudshell.cp.azure.domain.vm_management.operations.refresh_ip_operation im
 
 class TestRefreshIPOperation(TestCase):
     def setUp(self):
-        self.logger = mock.MagicMock()
         self.cloudshell_session = mock.MagicMock()
         self.compute_client = mock.MagicMock()
         self.network_client = mock.MagicMock()
@@ -19,7 +18,7 @@ class TestRefreshIPOperation(TestCase):
         self.public_ip_on_resource = "172.29.128.255"
         self.vm_service = mock.MagicMock()
 
-        self.refresh_ip_operation = RefreshIPOperation(logger=self.logger, vm_service=self.vm_service)
+        self.refresh_ip_operation = RefreshIPOperation(vm_service=self.vm_service)
 
     def test_refresh_ip(self):
         """Check that method uses network client to get public IP value and updates it on CloudShell"""

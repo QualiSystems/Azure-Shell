@@ -22,8 +22,7 @@ class TestDeployAzureVMOperation(TestCase):
         self.key_pair_service = Mock()
         self.security_group_service = MagicMock()
         self.tags_service = TagService()
-        self.deploy_operation = DeployAzureVMOperation(logger=self.logger,
-                                                       vm_service=self.vm_service,
+        self.deploy_operation = DeployAzureVMOperation(vm_service=self.vm_service,
                                                        network_service=self.network_service,
                                                        storage_service=self.storage_service,
                                                        vm_credentials_service=self.vm_credentials_service,

@@ -36,7 +36,6 @@ class TestPrepareConnectivity(TestCase):
         self.logger = MagicMock()
 
         self.prepare_connectivity_operation = PrepareConnectivityOperation(
-            logger=self.logger,
             vm_service=self.vm_service,
             network_service=self.network_service,
             storage_service=self.storage_service,
