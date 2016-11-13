@@ -155,10 +155,9 @@ class AzureShell(object):
 
                     resource_group_name = command_context.reservation.reservation_id
 
-                    self.delete_azure_vm_operation.delete_resource_group(
-                    delete_azure_vm_operation.remove_nsg_from_subnet(network_client=network_client,
-                                                                     resource_group_name=resource_group_name,
-                                                                     cloud_provider_model=cloud_provider_model)
+                    self.delete_azure_vm_operation.remove_nsg_from_subnet(network_client=network_client,
+                                                                          resource_group_name=resource_group_name,
+                                                                          cloud_provider_model=cloud_provider_model)
 
                     self.delete_azure_vm_operation.delete_sandbox_subnet(
                         network_client=network_client,
@@ -166,14 +165,13 @@ class AzureShell(object):
                         resource_group_name=resource_group_name
                     )
 
-                    delete_azure_vm_operation.delete_resource_group(
+                    self.delete_azure_vm_operation.delete_resource_group(
                         resource_client=resource_client,
                         group_name=resource_group_name
                     )
 
     def delete_azure_vm(self, command_context):
         with LoggingSessionContext(command_context) as logger:
-
             with ErrorHandlingContext(logger):
                 cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(
                     command_context.resource)
