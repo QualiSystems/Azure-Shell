@@ -4,6 +4,7 @@ from azure.mgmt.compute import ComputeManagementClient
 from azure.mgmt.network import NetworkManagementClient
 from azure.mgmt.resource import ResourceManagementClient
 from azure.mgmt.storage import StorageManagementClient
+from azure.mgmt.storage.models import StorageAccount
 
 from cloudshell.core.context.error_handling_context import ErrorHandlingContext
 from cloudshell.cp.azure.domain.services.key_pair import KeyPairService
@@ -14,6 +15,7 @@ from cloudshell.cp.azure.common.validtors.validators import Validator, NetworkVa
     StorageValidationRuleOneVnet
 from cloudshell.cp.azure.domain.context.validators_factory_context import ValidatorsFactoryContext
 from cloudshell.cp.azure.domain.services.tags import TagService
+from cloudshell.cp.azure.domain.vm_management.operations.access_key_operation import AccessKeyOperation
 from cloudshell.cp.azure.domain.vm_management.operations.delete_operation import DeleteAzureVMOperation
 from cloudshell.shell.core.session.logging_session import LoggingSessionContext
 from cloudshell.cp.azure.domain.context.azure_client_context import AzureClientFactoryContext
@@ -43,6 +45,7 @@ class AzureShell(object):
         self.vm_credentials_service = VMCredentialsService()
         self.key_pair_service = KeyPairService(storage_service=self.storage_service)
         self.security_group_service = SecurityGroupService()
+        self.access_key_operation = AccessKeyOperation(self.key_pair_service)
 
     def deploy_azure_vm(self, command_context, deployment_request):
         """
@@ -280,3 +283,30 @@ class AzureShell(object):
                                                         resource_fullname=resource_fullname)
 
                     logger.info('Azure VM IPs were successfully refreshed'.format(vm_name))
+
+    def get_access_key(self, command_context):
+        """
+        Returns public key
+        :param ResourceRemoteCommandContext command_context:
+        :rtype str:
+        """
+        cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(
+            command_context.resource)
+
+        with LoggingSessionContext(command_context) as logger:
+            with ErrorHandlingContext(logger):
+                with AzureClientFactoryContext(cloud_provider_model) as azure_clients_factory:
+                    with ValidatorsFactoryContext() as validator_factory:
+                        logger.info("Starting GetAccessKey")
+
+                        storage_client = azure_clients_factory.get_client(StorageManagementClient)
+
+                        resource_group_name = command_context.remote_reservation.reservation_id
+                        storage_accounts_list = self.storage_service.get_storage_per_resource_group(storage_client,
+                                                                                                    resource_group_name)
+                        validator_factory.try_validate(resource_type=StorageAccount, resource=storage_accounts_list)
+                        storage_account_name = storage_accounts_list[0].name
+
+                        self.access_key_operation.get_access_key(storage_client=storage_client,
+                                                                 group_name=resource_group_name,
+                                                                 storage_name=storage_account_name)
