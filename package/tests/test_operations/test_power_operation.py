@@ -7,12 +7,11 @@ from cloudshell.cp.azure.domain.vm_management.operations.power_operation import 
 
 class TestPowerAzureVMOperation(TestCase):
     def setUp(self):
-        self.logger = mock.MagicMock()
         self.vm_service = mock.MagicMock()
         self.compute_client = mock.MagicMock()
         self.resource_group_name = "test_group_name"
         self.vm_name = "test_vm_name"
-        self.power_operation = PowerAzureVMOperation(logger=self.logger, vm_service=self.vm_service)
+        self.power_operation = PowerAzureVMOperation(vm_service=self.vm_service)
 
     def test_power_on(self):
         self.power_operation.power_on(self.compute_client, self.resource_group_name, self.vm_name)

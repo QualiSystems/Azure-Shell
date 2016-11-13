@@ -16,8 +16,7 @@ class TestDeleteOperation(TestCase):
         self.vm_service = VirtualMachineService()
         self.network_service = NetworkService()
         self.tags_service = TagService()
-        self.delete_operation = DeleteAzureVMOperation(logger=self.logger,
-                                                       vm_service=self.vm_service,
+        self.delete_operation = DeleteAzureVMOperation(vm_service=self.vm_service,
                                                        network_service=self.network_service,
                                                        tags_service=self.tags_service)
 
@@ -36,8 +35,8 @@ class TestDeleteOperation(TestCase):
         self.delete_operation.delete(compute_client=Mock(),
                                      network_client=network_client,
                                      group_name="AzureTestGroup",
-                                     vm_name="AzureTestVM"
-                                     )
+                                     vm_name="AzureTestVM",
+                                     logger=self.logger)
 
         # Verify
         self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.vm_service.delete_vm))
@@ -54,7 +53,8 @@ class TestDeleteOperation(TestCase):
                           Mock(),
                           Mock(),
                           "AzureTestGroup",
-                          "AzureTestVM")
+                          "AzureTestVM",
+                          self.logger)
 
         # Verify
         self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.logger.info))
@@ -71,8 +71,8 @@ class TestDeleteOperation(TestCase):
             Mock(),
             Mock(),
             "group_name",
-            "vm_name"
-        )
+            "vm_name",
+            self.logger)
 
         # Verify
         self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.logger.info))
