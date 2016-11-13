@@ -110,7 +110,6 @@ class AzureShell(object):
 
         with LoggingSessionContext(context) as logger:
             with ErrorHandlingContext(logger):
-
                 cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(context.resource)
                 with AzureClientFactoryContext(cloud_provider_model) as azure_clients_factory:
                     logger.info('Preparing Connectivity for Azure VM.')
@@ -159,15 +158,19 @@ class AzureShell(object):
                                                                        network_service=self.network_service,
                                                                        tags_service=self.tags_service)
 
-                    delete_azure_vm_operation.delete_resource_group(
-                        resource_client=resource_client,
-                        group_name=resource_group_name
-                    )
+                    delete_azure_vm_operation.remove_nsg_from_subnet(network_client=network_client,
+                                                                     resource_group_name=resource_group_name,
+                                                                     cloud_provider_model=cloud_provider_model)
 
                     delete_azure_vm_operation.delete_sandbox_subnet(
                         network_client=network_client,
                         cloud_provider_model=cloud_provider_model,
                         resource_group_name=resource_group_name
+                    )
+
+                    delete_azure_vm_operation.delete_resource_group(
+                        resource_client=resource_client,
+                        group_name=resource_group_name
                     )
 
     def delete_azure_vm(self, command_context):
