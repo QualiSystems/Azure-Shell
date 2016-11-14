@@ -285,6 +285,16 @@ class NetworkService(object):
 
         return network_client.public_ip_addresses.get(group_name, ip_name)
 
+    def get_private_ip(self, network_client, group_name, vm_name):
+        """
+
+        :param network_client:
+        :param group_name:
+        :param vm_name:
+        """
+        nic = network_client.network_interfaces.get(group_name, vm_name)
+        return nic.ip_configurations[0].private_ip_address
+
     def delete_nic(self, network_client, group_name, interface_name):
         """
 

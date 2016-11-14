@@ -17,7 +17,7 @@ class TestDeleteOperation(TestCase):
         self.vm_service = VirtualMachineService()
         self.network_service = NetworkService()
         self.tags_service = TagService()
-        self.security_group_service = SecurityGroupService()
+        self.security_group_service = SecurityGroupService(self.network_service)
         self.delete_operation = DeleteAzureVMOperation(vm_service=self.vm_service,
                                                        network_service=self.network_service,
                                                        tags_service=self.tags_service,
@@ -33,7 +33,7 @@ class TestDeleteOperation(TestCase):
         network_client = Mock()
         network_client.network_interfaces.delete = Mock()
         network_client.public_ip_addresses.delete = Mock()
-        self.delete_operation.security_group_service.delete_inbound_security_rules = Mock()
+        self.delete_operation.security_group_service.delete_security_rules = Mock()
 
         # Act
         self.delete_operation.delete(compute_client=Mock(),
@@ -69,7 +69,7 @@ class TestDeleteOperation(TestCase):
         response.reason = "Not Found"
         error = CloudError(response)
         self.vm_service.delete_vm = Mock(side_effect=error)
-        self.delete_operation.security_group_service.delete_inbound_security_rules = Mock()
+        self.delete_operation.security_group_service.delete_security_rules = Mock()
 
         # Act
         self.delete_operation.delete(
