@@ -1,0 +1,65 @@
+{
+	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"virtualNetworks_mgmt_vnet_name": {
+			"defaultValue": "mgmt_vnet",
+			"type": "String"
+		},
+		"virtualNetworks_sandbox_vnet_name": {
+			"defaultValue": "sandbox_vnet",
+			"type": "String"
+		},
+        "region_name":{
+            "defaultValue" : "brazilsouth",
+            "type": "String"
+        }
+	},
+	"variables": {
+		
+	},
+	"resources": [{
+		"type": "Microsoft.Network/virtualNetworks",
+		"name": "[parameters('virtualNetworks_mgmt_vnet_name')]",
+		"apiVersion": "2016-03-30",
+		"location": "[parameters('region_name')]",
+		"tags": {
+			"network_type": "mgmt"
+		},
+		"properties": {
+			"addressSpace": {
+				"addressPrefixes": ["10.0.0.0/8"]
+			},
+			"subnets": [{
+				"name": "default",
+				"properties": {
+					"addressPrefix": "10.0.0.0/24"
+				}
+			}]
+		},
+		"resources": [],
+		"dependsOn": []
+	},
+	{
+		"type": "Microsoft.Network/virtualNetworks",
+		"name": "[parameters('region_name')]",
+		"apiVersion": "2016-03-30",
+		"location": "brazilsouth",
+		"tags": {
+			"network_type": "sandbox"
+		},
+		"properties": {
+			"addressSpace": {
+				"addressPrefixes": ["10.0.0.0/8"]
+			},
+			"subnets": [{
+				"name": "default",
+				"properties": {
+					"addressPrefix": "10.0.0.0/24"
+				}
+			}]
+		},
+		"resources": [],
+		"dependsOn": []
+	}]
+}
