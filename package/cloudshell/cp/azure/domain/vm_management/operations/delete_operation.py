@@ -6,18 +6,46 @@ class DeleteAzureVMOperation(object):
     def __init__(self,
                  vm_service,
                  network_service,
-                 tags_service):
+                 tags_service,
+                 security_group_service):
         """
-
         :param cloudshell.cp.azure.domain.services.virtual_machine_service.VirtualMachineService vm_service:
         :param cloudshell.cp.azure.domain.services.network_service.NetworkService network_service:
         :param cloudshell.cp.azure.domain.services.tags.TagService tags_service:
+        :param cloudshell.cp.azure.domain.services.security_group.SecurityGroupService security_group_service:
         :return:
         """
 
         self.vm_service = vm_service
         self.network_service = network_service
         self.tags_service = tags_service
+        self.security_group_service = security_group_service
+
+    def cleanup_connectivity(self, network_client, resource_client, cloud_provider_model, resource_group_name, logger):
+        """
+        :param logger:
+        :param network_client:
+        :param resource_client:
+        :param cloud_provider_model:
+        :param resource_group_name:
+        """
+        result = {'success': True}
+
+        try:
+            self.remove_nsg_from_subnet(network_client=network_client, cloud_provider_model=cloud_provider_model,
+                                        resource_group_name=resource_group_name)
+
+            self.delete_sandbox_subnet(network_client=network_client, cloud_provider_model=cloud_provider_model,
+                                       resource_group_name=resource_group_name)
+
+            self.delete_resource_group(resource_client=resource_client, group_name=resource_group_name)
+
+        except Exception as ex:
+            logger.error("Error in cleanup connectivity. Error: {0}".format(ex.message))
+            result['success'] = False
+            result['errorMessage'] = 'CleanupConnectivity ended with the error: {0}'.format(ex.message)
+
+        return result
 
     def remove_nsg_from_subnet(self, network_client, resource_group_name, cloud_provider_model):
         management_group_name = cloud_provider_model.management_group_name
@@ -66,6 +94,9 @@ class DeleteAzureVMOperation(object):
         :return:
         """
         try:
+            self.security_group_service.delete_inbound_security_rules(network_client=network_client,
+                                                                      resource_group_name=group_name,
+                                                                      private_ip_address="TBD")
 
             self.vm_service.delete_vm(compute_management_client=compute_client,
                                       group_name=group_name,
