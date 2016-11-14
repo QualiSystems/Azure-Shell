@@ -22,6 +22,25 @@ class TestCleanupConnectivity(TestCase):
                                                        security_group_service=self.security_group_service)
         self.logger = MagicMock()
 
+    def test_cleanup_on_error(self):
+        # Arrange
+        test_exception_message = "lalala"
+        self.delete_operation.remove_nsg_from_subnet = Mock(side_effect=Exception(test_exception_message))
+        self.delete_operation.delete_sandbox_subnet = Mock()
+
+        # Act
+        result = self.delete_operation.cleanup_connectivity(network_client=Mock(),
+                                                            resource_client=Mock(),
+                                                            cloud_provider_model=Mock(),
+                                                            resource_group_name=Mock(),
+                                                            logger=self.logger)
+
+        # Verify
+        self.assertTrue(result['success'] == False)
+        self.assertTrue(
+            result['errorMessage'] == 'CleanupConnectivity ended with the error: {0}'.format(test_exception_message))
+        self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.logger.error))
+
     def test_cleanup(self):
         """
         :return:
