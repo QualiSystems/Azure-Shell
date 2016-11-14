@@ -46,4 +46,7 @@ class AzureShellDriver(ResourceDriverInterface):
     def get_inventory(self, context):
         pass
 
+    def GetAccessKey(self, context, ports):
+        return self.azure_shell.get_access_key(context)
+
 
