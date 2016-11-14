@@ -652,7 +652,8 @@ class TestKeyPairService(TestCase):
 
 class TestSecurityGroupService(TestCase):
     def setUp(self):
-        self.security_group_service = SecurityGroupService()
+        self.network_service = MagicMock()
+        self.security_group_service = SecurityGroupService(self.network_service)
         self.group_name = "test_group_name"
         self.security_group_name = "teststoragename"
         self.network_client = mock.MagicMock()

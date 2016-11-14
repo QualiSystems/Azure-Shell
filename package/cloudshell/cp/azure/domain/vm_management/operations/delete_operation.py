@@ -94,9 +94,10 @@ class DeleteAzureVMOperation(object):
         :return:
         """
         try:
-            self.security_group_service.delete_inbound_security_rules(network_client=network_client,
-                                                                      resource_group_name=group_name,
-                                                                      private_ip_address="TBD")
+
+            self.security_group_service.delete_security_rules(network_client=network_client,
+                                                              resource_group_name=group_name,
+                                                              vm_name=vm_name)
 
             self.vm_service.delete_vm(compute_management_client=compute_client,
                                       group_name=group_name,

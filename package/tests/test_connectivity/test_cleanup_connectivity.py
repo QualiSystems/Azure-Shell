@@ -15,7 +15,7 @@ class TestCleanupConnectivity(TestCase):
         self.vm_service = VirtualMachineService()
         self.network_service = NetworkService()
         self.tags_service = TagService()
-        self.security_group_service = SecurityGroupService()
+        self.security_group_service = SecurityGroupService(self.network_service)
         self.delete_operation = DeleteAzureVMOperation(vm_service=self.vm_service,
                                                        network_service=self.network_service,
                                                        tags_service=self.tags_service,

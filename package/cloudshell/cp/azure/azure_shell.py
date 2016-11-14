@@ -35,7 +35,7 @@ class AzureShell(object):
         self.tags_service = TagService()
         self.vm_credentials_service = VMCredentialsService()
         self.key_pair_service = KeyPairService(storage_service=self.storage_service)
-        self.security_group_service = SecurityGroupService()
+        self.security_group_service = SecurityGroupService(self.network_service)
         self.access_key_operation = AccessKeyOperation(self.key_pair_service)
 
         self.prepare_connectivity_operation = PrepareConnectivityOperation(
