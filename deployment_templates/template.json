@@ -28,12 +28,12 @@
 		},
 		"properties": {
 			"addressSpace": {
-				"addressPrefixes": ["10.0.0.0/8"]
+				"addressPrefixes": ["192.168.120.0/24"]
 			},
 			"subnets": [{
 				"name": "default",
 				"properties": {
-					"addressPrefix": "10.0.0.0/24"
+					"addressPrefix": "192.168.120.0/25"
 				}
 			}]
 		},
