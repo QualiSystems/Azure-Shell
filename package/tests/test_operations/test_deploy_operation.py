@@ -169,6 +169,7 @@ class TestDeployAzureVMOperation(TestCase):
         security_groups_list = MagicMock()
         self.deploy_operation.security_group_service.list_network_security_group.return_value = security_groups_list
         self.deploy_operation._validate_resource_is_single_per_group = MagicMock()
+        self.deploy_operation.security_group_service.get_network_security_group.return_value = security_groups_list[0]
 
         # Act
         self.deploy_operation._process_nsg_rules(
@@ -178,12 +179,9 @@ class TestDeployAzureVMOperation(TestCase):
             nic=nic)
 
         # Verify
-        self.deploy_operation.security_group_service.list_network_security_group.assert_called_once_with(
-            group_name=group_name,
-            network_client=network_client)
-
-        self.deploy_operation._validate_resource_is_single_per_group.assert_called_once_with(
-            security_groups_list, group_name, 'network security group')
+        self.deploy_operation.security_group_service.get_network_security_group.assert_called_once_with(
+            network_client=network_client,
+            group_name=group_name)
 
         self.deploy_operation.security_group_service.create_network_security_group_rules.assert_called_once_with(
             destination_addr=nic.ip_configurations[0].private_ip_address,

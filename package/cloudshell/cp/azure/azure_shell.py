@@ -62,7 +62,8 @@ class AzureShell(object):
         self.delete_azure_vm_operation = DeleteAzureVMOperation(
             vm_service=self.vm_service,
             network_service=self.network_service,
-            tags_service=self.tags_service)
+            tags_service=self.tags_service,
+            security_group_service=self.security_group_service)
 
     def deploy_azure_vm(self, command_context, deployment_request):
         """Will deploy Azure Image on the cloud provider
@@ -141,18 +142,14 @@ class AzureShell(object):
                 azure_clients = AzureClientsManager(cloud_provider_model)
                 resource_group_name = command_context.reservation.reservation_id
 
-                self.delete_azure_vm_operation.remove_nsg_from_subnet(network_client=azure_clients.network_client,
-                                                                      resource_group_name=resource_group_name,
-                                                                      cloud_provider_model=cloud_provider_model)
-
-                self.delete_azure_vm_operation.delete_sandbox_subnet(
+                result = self.delete_azure_vm_operation.cleanup_connectivity(
                     network_client=azure_clients.network_client,
-                    cloud_provider_model=cloud_provider_model,
-                    resource_group_name=resource_group_name)
-
-                self.delete_azure_vm_operation.delete_resource_group(
                     resource_client=azure_clients.resource_client,
-                    group_name=resource_group_name)
+                    cloud_provider_model=cloud_provider_model,
+                    resource_group_name=resource_group_name,
+                    logger=logger)
+
+                return self.command_result_parser.set_command_result({'driverResponse': {'actionResults': result}})
 
     def delete_azure_vm(self, command_context):
         with LoggingSessionContext(command_context) as logger:

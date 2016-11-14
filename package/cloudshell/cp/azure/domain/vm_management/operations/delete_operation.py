@@ -21,6 +21,32 @@ class DeleteAzureVMOperation(object):
         self.tags_service = tags_service
         self.security_group_service = security_group_service
 
+    def cleanup_connectivity(self, network_client, resource_client, cloud_provider_model, resource_group_name, logger):
+        """
+        :param logger:
+        :param network_client:
+        :param resource_client:
+        :param cloud_provider_model:
+        :param resource_group_name:
+        """
+        result = {'success': True}
+
+        try:
+            self.remove_nsg_from_subnet(network_client=network_client, cloud_provider_model=cloud_provider_model,
+                                        resource_group_name=resource_group_name)
+
+            self.delete_sandbox_subnet(network_client=network_client, cloud_provider_model=cloud_provider_model,
+                                       resource_group_name=resource_group_name)
+
+            self.delete_resource_group(resource_client=resource_client, group_name=resource_group_name)
+
+        except Exception as ex:
+            logger.error("Error in cleanup connectivity. Error: {0}".format(ex.message))
+            result['success'] = False
+            result['errorMessage'] = 'CleanupConnectivity ended with the error: {0}'.format(ex.message)
+
+        return result
+
     def remove_nsg_from_subnet(self, network_client, resource_group_name, cloud_provider_model):
         management_group_name = cloud_provider_model.management_group_name
 

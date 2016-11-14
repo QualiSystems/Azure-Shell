@@ -50,7 +50,9 @@ class DeployAzureVMOperation(object):
             inbound_rules = RulesAttributeParser.parse_port_group_attribute(
                 ports_attribute=azure_vm_deployment_model.inbound_ports)
 
-            network_security_group = self.security_group_service.get_network_security_group(network_client, group_name)
+            network_security_group = self.security_group_service.get_network_security_group(
+                network_client=network_client,
+                group_name=group_name)
 
             self.security_group_service.create_network_security_group_rules(
                 network_client=network_client,
@@ -202,6 +204,13 @@ class DeployAzureVMOperation(object):
                             deployed_app_address=private_ip_address,
                             public_ip=public_ip_address,
                             resource_group=reservation_id)
+
+
+    def _validate_resource_is_single_per_group(self, resources_list, group_name, resource_name):
+        if len(resources_list) > 1:
+            raise Exception("The resource group {} contains more than one {}.".format(group_name, resource_name))
+        if len(resources_list) == 0:
+            raise Exception("The resource group {} does not contain a {}.".format(group_name, resource_name))
 
     @staticmethod
     def _prepare_deployed_app_attributes(admin_username, admin_password, public_ip):
