@@ -42,9 +42,9 @@
 	},
 	{
 		"type": "Microsoft.Network/virtualNetworks",
-		"name": "[parameters('region_name')]",
+		"name": "[parameters('virtualNetworks_sandbox_vnet_name')]",
 		"apiVersion": "2016-03-30",
-		"location": "brazilsouth",
+		"location": "[parameters('region_name')]",
 		"tags": {
 			"network_type": "sandbox"
 		},
