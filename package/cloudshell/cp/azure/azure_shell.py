@@ -149,7 +149,7 @@ class AzureShell(object):
                     resource_group_name=resource_group_name,
                     logger=logger)
 
-                return self.command_result_parser.set_command_result({'driverResponse': {'actionResults': result}})
+                return self.command_result_parser.set_command_result({'driverResponse': {'actionResults': [result]}})
 
     def delete_azure_vm(self, command_context):
         with LoggingSessionContext(command_context) as logger:
