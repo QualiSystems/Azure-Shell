@@ -66,6 +66,7 @@ class TestDeleteOperation(TestCase):
     def test_delete_operation_on_cloud_error_not_found_no_exception(self):
         # Arrange
         response = Response()
+        response.status_code = 0
         response.reason = "Not Found"
         error = CloudError(response)
         self.vm_service.delete_vm = Mock(side_effect=error)
@@ -85,6 +86,7 @@ class TestDeleteOperation(TestCase):
     def test_delete_operation_on_cloud_any_error_throws_exception(self):
         # Arrange
         response = Response()
+        response.status_code = 0
         response.reason = "Bla bla error"
         error = CloudError(response)
         self.vm_service.delete_vm = Mock(side_effect=error)
