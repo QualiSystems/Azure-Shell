@@ -49,7 +49,7 @@
 		},
 		"properties": {
 			"addressSpace": {
-				"addressPrefixes": "[parameters('management_vnet_CIDR')]"
+				"addressPrefixes": ["[parameters('management_vnet_CIDR')]"]
 			},
 			"subnets": [{
 				"name": "default",
