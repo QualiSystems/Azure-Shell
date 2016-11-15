@@ -2,7 +2,7 @@ from unittest import TestCase
 
 import azure
 import mock
-from azure.mgmt.network.models import IPAllocationMethod
+from azure.mgmt.network.models import IPAllocationMethod, NetworkSecurityGroup, SecurityRule
 from azure.mgmt.storage.models import StorageAccountCreateParameters
 from mock import MagicMock
 from mock import Mock
@@ -807,3 +807,31 @@ class TestSecurityGroupService(TestCase):
         self.security_group_service._validate_network_security_group_is_single_per_group.assert_called_once_with(
             self.network_security_group,
             self.group_name)
+
+    def test_delete_security_rules(self):
+        # Arrange
+        self.network_security_group = MagicMock()
+        network_client = MagicMock()
+        private_ip_address = Mock()
+        resource_group_name = "group_name"
+        vm_name = "vm_name"
+        security_group = NetworkSecurityGroup()
+        security_group.name = "security_group_name"
+        security_rule = Mock()
+        security_rule.name = "rule_name"
+        security_rule.destination_address_prefix = private_ip_address
+        security_rules = [security_rule]
+        security_group.security_rules = security_rules
+        self.security_group_service.get_network_security_group = MagicMock()
+        self.security_group_service.get_network_security_group.return_value = security_group
+        self.network_service.get_private_ip = Mock(return_value=private_ip_address)
+
+        # Act
+        self.security_group_service.delete_security_rules(network_client, resource_group_name, vm_name)
+
+        # Verify
+        network_client.security_rules.delete.assert_called_once_with(
+            resource_group_name=resource_group_name,
+            network_security_group_name=security_group.name,
+            security_rule_name=security_rule.name
+        )
