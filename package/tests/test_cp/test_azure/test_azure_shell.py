@@ -153,14 +153,12 @@ class TestAzureShell(TestCase):
         error_handling.__enter__.assert_called_once_with()
         error_handling_class.assert_called_once_with(self.logger)
 
-        self.azure_shell.delete_azure_vm_operation.delete_resource_group.assert_called_once_with(
-            resource_client=azure_clients_manager.resource_client,
-            group_name=self.group_name)
-
-        self.azure_shell.delete_azure_vm_operation.delete_sandbox_subnet.assert_called_once_with(
+        self.azure_shell.delete_azure_vm_operation.cleanup_connectivity.assert_called_once_with(
             network_client=azure_clients_manager.network_client,
+            resource_client=azure_clients_manager.resource_client,
             cloud_provider_model=cloud_provider_model,
-            resource_group_name=self.group_name)
+            resource_group_name=self.group_name,
+            logger=self.logger)
 
     @mock.patch("cloudshell.cp.azure.azure_shell.AzureClientsManager")
     @mock.patch("cloudshell.cp.azure.azure_shell.LoggingSessionContext")
