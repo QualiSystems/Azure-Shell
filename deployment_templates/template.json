@@ -2,6 +2,14 @@
 	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
 	"contentVersion": "1.0.0.0",
 	"parameters": {
+		"management_vnet_CIDR":{
+			"defaultValue":"192.168.120.0/24",
+			"type":"String"
+		},	
+		"management_vnet_subnet_CIDR":{
+			"defaultValue":"192.168.120.0/25",
+			"type":"String"
+		},
 		"virtualNetworks_mgmt_vnet_name": {
 			"defaultValue": "mgmt_vnet",
 			"type": "String"
@@ -13,10 +21,23 @@
         "region_name":{
             "defaultValue" : "brazilsouth",
             "type": "String"
-        }
+        },
+		"storageAccountType": {
+		  "type": "string",
+		  "defaultValue": "Standard_LRS",
+		  "allowedValues": [
+			"Standard_LRS",
+			"Standard_GRS",
+			"Standard_ZRS",
+			"Premium_LRS"
+		  ],
+		  "metadata": {
+			"description": "Storage Account type"
+		  }
+		}	
 	},
 	"variables": {
-		
+		"storageAccountName": "[concat(uniquestring(resourceGroup().id), 'standardsa')]"		
 	},
 	"resources": [{
 		"type": "Microsoft.Network/virtualNetworks",
@@ -28,12 +49,12 @@
 		},
 		"properties": {
 			"addressSpace": {
-				"addressPrefixes": ["192.168.120.0/24"]
+				"addressPrefixes": "[parameters('management_vnet_CIDR')]"
 			},
 			"subnets": [{
 				"name": "default",
 				"properties": {
-					"addressPrefix": "192.168.120.0/25"
+					"addressPrefix": "[parameters('management_vnet_subnet_CIDR')]"
 				}
 			}]
 		},
@@ -61,5 +82,23 @@
 		},
 		"resources": [],
 		"dependsOn": []
-	}]
+	},
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "name": "[variables('storageAccountName')]",
+      "apiVersion": "2016-01-01",
+      "location": "[resourceGroup().location]",
+      "sku": {
+          "name": "[parameters('storageAccountType')]"
+      },
+      "kind": "Storage", 
+      "properties": {
+      }
+    }],
+  "outputs": {
+      "storageAccountName": {
+          "type": "string",
+          "value": "[variables('storageAccountName')]"
+      }
+  }	
 }
