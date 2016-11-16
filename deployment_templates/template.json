@@ -2,42 +2,47 @@
 	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
 	"contentVersion": "1.0.0.0",
 	"parameters": {
-		"management_vnet_CIDR":{
-			"defaultValue":"192.168.120.0/24",
-			"type":"String"
-		},	
-		"management_vnet_subnet_CIDR":{
-			"defaultValue":"192.168.120.0/25",
-			"type":"String"
+		"management_vnet_CIDR": {
+			"defaultValue": "192.168.120.0/24",
+			"type": "String"
+		},
+		"management_vnet_subnet_CIDR": {
+			"defaultValue": "192.168.120.0/25",
+			"type": "String"
 		},
 		"virtualNetworks_mgmt_vnet_name": {
-			"defaultValue": "mgmt_vnet",
+			"defaultValue": "management_vnet",
 			"type": "String"
 		},
 		"virtualNetworks_sandbox_vnet_name": {
 			"defaultValue": "sandbox_vnet",
 			"type": "String"
 		},
-        "region_name":{
-            "defaultValue" : "brazilsouth",
-            "type": "String"
-        },
+		"region_name": {
+			"defaultValue": "brazilsouth",
+			"type": "String"
+		},
 		"storageAccountType": {
-		  "type": "string",
-		  "defaultValue": "Standard_LRS",
-		  "allowedValues": [
-			"Standard_LRS",
+			"type": "string",
+			"defaultValue": "Standard_LRS",
+			"allowedValues": ["Standard_LRS",
 			"Standard_GRS",
 			"Standard_ZRS",
-			"Premium_LRS"
-		  ],
-		  "metadata": {
-			"description": "Storage Account type"
-		  }
-		}	
+			"Premium_LRS"],
+			"metadata": {
+				"description": "Storage Account type"
+			}
+		}
 	},
 	"variables": {
-		"storageAccountName": "[concat(uniquestring(resourceGroup().id), 'standardsa')]"		
+		"storageAccountName": "[concat(uniquestring(resourceGroup().id), 'standardsa')]",
+		"vNet1": {
+			"name": "[concat('vNet1-', resourceGroup().location)]",
+			"addressSpacePrefix": "10.0.0.0/24",
+			"subnetName": "subnet1",
+			"subnetPrefix": "10.0.0.0/24",
+			"peeringName": "vNet_mgmt-to-vNet_sndbx"
+		}
 	},
 	"resources": [{
 		"type": "Microsoft.Network/virtualNetworks",
@@ -58,7 +63,24 @@
 				}
 			}]
 		},
-		"resources": [],
+		"resources": [{
+			"apiVersion": "2016-06-01",
+			"type": "virtualNetworkPeerings",
+			"name": "[variables('vNet1').peeringName]",
+			"location": "[resourceGroup().location]",
+			"dependsOn": ["[concat('Microsoft.Network/virtualNetworks/', parameters('virtualNetworks_mgmt_vnet_name'))]",
+			"[concat('Microsoft.Network/virtualNetworks/', parameters('virtualNetworks_sandbox_vnet_name'))]"],
+			"comments": "This is the peering from vNet Management to vNet Sandbox",
+			"properties": {
+				"allowVirtualNetworkAccess": "true",
+				"allowForwardedTraffic": "false",
+				"allowGatewayTransit": "false",
+				"useRemoteGateways": "false",
+				"remoteVirtualNetwork": {
+					"id": "[resourceId('Microsoft.Network/virtualNetworks',parameters('virtualNetworks_sandbox_vnet_name'))]"
+				}
+			}
+		}],
 		"dependsOn": []
 	},
 	{
@@ -83,22 +105,23 @@
 		"resources": [],
 		"dependsOn": []
 	},
-    {
-      "type": "Microsoft.Storage/storageAccounts",
-      "name": "[variables('storageAccountName')]",
-      "apiVersion": "2016-01-01",
-      "location": "[resourceGroup().location]",
-      "sku": {
-          "name": "[parameters('storageAccountType')]"
-      },
-      "kind": "Storage", 
-      "properties": {
-      }
-    }],
-  "outputs": {
-      "storageAccountName": {
-          "type": "string",
-          "value": "[variables('storageAccountName')]"
-      }
-  }	
+	{
+		"type": "Microsoft.Storage/storageAccounts",
+		"name": "[variables('storageAccountName')]",
+		"apiVersion": "2016-01-01",
+		"location": "[resourceGroup().location]",
+		"sku": {
+			"name": "[parameters('storageAccountType')]"
+		},
+		"kind": "Storage",
+		"properties": {
+			
+		}
+	}],
+	"outputs": {
+		"storageAccountName": {
+			"type": "string",
+			"value": "[variables('storageAccountName')]"
+		}
+	}
 }
