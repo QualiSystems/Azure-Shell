@@ -81,7 +81,7 @@ class DeployAzureVMOperation(object):
 
         reservation_id = reservation.reservation_id
 
-        app_name = azure_vm_deployment_model.app_name.lower().replace(" ", "")
+        app_name = azure_vm_deployment_model.app_name.replace(" ", "")
         resource_name = app_name
         base_name = resource_name
         random_name = OperationsHelper.generate_name(base_name)

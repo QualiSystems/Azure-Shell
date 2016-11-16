@@ -14,6 +14,6 @@ class OperationsHelper:
         :return:
         """
         name = re.sub("[^a-zA-Z0-9]", "", name)
-        generated_name = "{:.8}{}".format(uuid.uuid4().hex, name)
+        generated_name = "{}{:.8}".format(name, uuid.uuid4().hex)
 
         return generated_name[:length]
