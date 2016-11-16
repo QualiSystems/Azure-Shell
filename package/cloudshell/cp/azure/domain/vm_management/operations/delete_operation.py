@@ -1,3 +1,5 @@
+import traceback
+
 from azure.mgmt.network.models import Subnet
 from msrestazure.azure_exceptions import CloudError
 
@@ -41,7 +43,7 @@ class DeleteAzureVMOperation(object):
             self.delete_resource_group(resource_client=resource_client, group_name=resource_group_name)
 
         except Exception as ex:
-            logger.error("Error in cleanup connectivity. Error: {0}".format(ex.message))
+            logger.error("Error in cleanup connectivity. Error: {0}".format(traceback.format_exc()))
             result['success'] = False
             result['errorMessage'] = 'CleanupConnectivity ended with the error: {0}'.format(ex.message)
 
@@ -66,11 +68,7 @@ class DeleteAzureVMOperation(object):
                                            subnet.name, subnet)
 
     def delete_resource_group(self, resource_client, group_name):
-
-        try:
-            self.vm_service.delete_resource_group(resource_management_client=resource_client, group_name=group_name)
-        except Exception as e:
-            raise e
+        self.vm_service.delete_resource_group(resource_management_client=resource_client, group_name=group_name)
 
     def delete_sandbox_subnet(self, network_client, cloud_provider_model, resource_group_name):
         sandbox_virtual_network = self.network_service.get_sandbox_virtual_network(network_client=network_client,
@@ -113,9 +111,9 @@ class DeleteAzureVMOperation(object):
 
         except CloudError as e:
             if e.response.reason == "Not Found":
-                logger.info('Deleting Azure VM Exception... ' + e.message)
+                logger.info('Deleting Azure VM Exception: {0}'.format(traceback.format_exc()))
             else:
-                raise e
-        except Exception as e:
-            logger.info('Deleting Azure VM Exception...')
-            raise e
+                raise
+        except Exception:
+            logger.info('Deleting Azure VM Exception: {0}'.format(traceback.format_exc()))
+            raise
