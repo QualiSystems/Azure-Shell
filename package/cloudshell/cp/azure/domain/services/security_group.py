@@ -8,8 +8,9 @@ class SecurityGroupService(object):
     RULE_DEFAULT_PRIORITY = 1000
     RULE_PRIORITY_INCREASE_STEP = 5
 
-    def __init__(self):
+    def __init__(self, network_service):
         self._lock = Lock()
+        self.network_service = network_service
 
     def _rule_priority_generator(self, existing_rules, start_from=None):
         """Endless priority generator for NSG rules
@@ -137,6 +138,20 @@ class SecurityGroupService(object):
 
             return operation_poller.result()
 
+    def get_network_security_group(self, network_client, group_name):
+        network_security_groups = self.list_network_security_group(
+            network_client=network_client,
+            group_name=group_name)
+        self._validate_network_security_group_is_single_per_group(network_security_groups, group_name)
+        return network_security_groups[0]
+
+    @staticmethod
+    def _validate_network_security_group_is_single_per_group(resources_list, group_name):
+        if len(resources_list) > 1:
+            raise Exception("The resource group {} contains more than one network security group.".format(group_name))
+        if len(resources_list) == 0:
+            raise Exception("The resource group {} does not contain a network security group.".format(group_name))
+
     def create_network_security_group_rules(self, network_client, group_name, security_group_name,
                                             inbound_rules, destination_addr, start_from=None):
         """Create NSG inbound rules on the Azure
@@ -163,3 +178,37 @@ class SecurityGroupService(object):
                     rule_data=rule_data,
                     destination_addr=destination_addr,
                     priority=next(priority_generator))
+
+    def delete_security_rules(self, network_client, resource_group_name, vm_name):
+        """
+        removes NSG inbound rules for virtual machine (based on private ip address)
+
+        :param vm_name:
+        :param network_client: azure.mgmt.network.NetworkManagementClient instance
+        :param resource_group_name: resource group name (reservation id)
+
+        :return: None
+        """
+
+        private_ip_address = self.network_service.get_private_ip(network_client=network_client,
+                                                                 group_name=resource_group_name,
+                                                                 vm_name=vm_name)
+        # NetworkSecurityGroup
+        security_group = self.get_network_security_group(network_client=network_client, group_name=resource_group_name)
+
+        if security_group is None:
+            raise Exception("Could not find NetworkSecurityGroup in '{}'".format(resource_group_name))
+
+        rules = security_group.security_rules
+
+        vm_rules = [rule for rule in rules if rule.destination_address_prefix == private_ip_address]
+
+        if vm_rules is None or len(vm_rules) == 0:
+            return
+
+        for vm_rule in vm_rules:
+            network_client.security_rules.delete(
+                resource_group_name=resource_group_name,
+                network_security_group_name=security_group.name,
+                security_rule_name=vm_rule.name
+            )

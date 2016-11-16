@@ -50,13 +50,9 @@ class DeployAzureVMOperation(object):
             inbound_rules = RulesAttributeParser.parse_port_group_attribute(
                 ports_attribute=azure_vm_deployment_model.inbound_ports)
 
-            network_security_groups = self.security_group_service.list_network_security_group(
+            network_security_group = self.security_group_service.get_network_security_group(
                 network_client=network_client,
                 group_name=group_name)
-
-            self._validate_resource_is_single_per_group(network_security_groups, group_name, "network security group")
-
-            network_security_group = network_security_groups[0]
 
             self.security_group_service.create_network_security_group_rules(
                 network_client=network_client,
@@ -85,7 +81,7 @@ class DeployAzureVMOperation(object):
 
         reservation_id = reservation.reservation_id
 
-        app_name = azure_vm_deployment_model.app_name.lower().replace(" ", "")
+        app_name = azure_vm_deployment_model.app_name.replace(" ", "")
         resource_name = app_name
         base_name = resource_name
         random_name = OperationsHelper.generate_name(base_name)
@@ -208,6 +204,7 @@ class DeployAzureVMOperation(object):
                             deployed_app_address=private_ip_address,
                             public_ip=public_ip_address,
                             resource_group=reservation_id)
+
 
     def _validate_resource_is_single_per_group(self, resources_list, group_name, resource_name):
         if len(resources_list) > 1:

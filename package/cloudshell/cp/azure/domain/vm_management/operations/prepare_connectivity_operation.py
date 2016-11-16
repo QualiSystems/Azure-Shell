@@ -1,7 +1,6 @@
+from threading import Lock
 from azure.mgmt.network.models import SecurityRuleProtocol, SecurityRule, SecurityRuleAccess
-
 from cloudshell.cp.azure.common.exceptions.virtual_network_not_found_exception import VirtualNetworkNotFoundException
-
 from cloudshell.cp.azure.common.operations_helper import OperationsHelper
 from cloudshell.cp.azure.models.prepare_connectivity_action_result import PrepareConnectivityActionResult
 
@@ -33,6 +32,7 @@ class PrepareConnectivityOperation(object):
         self.tags_service = tags_service
         self.key_pair_service = key_pair_service
         self.security_group_service = security_group_service
+        self.subnet_locker = Lock()
 
     def prepare_connectivity(self,
                              reservation,
@@ -67,6 +67,7 @@ class PrepareConnectivityOperation(object):
                                               region=cloud_provider_model.region, tags=tags)
 
         storage_account_name = OperationsHelper.generate_name(reservation_id)
+
         # 2. Create a storage account
         logger.info("Creating a storage account {0} .".format(storage_account_name))
         action_result.storage_name = self.storage_service.create_storage_account(storage_client=storage_client,
@@ -76,13 +77,10 @@ class PrepareConnectivityOperation(object):
                                                                                  tags=tags,
                                                                                  wait_until_created=True)
         # 3 Create a Key pair for the sandbox
-        logger.info("Creating a Key pair for the sandbox.")
-        key_pair = self.key_pair_service.generate_key_pair()
-
-        self.key_pair_service.save_key_pair(storage_client=storage_client,
-                                            group_name=group_name,
-                                            storage_name=storage_account_name,
-                                            key_pair=key_pair)
+        self._create_key_pair(group_name=group_name,
+                              logger=logger,
+                              storage_account_name=storage_account_name,
+                              storage_client=storage_client)
 
         virtual_networks = self.network_service.get_virtual_networks(network_client=network_client,
                                                                      group_name=cloud_provider_model.management_group_name)
@@ -91,38 +89,65 @@ class PrepareConnectivityOperation(object):
                                                                           tag_key='network_type', tag_value='mgmt',
                                                                           tags_service=self.tags_service)
 
-        if management_vnet is None:
-            raise VirtualNetworkNotFoundException("Could not find Management Virtual Network in Azure.")
+        self._validate_management_vnet(management_vnet)
 
         sandbox_vnet = self.network_service.get_virtual_network_by_tag(virtual_networks=virtual_networks,
                                                                        tag_key='network_type',
                                                                        tag_value='sandbox',
                                                                        tags_service=self.tags_service)
 
-        if sandbox_vnet is None:
-            raise VirtualNetworkNotFoundException("Could not find Sandbox Virtual Network in Azure.")
+        self._validate_sandbox_vnet(sandbox_vnet)
 
         # 4.Create the NSG object
         security_group_name = OperationsHelper.generate_name(reservation_id)
         logger.info("Creating a network security group '{}' .".format(security_group_name))
         network_security_group = self.security_group_service.create_network_security_group(
-            network_client=network_client,
-            group_name=group_name,
-            security_group_name=security_group_name,
-            region=cloud_provider_model.region,
-            tags=tags)
+                network_client=network_client,
+                group_name=group_name,
+                security_group_name=security_group_name,
+                region=cloud_provider_model.region,
+                tags=tags)
 
         for action in request.actions:
             cidr = self._extract_cidr(action)
             logger.info("Received CIDR {0} from server".format(cidr))
 
             # 5. Create a subnet
-            name = cloud_provider_model.management_group_name
+            self._create_subnet(cidr=cidr,
+                                cloud_provider_model=cloud_provider_model,
+                                logger=logger,
+                                network_client=network_client,
+                                network_security_group=network_security_group,
+                                sandbox_vnet=sandbox_vnet,
+                                subnet_name=subnet_name)
 
-            logger.info("Creating a subnet {0} under: {1}/{2}.".format(name,name,sandbox_vnet.name))
+            self._create_management_rules(group_name, management_vnet, network_client, security_group_name)
 
+            action_result.subnet_name = subnet_name
+
+        result.append(action_result)
+        return result
+
+    def _create_key_pair(self, group_name, logger, storage_account_name, storage_client):
+        logger.info("Creating a Key pair for the sandbox.")
+        key_pair = self.key_pair_service.generate_key_pair()
+        self.key_pair_service.save_key_pair(storage_client=storage_client,
+                                            group_name=group_name,
+                                            storage_name=storage_account_name,
+                                            key_pair=key_pair)
+
+    def _create_subnet(self, cidr, cloud_provider_model, logger, network_client, network_security_group, sandbox_vnet,
+                       subnet_name):
+        """
+        This method is atomic
+        """
+        with self.subnet_locker:
+            logger.info(
+                "Creating a subnet {0} under: {1}/{2}.".format(subnet_name,
+                                                               cloud_provider_model.management_group_name,
+                                                               sandbox_vnet.name))
             self.network_service.create_subnet(network_client=network_client,
-                                               resource_group_name=name,
+                                               resource_group_name=cloud_provider_model.management_group_name,
                                                subnet_name=subnet_name,
                                                subnet_cidr=cidr,
                                                virtual_network=sandbox_vnet,
@@ -130,13 +155,7 @@ class PrepareConnectivityOperation(object):
                                                network_security_group=network_security_group,
                                                wait_for_result=True)
 
-            action_result.subnet_name = subnet_name
-            self.create_management_rules(group_name, management_vnet, network_client, security_group_name)
-
-        result.append(action_result)
-        return result
-
-    def create_management_rules(self, group_name, management_vnet, network_client, security_group_name):
+    def _create_management_rules(self, group_name, management_vnet, network_client, security_group_name):
 
         # Rule 1: Deny inbound other subnets
         priority = 4000
@@ -145,15 +164,15 @@ class PrepareConnectivityOperation(object):
                                                                               group_name=group_name,
                                                                               security_group_name=security_group_name,
                                                                               rule=SecurityRule(
-                                                                                  access=SecurityRuleAccess.deny,
-                                                                                  direction="Inbound",
-                                                                                  source_address_prefix='VirtualNetwork',
-                                                                                  source_port_range=all,
-                                                                                  name="rule_{}".format(priority),
-                                                                                  destination_address_prefix=all,
-                                                                                  destination_port_range=all,
-                                                                                  priority=priority,
-                                                                                  protocol=all))
+                                                                                      access=SecurityRuleAccess.deny,
+                                                                                      direction="Inbound",
+                                                                                      source_address_prefix='VirtualNetwork',
+                                                                                      source_port_range=all,
+                                                                                      name="rule_{}".format(priority),
+                                                                                      destination_address_prefix=all,
+                                                                                      destination_port_range=all,
+                                                                                      priority=priority,
+                                                                                      protocol=all))
         # Rule 2: Allow management subnet traffic rule
         source_address_prefix = management_vnet.address_space.address_prefixes[0]
         priority = 3900
@@ -161,15 +180,25 @@ class PrepareConnectivityOperation(object):
                                                                               group_name=group_name,
                                                                               security_group_name=security_group_name,
                                                                               rule=SecurityRule(
-                                                                                  access=SecurityRuleAccess.allow,
-                                                                                  direction="Inbound",
-                                                                                  source_address_prefix=source_address_prefix,
-                                                                                  source_port_range=all,
-                                                                                  name="rule_{}".format(priority),
-                                                                                  destination_address_prefix=all,
-                                                                                  destination_port_range=all,
-                                                                                  priority=priority,
-                                                                                  protocol=all))
+                                                                                      access=SecurityRuleAccess.allow,
+                                                                                      direction="Inbound",
+                                                                                      source_address_prefix=source_address_prefix,
+                                                                                      source_port_range=all,
+                                                                                      name="rule_{}".format(priority),
+                                                                                      destination_address_prefix=all,
+                                                                                      destination_port_range=all,
+                                                                                      priority=priority,
+                                                                                      protocol=all))
+
+    @staticmethod
+    def _validate_management_vnet(management_vnet):
+        if management_vnet is None:
+            raise VirtualNetworkNotFoundException("Could not find Management Virtual Network in Azure.")
+
+    @staticmethod
+    def _validate_sandbox_vnet(sandbox_vnet):
+        if sandbox_vnet is None:
+            raise VirtualNetworkNotFoundException("Could not find Sandbox Virtual Network in Azure.")
 
     @staticmethod
     def _extract_cidr(action):

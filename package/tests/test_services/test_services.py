@@ -2,7 +2,7 @@ from unittest import TestCase
 
 import azure
 import mock
-from azure.mgmt.network.models import IPAllocationMethod
+from azure.mgmt.network.models import IPAllocationMethod, NetworkSecurityGroup, SecurityRule
 from azure.mgmt.storage.models import StorageAccountCreateParameters
 from mock import MagicMock
 from mock import Mock
@@ -61,7 +61,8 @@ class TestStorageService(TestCase):
         wait_until_created = True
 
         # Act
-        self.storage_service.create_storage_account(storage_client, group_name, region, account_name, tags, wait_until_created)
+        self.storage_service.create_storage_account(storage_client, group_name, region, account_name, tags,
+                                                    wait_until_created)
 
         # Verify
         self.assertTrue(TestHelper.CheckMethodCalledXTimes(storage_accounts_create.wait))
@@ -171,10 +172,11 @@ class TestStorageService(TestCase):
 class TestNetworkService(TestCase):
     def setUp(self):
         self.network_service = NetworkService()
+
     def test_create_virtual_network(self):
         network_client = Mock(return_value=Mock())
         network_client.subnets.get = Mock(return_value="subnet")
-        network_client.virtual_networks.create_or_update=Mock(return_value=Mock())
+        network_client.virtual_networks.create_or_update = Mock(return_value=Mock())
         management_group_name = Mock()
         region = Mock()
         network_name = Mock()
@@ -195,28 +197,26 @@ class TestNetworkService(TestCase):
 
         network_client.subnets.get.assert_called()
         network_client.virtual_networks.create_or_update.assert_called_with(management_group_name,
-            network_name,
-            azure.mgmt.network.models.VirtualNetwork(
-                location=region,
-                tags=tags,
-                address_space=azure.mgmt.network.models.AddressSpace(
-                    address_prefixes=[
-                        vnet_cidr,
-                    ],
-                ),
-                subnets=[
-                    azure.mgmt.network.models.Subnet(
-                        network_security_group=network_security_group,
-                        name=subnet_name,
-                        address_prefix=subnet_cidr,
-                    ),
-                ],
-            ),
-            tags=tags)
-
+                                                                            network_name,
+                                                                            azure.mgmt.network.models.VirtualNetwork(
+                                                                                location=region,
+                                                                                tags=tags,
+                                                                                address_space=azure.mgmt.network.models.AddressSpace(
+                                                                                    address_prefixes=[
+                                                                                        vnet_cidr,
+                                                                                    ],
+                                                                                ),
+                                                                                subnets=[
+                                                                                    azure.mgmt.network.models.Subnet(
+                                                                                        network_security_group=network_security_group,
+                                                                                        name=subnet_name,
+                                                                                        address_prefix=subnet_cidr,
+                                                                                    ),
+                                                                                ],
+                                                                            ),
+                                                                            tags=tags)
 
     def test_network_for_vm_fails_when_public_ip_type_is_not_correct(self):
-
         self.assertRaises(Exception,
                           self.network_service.create_network_for_vm,
                           network_client=MagicMock(),
@@ -418,7 +418,8 @@ class TestVMService(TestCase):
         self.vm_service.get_vm = mock.MagicMock(return_value=mocked_vm)
 
         # Act
-        vm = self.vm_service.get_active_vm(compute_management_client=compute_client, group_name=group_name, vm_name=vm_name)
+        vm = self.vm_service.get_active_vm(compute_management_client=compute_client, group_name=group_name,
+                                           vm_name=vm_name)
 
         # Verify
         self.assertIs(vm, mocked_vm)
@@ -432,7 +433,8 @@ class TestVMService(TestCase):
         self.vm_service.get_vm = mock.MagicMock(return_value=mocked_vm)
 
         with self.assertRaises(Exception):
-            self.vm_service.get_active_vm(compute_management_client=compute_client, group_name=group_name, vm_name=vm_name)
+            self.vm_service.get_active_vm(compute_management_client=compute_client, group_name=group_name,
+                                          vm_name=vm_name)
 
 
 class TestVMCredentialsService(TestCase):
@@ -650,7 +652,8 @@ class TestKeyPairService(TestCase):
 
 class TestSecurityGroupService(TestCase):
     def setUp(self):
-        self.security_group_service = SecurityGroupService()
+        self.network_service = MagicMock()
+        self.security_group_service = SecurityGroupService(self.network_service)
         self.group_name = "test_group_name"
         self.security_group_name = "teststoragename"
         self.network_client = mock.MagicMock()
@@ -786,3 +789,49 @@ class TestSecurityGroupService(TestCase):
             resource_group_name=self.group_name,
             security_rule_name=rule_model.name,
             security_rule_parameters=rule_model)
+
+    def test_get_network_security_group(self):
+        # Arrange
+        self.network_security_group = MagicMock()
+        self.security_group_service.list_network_security_group = MagicMock()
+        self.security_group_service.list_network_security_group.return_value = self.network_security_group
+        self.security_group_service._validate_network_security_group_is_single_per_group = MagicMock()
+
+        # Act
+        self.security_group_service.get_network_security_group(self.network_client, self.group_name)
+
+        # Verify
+        self.security_group_service.list_network_security_group.assert_called_once_with(
+            network_client=self.network_client,
+            group_name=self.group_name)
+        self.security_group_service._validate_network_security_group_is_single_per_group.assert_called_once_with(
+            self.network_security_group,
+            self.group_name)
+
+    def test_delete_security_rules(self):
+        # Arrange
+        self.network_security_group = MagicMock()
+        network_client = MagicMock()
+        private_ip_address = Mock()
+        resource_group_name = "group_name"
+        vm_name = "vm_name"
+        security_group = NetworkSecurityGroup()
+        security_group.name = "security_group_name"
+        security_rule = Mock()
+        security_rule.name = "rule_name"
+        security_rule.destination_address_prefix = private_ip_address
+        security_rules = [security_rule]
+        security_group.security_rules = security_rules
+        self.security_group_service.get_network_security_group = MagicMock()
+        self.security_group_service.get_network_security_group.return_value = security_group
+        self.network_service.get_private_ip = Mock(return_value=private_ip_address)
+
+        # Act
+        self.security_group_service.delete_security_rules(network_client, resource_group_name, vm_name)
+
+        # Verify
+        network_client.security_rules.delete.assert_called_once_with(
+            resource_group_name=resource_group_name,
+            network_security_group_name=security_group.name,
+            security_rule_name=security_rule.name
+        )

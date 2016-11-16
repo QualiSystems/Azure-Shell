@@ -32,10 +32,10 @@ class TestAzureShell(TestCase):
 
     @mock.patch("cloudshell.cp.azure.azure_shell.ValidatorsFactoryContext")
     @mock.patch("cloudshell.cp.azure.azure_shell.CloudShellSessionContext")
-    @mock.patch("cloudshell.cp.azure.azure_shell.AzureClientFactoryContext")
+    @mock.patch("cloudshell.cp.azure.azure_shell.AzureClientsManager")
     @mock.patch("cloudshell.cp.azure.azure_shell.LoggingSessionContext")
     @mock.patch("cloudshell.cp.azure.azure_shell.ErrorHandlingContext")
-    def test_deploy_azure_vm(self, error_handling_class, logging_context_class, azure_clients_factory_context_class,
+    def test_deploy_azure_vm(self, error_handling_class, logging_context_class, azure_clients_manager_class,
                              cloudshell_session_context_class, validators_factory_context_class):
         """Check that method uses ErrorHandlingContext and deploy_azure_vm_operation.deploy method"""
         # mock Cloudshell Session
@@ -48,11 +48,8 @@ class TestAzureShell(TestCase):
         error_handling = mock.MagicMock()
         error_handling_class.return_value = error_handling
         # mock Azure clients
-        azure_client = mock.MagicMock()
-        azure_client_factory = mock.MagicMock()
-        azure_client_factory.get_client.return_value = azure_client
-        azure_clients_factory_context = mock.MagicMock(__enter__=mock.MagicMock(return_value=azure_client_factory))
-        azure_clients_factory_context_class.return_value = azure_clients_factory_context
+        azure_clients_manager = mock.MagicMock()
+        azure_clients_manager_class.return_value = azure_clients_manager
         # mock ValidatorsFactoryContext
         validator_factory = mock.MagicMock()
         validator_factory_context = mock.MagicMock(__enter__=mock.MagicMock(return_value=validator_factory))
@@ -78,18 +75,18 @@ class TestAzureShell(TestCase):
             azure_vm_deployment_model=azure_vm_deployment_model,
             cloud_provider_model=cloud_provider_model,
             reservation=reservation,
-            network_client=azure_client,
-            compute_client=azure_client,
-            storage_client=azure_client,
+            network_client=azure_clients_manager.network_client,
+            compute_client=azure_clients_manager.compute_client,
+            storage_client=azure_clients_manager.storage_client,
             validator_factory=validator_factory)
 
     @mock.patch("cloudshell.cp.azure.azure_shell.jsonpickle")
     @mock.patch("cloudshell.cp.azure.azure_shell.DeployDataHolder")
-    @mock.patch("cloudshell.cp.azure.azure_shell.AzureClientFactoryContext")
+    @mock.patch("cloudshell.cp.azure.azure_shell.AzureClientsManager")
     @mock.patch("cloudshell.cp.azure.azure_shell.LoggingSessionContext")
     @mock.patch("cloudshell.cp.azure.azure_shell.ErrorHandlingContext")
     def test_prepare_connectivity(self, error_handling_class, logging_context_class,
-                                  azure_clients_factory_context_class, deploy_data_holder_class, jsonpickle):
+                                  azure_clients_manager_class, deploy_data_holder_class, jsonpickle):
         """Check that method uses ErrorHandlingContext and prepare_connectivity_operation"""
         # mock LoggingSessionContext and ErrorHandlingContext
         logging_context = mock.MagicMock(__enter__=mock.MagicMock(return_value=self.logger))
@@ -97,11 +94,8 @@ class TestAzureShell(TestCase):
         error_handling = mock.MagicMock()
         error_handling_class.return_value = error_handling
         # mock Azure clients
-        azure_client = mock.MagicMock()
-        azure_client_factory = mock.MagicMock()
-        azure_client_factory.get_client.return_value = azure_client
-        azure_clients_factory_context = mock.MagicMock(__enter__=mock.MagicMock(return_value=azure_client_factory))
-        azure_clients_factory_context_class.return_value = azure_clients_factory_context
+        azure_clients_manager = mock.MagicMock()
+        azure_clients_manager_class.return_value = azure_clients_manager
         # mock Resource Group name
         reservation = mock.MagicMock()
         self.azure_shell.model_parser.convert_to_reservation_model.return_value = reservation
@@ -124,20 +118,20 @@ class TestAzureShell(TestCase):
         self.azure_shell.prepare_connectivity_operation.prepare_connectivity.assert_called_once_with(
             reservation=reservation,
             cloud_provider_model=cloud_provider_model,
-            storage_client=azure_client,
-            resource_client=azure_client,
-            network_client=azure_client,
+            storage_client=azure_clients_manager.storage_client,
+            resource_client=azure_clients_manager.resource_client,
+            network_client=azure_clients_manager.network_client,
             logger=self.logger,
             request=deploy_data_holder.driverRequest)
 
         self.azure_shell.command_result_parser.set_command_result.assert_called_once_with(
             {'driverResponse': {'actionResults': prepare_connectivity_result}})
 
-    @mock.patch("cloudshell.cp.azure.azure_shell.AzureClientFactoryContext")
+    @mock.patch("cloudshell.cp.azure.azure_shell.AzureClientsManager")
     @mock.patch("cloudshell.cp.azure.azure_shell.LoggingSessionContext")
     @mock.patch("cloudshell.cp.azure.azure_shell.ErrorHandlingContext")
     def test_cleanup_connectivity(self, error_handling_class, logging_context_class,
-                                  azure_clients_factory_context_class):
+                                  azure_clients_manager_class):
         """Check that method uses ErrorHandlingContext and delete_azure_vm_operation"""
         # mock LoggingSessionContext and ErrorHandlingContext
         logging_context = mock.MagicMock(__enter__=mock.MagicMock(return_value=self.logger))
@@ -145,11 +139,8 @@ class TestAzureShell(TestCase):
         error_handling = mock.MagicMock()
         error_handling_class.return_value = error_handling
         # mock Azure clients
-        azure_client = mock.MagicMock()
-        azure_client_factory = mock.MagicMock()
-        azure_client_factory.get_client.return_value = azure_client
-        azure_clients_factory_context = mock.MagicMock(__enter__=mock.MagicMock(return_value=azure_client_factory))
-        azure_clients_factory_context_class.return_value = azure_clients_factory_context
+        azure_clients_manager = mock.MagicMock()
+        azure_clients_manager_class.return_value = azure_clients_manager
 
         command_context = mock.MagicMock(reservation=mock.MagicMock(reservation_id=self.group_name))
         cloud_provider_model = mock.MagicMock()
@@ -162,19 +153,17 @@ class TestAzureShell(TestCase):
         error_handling.__enter__.assert_called_once_with()
         error_handling_class.assert_called_once_with(self.logger)
 
-        self.azure_shell.delete_azure_vm_operation.delete_resource_group.assert_called_once_with(
-            resource_client=azure_client,
-            group_name=self.group_name)
-
-        self.azure_shell.delete_azure_vm_operation.delete_sandbox_subnet.assert_called_once_with(
-            network_client=azure_client,
+        self.azure_shell.delete_azure_vm_operation.cleanup_connectivity.assert_called_once_with(
+            network_client=azure_clients_manager.network_client,
+            resource_client=azure_clients_manager.resource_client,
             cloud_provider_model=cloud_provider_model,
-            resource_group_name=self.group_name)
+            resource_group_name=self.group_name,
+            logger=self.logger)
 
-    @mock.patch("cloudshell.cp.azure.azure_shell.AzureClientFactoryContext")
+    @mock.patch("cloudshell.cp.azure.azure_shell.AzureClientsManager")
     @mock.patch("cloudshell.cp.azure.azure_shell.LoggingSessionContext")
     @mock.patch("cloudshell.cp.azure.azure_shell.ErrorHandlingContext")
-    def test_delete_azure_vm(self, error_handling_class, logging_context_class, azure_clients_factory_context_class):
+    def test_delete_azure_vm(self, error_handling_class, logging_context_class, azure_clients_manager_class):
         """Check that method uses ErrorHandlingContext and delete_azure_vm_operation.delete method"""
         # mock LoggingSessionContext and ErrorHandlingContext
         logging_context = mock.MagicMock(__enter__=mock.MagicMock(return_value=self.logger))
@@ -182,11 +171,8 @@ class TestAzureShell(TestCase):
         error_handling = mock.MagicMock()
         error_handling_class.return_value = error_handling
         # mock Azure clients
-        azure_client = mock.MagicMock()
-        azure_client_factory = mock.MagicMock()
-        azure_client_factory.get_client.return_value = azure_client
-        azure_clients_factory_context = mock.MagicMock(__enter__=mock.MagicMock(return_value=azure_client_factory))
-        azure_clients_factory_context_class.return_value = azure_clients_factory_context
+        azure_clients_manager = mock.MagicMock()
+        azure_clients_manager_class.return_value = azure_clients_manager
         # mock VM name
         data_holder = mock.MagicMock()
         vm_custom_param = mock.MagicMock()
@@ -208,17 +194,17 @@ class TestAzureShell(TestCase):
         error_handling_class.assert_called_once_with(self.logger)
 
         self.azure_shell.delete_azure_vm_operation.delete.assert_called_once_with(
-            compute_client=azure_client,
-            network_client=azure_client,
+            compute_client=azure_clients_manager.compute_client,
+            network_client=azure_clients_manager.network_client,
             group_name=self.group_name,
             vm_name=self.vm_name,
             logger=self.logger)
 
     @mock.patch("cloudshell.cp.azure.azure_shell.CloudShellSessionContext")
-    @mock.patch("cloudshell.cp.azure.azure_shell.AzureClientFactoryContext")
+    @mock.patch("cloudshell.cp.azure.azure_shell.AzureClientsManager")
     @mock.patch("cloudshell.cp.azure.azure_shell.LoggingSessionContext")
     @mock.patch("cloudshell.cp.azure.azure_shell.ErrorHandlingContext")
-    def test_power_on_vm(self, error_handling_class, logging_context_class, azure_clients_factory_context_class,
+    def test_power_on_vm(self, error_handling_class, logging_context_class, azure_clients_manager_class,
                          cloudshell_session_context_class):
         """Check that method uses ErrorHandlingContext and power_vm_operation.power_on method"""
         # mock Cloudshell Session
@@ -231,11 +217,8 @@ class TestAzureShell(TestCase):
         error_handling = mock.MagicMock()
         error_handling_class.return_value = error_handling
         # mock Azure clients
-        azure_client = mock.MagicMock()
-        azure_client_factory = mock.MagicMock()
-        azure_client_factory.get_client.return_value = azure_client
-        azure_clients_factory_context = mock.MagicMock(__enter__=mock.MagicMock(return_value=azure_client_factory))
-        azure_clients_factory_context_class.return_value = azure_clients_factory_context
+        azure_clients_manager = mock.MagicMock()
+        azure_clients_manager_class.return_value = azure_clients_manager
         # mock VM name
         data_holder = mock.MagicMock()
         data_holder.name = self.vm_name
@@ -254,7 +237,7 @@ class TestAzureShell(TestCase):
         error_handling_class.assert_called_once_with(self.logger)
 
         self.azure_shell.power_vm_operation.power_on.assert_called_once_with(
-            compute_client=azure_client,
+            compute_client=azure_clients_manager.compute_client,
             resource_group_name=self.group_name,
             vm_name=self.vm_name)
 
@@ -262,10 +245,10 @@ class TestAzureShell(TestCase):
             command_context.remote_endpoints[0].fullname, "Online", "Active")
 
     @mock.patch("cloudshell.cp.azure.azure_shell.CloudShellSessionContext")
-    @mock.patch("cloudshell.cp.azure.azure_shell.AzureClientFactoryContext")
+    @mock.patch("cloudshell.cp.azure.azure_shell.AzureClientsManager")
     @mock.patch("cloudshell.cp.azure.azure_shell.LoggingSessionContext")
     @mock.patch("cloudshell.cp.azure.azure_shell.ErrorHandlingContext")
-    def test_power_off_vm(self, error_handling_class, logging_context_class, azure_clients_factory_context_class,
+    def test_power_off_vm(self, error_handling_class, logging_context_class, azure_clients_manager_class,
                           cloudshell_session_context_class):
         """Check that method uses ErrorHandlingContext and power_vm_operation.power_off method"""
         # mock Cloudshell Session
@@ -278,11 +261,8 @@ class TestAzureShell(TestCase):
         error_handling = mock.MagicMock()
         error_handling_class.return_value = error_handling
         # mock Azure clients
-        azure_client = mock.MagicMock()
-        azure_client_factory = mock.MagicMock()
-        azure_client_factory.get_client.return_value = azure_client
-        azure_clients_factory_context = mock.MagicMock(__enter__=mock.MagicMock(return_value=azure_client_factory))
-        azure_clients_factory_context_class.return_value = azure_clients_factory_context
+        azure_clients_manager = mock.MagicMock()
+        azure_clients_manager_class.return_value = azure_clients_manager
         # mock VM name
         data_holder = mock.MagicMock()
         data_holder.name = self.vm_name
@@ -301,7 +281,7 @@ class TestAzureShell(TestCase):
         error_handling_class.assert_called_once_with(self.logger)
 
         self.azure_shell.power_vm_operation.power_off.assert_called_once_with(
-            compute_client=azure_client,
+            compute_client=azure_clients_manager.compute_client,
             resource_group_name=self.group_name,
             vm_name=self.vm_name)
 
@@ -309,10 +289,10 @@ class TestAzureShell(TestCase):
             command_context.remote_endpoints[0].fullname, "Offline", "Powered Off")
 
     @mock.patch("cloudshell.cp.azure.azure_shell.CloudShellSessionContext")
-    @mock.patch("cloudshell.cp.azure.azure_shell.AzureClientFactoryContext")
+    @mock.patch("cloudshell.cp.azure.azure_shell.AzureClientsManager")
     @mock.patch("cloudshell.cp.azure.azure_shell.LoggingSessionContext")
     @mock.patch("cloudshell.cp.azure.azure_shell.ErrorHandlingContext")
-    def test_refresh_ip(self, error_handling_class, logging_context_class, azure_clients_factory_context_class,
+    def test_refresh_ip(self, error_handling_class, logging_context_class, azure_clients_manager_class,
                         cloudshell_session_context_class):
         """Check that method uses ErrorHandlingContext and refresh_ip_operation.refresh_ip method"""
         # mock Cloudshell Session
@@ -325,11 +305,8 @@ class TestAzureShell(TestCase):
         error_handling = mock.MagicMock()
         error_handling_class.return_value = error_handling
         # mock Azure clients
-        azure_client = mock.MagicMock()
-        azure_client_factory = mock.MagicMock()
-        azure_client_factory.get_client.return_value = azure_client
-        azure_clients_factory_context = mock.MagicMock(__enter__=mock.MagicMock(return_value=azure_client_factory))
-        azure_clients_factory_context_class.return_value = azure_clients_factory_context
+        azure_clients_manager = mock.MagicMock()
+        azure_clients_manager_class.return_value = azure_clients_manager
         # mock VM name
         data_holder = mock.MagicMock()
         data_holder.name = self.vm_name
@@ -356,8 +333,8 @@ class TestAzureShell(TestCase):
 
         self.azure_shell.refresh_ip_operation.refresh_ip.assert_called_once_with(
             cloudshell_session=cloudshell_session,
-            compute_client=azure_client,
-            network_client=azure_client,
+            compute_client=azure_clients_manager.compute_client,
+            network_client=azure_clients_manager.network_client,
             resource_group_name=self.group_name,
             vm_name=self.vm_name,
             private_ip_on_resource=private_ip,
