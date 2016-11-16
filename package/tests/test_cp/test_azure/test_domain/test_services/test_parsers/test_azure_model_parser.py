@@ -46,7 +46,6 @@ class TestAzureModelsParser(TestCase):
         self.assertEqual(result.add_public_ip, data_holder.ami_params.add_public_ip)
         self.assertEqual(result.autoload, data_holder.ami_params.autoload)
         self.assertEqual(result.cloud_provider, data_holder.ami_params.cloud_provider)
-        self.assertEqual(result.disk_type, data_holder.ami_params.disk_type)
         self.assertEqual(result.group_name, data_holder.ami_params.group_name)
         self.assertEqual(result.image_offer, data_holder.ami_params.image_offer)
         self.assertEqual(result.image_publisher, data_holder.ami_params.image_publisher)

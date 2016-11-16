@@ -38,7 +38,6 @@ class ResourceContextConverter(object):
         deployed_resource.image_publisher = resource.attributes['Image Publisher']
         deployed_resource.image_offer = resource.attributes['Image Offer']
         deployed_resource.image_sku = resource.attributes['Image SKU']
-        deployed_resource.disk_type = resource.attributes['Disk Type']
 
         app_request = jsonpickle.decode(resource.app_context.app_request_json)
         attrs = app_request["logicalResource"]["attributes"]
