@@ -21,7 +21,6 @@ class AzureModelsParser(object):
         deployment_resource_model.add_public_ip = data_holder.ami_params.add_public_ip
         deployment_resource_model.autoload = data_holder.ami_params.autoload
         deployment_resource_model.cloud_provider = data_holder.ami_params.cloud_provider
-        deployment_resource_model.disk_type = data_holder.ami_params.disk_type
         deployment_resource_model.group_name = data_holder.ami_params.group_name
         deployment_resource_model.image_offer = data_holder.ami_params.image_offer
         deployment_resource_model.image_publisher = data_holder.ami_params.image_publisher
