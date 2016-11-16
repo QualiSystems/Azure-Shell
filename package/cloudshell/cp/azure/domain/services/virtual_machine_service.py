@@ -57,7 +57,19 @@ class VirtualMachineService(object):
 
     def _create_vm(self, compute_management_client, region, group_name, vm_name, hardware_profile, network_profile,
                    os_profile, storage_profile, tags):
+        """Create and deploy Azure VM from the given parameters
 
+        :param compute_management_client: azure.mgmt.compute.compute_management_client.ComputeManagementClient
+        :param region: (str) Azure region
+        :param group_name: (str) resource group name (reservation id)
+        :param vm_name: (str) Azure VM resource name
+        :param hardware_profile: azure.mgmt.compute.models.HardwareProfile instance
+        :param network_profile: azure.mgmt.compute.models.NetworkProfile instance
+        :param os_profile: azure.mgmt.compute.models.OSProfile instance
+        :param storage_profile: azure.mgmt.compute.models.StorageProfile instance
+        :param tags: azure tags
+        :return: azure.mgmt.compute.models.VirtualMachine instance
+        """
         virtual_machine = VirtualMachine(location=region,
                                          tags=tags,
                                          os_profile=os_profile,
@@ -69,7 +81,12 @@ class VirtualMachineService(object):
         return vm_result.result()
 
     def _prepare_os_profile(self, vm_credentials, computer_name):
+        """Prepare OS profile object for the VM
 
+        :param vm_credentials: cloudshell.cp.azure.models.vm_credentials.VMCredentials instance
+        :param computer_name: (str) computer name
+        :return: azure.mgmt.compute.models.OSProfile instance
+        """
         if vm_credentials.ssh_key:
             linux_configuration = self._prepare_linux_configuration(vm_credentials.ssh_key)
         else:
@@ -81,20 +98,20 @@ class VirtualMachineService(object):
                          computer_name=computer_name)
 
     def _prepare_vhd(self, storage_name, vm_name):
-        """
+        """Prepare VHD object for the VM
 
-        :param storage_name:
-        :param vm_name:
-        :return:
+        :param storage_name: (str) storage account name
+        :param vm_name: (str) VM name
+        :return: azure.mgmt.compute.models.VirtualHardDisk instance
         """
         vhd_format = 'https://{}.blob.core.windows.net/vhds/{}.vhd'.format(storage_name, vm_name)
         return VirtualHardDisk(uri=vhd_format)
 
     def _prepare_image_os_type(self, image_os_type):
-        """
+        """Prepare Image OS Type object for the VM
 
-        :param image_os_type:
-        :return:
+        :param image_os_type: (str) Image OS Type attribute ("Windows" or "Linux")
+        :return: (enum) azure.mgmt.compute.models.OperatingSystemTypes windows/linux value
         """
         if image_os_type.lower() == "linux":
             return OperatingSystemTypes.linux
@@ -223,16 +240,6 @@ class VirtualMachineService(object):
             os_profile=os_profile,
             storage_profile=storage_profile,
             tags=tags)
-
-        return vm_result.result()
-
-    def _get_virtual_machine(self, hardware_profile, network_profile, os_profile, region, storage_profile, tags):
-        return VirtualMachine(location=region,
-                              tags=tags,
-                              os_profile=os_profile,
-                              hardware_profile=hardware_profile,
-                              network_profile=network_profile,
-                              storage_profile=storage_profile)
 
     def create_resource_group(self, resource_management_client, group_name, region, tags):
         return resource_management_client.resource_groups.create_or_update(group_name,
