@@ -77,10 +77,12 @@ class PrepareConnectivityOperation(object):
                                                                                  tags=tags,
                                                                                  wait_until_created=True)
         # 3 Create a Key pair for the sandbox
-        self._create_key_pair(group_name=group_name,
+        key_pair = self._create_key_pair(group_name=group_name,
                               logger=logger,
                               storage_account_name=storage_account_name,
                               storage_client=storage_client)
+
+        action_result.access_key = key_pair.private_key
 
         virtual_networks = self.network_service.get_virtual_networks(network_client=network_client,
                                                                      group_name=cloud_provider_model.management_group_name)
@@ -135,6 +137,7 @@ class PrepareConnectivityOperation(object):
                                             group_name=group_name,
                                             storage_name=storage_account_name,
                                             key_pair=key_pair)
+        return key_pair
 
     def _create_subnet(self, cidr, cloud_provider_model, logger, network_client, network_security_group, sandbox_vnet,
                        subnet_name):
