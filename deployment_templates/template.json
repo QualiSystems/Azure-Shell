@@ -36,14 +36,10 @@
 	},
 	"variables": {
 		"storageAccountName": "[concat(uniquestring(resourceGroup().id), 'standardsa')]",
-		"vNet1": {			
-			"addressSpacePrefix": "10.0.0.0/24",
-			"subnetName": "subnet1",
-			"subnetPrefix": "10.0.0.0/24",
+		"vNet1": {
 			"peeringName": "vNet_mgmt-to-vNet_sndbx"
 		},
-
-		"vNet2": {						
+		"vNet2": {
 			"peeringName": "vNet_sndbx-to-vNet_mgmt"
 		}
 	},
@@ -134,7 +130,9 @@
 			"name": "[parameters('storageAccountType')]"
 		},
 		"kind": "Storage",
-		"properties": {}
+		"properties": {
+			
+		}
 	}],
 	"outputs": {
 		"storageAccountName": {
