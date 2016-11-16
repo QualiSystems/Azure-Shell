@@ -164,12 +164,6 @@
         <Rule Name="Setting" />
       </Rules>
     </AttributeInfo>
-    <AttributeInfo Name="Disk Type"  DefaultValue="" Description="" IsReadOnly="false" Type="String">
-      <Rules>
-        <Rule Name="Configuration" />
-        <Rule Name="Setting" />
-      </Rules>
-    </AttributeInfo>
 
   </Attributes>
   <ResourceFamilies>
@@ -315,9 +309,6 @@
               <AllowedValues />
             </AttachedAttribute>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Image SKU" UserInput="true">
-              <AllowedValues />
-            </AttachedAttribute>
-            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Disk Type" UserInput="true">
               <AllowedValues />
             </AttachedAttribute>
           </AttachedAttributes>
