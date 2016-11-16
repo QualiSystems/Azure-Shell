@@ -94,7 +94,8 @@ class AzureShell(object):
                         network_client=azure_clients.network_client,
                         compute_client=azure_clients.compute_client,
                         storage_client=azure_clients.storage_client,
-                        validator_factory=validator_factory)
+                        validator_factory=validator_factory,
+                        logger=logger)
 
                     return self.command_result_parser.set_command_result(deploy_data)
 

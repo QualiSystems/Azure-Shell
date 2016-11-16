@@ -1,3 +1,4 @@
+import traceback
 import uuid
 import re
 
@@ -67,7 +68,8 @@ class DeployAzureVMOperation(object):
                network_client,
                compute_client,
                storage_client,
-               validator_factory):
+               validator_factory,
+               logger):
         """
         :param cloudshell.cp.azure.common.validtors.validator_factory.ValidatorFactory validator_factory:
         :param azure.mgmt.storage.storage_management_client.StorageManagementClient storage_client:
@@ -76,6 +78,7 @@ class DeployAzureVMOperation(object):
         :param reservation: cloudshell.cp.azure.models.reservation_model.ReservationModel
         :param cloudshell.cp.azure.models.deploy_azure_vm_resource_model.DeployAzureVMResourceModel azure_vm_deployment_model:
         :param cloudshell.cp.azure.models.azure_cloud_provider_resource_model.AzureCloudProviderResourceModel cloud_provider_model:cloud provider
+        :param logging.Logger logger:
         :return:
         """
 
@@ -162,7 +165,7 @@ class DeployAzureVMOperation(object):
                                                       tags=tags,
                                                       instance_type=azure_vm_deployment_model.instance_type)
 
-        except Exception as e:
+        except Exception:
             # On any exception removes all the created resources
             self.vm_service.delete_vm(compute_management_client=compute_client,
                                       group_name=group_name,
@@ -176,7 +179,8 @@ class DeployAzureVMOperation(object):
                                            group_name=group_name,
                                            ip_name=ip_name)
 
-            raise e
+            logger.error("Failed to deploy VM. Error: {0}".format(traceback.format_exc()))
+            raise
 
         if azure_vm_deployment_model.add_public_ip:
             public_ip = self.network_service.get_public_ip(network_client=network_client,
