@@ -78,7 +78,8 @@ class TestAzureShell(TestCase):
             network_client=azure_clients_manager.network_client,
             compute_client=azure_clients_manager.compute_client,
             storage_client=azure_clients_manager.storage_client,
-            validator_factory=validator_factory)
+            validator_factory=validator_factory,
+            logger=self.logger)
 
     @mock.patch("cloudshell.cp.azure.azure_shell.jsonpickle")
     @mock.patch("cloudshell.cp.azure.azure_shell.DeployDataHolder")

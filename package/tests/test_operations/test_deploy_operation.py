@@ -67,6 +67,7 @@ class TestDeployAzureVMOperation(TestCase):
                                      self.network_client,
                                      Mock(),
                                      Mock(),
+                                     Mock(),
                                      Mock())
 
         # Verify
@@ -148,6 +149,7 @@ class TestDeployAzureVMOperation(TestCase):
                           DeployAzureVMResourceModel(),
                           AzureCloudProviderResourceModel(),
                           reservation,
+                          Mock(),
                           Mock(),
                           Mock(),
                           Mock(),
