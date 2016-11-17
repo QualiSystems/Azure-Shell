@@ -111,32 +111,28 @@ class SecurityGroupService(object):
 
         return operation_poller.result()
 
-    def create_network_security_group_custom_rule(self, network_client, group_name, security_group_name, rule):
-        """Create NSG inbound rule on the Azure
+    def create_network_security_group_custom_rule(self, network_client, group_name, security_group_name, rule,
+                                                  async=False):
+        """Create NSG inbound management rule on the Azure
 
         :param rule: azure.mgmt.network.models.security_rule.SecurityRule
         :param network_client: azure.mgmt.network.NetworkManagementClient instance
         :param group_name: resource group name (reservation id)
         :param security_group_name: NSG name from the Azure
-        :param rule_data: cloudshell.cp.azure.models.rule_data.RuleData instance
-        :param destination_addr: Destination IP address/CIDR
-        :param priority: (int) rule priority number
-        :return: azure.mgmt.network.models.SecurityRule instance
+        :param rule: azure.mgmt.network.models.SecurityRule instance
+        :param async: (bool) wait/no for result operation
+        :return: azure.mgmt.network.models.SecurityRule/msrestazure.azure_operation.AzureOperationPoller
         """
-        with self._lock:
-            security_rules = network_client.security_rules.list(resource_group_name=group_name,
-                                                                network_security_group_name=security_group_name)
-            security_rules = list(security_rules)
-            priority = self._rule_priority_generator(existing_rules=security_rules, start_from=rule.priority)
-            rule.priority = next(priority)
+        operation_poller = network_client.security_rules.create_or_update(
+            resource_group_name=group_name,
+            network_security_group_name=security_group_name,
+            security_rule_name=rule.name,
+            security_rule_parameters=rule)
 
-            operation_poller = network_client.security_rules.create_or_update(
-                resource_group_name=group_name,
-                network_security_group_name=security_group_name,
-                security_rule_name=rule.name,
-                security_rule_parameters=rule)
+        if async:
+            return operation_poller
 
-            return operation_poller.result()
+        return operation_poller.result()
 
     def get_network_security_group(self, network_client, group_name):
         network_security_groups = self.list_network_security_group(
