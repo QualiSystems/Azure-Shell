@@ -35,6 +35,7 @@
 		}
 	},
 	"variables": {
+	    "apiVersion": "2016-06-01"
 		"storageAccountName": "[concat(uniquestring(resourceGroup().id), 'standardsa')]",
 		"vNet1": {
 			"peeringName": "vNet_mgmt-to-vNet_sndbx"
@@ -46,7 +47,7 @@
 	"resources": [{
 		"type": "Microsoft.Network/virtualNetworks",
 		"name": "[parameters('virtualNetworks_mgmt_vnet_name')]",
-		"apiVersion": "2016-03-30",
+		"apiVersion": "[variables('apiVersion')]",
 		"location": "[parameters('region_name')]",
 		"tags": {
 			"network_type": "mgmt"
@@ -63,7 +64,7 @@
 			}]
 		},
 		"resources": [{
-			"apiVersion": "2016-06-01",
+			"apiVersion": "[variables('apiVersion')]",
 			"type": "virtualNetworkPeerings",
 			"name": "[variables('vNet1').peeringName]",
 			"location": "[resourceGroup().location]",
@@ -85,7 +86,7 @@
 	{
 		"type": "Microsoft.Network/virtualNetworks",
 		"name": "[parameters('virtualNetworks_sandbox_vnet_name')]",
-		"apiVersion": "2016-03-30",
+		"apiVersion": "[variables('apiVersion')]",
 		"location": "[parameters('region_name')]",
 		"tags": {
 			"network_type": "sandbox"
@@ -102,7 +103,7 @@
 			}]
 		},
 		"resources": [{
-			"apiVersion": "2016-06-01",
+			"apiVersion": "[variables('apiVersion')]",
 			"type": "virtualNetworkPeerings",
 			"name": "[variables('vNet2').peeringName]",
 			"location": "[resourceGroup().location]",
@@ -124,7 +125,7 @@
 	{
 		"type": "Microsoft.Storage/storageAccounts",
 		"name": "[variables('storageAccountName')]",
-		"apiVersion": "2016-01-01",
+		"apiVersion": "[variables('apiVersion')]",
 		"location": "[resourceGroup().location]",
 		"sku": {
 			"name": "[parameters('storageAccountType')]"
@@ -133,7 +134,33 @@
 		"properties": {
 			
 		}
-	}],
+	},
+	{
+      "apiVersion": "[variables('apiVersion')]",
+      "type": "Microsoft.Network/networkSecurityGroups",
+      "name": "[variables('networkSecurityGroupName')]",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "securityRules": [
+          {
+            "name": "first_rule",
+            "properties": {
+              "description": "This is the first rule",
+              "protocol": "Tcp",
+              "sourcePortRange": "23-45",
+              "destinationPortRange": "46-56",
+              "sourceAddressPrefix": "*",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 123,
+              "direction": "Inbound"
+            }
+          }
+        ]
+      }
+    }
+	
+	],
 	"outputs": {
 		"storageAccountName": {
 			"type": "string",
