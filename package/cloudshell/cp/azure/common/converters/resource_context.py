@@ -32,9 +32,6 @@ class ResourceContextConverter(object):
         deployed_resource.inbound_ports = resource.attributes['Inbound Ports']
         deployed_resource.outbound_ports = resource.attributes['Outbound Ports']
         deployed_resource.public_ip_type = resource.attributes['Public IP Type']
-        deployed_resource.image_publisher = resource.attributes['Image Publisher']
-        deployed_resource.image_offer = resource.attributes['Image Offer']
-        deployed_resource.image_sku = resource.attributes['Image SKU']
 
         app_request = jsonpickle.decode(resource.app_context.app_request_json)
         attrs = app_request["logicalResource"]["attributes"]

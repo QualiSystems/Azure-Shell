@@ -1,6 +1,6 @@
 from datetime import datetime
 from datetime import timedelta
-from threading import RLock
+from threading import Lock
 import time
 from urlparse import urlparse
 
@@ -15,7 +15,9 @@ class StorageService(object):
     SAS_TOKEN_EXPIRATION_DAYS = 365
 
     def __init__(self):
-        self._lock = RLock()
+        self._account_keys_lock = Lock()
+        self._file_services_lock = Lock()
+        self._blob_services_lock = Lock()
         self._cached_account_keys = {}
         self._cached_file_services = {}
         self._cached_blob_services = {}
@@ -65,14 +67,12 @@ class StorageService(object):
         :return: (str) storage access key
         """
         cached_key = (group_name, storage_name)
+        account_key = self._cached_account_keys.get(cached_key)
 
-        if cached_key in self._cached_account_keys:
-            account_key = self._cached_account_keys[cached_key]
-        else:
-            with self._lock:
-                try:
-                    account_key = self._cached_account_keys[cached_key]
-                except KeyError:
+        if account_key is None:
+            with self._account_keys_lock:
+                account_key = self._cached_account_keys.get(cached_key)
+                if account_key is None:
                     account_keys = storage_client.storage_accounts.list_keys(group_name, storage_name)
                     account_key = account_keys.keys[0]
                     account_key = account_key.value
@@ -89,14 +89,12 @@ class StorageService(object):
         :return: azure.storage.file.FileService instance
         """
         cached_key = (group_name, storage_name)
+        file_service = self._cached_file_services.get(cached_key)
 
-        if cached_key in self._cached_file_services:
-            file_service = self._cached_file_services[cached_key]
-        else:
-            with self._lock:
-                try:
-                    file_service = self._cached_file_services[cached_key]
-                except KeyError:
+        if file_service is None:
+            with self._file_services_lock:
+                file_service = self._cached_file_services.get(cached_key)
+                if file_service is None:
                     account_key = self._get_storage_account_key(
                         storage_client=storage_client,
                         group_name=group_name,
@@ -113,17 +111,15 @@ class StorageService(object):
         :param storage_client: azure.mgmt.storage.StorageManagementClient instance
         :param group_name: (str) the name of the resource group on Azure
         :param storage_name: (str) the name of the storage on Azure
-        :return: azure.storage.file.FileService instance
+        :return: azure.storage.blob.BlockBlobService instance
         """
         cached_key = (group_name, storage_name)
+        blob_service = self._cached_blob_services.get(cached_key)
 
-        if cached_key in self._cached_blob_services:
-            blob_service = self._cached_blob_services[cached_key]
-        else:
-            with self._lock:
-                try:
-                    blob_service = self._cached_blob_services[cached_key]
-                except KeyError:
+        if blob_service is None:
+            with self._blob_services_lock:
+                blob_service = self._cached_blob_services.get(cached_key)
+                if blob_service is None:
                     account_key = self._get_storage_account_key(
                         storage_client=storage_client,
                         group_name=group_name,
@@ -195,6 +191,27 @@ class StorageService(object):
 
         return storage_name, container_name, blob_name
 
+    def _wait_until_blob_copied(self, blob_service, container_name, blob_name, sleep_time=10):
+        """Wait until Blob file is copied from one storage to another
+
+        :param blob_service: azure.storage.blob.BlockBlobService instance
+        :param container_name: (str) container name where Blob was copied
+        :param blob_name: (str) Blob name where Blob was copied
+        :param sleep_time: (int) seconds to wait before check requests
+        :return:
+        """
+        while True:
+            blob = blob_service.get_blob_properties(container_name, blob_name)
+
+            if blob.properties.copy.status == "success":
+                return
+
+            elif blob.properties.copy.status in ["aborted", "failed"]:
+                blob_url = blob_service.make_blob_url(container_name, blob_name)
+                raise Exception("Copying of file {} failed".format(blob_url))
+
+            time.sleep(sleep_time)
+
     def copy_blob(self, storage_client, group_name_copy_to, storage_name_copy_to, container_name_copy_to,
                   blob_name_copy_to, source_copy_from, group_name_copy_from):
         """Copy Blob from the given source_copy_from URL
@@ -238,11 +255,8 @@ class StorageService(object):
                                            blob_name=blob_name_copy_to,
                                            copy_source=copy_source)
 
-            while True:
-                blob = blob_service_copy_to.get_blob_properties(container_name_copy_to, blob_name_copy_to)
-                if blob.properties.copy.status == "success":
-                    break
-                else:
-                    time.sleep(1)
+            self._wait_until_blob_copied(blob_service=blob_service_copy_to,
+                                         container_name=container_name_copy_to,
+                                         blob_name=blob_name_copy_to)
 
         return blob_service_copy_to.make_blob_url(container_name_copy_to, blob_name_copy_to)
