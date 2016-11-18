@@ -167,17 +167,16 @@ class DeployAzureVMOperation(object):
 
         tags = self.tags_service.get_tags(vm_name, resource_name, subnet.name, reservation)
 
-        container_name, blob_name = self.storage_service.parse_blob_url(
-            azure_vm_deployment_model.image_urn)[1:]
+        blob_url_model = self.storage_service.parse_blob_url(azure_vm_deployment_model.image_urn)
 
-        container_name_copy_to = "{}{}".format(self.CUSTOM_IMAGES_CONTAINER_PREFIX, container_name)
+        container_name_copy_to = "{}{}".format(self.CUSTOM_IMAGES_CONTAINER_PREFIX, blob_url_model.container_name)
 
         image_urn = self.storage_service.copy_blob(
             storage_client=storage_client,
             group_name_copy_to=group_name,
             storage_name_copy_to=storage_account_name,
             container_name_copy_to=container_name_copy_to,
-            blob_name_copy_to=blob_name,
+            blob_name_copy_to=blob_url_model.blob_name,
             source_copy_from=azure_vm_deployment_model.image_urn,
             group_name_copy_from=cloud_provider_model.management_group_name)
 

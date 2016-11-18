@@ -10,6 +10,9 @@ from azure.storage.file import FileService
 from azure.storage.blob import BlockBlobService
 from azure.storage.blob.models import BlobPermissions
 
+from cloudshell.cp.azure.models.azure_blob_url import AzureBlobUrlModel
+from cloudshell.cp.azure.models.blob_copy_operation import BlobCopyOperationState
+
 
 class StorageService(object):
     SAS_TOKEN_EXPIRATION_DAYS = 365
@@ -18,9 +21,11 @@ class StorageService(object):
         self._account_keys_lock = Lock()
         self._file_services_lock = Lock()
         self._blob_services_lock = Lock()
+        self._copied_blob_urls_lock = Lock()
         self._cached_account_keys = {}
         self._cached_file_services = {}
         self._cached_blob_services = {}
+        self._cached_copied_blob_urls = {}
 
     def create_storage_account(self, storage_client, group_name, region, storage_account_name, tags,wait_until_created=False):
         """
@@ -178,10 +183,10 @@ class StorageService(object):
                                             file=file_content)
 
     def parse_blob_url(self, blob_url):
-        """Parses Blob URL into Azure parameters
+        """Parses Blob URL into AzureBlobUrlModel
 
         :param blob_url: (str) Azure Blob URL ("https://someaccount.blob.core.windows.net/container/blobname")
-        :return: tuple(storage_name, container_name, blob_name)
+        :return: cloudshell.cp.azure.models.azure_blob_url.AzureBlobUrlModel instance
         """
         parsed_blob_url = urlparse(blob_url)
         splitted_path = parsed_blob_url.path.split('/')
@@ -189,7 +194,9 @@ class StorageService(object):
         container_name = splitted_path[-2]
         storage_name = parsed_blob_url.netloc.split('.', 1)[0]
 
-        return storage_name, container_name, blob_name
+        return AzureBlobUrlModel(storage_name=storage_name,
+                                 container_name=container_name,
+                                 blob_name=blob_name)
 
     def _wait_until_blob_copied(self, blob_service, container_name, blob_name, sleep_time=10):
         """Wait until Blob file is copied from one storage to another
@@ -204,13 +211,61 @@ class StorageService(object):
             blob = blob_service.get_blob_properties(container_name, blob_name)
 
             if blob.properties.copy.status == "success":
-                return
+                break
 
             elif blob.properties.copy.status in ["aborted", "failed"]:
                 blob_url = blob_service.make_blob_url(container_name, blob_name)
                 raise Exception("Copying of file {} failed".format(blob_url))
 
             time.sleep(sleep_time)
+
+    def _copy_blob(self, storage_client, group_name_copy_from, group_name_copy_to,
+                   ulr_model_copy_from, url_model_copy_to):
+        """Copy Blob from one storage account to another
+
+        :param storage_client: azure.mgmt.storage.StorageManagementClient instance
+        :param group_name_copy_from: (str) resource group of the copied Blob
+        :param group_name_copy_to: (str) resource group where Blob will be copied
+        :param ulr_model_copy_from: cloudshell.cp.azure.models.azure_blob_url.AzureBlobUrlModel instance copy from
+        :param url_model_copy_to: cloudshell.cp.azure.models.azure_blob_url.AzureBlobUrlModel instance copy to
+        :return: copied image URL (str) Azure Blob URL
+        """
+        blob_service_copy_from = self._get_blob_service(
+            storage_client=storage_client,
+            group_name=group_name_copy_from,
+            storage_name=ulr_model_copy_from.storage_name)
+
+        expiration_date = datetime.now() + timedelta(days=self.SAS_TOKEN_EXPIRATION_DAYS)
+
+        sas_token = blob_service_copy_from.generate_blob_shared_access_signature(
+            container_name=ulr_model_copy_from.container_name,
+            blob_name=ulr_model_copy_from.blob_name,
+            permission=BlobPermissions.READ,
+            expiry=expiration_date)
+
+        copy_source = blob_service_copy_from.make_blob_url(container_name=ulr_model_copy_from.container_name,
+                                                           blob_name=ulr_model_copy_from.blob_name,
+                                                           sas_token=sas_token)
+
+        blob_service_copy_to = self._get_blob_service(
+            storage_client=storage_client,
+            group_name=group_name_copy_to,
+            storage_name=url_model_copy_to.storage_name)
+
+        if not blob_service_copy_to.exists(container_name=url_model_copy_to.container_name,
+                                           blob_name=url_model_copy_to.blob_name):
+
+            blob_service_copy_to.create_container(container_name=url_model_copy_to.container_name, fail_on_exist=False)
+
+            blob_service_copy_to.copy_blob(container_name=url_model_copy_to.container_name,
+                                           blob_name=url_model_copy_to.blob_name,
+                                           copy_source=copy_source)
+
+            self._wait_until_blob_copied(blob_service=blob_service_copy_to,
+                                         container_name=url_model_copy_to.container_name,
+                                         blob_name=url_model_copy_to.blob_name)
+
+        return blob_service_copy_to.make_blob_url(url_model_copy_to.container_name, url_model_copy_to.blob_name)
 
     def copy_blob(self, storage_client, group_name_copy_to, storage_name_copy_to, container_name_copy_to,
                   blob_name_copy_to, source_copy_from, group_name_copy_from):
@@ -225,38 +280,59 @@ class StorageService(object):
         :param group_name_copy_from: (str) resource group of the copied Blob
         :return: copied image URL (str) Azure Blob URL
         """
-        storage_name_copy_from, container_name_copy_from, blob_name_copy_from = self.parse_blob_url(source_copy_from)
+        ulr_model_copy_from = self.parse_blob_url(source_copy_from)
+        copied_blob_key = (storage_name_copy_to, container_name_copy_to, blob_name_copy_to)
 
-        blob_service_copy_from = self._get_blob_service(
-            storage_client=storage_client,
-            group_name=group_name_copy_from,
-            storage_name=storage_name_copy_from)
+        if not (copied_blob_key in self._cached_copied_blob_urls
+                and self._cached_copied_blob_urls[copied_blob_key]["state"] is BlobCopyOperationState.success):
 
-        expiration_date = datetime.now() + timedelta(days=self.SAS_TOKEN_EXPIRATION_DAYS)
+            need_to_copy = False  # image isn't uploaded by other thread
+            need_to_wait = False  # image is uploading by other thread right now
 
-        sas_token = blob_service_copy_from.generate_blob_shared_access_signature(
-            container_name=container_name_copy_from,
-            blob_name=blob_name_copy_from,
-            permission=BlobPermissions.READ,
-            expiry=expiration_date)
+            with self._copied_blob_urls_lock:
+                copied_blob = self._cached_copied_blob_urls.get(copied_blob_key)
 
-        copy_source = blob_service_copy_from.make_blob_url(container_name=container_name_copy_from,
-                                                           blob_name=blob_name_copy_from,
-                                                           sas_token=sas_token)
+                if copied_blob is None or copied_blob["state"] is BlobCopyOperationState.failed:
+                    self._cached_copied_blob_urls[copied_blob_key] = {
+                        "state": BlobCopyOperationState.copying,
+                        "result": None
+                    }
+                    need_to_copy = True
 
-        blob_service_copy_to = self._get_blob_service(
-            storage_client=storage_client,
-            group_name=group_name_copy_to,
-            storage_name=storage_name_copy_to)
+                elif copied_blob["state"] is BlobCopyOperationState.copying:
+                    need_to_wait = True
 
-        if not blob_service_copy_to.exists(container_name=container_name_copy_to, blob_name=blob_name_copy_to):
-            blob_service_copy_to.create_container(container_name=container_name_copy_to, fail_on_exist=False)
-            blob_service_copy_to.copy_blob(container_name=container_name_copy_to,
-                                           blob_name=blob_name_copy_to,
-                                           copy_source=copy_source)
+            if need_to_wait:
+                while True:
+                    copied_blob_state = self._cached_copied_blob_urls[copied_blob_key]["state"]
 
-            self._wait_until_blob_copied(blob_service=blob_service_copy_to,
-                                         container_name=container_name_copy_to,
-                                         blob_name=blob_name_copy_to)
+                    if copied_blob_state is BlobCopyOperationState.success:
+                        break
 
-        return blob_service_copy_to.make_blob_url(container_name_copy_to, blob_name_copy_to)
+                    elif copied_blob_state is BlobCopyOperationState.failed:
+                        raise Exception("Blob copying was failed")
+
+                    time.sleep(1)
+
+            elif need_to_copy:
+                # copy image
+                url_model_copy_to = AzureBlobUrlModel(storage_name=storage_name_copy_to,
+                                                      container_name=container_name_copy_to,
+                                                      blob_name=blob_name_copy_to)
+                try:
+                    copied_blob_url = self._copy_blob(storage_client=storage_client,
+                                                      group_name_copy_from=group_name_copy_from,
+                                                      group_name_copy_to=group_name_copy_to,
+                                                      ulr_model_copy_from=ulr_model_copy_from,
+                                                      url_model_copy_to=url_model_copy_to)
+                except Exception:
+                    with self._copied_blob_urls_lock:
+                        self._cached_copied_blob_urls[copied_blob_key]["state"] = BlobCopyOperationState.failed
+
+                    raise
+
+                with self._copied_blob_urls_lock:
+                    self._cached_copied_blob_urls[copied_blob_key]["state"] = BlobCopyOperationState.success
+                    self._cached_copied_blob_urls[copied_blob_key]["result"] = copied_blob_url
+
+        return self._cached_copied_blob_urls[copied_blob_key]["result"]
