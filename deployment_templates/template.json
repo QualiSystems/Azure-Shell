@@ -147,7 +147,7 @@
             "properties": {
               "description": "This is the first rule",
               "protocol": "Tcp",
-              "sourcePortRange": "80",
+              "sourcePortRange": "*",
               "destinationPortRange": "*",
               "sourceAddressPrefix": "*",
               "destinationAddressPrefix": "*",
@@ -161,7 +161,7 @@
             "properties": {
               "description": "This is the second rule",
               "protocol": "Tcp",
-              "sourcePortRange": "443",
+              "sourcePortRange": "*",
               "destinationPortRange": "*",
               "sourceAddressPrefix": "*",
               "destinationAddressPrefix": "*",
