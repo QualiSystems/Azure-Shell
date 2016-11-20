@@ -147,12 +147,26 @@
             "properties": {
               "description": "This is the first rule",
               "protocol": "Tcp",
-              "sourcePortRange": "23-45",
-              "destinationPortRange": "46-56",
+              "sourcePortRange": "80",
+              "destinationPortRange": "*",
               "sourceAddressPrefix": "*",
               "destinationAddressPrefix": "*",
               "access": "Allow",
-              "priority": 123,
+              "priority": 1000,
+              "direction": "Inbound"
+            }
+          },
+		  {
+            "name": "second_rule",
+            "properties": {
+              "description": "This is the second rule",
+              "protocol": "Tcp",
+              "sourcePortRange": "443",
+              "destinationPortRange": "*",
+              "sourceAddressPrefix": "*",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 1005,
               "direction": "Inbound"
             }
           }
