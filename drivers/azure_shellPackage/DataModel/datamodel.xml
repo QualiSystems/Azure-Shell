@@ -171,7 +171,7 @@
       <AttachedAttributes />
       <AttributeValues />
       <Models>
-        <ResourceModel Description="" ImagePath="AWS.png" Name="Azure" SupportsConcurrentCommands="true">
+        <ResourceModel Description="" ImagePath="Azure.png" Name="Azure" SupportsConcurrentCommands="true">
           <AttachedAttributes>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Region">
               <AllowedValues/>
