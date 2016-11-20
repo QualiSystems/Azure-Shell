@@ -35,7 +35,7 @@
 		}
 	},
 	"variables": {
-	    "apiVersion": "2016-06-01"
+	    "apiVersion": "2016-06-01",
 		"storageAccountName": "[concat(uniquestring(resourceGroup().id), 'standardsa')]",
 		"vNet1": {
 			"peeringName": "vNet_mgmt-to-vNet_sndbx"
@@ -138,7 +138,7 @@
 	{
       "apiVersion": "[variables('apiVersion')]",
       "type": "Microsoft.Network/networkSecurityGroups",
-      "name": "[variables('networkSecurityGroupName')]",
+      "name": "nsg_management",
       "location": "[resourceGroup().location]",
       "properties": {
         "securityRules": [
