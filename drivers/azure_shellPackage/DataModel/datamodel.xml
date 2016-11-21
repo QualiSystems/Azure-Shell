@@ -19,7 +19,7 @@
         <Rule Name="Setting" />
       </Rules>
     </AttributeInfo>
-    <AttributeInfo Name="Add Public IP" DefaultValue="False" Description="Use a public IP address to communicate with the virtual machine from outside the virtual network. In most cases the public IP address is associated with the instance until it's stopped or terminated, after which it's no longer available for you to use. It's possible to reserve a public IP in Azure to ensure that the IP will be available to your subscription." IsReadOnly="false" Type="Boolean">
+    <AttributeInfo Name="Add Public IP" DefaultValue="False" Description="Use a public IP address to communicate with the virtual machine from outside the virtual network. In most cases the public IP address is associated with the instance until it's stopped or terminated, after which it's no longer available for you to use. It's possible to reserve a public IP in Azure to ensure that the IP will be available to your subscription at any time." IsReadOnly="false" Type="Boolean">
       <Rules>
         <Rule Name="Configuration" />
         <Rule Name="Setting" />
@@ -108,13 +108,13 @@
         <Rule Name="Setting" />
       </Rules>
     </AttributeInfo>
-    <AttributeInfo Name="Azure Secret"  DefaultValue="" Description="Azure Secret of the web application you created and delegate permissions to the Azure API" IsReadOnly="false" Type="String">
+    <AttributeInfo Name="Azure Secret"  DefaultValue="" Description="Secret key associated with the Azure API web application. The secret key allows CloudShell to access the Azure API and is generated as part of the web application’s configuration process. For more information, see Configure Azure API to work with CloudShell." IsReadOnly="false" Type="String">
       <Rules>
         <Rule Name="Configuration" />
         <Rule Name="Setting" />
       </Rules>
     </AttributeInfo>
-    <AttributeInfo Name="Azure Client ID"  DefaultValue="" Description="Azure Client ID of the web application you created and delegate permissions to the Azure API" IsReadOnly="false" Type="String">
+    <AttributeInfo Name="Azure Client ID"  DefaultValue="" Description="Client ID associated with the Azure API web application. The client ID allows CloudShell to access the Azure API and is generated as part of the web application’s configuration process. For more information, see Configure Azure API to work with CloudShell." IsReadOnly="false" Type="String">
       <Rules>
         <Rule Name="Configuration" />
         <Rule Name="Setting" />
@@ -132,7 +132,7 @@
         <Rule Name="Setting" />
       </Rules>
     </AttributeInfo>
-    <AttributeInfo Name="Management Group Name"  DefaultValue="" Description="" IsReadOnly="false" Type="String">
+    <AttributeInfo Name="Management Group Name"  DefaultValue="" Description="The Management Resource Group name." IsReadOnly="false" Type="String">
       <Rules>
         <Rule Name="Configuration" />
         <Rule Name="Setting" />
@@ -140,25 +140,25 @@
     </AttributeInfo>
 
     <!--New Azure Deployment Option Attributes -->
-    <AttributeInfo Name="Public IP Type"  DefaultValue="" Description="Static or Dynamic" IsReadOnly="false" Type="String">
+    <AttributeInfo Name="Public IP Type"  DefaultValue="" Description="Static Public IP Type will guarantee that the VM always uses the same public IP. By default, Public IPs are dynamic and the address associated to them may change when the VM is deleted." IsReadOnly="false" Type="String">
       <Rules>
         <Rule Name="Configuration" />
         <Rule Name="Setting" />
       </Rules>
     </AttributeInfo>
-    <AttributeInfo Name="Image Publisher"  DefaultValue="" Description="Name of the Image publisher. Example: canonical." IsReadOnly="false" Type="String">
+    <AttributeInfo Name="Image Publisher"  DefaultValue="" Description="Name of the Azure Image publisher. Example: canonical." IsReadOnly="false" Type="String">
       <Rules>
         <Rule Name="Configuration" />
         <Rule Name="Setting" />
       </Rules>
     </AttributeInfo>
-    <AttributeInfo Name="Image Offer"  DefaultValue="" Description="Name of the Image offer. example: UbuntuServer." IsReadOnly="false" Type="String">
+    <AttributeInfo Name="Image Offer"  DefaultValue="" Description="Name of the Azure Image offer. example: UbuntuServer." IsReadOnly="false" Type="String">
       <Rules>
         <Rule Name="Configuration" />
         <Rule Name="Setting" />
       </Rules>
     </AttributeInfo>
-    <AttributeInfo Name="Image SKU"  DefaultValue="" Description="Version of the Image. Example: 14.04.3-LTS." IsReadOnly="false" Type="String">
+    <AttributeInfo Name="Image SKU"  DefaultValue="" Description="Version of the Azure SKU. SKU: 14.04.3-LTS." IsReadOnly="false" Type="String">
       <Rules>
         <Rule Name="Configuration" />
         <Rule Name="Setting" />
