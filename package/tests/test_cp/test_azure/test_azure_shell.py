@@ -60,7 +60,7 @@ class TestAzureShell(TestCase):
         azure_vm_deployment_model = mock.MagicMock()
         cloud_provider_model = mock.MagicMock()
         reservation = mock.MagicMock()
-        self.azure_shell.model_parser.convert_to_deployment_resource_model.return_value = azure_vm_deployment_model
+        self.azure_shell.model_parser.convert_to_deploy_azure_vm_resource_model.return_value = azure_vm_deployment_model
         self.azure_shell.model_parser.convert_to_cloud_provider_resource_model.return_value = cloud_provider_model
         self.azure_shell.model_parser.convert_to_reservation_model.return_value = reservation
 
