@@ -173,15 +173,24 @@
           }
         ]
       }
-    },
+    },	
+	{
+		"apiVersion": "[variables('api-version')]",
+		"type": "Microsoft.Network/publicIPAddresses",
+		"name": "[variables('gatewayPublicIPName')]",
+		"location": "[resourceGroup().location]",
+		"properties": {
+		  "publicIPAllocationMethod": "Dynamic"
+		}
+	},	
 	{
         "apiVersion": "[variables('api-version')]",
         "type": "Microsoft.Network/virtualNetworkGateways",
         "name": "[uniqueString('a_gateway_name')]",
         "location": "[resourceGroup().location]",
         "dependsOn": [
-          "[concat('Microsoft.Network/publicIPAddresses/', parameters('gatewayPublicIPName'))]",
-          "[concat('Microsoft.Network/virtualNetworks/', parameters('virtualNetworkName'))]"
+          "[concat('Microsoft.Network/publicIPAddresses/', variables('gatewayPublicIPName'))]",
+          "[concat('Microsoft.Network/virtualNetworks/', parameters('virtualNetworks_mgmt_vnet_name'))]"
         ],
         "properties": {
           "ipConfigurations": [
@@ -192,18 +201,18 @@
                   "id": "[variables('gatewaySubnetRef')]"
                 },
                 "publicIPAddress": {
-                  "id": "[resourceId('Microsoft.Network/publicIPAddresses',parameters('gatewayPublicIPName'))]"
+                  "id": "[resourceId('Microsoft.Network/publicIPAddresses',variables('gatewayPublicIPName'))]"
                 }
               },
               "name": "vnetGatewayConfig"
             }
           ],
           "sku": {
-            "name": "[parameters('gatewaySku')]",
-            "tier": "[parameters('gatewaySku')]"
+            "name": "Standard",
+            "tier": "Standard"
           },
           "gatewayType": "Vpn",
-          "vpnType": "[parameters('vpnType')]",
+          "vpnType": "RouteBased",
           "enableBgp": "false"
         }
       }	
