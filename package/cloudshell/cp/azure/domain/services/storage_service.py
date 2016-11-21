@@ -198,12 +198,13 @@ class StorageService(object):
                                  container_name=container_name,
                                  blob_name=blob_name)
 
-    def _wait_until_blob_copied(self, blob_service, container_name, blob_name, sleep_time=10):
+    def _wait_until_blob_copied(self, blob_service, container_name, blob_name, logger, sleep_time=10):
         """Wait until Blob file is copied from one storage to another
 
         :param blob_service: azure.storage.blob.BlockBlobService instance
         :param container_name: (str) container name where Blob was copied
         :param blob_name: (str) Blob name where Blob was copied
+        :param logger: logging.Logger instance
         :param sleep_time: (int) seconds to wait before check requests
         :return:
         """
@@ -211,16 +212,23 @@ class StorageService(object):
             blob = blob_service.get_blob_properties(container_name, blob_name)
 
             if blob.properties.copy.status == "success":
+                logger.info("Image was successfully copied to {}/{}".format(container_name, blob_name))
                 break
 
             elif blob.properties.copy.status in ["aborted", "failed"]:
                 blob_url = blob_service.make_blob_url(container_name, blob_name)
+                logger.info("Image was not copied to {}/{}. Status: {}".format(
+                    container_name, blob_name, blob.properties.copy.status))
+
                 raise Exception("Copying of file {} failed".format(blob_url))
+
+            logger.info("Image is still copying to {}/{}. Operation status: is '{}'"
+                        .format(container_name, blob_name, blob.properties.copy.status))
 
             time.sleep(sleep_time)
 
     def _copy_blob(self, storage_client, group_name_copy_from, group_name_copy_to,
-                   ulr_model_copy_from, url_model_copy_to):
+                   ulr_model_copy_from, url_model_copy_to, logger):
         """Copy Blob from one storage account to another
 
         :param storage_client: azure.mgmt.storage.StorageManagementClient instance
@@ -228,14 +236,21 @@ class StorageService(object):
         :param group_name_copy_to: (str) resource group where Blob will be copied
         :param ulr_model_copy_from: cloudshell.cp.azure.models.azure_blob_url.AzureBlobUrlModel instance copy from
         :param url_model_copy_to: cloudshell.cp.azure.models.azure_blob_url.AzureBlobUrlModel instance copy to
+        :param logger: logging.Logger instance
         :return: copied image URL (str) Azure Blob URL
         """
+        logger.info("Get Blob Service for storage {} under RG {}".format(ulr_model_copy_from.storage_name,
+                                                                         group_name_copy_from))
+
         blob_service_copy_from = self._get_blob_service(
             storage_client=storage_client,
             group_name=group_name_copy_from,
             storage_name=ulr_model_copy_from.storage_name)
 
         expiration_date = datetime.now() + timedelta(days=self.SAS_TOKEN_EXPIRATION_DAYS)
+
+        logger.info("Generate SAS token for the blob {}/{}".format(ulr_model_copy_from.container_name,
+                                                                   ulr_model_copy_from.blob_name))
 
         sas_token = blob_service_copy_from.generate_blob_shared_access_signature(
             container_name=ulr_model_copy_from.container_name,
@@ -247,6 +262,9 @@ class StorageService(object):
                                                            blob_name=ulr_model_copy_from.blob_name,
                                                            sas_token=sas_token)
 
+        logger.info("Get Blob Service for storage {} under RG {}".format(url_model_copy_to.storage_name,
+                                                                         group_name_copy_to))
+
         blob_service_copy_to = self._get_blob_service(
             storage_client=storage_client,
             group_name=group_name_copy_to,
@@ -255,20 +273,26 @@ class StorageService(object):
         if not blob_service_copy_to.exists(container_name=url_model_copy_to.container_name,
                                            blob_name=url_model_copy_to.blob_name):
 
+            logger.info("Blob {}/{} doesn't exist, start copying".format(url_model_copy_to.container_name,
+                                                                         url_model_copy_to.blob_name))
+
+            logger.info("Create Blob container {}".format(url_model_copy_to.container_name))
             blob_service_copy_to.create_container(container_name=url_model_copy_to.container_name, fail_on_exist=False)
 
+            logger.info("Start async copy blob operation on Azure for {}".format(copy_source))
             blob_service_copy_to.copy_blob(container_name=url_model_copy_to.container_name,
                                            blob_name=url_model_copy_to.blob_name,
                                            copy_source=copy_source)
 
             self._wait_until_blob_copied(blob_service=blob_service_copy_to,
                                          container_name=url_model_copy_to.container_name,
-                                         blob_name=url_model_copy_to.blob_name)
+                                         blob_name=url_model_copy_to.blob_name,
+                                         logger=logger)
 
         return blob_service_copy_to.make_blob_url(url_model_copy_to.container_name, url_model_copy_to.blob_name)
 
     def copy_blob(self, storage_client, group_name_copy_to, storage_name_copy_to, container_name_copy_to,
-                  blob_name_copy_to, source_copy_from, group_name_copy_from):
+                  blob_name_copy_to, source_copy_from, group_name_copy_from, logger):
         """Copy Blob from the given source_copy_from URL
 
         :param storage_client: azure.mgmt.storage.StorageManagementClient instance
@@ -278,6 +302,7 @@ class StorageService(object):
         :param blob_name_copy_to: (str) name for copied Blob file
         :param source_copy_from: (str) Azure Blob URL ("https://someaccount.blob.core.windows.net/container/blobname")
         :param group_name_copy_from: (str) resource group of the copied Blob
+        :param logging.Logger logger:
         :return: copied image URL (str) Azure Blob URL
         """
         ulr_model_copy_from = self.parse_blob_url(source_copy_from)
@@ -298,8 +323,13 @@ class StorageService(object):
                         "result": None
                     }
                     need_to_copy = True
+                    logger.info("Image {} is not in cache/copying state. Need to start copying ".format(
+                        source_copy_from))
 
                 elif copied_blob["state"] is BlobCopyOperationState.copying:
+                    logger.info("Image {} is copying in other operation. Will wait for the result".format(
+                        source_copy_from))
+
                     need_to_wait = True
 
             if need_to_wait:
@@ -307,15 +337,22 @@ class StorageService(object):
                     copied_blob_state = self._cached_copied_blob_urls[copied_blob_key]["state"]
 
                     if copied_blob_state is BlobCopyOperationState.success:
+                        logger.info("Image {} copying was successfully completed in another operation".format(
+                            source_copy_from))
                         break
 
                     elif copied_blob_state is BlobCopyOperationState.failed:
+                        logger.info("Image {} copying was failed in another operation".format(
+                            source_copy_from))
                         raise Exception("Blob copying was failed")
+
+                    logger.info("Image {} is copying in other operation. Wait for the result...".format(
+                        source_copy_from))
 
                     time.sleep(1)
 
             elif need_to_copy:
-                # copy image
+                logger.info("Start copying image {}".format(source_copy_from))
                 url_model_copy_to = AzureBlobUrlModel(storage_name=storage_name_copy_to,
                                                       container_name=container_name_copy_to,
                                                       blob_name=blob_name_copy_to)
@@ -324,15 +361,22 @@ class StorageService(object):
                                                       group_name_copy_from=group_name_copy_from,
                                                       group_name_copy_to=group_name_copy_to,
                                                       ulr_model_copy_from=ulr_model_copy_from,
-                                                      url_model_copy_to=url_model_copy_to)
+                                                      url_model_copy_to=url_model_copy_to,
+                                                      logger=logger)
                 except Exception:
                     with self._copied_blob_urls_lock:
                         self._cached_copied_blob_urls[copied_blob_key]["state"] = BlobCopyOperationState.failed
 
+                    logger.info("Image {} copying was failed".format(source_copy_from))
                     raise
+
+                logger.info("Image {} was successfully copied to {}".format(source_copy_from, copied_blob_url))
 
                 with self._copied_blob_urls_lock:
                     self._cached_copied_blob_urls[copied_blob_key]["state"] = BlobCopyOperationState.success
                     self._cached_copied_blob_urls[copied_blob_key]["result"] = copied_blob_url
 
-        return self._cached_copied_blob_urls[copied_blob_key]["result"]
+        copied_image_url = self._cached_copied_blob_urls[copied_blob_key]["result"]
+        logger.info("Copyied Image URL: {}".format(copied_image_url))
+
+        return copied_image_url

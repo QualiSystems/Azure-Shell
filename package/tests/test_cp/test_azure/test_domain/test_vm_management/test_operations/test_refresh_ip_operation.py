@@ -17,7 +17,7 @@ class TestRefreshIPOperation(TestCase):
         self.private_ip_on_resource = "10.0.0.1"
         self.public_ip_on_resource = "172.29.128.255"
         self.vm_service = mock.MagicMock()
-
+        self.logger = mock.MagicMock()
         self.refresh_ip_operation = RefreshIPOperation(vm_service=self.vm_service)
 
     def test_refresh_ip(self):
@@ -34,7 +34,8 @@ class TestRefreshIPOperation(TestCase):
             vm_name=self.vm_name,
             private_ip_on_resource=self.private_ip_on_resource,
             public_ip_on_resource=self.public_ip_on_resource,
-            resource_fullname=self.resource_fullname)
+            resource_fullname=self.resource_fullname,
+            logger=self.logger)
 
         # Verify
         self.network_client.public_ip_addresses.get.assert_called_once_with(self.resource_group_name, self.vm_name)
@@ -58,7 +59,8 @@ class TestRefreshIPOperation(TestCase):
             vm_name=self.vm_name,
             private_ip_on_resource=self.private_ip_on_resource,
             public_ip_on_resource=self.public_ip_on_resource,
-            resource_fullname=self.resource_fullname)
+            resource_fullname=self.resource_fullname,
+            logger=self.logger)
 
         # Verify
         self.network_client.public_ip_addresses.get.assert_called_once_with(self.resource_group_name, self.vm_name)
@@ -82,7 +84,8 @@ class TestRefreshIPOperation(TestCase):
             vm_name=self.vm_name,
             private_ip_on_resource=self.private_ip_on_resource,
             public_ip_on_resource=self.public_ip_on_resource,
-            resource_fullname=self.resource_fullname)
+            resource_fullname=self.resource_fullname,
+            logger=self.logger)
 
         # Verify
         self.network_client.public_ip_addresses.get.assert_called_once_with(self.resource_group_name, self.vm_name)

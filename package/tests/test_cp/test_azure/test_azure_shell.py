@@ -391,4 +391,5 @@ class TestAzureShell(TestCase):
             vm_name=self.vm_name,
             private_ip_on_resource=private_ip,
             public_ip_on_resource=public_ip,
-            resource_fullname=resource_fullname)
+            resource_fullname=resource_fullname,
+            logger=self.logger)

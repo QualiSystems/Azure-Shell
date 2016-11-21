@@ -61,7 +61,7 @@ class TestDeleteOperation(TestCase):
                           self.logger)
 
         # Verify
-        self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.logger.info))
+        self.logger.exception.assert_called()
 
     def test_delete_operation_on_cloud_error_not_found_no_exception(self):
         # Arrange
@@ -81,7 +81,7 @@ class TestDeleteOperation(TestCase):
             self.logger)
 
         # Verify
-        self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.logger.info))
+        self.logger.info.assert_called()
 
     def test_delete_operation_on_cloud_any_error_throws_exception(self):
         # Arrange

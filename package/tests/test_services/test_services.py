@@ -25,6 +25,7 @@ class TestStorageService(TestCase):
         self.group_name = "test_group_name"
         self.storage_name = "teststoragename"
         self.storage_client = mock.MagicMock()
+        self.logger = mock.MagicMock()
 
     def test_create_storage_account(self):
         # Arrange
@@ -225,7 +226,8 @@ class TestStorageService(TestCase):
         self.storage_service._wait_until_blob_copied(
             blob_service=blob_service,
             container_name=container_name,
-            blob_name=blob_name)
+            blob_name=blob_name,
+            logger=self.logger)
 
         # Verify
         blob_service.get_blob_properties.assert_called_once_with(container_name, blob_name)
@@ -243,7 +245,8 @@ class TestStorageService(TestCase):
             self.storage_service._wait_until_blob_copied(
                 blob_service=blob_service,
                 container_name=container_name,
-                blob_name=blob_name)
+                blob_name=blob_name,
+                logger=self.logger)
 
     def test_wait_until_blob_copied_will_wait_for_operation(self):
         """Check that method will continue loop if Blob copy operation is in copying status"""
@@ -267,6 +270,7 @@ class TestStorageService(TestCase):
                     blob_service=blob_service,
                     container_name=container_name,
                     blob_name=blob_name,
+                    logger=self.logger,
                     sleep_time=sleep_time)
 
             # Verify
@@ -291,7 +295,8 @@ class TestStorageService(TestCase):
                                                    group_name_copy_from=group_name_copy_from,
                                                    group_name_copy_to=group_name_copy_to,
                                                    ulr_model_copy_from=ulr_model_copy_from,
-                                                   url_model_copy_to=url_model_copy_to)
+                                                   url_model_copy_to=url_model_copy_to,
+                                                   logger=self.logger)
 
         # Verify
         blob_service.exists.assert_called_once_with(blob_name=url_model_copy_to.blob_name,
@@ -321,7 +326,8 @@ class TestStorageService(TestCase):
                                                    group_name_copy_from=group_name_copy_from,
                                                    group_name_copy_to=group_name_copy_to,
                                                    ulr_model_copy_from=ulr_model_copy_from,
-                                                   url_model_copy_to=url_model_copy_to)
+                                                   url_model_copy_to=url_model_copy_to,
+                                                   logger=self.logger)
 
         # Verify
         blob_service.exists.assert_called_once_with(blob_name=url_model_copy_to.blob_name,
@@ -337,7 +343,8 @@ class TestStorageService(TestCase):
         self.storage_service._wait_until_blob_copied.assert_called_once_with(
             blob_name=url_model_copy_to.blob_name,
             container_name=url_model_copy_to.container_name,
-            blob_service=blob_service)
+            blob_service=blob_service,
+            logger=self.logger)
 
         self.assertEqual(blob_url, expected_url)
 
@@ -369,7 +376,8 @@ class TestStorageService(TestCase):
                                                   container_name_copy_to=container_name_copy_to,
                                                   blob_name_copy_to=blob_name_copy_to,
                                                   source_copy_from=source_copy_from,
-                                                  group_name_copy_to=group_name_copy_to)
+                                                  group_name_copy_to=group_name_copy_to,
+                                                  logger=self.logger)
 
         # Verify
         self.assertEqual(blob_url, expected_blob_url)
@@ -399,7 +407,8 @@ class TestStorageService(TestCase):
                                                   container_name_copy_to=container_name_copy_to,
                                                   blob_name_copy_to=blob_name_copy_to,
                                                   source_copy_from=source_copy_from,
-                                                  group_name_copy_to=group_name_copy_to)
+                                                  group_name_copy_to=group_name_copy_to,
+                                                  logger=self.logger)
 
         # Verify
         self.storage_service.parse_blob_url.assert_called_once_with(source_copy_from)
@@ -444,7 +453,8 @@ class TestStorageService(TestCase):
                                                container_name_copy_to=container_name_copy_to,
                                                blob_name_copy_to=blob_name_copy_to,
                                                source_copy_from=source_copy_from,
-                                               group_name_copy_to=group_name_copy_to)
+                                               group_name_copy_to=group_name_copy_to,
+                                               logger=self.logger)
 
             sleep.assert_called_once()
 
