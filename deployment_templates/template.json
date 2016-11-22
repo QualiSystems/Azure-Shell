@@ -36,14 +36,16 @@
 	},
 	"variables": {
 	    "apiVersion": "2016-06-01",
-		"storageAccountName": "[concat(uniquestring(resourceGroup().id), '_storage')]",
+		"storageAccountName": "[concat(uniquestring(resourceGroup().id), 'strg')]",
 		"vNet1": {
 			"peeringName": "vNet_mgmt-to-vNet_sndbx"
 		},
 		"vNet2": {
 			"peeringName": "vNet_sndbx-to-vNet_mgmt"
 		},
-		"gatewayPublicIPName" :"[uniquestring('azureGatewayIP')]"
+		"gatewayPublicIPName" :"[uniquestring('azureGatewayIP')]",	
+		"vnetID": "[resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetworks_mgmt_vnet_name'))]",		
+        "gatewaySubnetRef": "[concat(variables('vnetID'),'/subnets/','GatewaySubnet')]"
 	},
 	"resources": [{
 		"type": "Microsoft.Network/virtualNetworks",
@@ -58,7 +60,7 @@
 				"addressPrefixes": ["[parameters('management_vnet_CIDR')]"]
 			},
 			"subnets": [{
-				"name": "default",
+				"name": "GatewaySubnet",
 				"properties": {
 					"addressPrefix": "[parameters('management_vnet_subnet_CIDR')]"
 				}
@@ -175,7 +177,7 @@
       }
     },	
 	{
-		"apiVersion": "[variables('api-version')]",
+		"apiVersion": "2015-06-15",
 		"type": "Microsoft.Network/publicIPAddresses",
 		"name": "[variables('gatewayPublicIPName')]",
 		"location": "[resourceGroup().location]",
@@ -184,7 +186,7 @@
 		}
 	},	
 	{
-        "apiVersion": "[variables('api-version')]",
+        "apiVersion": "2015-06-15",
         "type": "Microsoft.Network/virtualNetworkGateways",
         "name": "[uniqueString('a_gateway_name')]",
         "location": "[resourceGroup().location]",
