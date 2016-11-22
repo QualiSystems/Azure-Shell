@@ -362,7 +362,6 @@ class DeployAzureVMOperation(object):
                                               group_name=group_name,
                                               vm_name=vm_name,
                                               ip_name=ip_name)
-
             logger.error("Failed to deploy VM. Error: {0}".format(traceback.format_exc()))
             raise
 
