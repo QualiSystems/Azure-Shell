@@ -39,14 +39,14 @@ class TagService(object):
 
         return result
 
-
-    def try_find_tag(self,tags_list, tag_key):
+    def try_find_tag(self, tags_list, tag_key):
         """
         Gets a list of tags and a key to find and returns the value or None if not found
-
-        :param tags_list {}: list of tags
-        :param tag_key:
-        :return:
+        :param tags_list: list of tags
+        :param str tag_key:
+        :return: tag value. None if tag key not found
+        :rtype str:
         """
+        if tags_list is None or tags_list.keys() is None:
+            return None
         return next((tags_list[key] for key in tags_list.keys() if key == tag_key), None)
-

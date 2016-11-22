@@ -11,6 +11,7 @@ from msrestazure.azure_operation import AzureOperationPoller
 from cloudshell.cp.azure.domain.services.network_service import NetworkService
 from cloudshell.cp.azure.domain.services.key_pair import KeyPairService
 from cloudshell.cp.azure.domain.services.storage_service import StorageService
+from cloudshell.cp.azure.domain.services.tags import TagService
 from cloudshell.cp.azure.domain.services.virtual_machine_service import VirtualMachineService
 from cloudshell.cp.azure.domain.services.vm_credentials_service import VMCredentialsService
 from cloudshell.cp.azure.models.vm_credentials import VMCredentials
@@ -42,10 +43,10 @@ class TestStorageService(TestCase):
         # Verify
         storage_client.storage_accounts.create.assert_called_with(group_name, account_name,
                                                                   StorageAccountCreateParameters(
-                                                                      sku=MagicMock(),
-                                                                      kind=kind_storage_value,
-                                                                      location=region,
-                                                                      tags=tags),
+                                                                          sku=MagicMock(),
+                                                                          kind=kind_storage_value,
+                                                                          location=region,
+                                                                          tags=tags),
                                                                   raw=False)
 
     def test_create_storage_account_wait_for_result(self):
@@ -75,8 +76,8 @@ class TestStorageService(TestCase):
 
         # Act
         result = self.storage_service.get_storage_per_resource_group(
-            storage_client,
-            group_name
+                storage_client,
+                group_name
         )
 
         # Verify
@@ -89,9 +90,9 @@ class TestStorageService(TestCase):
         self.storage_client.storage_accounts.list_keys.return_value = mock.MagicMock(keys=[storage_key])
 
         key = self.storage_service._get_storage_account_key(
-            storage_client=self.storage_client,
-            group_name=self.group_name,
-            storage_name=self.storage_name)
+                storage_client=self.storage_client,
+                group_name=self.group_name,
+                storage_name=self.storage_name)
 
         self.assertEqual(key, storage_key.value)
 
@@ -199,20 +200,20 @@ class TestNetworkService(TestCase):
         network_client.virtual_networks.create_or_update.assert_called_with(management_group_name,
                                                                             network_name,
                                                                             azure.mgmt.network.models.VirtualNetwork(
-                                                                                location=region,
-                                                                                tags=tags,
-                                                                                address_space=azure.mgmt.network.models.AddressSpace(
-                                                                                    address_prefixes=[
-                                                                                        vnet_cidr,
-                                                                                    ],
-                                                                                ),
-                                                                                subnets=[
-                                                                                    azure.mgmt.network.models.Subnet(
-                                                                                        network_security_group=network_security_group,
-                                                                                        name=subnet_name,
-                                                                                        address_prefix=subnet_cidr,
+                                                                                    location=region,
+                                                                                    tags=tags,
+                                                                                    address_space=azure.mgmt.network.models.AddressSpace(
+                                                                                            address_prefixes=[
+                                                                                                vnet_cidr,
+                                                                                            ],
                                                                                     ),
-                                                                                ],
+                                                                                    subnets=[
+                                                                                        azure.mgmt.network.models.Subnet(
+                                                                                                network_security_group=network_security_group,
+                                                                                                name=subnet_name,
+                                                                                                address_prefix=subnet_cidr,
+                                                                                        ),
+                                                                                    ],
                                                                             ),
                                                                             tags=tags)
 
@@ -251,15 +252,15 @@ class TestNetworkService(TestCase):
 
         # Act
         self.network_service.create_network_for_vm(
-            network_client=network_client,
-            group_name=management_group_name,
-            interface_name=interface_name,
-            ip_name=ip_name,
-            region=region,
-            subnet=MagicMock(),
-            add_public_ip=True,
-            public_ip_type="Static",
-            tags=tags)
+                network_client=network_client,
+                group_name=management_group_name,
+                interface_name=interface_name,
+                ip_name=ip_name,
+                region=region,
+                subnet=MagicMock(),
+                add_public_ip=True,
+                public_ip_type="Static",
+                tags=tags)
 
         # Verify
 
@@ -400,11 +401,11 @@ class TestVMService(TestCase):
         compute_client.virtual_machine_images.get.return_value = image
 
         os_type = self.vm_service.get_image_operation_system(
-            compute_management_client=compute_client,
-            location=mock.MagicMock(),
-            publisher_name=mock.MagicMock(),
-            offer=mock.MagicMock(),
-            skus=mock.MagicMock())
+                compute_management_client=compute_client,
+                location=mock.MagicMock(),
+                publisher_name=mock.MagicMock(),
+                offer=mock.MagicMock(),
+                skus=mock.MagicMock())
 
         compute_client.virtual_machine_images.list.assert_called_once()
         compute_client.virtual_machine_images.get.assert_called_once()
@@ -460,12 +461,12 @@ class TestVMCredentialsService(TestCase):
         authorized_key_class.return_value = authorized_key = mock.MagicMock()
 
         ssh_key = self.vm_credentials._get_ssh_key(
-            username=self.test_username,
-            storage_service=self.test_storage_service,
-            key_pair_service=self.test_key_pair_service,
-            storage_client=self.test_storage_client,
-            group_name=self.test_group_name,
-            storage_name=self.test_storage_name)
+                username=self.test_username,
+                storage_service=self.test_storage_service,
+                key_pair_service=self.test_key_pair_service,
+                storage_client=self.test_storage_client,
+                group_name=self.test_group_name,
+                storage_name=self.test_storage_name)
 
         self.assertIs(ssh_key, authorized_key)
 
@@ -476,14 +477,14 @@ class TestVMCredentialsService(TestCase):
                                                                                         self.test_password))
 
         vm_creds = self.vm_credentials.prepare_credentials(
-            os_type=os_types.windows,
-            username=self.test_username,
-            password=self.test_password,
-            storage_service=self.test_storage_service,
-            key_pair_service=self.test_key_pair_service,
-            storage_client=self.test_storage_client,
-            group_name=self.test_group_name,
-            storage_name=self.test_storage_name)
+                os_type=os_types.windows,
+                username=self.test_username,
+                password=self.test_password,
+                storage_service=self.test_storage_service,
+                key_pair_service=self.test_key_pair_service,
+                storage_client=self.test_storage_client,
+                group_name=self.test_group_name,
+                storage_name=self.test_storage_name)
 
         self.vm_credentials._prepare_windows_credentials.assert_called_once_with(self.test_username, self.test_password)
         self.assertIsInstance(vm_creds, VMCredentials)
@@ -496,23 +497,23 @@ class TestVMCredentialsService(TestCase):
                                                                                       self.test_password,
                                                                                       mock.MagicMock()))
         vm_creds = self.vm_credentials.prepare_credentials(
-            os_type=os_types.linux,
-            username=self.test_username,
-            password=self.test_password,
-            storage_service=self.test_storage_service,
-            key_pair_service=self.test_key_pair_service,
-            storage_client=self.test_storage_client,
-            group_name=self.test_group_name,
-            storage_name=self.test_storage_name)
+                os_type=os_types.linux,
+                username=self.test_username,
+                password=self.test_password,
+                storage_service=self.test_storage_service,
+                key_pair_service=self.test_key_pair_service,
+                storage_client=self.test_storage_client,
+                group_name=self.test_group_name,
+                storage_name=self.test_storage_name)
 
         self.vm_credentials._prepare_linux_credentials.assert_called_once_with(
-            username=self.test_username,
-            password=self.test_password,
-            storage_service=self.test_storage_service,
-            key_pair_service=self.test_key_pair_service,
-            storage_client=self.test_storage_client,
-            group_name=self.test_group_name,
-            storage_name=self.test_storage_name)
+                username=self.test_username,
+                password=self.test_password,
+                storage_service=self.test_storage_service,
+                key_pair_service=self.test_key_pair_service,
+                storage_client=self.test_storage_client,
+                group_name=self.test_group_name,
+                storage_name=self.test_storage_name)
 
         self.assertIsInstance(vm_creds, VMCredentials)
 
@@ -536,13 +537,13 @@ class TestVMCredentialsService(TestCase):
     def test_prepare_linux_credentials(self):
         """Check that method will return same credentials if username and password were provided"""
         username, password, ssh_key = self.vm_credentials._prepare_linux_credentials(
-            username=self.test_username,
-            password=self.test_password,
-            storage_service=self.test_storage_service,
-            key_pair_service=self.test_key_pair_service,
-            storage_client=self.test_storage_client,
-            group_name=self.test_group_name,
-            storage_name=self.test_storage_name)
+                username=self.test_username,
+                password=self.test_password,
+                storage_service=self.test_storage_service,
+                key_pair_service=self.test_key_pair_service,
+                storage_client=self.test_storage_client,
+                group_name=self.test_group_name,
+                storage_name=self.test_storage_name)
 
         self.assertEqual(username, self.test_username)
         self.assertEqual(password, self.test_password)
@@ -554,13 +555,13 @@ class TestVMCredentialsService(TestCase):
         self.vm_credentials._get_ssh_key = mock.MagicMock(return_value=returned_ssh_key)
 
         username, password, ssh_key = self.vm_credentials._prepare_linux_credentials(
-            username="",
-            password="",
-            storage_service=self.test_storage_service,
-            key_pair_service=self.test_key_pair_service,
-            storage_client=self.test_storage_client,
-            group_name=self.test_group_name,
-            storage_name=self.test_storage_name)
+                username="",
+                password="",
+                storage_service=self.test_storage_service,
+                key_pair_service=self.test_key_pair_service,
+                storage_client=self.test_storage_client,
+                group_name=self.test_group_name,
+                storage_name=self.test_storage_name)
 
         self.assertEqual(username, self.vm_credentials.DEFAULT_LINUX_USERNAME)
         self.assertEqual(password, "")
@@ -594,29 +595,29 @@ class TestKeyPairService(TestCase):
 
         # Act
         self.key_pair_service.save_key_pair(
-            storage_client=storage_client,
-            group_name=self.group_name,
-            storage_name=self.storage_name,
-            key_pair=key_pair)
+                storage_client=storage_client,
+                group_name=self.group_name,
+                storage_name=self.storage_name,
+                key_pair=key_pair)
 
         # Verify
         self.key_pair_service._storage_service.create_file.assert_any_call(
-            storage_client=storage_client,
-            group_name=self.group_name,
-            storage_name=self.storage_name,
-            share_name=self.key_pair_service.FILE_SHARE_NAME,
-            directory_name=self.key_pair_service.FILE_SHARE_DIRECTORY,
-            file_name=self.key_pair_service.SSH_PUB_KEY_NAME,
-            file_content=key_pair.public_key)
+                storage_client=storage_client,
+                group_name=self.group_name,
+                storage_name=self.storage_name,
+                share_name=self.key_pair_service.FILE_SHARE_NAME,
+                directory_name=self.key_pair_service.FILE_SHARE_DIRECTORY,
+                file_name=self.key_pair_service.SSH_PUB_KEY_NAME,
+                file_content=key_pair.public_key)
 
         self.key_pair_service._storage_service.create_file.assert_any_call(
-            storage_client=storage_client,
-            group_name=self.group_name,
-            storage_name=self.storage_name,
-            share_name=self.key_pair_service.FILE_SHARE_NAME,
-            directory_name=self.key_pair_service.FILE_SHARE_DIRECTORY,
-            file_name=self.key_pair_service.SSH_PRIVATE_KEY_NAME,
-            file_content=key_pair.private_key)
+                storage_client=storage_client,
+                group_name=self.group_name,
+                storage_name=self.storage_name,
+                share_name=self.key_pair_service.FILE_SHARE_NAME,
+                directory_name=self.key_pair_service.FILE_SHARE_DIRECTORY,
+                file_name=self.key_pair_service.SSH_PRIVATE_KEY_NAME,
+                file_content=key_pair.private_key)
 
     @mock.patch("cloudshell.cp.azure.domain.services.key_pair.SSHKey")
     def test_get_key_pair(self, ssh_key_class):
@@ -627,26 +628,26 @@ class TestKeyPairService(TestCase):
 
         # Act
         key_pair = self.key_pair_service.get_key_pair(
-            storage_client=storage_client,
-            group_name=self.group_name,
-            storage_name=self.storage_name)
+                storage_client=storage_client,
+                group_name=self.group_name,
+                storage_name=self.storage_name)
 
         # Verify
         self.key_pair_service._storage_service.get_file.assert_any_call(
-            storage_client=storage_client,
-            group_name=self.group_name,
-            storage_name=self.storage_name,
-            share_name=self.key_pair_service.FILE_SHARE_NAME,
-            directory_name=self.key_pair_service.FILE_SHARE_DIRECTORY,
-            file_name=self.key_pair_service.SSH_PUB_KEY_NAME)
+                storage_client=storage_client,
+                group_name=self.group_name,
+                storage_name=self.storage_name,
+                share_name=self.key_pair_service.FILE_SHARE_NAME,
+                directory_name=self.key_pair_service.FILE_SHARE_DIRECTORY,
+                file_name=self.key_pair_service.SSH_PUB_KEY_NAME)
 
         self.key_pair_service._storage_service.get_file.assert_any_call(
-            storage_client=storage_client,
-            group_name=self.group_name,
-            storage_name=self.storage_name,
-            share_name=self.key_pair_service.FILE_SHARE_NAME,
-            directory_name=self.key_pair_service.FILE_SHARE_DIRECTORY,
-            file_name=self.key_pair_service.SSH_PRIVATE_KEY_NAME)
+                storage_client=storage_client,
+                group_name=self.group_name,
+                storage_name=self.storage_name,
+                share_name=self.key_pair_service.FILE_SHARE_NAME,
+                directory_name=self.key_pair_service.FILE_SHARE_DIRECTORY,
+                file_name=self.key_pair_service.SSH_PRIVATE_KEY_NAME)
 
         self.assertEqual(key_pair, mocked_ssh_key)
 
@@ -681,8 +682,8 @@ class TestSecurityGroupService(TestCase):
         """Check that method calls azure network client to get list of NSGs and converts them into list"""
         # Act
         security_groups = self.security_group_service.list_network_security_group(
-            network_client=self.network_client,
-            group_name=self.group_name)
+                network_client=self.network_client,
+                group_name=self.group_name)
 
         # Verify
         self.network_client.network_security_groups.list.assert_called_once_with(self.group_name)
@@ -697,17 +698,17 @@ class TestSecurityGroupService(TestCase):
 
         # Act
         nsg = self.security_group_service.create_network_security_group(
-            network_client=self.network_client,
-            group_name=self.group_name,
-            security_group_name=self.security_group_name,
-            region=region,
-            tags=tags)
+                network_client=self.network_client,
+                group_name=self.group_name,
+                security_group_name=self.security_group_name,
+                region=region,
+                tags=tags)
 
         # Verify
         self.network_client.network_security_groups.create_or_update.assert_called_once_with(
-            resource_group_name=self.group_name,
-            network_security_group_name=self.security_group_name,
-            parameters=nsg_model)
+                resource_group_name=self.group_name,
+                network_security_group_name=self.security_group_name,
+                parameters=nsg_model)
 
         self.assertEqual(nsg, self.network_client.network_security_groups.create_or_update().result())
 
@@ -721,9 +722,9 @@ class TestSecurityGroupService(TestCase):
 
         # Act
         prepared_rule = self.security_group_service._prepare_security_group_rule(
-            rule_data=rule_data,
-            destination_addr=private_vm_ip,
-            priority=priority)
+                rule_data=rule_data,
+                destination_addr=private_vm_ip,
+                priority=priority)
 
         # Verify
         self.assertEqual(prepared_rule, security_rule)
@@ -739,23 +740,23 @@ class TestSecurityGroupService(TestCase):
 
         # Act
         self.security_group_service.create_network_security_group_rules(
-            network_client=self.network_client,
-            group_name=self.group_name,
-            security_group_name=self.security_group_name,
-            inbound_rules=inbound_rules,
-            destination_addr=private_vm_ip)
+                network_client=self.network_client,
+                group_name=self.group_name,
+                security_group_name=self.security_group_name,
+                inbound_rules=inbound_rules,
+                destination_addr=private_vm_ip)
 
         # Verify
         self.security_group_service._prepare_security_group_rule.assert_called_once_with(
-            priority=self.security_group_service.RULE_DEFAULT_PRIORITY,
-            destination_addr=private_vm_ip,
-            rule_data=rule_data)
+                priority=self.security_group_service.RULE_DEFAULT_PRIORITY,
+                destination_addr=private_vm_ip,
+                rule_data=rule_data)
 
         self.network_client.security_rules.create_or_update.assert_called_with(
-            network_security_group_name=self.security_group_name,
-            resource_group_name=self.group_name,
-            security_rule_name=rule_model.name,
-            security_rule_parameters=rule_model)
+                network_security_group_name=self.security_group_name,
+                resource_group_name=self.group_name,
+                security_rule_name=rule_model.name,
+                security_rule_parameters=rule_model)
 
     def test_create_network_security_group_rules_with_existing_rules(self):
         """Check that method will call network_client for NSG rules creation starting from first available priority"""
@@ -773,23 +774,23 @@ class TestSecurityGroupService(TestCase):
 
         # Act
         self.security_group_service.create_network_security_group_rules(
-            network_client=self.network_client,
-            group_name=self.group_name,
-            security_group_name=self.security_group_name,
-            inbound_rules=inbound_rules,
-            destination_addr=private_vm_ip)
+                network_client=self.network_client,
+                group_name=self.group_name,
+                security_group_name=self.security_group_name,
+                inbound_rules=inbound_rules,
+                destination_addr=private_vm_ip)
 
         # Verify
         self.security_group_service._prepare_security_group_rule.assert_called_once_with(
-            priority=self.security_group_service.RULE_DEFAULT_PRIORITY,
-            destination_addr=private_vm_ip,
-            rule_data=rule_data)
+                priority=self.security_group_service.RULE_DEFAULT_PRIORITY,
+                destination_addr=private_vm_ip,
+                rule_data=rule_data)
 
         self.network_client.security_rules.create_or_update.assert_called_with(
-            network_security_group_name=self.security_group_name,
-            resource_group_name=self.group_name,
-            security_rule_name=rule_model.name,
-            security_rule_parameters=rule_model)
+                network_security_group_name=self.security_group_name,
+                resource_group_name=self.group_name,
+                security_rule_name=rule_model.name,
+                security_rule_parameters=rule_model)
 
     def test_get_network_security_group(self):
         # Arrange
@@ -803,11 +804,11 @@ class TestSecurityGroupService(TestCase):
 
         # Verify
         self.security_group_service.list_network_security_group.assert_called_once_with(
-            network_client=self.network_client,
-            group_name=self.group_name)
+                network_client=self.network_client,
+                group_name=self.group_name)
         self.security_group_service._validate_network_security_group_is_single_per_group.assert_called_once_with(
-            self.network_security_group,
-            self.group_name)
+                self.network_security_group,
+                self.group_name)
 
     def test_delete_security_rules(self):
         # Arrange
@@ -832,7 +833,43 @@ class TestSecurityGroupService(TestCase):
 
         # Verify
         network_client.security_rules.delete.assert_called_once_with(
-            resource_group_name=resource_group_name,
-            network_security_group_name=security_group.name,
-            security_rule_name=security_rule.name
+                resource_group_name=resource_group_name,
+                network_security_group_name=security_group.name,
+                security_rule_name=security_rule.name
         )
+
+
+class TestTagService(TestCase):
+    def setUp(self):
+        self.tags_service = TagService()
+
+    def test_try_find_tag_list_is_none(self):
+        tags_list = None
+        tag_key = "SomeKey"
+        tag_value = self.tags_service.try_find_tag(tags_list=tags_list, tag_key=tag_key)
+        self.assertIsNone(tag_value)
+
+    def test_try_find_tag_keys_returns_none(self):
+        tags_list = None
+        tag_key = "SomeKey"
+        tag_value = self.tags_service.try_find_tag(tags_list=tags_list, tag_key=tag_key)
+        self.assertIsNone(tag_value)
+
+    def test_try_find_tag_keys_returns_empty_dict(self):
+        tags_list = {}
+        tag_key = "SomeKey"
+        tag_value = self.tags_service.try_find_tag(tags_list=tags_list, tag_key=tag_key)
+        self.assertIsNone(tag_value)
+
+    def test_try_find_tag_key_not_found(self):
+        tags_list = {"NotMyKey": "Val1"}
+        tag_key = "MyKey"
+        tag_value = self.tags_service.try_find_tag(tags_list=tags_list, tag_key=tag_key)
+        self.assertIsNone(tag_value)
+
+    def test_try_find_tag_returns_key_value(self):
+        tags_list = {"MyKey": "Val1"}
+        # tags_list.keys = Mock(return_value={"MyKey" : "Val1"})
+        tag_key = "MyKey"
+        tag_value = self.tags_service.try_find_tag(tags_list=tags_list, tag_key=tag_key)
+        self.assertEquals(tag_value, "Val1")
