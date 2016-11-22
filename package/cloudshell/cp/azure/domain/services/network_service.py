@@ -3,6 +3,11 @@ from azure.mgmt.network.models import NetworkInterface, NetworkInterfaceIPConfig
 
 
 class NetworkService(object):
+
+    NETWORK_TYPE_TAG_NAME = 'network_type'
+    SANDBOX_NETWORK_TAG_VALUE = 'sandbox'
+    MGMT_NETWORK_TAG_VALUE = 'mgmt'
+
     def __init__(self):
         pass
 
@@ -332,8 +337,8 @@ class NetworkService(object):
                                                      group_name=group_name)
 
         return self.get_virtual_network_by_tag(virtual_networks=virtual_networks,
-                                               tag_key='network_type',
-                                               tag_value='sandbox',
+                                               tag_key=NetworkService.NETWORK_TYPE_TAG_NAME,
+                                               tag_value=NetworkService.SANDBOX_NETWORK_TAG_VALUE,
                                                tags_service=tags_service)
 
     def get_virtual_network_by_tag(self, virtual_networks, tag_key, tag_value, tags_service):
