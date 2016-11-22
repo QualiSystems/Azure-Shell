@@ -2,6 +2,20 @@
 	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
 	"contentVersion": "1.0.0.0",
 	"parameters": {
+		"sharedKey": {
+			"type": "securestring",
+			"metadata": {
+				"description": "Shared key (PSK) for IPSec tunnel"
+			}
+		},
+		"on_premise_CIDR": {
+			"defaultValue": "192.168.120.0/24",
+			"type": "String"
+		},
+        "vpn_address": {
+            "type": "string",
+            "defaultValue": "1.1.1.1"
+        },		
 		"management_vnet_CIDR": {
 			"defaultValue": "192.168.120.0/24",
 			"type": "String"
@@ -185,6 +199,41 @@
 		  "publicIPAllocationMethod": "Dynamic"
 		}
 	},	
+	{
+		"apiVersion": "[variables('api-version')]",
+		"type": "Microsoft.Network/localNetworkGateways",
+		"name": "[parameters('localGatewayName')]",
+		"location": "[resourceGroup().location]",
+		"properties": {
+		  "localNetworkAddressSpace": {
+			"addressPrefixes": [
+			  "[parameters('on_premise_CIDR')]"
+			]
+		  },
+		  "gatewayIpAddress": "[parameters('vpn_address')]"
+		}
+	},
+	{
+		"apiVersion": "[variables('api-version')]",
+		"name": "[parameters('connectionName')]",
+		"type": "Microsoft.Network/connections",
+		"location": "[resourceGroup().location]",
+		"dependsOn": [
+		  "[concat('Microsoft.Network/virtualNetworkGateways/', parameters('virtualNetworks_mgmt_vnet_name'))]",
+		  "[concat('Microsoft.Network/localNetworkGateways/', parameters('localGatewayName'))]"
+		],
+		"properties": {
+		  "virtualNetworkGateway1": {
+			"id": "[resourceId('Microsoft.Network/virtualNetworkGateways', parameters('virtualNetworks_mgmt_vnet_name'))]"
+		  },
+		  "localNetworkGateway2": {
+			"id": "[resourceId('Microsoft.Network/localNetworkGateways', parameters('localGatewayName'))]"
+		  },
+		  "connectionType": "IPsec",
+		  "routingWeight": 10,
+		  "sharedKey": "[parameters('sharedKey')]"
+		}
+	},	 
 	{
         "apiVersion": "2015-06-15",
         "type": "Microsoft.Network/virtualNetworkGateways",
