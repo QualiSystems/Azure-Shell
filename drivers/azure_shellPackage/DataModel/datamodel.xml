@@ -369,9 +369,6 @@
                 <AllowedValue>Windows</AllowedValue>
               </AllowedValues>
             </AttachedAttribute>
-            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Disk Type" UserInput="true">
-              <AllowedValues />
-            </AttachedAttribute>
           </AttachedAttributes>
           <AttributeValues>
             <AttributeValue Name="Public IP Type" Value="Dynamic" />
