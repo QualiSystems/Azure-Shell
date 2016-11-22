@@ -360,6 +360,7 @@ class DeployAzureVMOperation(object):
             self._rollback_deployed_resources(compute_client=compute_client,
                                               network_client=network_client,
                                               group_name=group_name,
+                                              interface_name=interface_name,
                                               vm_name=vm_name,
                                               ip_name=ip_name)
 

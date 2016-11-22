@@ -119,6 +119,30 @@ class TestStorageService(TestCase):
         self.assertIn(expected_cached_key, self.storage_service._cached_file_services)
         self.assertEqual(file_service, self.storage_service._cached_file_services[expected_cached_key])
 
+    @mock.patch("cloudshell.cp.azure.domain.services.storage_service.BlockBlobService")
+    def test_get_blob_service(self, blob_service_class):
+        """Check that method will return BlockBlobService instance"""
+        blob_service_class.return_value = mocked_file_service = MagicMock()
+        mocked_account_key = MagicMock()
+        self.storage_service._get_storage_account_key = MagicMock(return_value=mocked_account_key)
+
+        # Act
+        blob_service = self.storage_service._get_blob_service(storage_client=self.storage_client,
+                                                              group_name=self.group_name,
+                                                              storage_name=self.storage_name)
+
+        # Verify
+        self.storage_service._get_storage_account_key.assert_called_once_with(storage_client=self.storage_client,
+                                                                              group_name=self.group_name,
+                                                                              storage_name=self.storage_name)
+
+        blob_service_class.assert_called_once_with(account_name=self.storage_name, account_key=mocked_account_key)
+
+        self.assertEqual(blob_service, mocked_file_service)
+        expected_cached_key = (self.group_name, self.storage_name)
+        self.assertIn(expected_cached_key, self.storage_service._cached_blob_services)
+        self.assertEqual(blob_service, self.storage_service._cached_blob_services[expected_cached_key])
+
     def test_create_file(self):
         """Check that method uses storage client to save file to the Azure"""
         share_name = "testsharename"
@@ -167,6 +191,261 @@ class TestStorageService(TestCase):
                                                                directory_name=directory_name,
                                                                file_name=file_name)
         self.assertEqual(azure_file, mocked_file)
+
+    @mock.patch("cloudshell.cp.azure.domain.services.storage_service.AzureBlobUrlModel")
+    def test_parse_blob_url(self, blob_url_model_class):
+        """Check that method will parse Azure blob URL into AzureBlobUrl model"""
+        storage_account_name = "testaccount"
+        container_name = "testcontainer"
+        blob_name = "testblobname"
+        blob_url = "https://{}.blob.core.windows.net/{}/{}".format(storage_account_name, container_name, blob_name)
+        expected_blob_url_model = MagicMock()
+        blob_url_model_class.return_value = expected_blob_url_model
+
+        # Act
+        blob_url_model = self.storage_service.parse_blob_url(blob_url=blob_url)
+
+        # Verify
+        self.assertEqual(blob_url_model, expected_blob_url_model)
+        blob_url_model_class.assert_called_once_with(blob_name=blob_name,
+                                                     container_name=container_name,
+                                                     storage_name=storage_account_name)
+
+    def test_wait_until_blob_copied_ends_with_success_status(self, mocked_time=1):
+        """Check that method will stop infinite loop if Blob copy operation ended with the success status"""
+        container_name = "testcontainer"
+        blob_name = "testblobname"
+        blob_service = MagicMock()
+        blob = MagicMock()
+        blob.properties.copy.status = "success"
+        blob_service.get_blob_properties.return_value = blob
+
+        # Act
+        self.storage_service._wait_until_blob_copied(
+            blob_service=blob_service,
+            container_name=container_name,
+            blob_name=blob_name)
+
+        # Verify
+        blob_service.get_blob_properties.assert_called_once_with(container_name, blob_name)
+
+    def test_wait_until_blob_copied_ends_with_failed_status(self):
+        """Check that method will raise Exception if Blob copy operation ended with the failed status"""
+        container_name = "testcontainer"
+        blob_name = "testblobname"
+        blob_service = MagicMock()
+        blob = MagicMock()
+        blob.properties.copy.status = "failed"
+        blob_service.get_blob_properties.return_value = blob
+
+        with self.assertRaises(Exception):
+            self.storage_service._wait_until_blob_copied(
+                blob_service=blob_service,
+                container_name=container_name,
+                blob_name=blob_name)
+
+    def test_wait_until_blob_copied_will_wait_for_operation(self):
+        """Check that method will continue loop if Blob copy operation is in copying status"""
+        container_name = "testcontainer"
+        blob_name = "testblobname"
+        blob_service = MagicMock()
+        blob = MagicMock()
+        blob.properties.copy.status = "copying"
+        blob_service.get_blob_properties.return_value = blob
+        sleep_time = 5
+
+        class ExitLoopException(Exception):
+            """Exception for existing infinite loop"""
+            pass
+
+        with mock.patch("cloudshell.cp.azure.domain.services.storage_service.time.sleep",
+                        side_effect=ExitLoopException) as sleep:
+
+            with self.assertRaises(ExitLoopException):
+                self.storage_service._wait_until_blob_copied(
+                    blob_service=blob_service,
+                    container_name=container_name,
+                    blob_name=blob_name,
+                    sleep_time=sleep_time)
+
+            # Verify
+            sleep.assert_called_once_with(sleep_time)
+
+    def test__copy_blob_file_already_exists(self):
+        """Check that method will not copy Blob if such one already exists under the storage/container"""
+        group_name_copy_from = "testgroupcopyfrom"
+        group_name_copy_to = "testgroupcopyto"
+        storage_client = MagicMock()
+        ulr_model_copy_from = MagicMock()
+        url_model_copy_to = MagicMock()
+        expected_url = "https://teststorage.blob.core.windows.net/testcontainer/testblob"
+        blob_service = MagicMock()
+        blob_service.exists.return_value = True
+        blob_service.make_blob_url.return_value = expected_url
+        self.storage_service._get_blob_service = MagicMock(return_value=blob_service)
+        self.storage_service._wait_until_blob_copied = MagicMock()
+
+        # Act
+        blob_url = self.storage_service._copy_blob(storage_client=storage_client,
+                                                   group_name_copy_from=group_name_copy_from,
+                                                   group_name_copy_to=group_name_copy_to,
+                                                   ulr_model_copy_from=ulr_model_copy_from,
+                                                   url_model_copy_to=url_model_copy_to)
+
+        # Verify
+        blob_service.exists.assert_called_once_with(blob_name=url_model_copy_to.blob_name,
+                                                    container_name=url_model_copy_to.container_name)
+
+        blob_service.create_container.assert_not_called()
+        blob_service.copy_blob.assert_not_called()
+        self.storage_service._wait_until_blob_copied.assert_not_called()
+        self.assertEqual(blob_url, expected_url)
+
+    def test__copy_blob_file_start_copy_operation(self):
+        """Check that method will copy Blob if such one is not present under the storage/container"""
+        group_name_copy_from = "testgroupcopyfrom"
+        group_name_copy_to = "testgroupcopyto"
+        storage_client = MagicMock()
+        ulr_model_copy_from = MagicMock()
+        url_model_copy_to = MagicMock()
+        expected_url = "https://teststorage.blob.core.windows.net/testcontainer/testblob"
+        blob_service = MagicMock()
+        blob_service.exists.return_value = False
+        blob_service.make_blob_url.return_value = expected_url
+        self.storage_service._get_blob_service = MagicMock(return_value=blob_service)
+        self.storage_service._wait_until_blob_copied = MagicMock()
+
+        # Act
+        blob_url = self.storage_service._copy_blob(storage_client=storage_client,
+                                                   group_name_copy_from=group_name_copy_from,
+                                                   group_name_copy_to=group_name_copy_to,
+                                                   ulr_model_copy_from=ulr_model_copy_from,
+                                                   url_model_copy_to=url_model_copy_to)
+
+        # Verify
+        blob_service.exists.assert_called_once_with(blob_name=url_model_copy_to.blob_name,
+                                                    container_name=url_model_copy_to.container_name)
+
+        blob_service.create_container.assert_called_once_with(container_name=url_model_copy_to.container_name,
+                                                              fail_on_exist=False)
+
+        blob_service.copy_blob.assert_called_once_with(blob_name=url_model_copy_to.blob_name,
+                                                       container_name=url_model_copy_to.container_name,
+                                                       copy_source=expected_url)
+
+        self.storage_service._wait_until_blob_copied.assert_called_once_with(
+            blob_name=url_model_copy_to.blob_name,
+            container_name=url_model_copy_to.container_name,
+            blob_service=blob_service)
+
+        self.assertEqual(blob_url, expected_url)
+
+    @mock.patch("cloudshell.cp.azure.domain.services.storage_service.BlobCopyOperationState")
+    def test_copy_blob_retuns_blob_url_from_cache(self, blob_copying_state):
+        """Check that method will return copied Blob URL from the cache if file was already copied"""
+        group_name_copy_from = "test_group_copy_from"
+        group_name_copy_to = "test_group_copy_to"
+        storage_name_copy_to = "test_storage_name_copy_to"
+        container_name_copy_to = "test_container_name_copy_to"
+        blob_name_copy_to = "test_blob_name_copy_to"
+        source_copy_from = "https://teststoragesourse.blob.core.windows.net/testsourcecontainer/testsourceblob"
+        expected_blob_url = "https://teststorage.blob.core.windows.net/testcontainer/testblob"
+        storage_client = MagicMock()
+        self.storage_service._copy_blob = MagicMock()
+
+        cache_key = (storage_name_copy_to, container_name_copy_to, blob_name_copy_to)
+        self.storage_service._cached_copied_blob_urls = {
+            cache_key: {
+                "state": blob_copying_state.success,
+                "result": expected_blob_url
+            }
+        }
+
+        # Act
+        blob_url = self.storage_service.copy_blob(storage_client=storage_client,
+                                                  group_name_copy_from=group_name_copy_from,
+                                                  storage_name_copy_to=storage_name_copy_to,
+                                                  container_name_copy_to=container_name_copy_to,
+                                                  blob_name_copy_to=blob_name_copy_to,
+                                                  source_copy_from=source_copy_from,
+                                                  group_name_copy_to=group_name_copy_to)
+
+        # Verify
+        self.assertEqual(blob_url, expected_blob_url)
+        self.storage_service._copy_blob.assert_not_called()
+
+    @mock.patch("cloudshell.cp.azure.domain.services.storage_service.AzureBlobUrlModel")
+    def test_copy_blob_start_execute_copy_operation(self, blob_model_class):
+        """Check that method will execute copy operation"""
+        group_name_copy_from = "test_group_copy_from"
+        group_name_copy_to = "test_group_copy_to"
+        storage_name_copy_to = "test_storage_name_copy_to"
+        container_name_copy_to = "test_container_name_copy_to"
+        blob_name_copy_to = "test_blob_name_copy_to"
+        source_copy_from = "https://teststoragesourse.blob.core.windows.net/testsourcecontainer/testsourceblob"
+        expected_blob_url = "https://teststorage.blob.core.windows.net/testcontainer/testblob"
+        storage_client = MagicMock()
+        self.storage_service._copy_blob = MagicMock(return_value=expected_blob_url)
+        blob_model_copy_to = MagicMock()
+        blob_model_class.return_value = blob_model_copy_to
+        blob_model_copy_from = MagicMock()
+        self.storage_service.parse_blob_url = MagicMock(return_value=blob_model_copy_from)
+
+        # Act
+        blob_url = self.storage_service.copy_blob(storage_client=storage_client,
+                                                  group_name_copy_from=group_name_copy_from,
+                                                  storage_name_copy_to=storage_name_copy_to,
+                                                  container_name_copy_to=container_name_copy_to,
+                                                  blob_name_copy_to=blob_name_copy_to,
+                                                  source_copy_from=source_copy_from,
+                                                  group_name_copy_to=group_name_copy_to)
+
+        # Verify
+        self.storage_service.parse_blob_url.assert_called_once_with(source_copy_from)
+        self.storage_service._copy_blob.assert_called_once_with(group_name_copy_from=group_name_copy_from,
+                                                                group_name_copy_to=group_name_copy_to,
+                                                                storage_client=storage_client,
+                                                                ulr_model_copy_from=blob_model_copy_from,
+                                                                url_model_copy_to=blob_model_copy_to)
+        self.assertEqual(blob_url, expected_blob_url)
+
+    @mock.patch("cloudshell.cp.azure.domain.services.storage_service.BlobCopyOperationState")
+    @mock.patch("cloudshell.cp.azure.domain.services.storage_service.AzureBlobUrlModel")
+    def test_copy_blob_wait_until_copied_in_other_operation(self, blob_model_class, blob_copying_state):
+        """Check that method will wait until image will be copied in another operation (thread)"""
+        group_name_copy_from = "test_group_copy_from"
+        group_name_copy_to = "test_group_copy_to"
+        storage_name_copy_to = "test_storage_name_copy_to"
+        container_name_copy_to = "test_container_name_copy_to"
+        blob_name_copy_to = "test_blob_name_copy_to"
+        source_copy_from = "https://teststoragesourse.blob.core.windows.net/testsourcecontainer/testsourceblob"
+        storage_client = MagicMock()
+
+        cache_key = (storage_name_copy_to, container_name_copy_to, blob_name_copy_to)
+        self.storage_service._cached_copied_blob_urls = {
+            cache_key: {
+                "state": blob_copying_state.copying,
+            }
+        }
+
+        class ExitLoopException(Exception):
+            """Exception for existing infinite loop"""
+            pass
+
+        with mock.patch("cloudshell.cp.azure.domain.services.storage_service.time.sleep",
+                        side_effect=ExitLoopException) as sleep:
+
+            # Act
+            with self.assertRaises(ExitLoopException):
+                self.storage_service.copy_blob(storage_client=storage_client,
+                                               group_name_copy_from=group_name_copy_from,
+                                               storage_name_copy_to=storage_name_copy_to,
+                                               container_name_copy_to=container_name_copy_to,
+                                               blob_name_copy_to=blob_name_copy_to,
+                                               source_copy_from=source_copy_from,
+                                               group_name_copy_to=group_name_copy_to)
+
+            sleep.assert_called_once()
 
 
 class TestNetworkService(TestCase):
@@ -281,36 +560,131 @@ class TestVMService(TestCase):
         self.vm_service = VirtualMachineService()
 
     @mock.patch("cloudshell.cp.azure.domain.services.virtual_machine_service.VirtualMachine")
-    def test_vm_service_create_vm(self, virtual_machine_class):
-        mock = MagicMock()
-        compute_management_client = mock
-        group_name = mock
-        vm_name = mock
-        region = 'a region'
-        tags = {}
-        compute_management_client.virtual_machines = mock
-        compute_management_client.virtual_machines.create_or_update = MagicMock(return_value=mock)
-        vm = 'some returned vm'
+    def test__create_vm(self, virtual_machine_class):
+        compute_management_client = MagicMock()
+        region = "test_region"
+        group_name = "test_group_name"
+        vm_name = "test_vm_name"
+        hardware_profile = MagicMock()
+        network_profile = MagicMock()
+        os_profile = MagicMock()
+        storage_profile = MagicMock()
+        tags = MagicMock()
+        vm = MagicMock()
         virtual_machine_class.return_value = vm
 
         # Act
-        self.vm_service.create_vm(compute_management_client=compute_management_client,
-                                  image_offer=mock,
-                                  image_publisher=mock,
-                                  image_sku=mock,
-                                  image_version=mock,
-                                  vm_credentials=MagicMock(),
-                                  computer_name=mock,
-                                  group_name=group_name,
-                                  nic_id=mock,
-                                  region=region,
-                                  storage_name=mock,
-                                  vm_name=vm_name,
-                                  tags=tags,
-                                  instance_type=mock)
+        self.vm_service._create_vm(compute_management_client=compute_management_client,
+                                   region=region,
+                                   group_name=group_name,
+                                   vm_name=vm_name,
+                                   hardware_profile=hardware_profile,
+                                   network_profile=network_profile,
+                                   os_profile=os_profile,
+                                   storage_profile=storage_profile,
+                                   tags=tags)
 
         # Verify
         compute_management_client.virtual_machines.create_or_update.assert_called_with(group_name, vm_name, vm)
+        virtual_machine_class.assert_called_once_with(hardware_profile=hardware_profile,
+                                                      location=region,
+                                                      network_profile=network_profile,
+                                                      os_profile=os_profile,
+                                                      storage_profile=storage_profile,
+                                                      tags=tags)
+
+    @mock.patch("cloudshell.cp.azure.domain.services.virtual_machine_service.StorageProfile")
+    @mock.patch("cloudshell.cp.azure.domain.services.virtual_machine_service.NetworkProfile")
+    @mock.patch("cloudshell.cp.azure.domain.services.virtual_machine_service.HardwareProfile")
+    def test_create_vm(self, hardware_profile_class, network_profile_class, storage_profile_class):
+        """Check that method will prepare all required parameters and call _create_vm method"""
+        compute_management_client = MagicMock()
+        group_name = "test_group_name"
+        vm_name = "test_vm_name"
+        region = "test_region"
+        tags = MagicMock()
+        self.vm_service._create_vm = MagicMock()
+        os_profile = MagicMock()
+        hardware_profile = MagicMock()
+        network_profile = MagicMock()
+        storage_profile = MagicMock()
+        self.vm_service._prepare_os_profile = MagicMock(return_value=os_profile)
+        hardware_profile_class.return_value = hardware_profile
+        network_profile_class.return_value = network_profile
+        storage_profile_class.return_value = storage_profile
+
+        # Act
+        self.vm_service.create_vm(compute_management_client=compute_management_client,
+                                  image_offer=MagicMock(),
+                                  image_publisher=MagicMock(),
+                                  image_sku=MagicMock(),
+                                  image_version=MagicMock(),
+                                  vm_credentials=MagicMock(),
+                                  computer_name=MagicMock(),
+                                  group_name=group_name,
+                                  nic_id=MagicMock(),
+                                  region=region,
+                                  storage_name=MagicMock(),
+                                  vm_name=vm_name,
+                                  tags=tags,
+                                  instance_type=MagicMock())
+
+        # Verify
+        self.vm_service._create_vm.assert_called_once_with(compute_management_client=compute_management_client,
+                                                           group_name=group_name,
+                                                           hardware_profile=hardware_profile,
+                                                           network_profile=network_profile,
+                                                           os_profile=os_profile,
+                                                           region=region,
+                                                           storage_profile=storage_profile,
+                                                           tags=tags,
+                                                           vm_name=vm_name)
+
+    @mock.patch("cloudshell.cp.azure.domain.services.virtual_machine_service.StorageProfile")
+    @mock.patch("cloudshell.cp.azure.domain.services.virtual_machine_service.NetworkProfile")
+    @mock.patch("cloudshell.cp.azure.domain.services.virtual_machine_service.HardwareProfile")
+    def test_create_vm_from_custom_image(self, hardware_profile_class, network_profile_class, storage_profile_class):
+        """Check that method will prepare all required parameters and call _create_vm method"""
+        compute_management_client = MagicMock()
+        group_name = "test_group_name"
+        vm_name = "test_vm_name"
+        region = "test_region"
+        image_urn = "https://teststorage.blob.core.windows.net/testcontainer/testblob"
+        tags = MagicMock()
+        self.vm_service._create_vm = MagicMock()
+        os_profile = MagicMock()
+        hardware_profile = MagicMock()
+        network_profile = MagicMock()
+        storage_profile = MagicMock()
+        self.vm_service._prepare_os_profile = MagicMock(return_value=os_profile)
+        hardware_profile_class.return_value = hardware_profile
+        network_profile_class.return_value = network_profile
+        storage_profile_class.return_value = storage_profile
+
+        # Act
+        self.vm_service.create_vm_from_custom_image(compute_management_client=compute_management_client,
+                                                    image_urn=image_urn,
+                                                    image_os_type="Linux",
+                                                    vm_credentials=MagicMock(),
+                                                    computer_name=MagicMock(),
+                                                    group_name=group_name,
+                                                    nic_id=MagicMock(),
+                                                    region=region,
+                                                    storage_name=MagicMock(),
+                                                    vm_name=vm_name,
+                                                    tags=tags,
+                                                    instance_type=MagicMock())
+
+        # Verify
+        self.vm_service._create_vm.assert_called_once_with(compute_management_client=compute_management_client,
+                                                           group_name=group_name,
+                                                           hardware_profile=hardware_profile,
+                                                           network_profile=network_profile,
+                                                           os_profile=os_profile,
+                                                           region=region,
+                                                           storage_profile=storage_profile,
+                                                           tags=tags,
+                                                           vm_name=vm_name)
 
     def test_vm_service_create_resource_group(self):
         # Arrange
@@ -436,6 +810,28 @@ class TestVMService(TestCase):
         with self.assertRaises(Exception):
             self.vm_service.get_active_vm(compute_management_client=compute_client, group_name=group_name,
                                           vm_name=vm_name)
+
+    @mock.patch("cloudshell.cp.azure.domain.services.virtual_machine_service.OperatingSystemTypes")
+    def test_prepare_image_os_type_returns_linux(self, operating_system_types):
+        """Check that method will return Linux OS type"""
+        image_os_type = "Linux"
+
+        # Act
+        res = self.vm_service._prepare_image_os_type(image_os_type=image_os_type)
+
+        # Verify
+        self.assertEqual(res, operating_system_types.linux)
+
+    @mock.patch("cloudshell.cp.azure.domain.services.virtual_machine_service.OperatingSystemTypes")
+    def test_prepare_image_os_type_returns_windows(self, operating_system_types):
+        """Check that method will return Windows OS type"""
+        image_os_type = "Windows"
+
+        # Act
+        res = self.vm_service._prepare_image_os_type(image_os_type=image_os_type)
+
+        # Verify
+        self.assertEqual(res, operating_system_types.windows)
 
 
 class TestVMCredentialsService(TestCase):
