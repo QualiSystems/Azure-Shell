@@ -49,6 +49,7 @@
 		}
 	},
 	"variables": {
+		"localGatewayName": "local_getway_network",
 	    "apiVersion": "2016-06-01",
 		"storageAccountName": "[concat(uniquestring(resourceGroup().id), 'strg')]",
 		"vNet1": {
@@ -58,6 +59,7 @@
 			"peeringName": "vNet_sndbx-to-vNet_mgmt"
 		},
 		"gatewayPublicIPName" :"[uniquestring('azureGatewayIP')]",	
+		"gateway_vpn_name" :"[uniqueString('a_gateway_name')]",						
 		"vnetID": "[resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetworks_mgmt_vnet_name'))]",		
         "gatewaySubnetRef": "[concat(variables('vnetID'),'/subnets/','GatewaySubnet')]"
 	},
@@ -200,9 +202,9 @@
 		}
 	},	
 	{
-		"apiVersion": "[variables('api-version')]",
+		"apiVersion": "2015-06-15",
 		"type": "Microsoft.Network/localNetworkGateways",
-		"name": "[parameters('localGatewayName')]",
+		"name": "[variables('localGatewayName')]",
 		"location": "[resourceGroup().location]",
 		"properties": {
 		  "localNetworkAddressSpace": {
@@ -214,20 +216,20 @@
 		}
 	},
 	{
-		"apiVersion": "[variables('api-version')]",
-		"name": "[parameters('connectionName')]",
+		"apiVersion": "2015-06-15",
+		"name": "vpn_connection_s_to_s",
 		"type": "Microsoft.Network/connections",
 		"location": "[resourceGroup().location]",
 		"dependsOn": [
-		  "[concat('Microsoft.Network/virtualNetworkGateways/', parameters('virtualNetworks_mgmt_vnet_name'))]",
-		  "[concat('Microsoft.Network/localNetworkGateways/', parameters('localGatewayName'))]"
+		  "[concat('Microsoft.Network/virtualNetworkGateways/',variables('gateway_vpn_name'))]",
+		  "[concat('Microsoft.Network/localNetworkGateways/', variables('localGatewayName'))]"
 		],
 		"properties": {
 		  "virtualNetworkGateway1": {
 			"id": "[resourceId('Microsoft.Network/virtualNetworkGateways', parameters('virtualNetworks_mgmt_vnet_name'))]"
 		  },
 		  "localNetworkGateway2": {
-			"id": "[resourceId('Microsoft.Network/localNetworkGateways', parameters('localGatewayName'))]"
+			"id": "[resourceId('Microsoft.Network/localNetworkGateways', variables('localGatewayName'))]"
 		  },
 		  "connectionType": "IPsec",
 		  "routingWeight": 10,
@@ -237,7 +239,7 @@
 	{
         "apiVersion": "2015-06-15",
         "type": "Microsoft.Network/virtualNetworkGateways",
-        "name": "[uniqueString('a_gateway_name')]",
+        "name": "[variables('gateway_vpn_name')]",  
         "location": "[resourceGroup().location]",
         "dependsOn": [
           "[concat('Microsoft.Network/publicIPAddresses/', variables('gatewayPublicIPName'))]",
