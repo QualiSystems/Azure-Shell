@@ -357,14 +357,13 @@ class DeployAzureVMOperation(object):
                                                       instance_type=azure_vm_deployment_model.instance_type)
 
         except Exception:
+            logger.error("Failed to deploy VM. Error: {0}".format(traceback.format_exc()))
             self._rollback_deployed_resources(compute_client=compute_client,
                                               network_client=network_client,
                                               group_name=group_name,
                                               interface_name=interface_name,
                                               vm_name=vm_name,
                                               ip_name=ip_name)
-
-            logger.error("Failed to deploy VM. Error: {0}".format(traceback.format_exc()))
             raise
 
         public_ip_address = self._get_public_ip_address(network_client=network_client,
