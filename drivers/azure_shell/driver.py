@@ -20,6 +20,9 @@ class AzureShellDriver(ResourceDriverInterface):
     def deploy_vm(self, context, request):
         return self.azure_shell.deploy_azure_vm(command_context=context, deployment_request=request)
 
+    def deploy_vm_from_custom_image(self, context, request):
+        return self.azure_shell.deploy_vm_from_custom_image(command_context=context, deployment_request=request)
+
     def PowerOn(self, context, ports):
         return self.azure_shell.power_on_vm(context)
 

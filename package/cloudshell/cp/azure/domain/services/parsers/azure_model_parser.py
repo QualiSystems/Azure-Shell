@@ -1,7 +1,8 @@
 import jsonpickle
-from cloudshell.cp.azure.models.azure_cloud_provider_resource_model import AzureCloudProviderResourceModel
 
-from cloudshell.cp.azure.models.deploy_azure_vm_resource_model import DeployAzureVMResourceModel
+from cloudshell.cp.azure.models.azure_cloud_provider_resource_model import AzureCloudProviderResourceModel
+from cloudshell.cp.azure.models.deploy_azure_vm_resource_models import DeployAzureVMResourceModel
+from cloudshell.cp.azure.models.deploy_azure_vm_resource_models import DeployAzureVMFromCustomImageResourceModel
 from cloudshell.cp.azure.common.deploy_data_holder import DeployDataHolder
 from cloudshell.cp.azure.models.reservation_model import ReservationModel
 
@@ -14,17 +15,17 @@ class AzureModelsParser(object):
         return data_holder
 
     @staticmethod
-    def convert_to_deployment_resource_model(deployment_request):
-        data = jsonpickle.decode(deployment_request)
-        data_holder = DeployDataHolder(data)
-        deployment_resource_model = DeployAzureVMResourceModel()
+    def _set_base_deploy_azure_vm_model_params(deployment_resource_model, data_holder):
+        """Set base parameters to the Azure Deploy model
+
+        :param deployment_resource_model: deploy_azure_vm_resource_models.BaseDeployAzureVMResourceModel subclass
+        :param data_holder: DeployDataHolder instance
+        :return:
+        """
         deployment_resource_model.add_public_ip = data_holder.ami_params.add_public_ip
         deployment_resource_model.autoload = data_holder.ami_params.autoload
         deployment_resource_model.cloud_provider = data_holder.ami_params.cloud_provider
         deployment_resource_model.group_name = data_holder.ami_params.group_name
-        deployment_resource_model.image_offer = data_holder.ami_params.image_offer
-        deployment_resource_model.image_publisher = data_holder.ami_params.image_publisher
-        deployment_resource_model.image_sku = data_holder.ami_params.image_sku
         deployment_resource_model.inbound_ports = data_holder.ami_params.inbound_ports
         deployment_resource_model.instance_type = data_holder.ami_params.instance_type
         deployment_resource_model.outbound_ports = data_holder.ami_params.outbound_ports
@@ -34,6 +35,37 @@ class AzureModelsParser(object):
         deployment_resource_model.app_name = data_holder.app_name
         deployment_resource_model.username = data_holder.ami_params.username
         deployment_resource_model.password = data_holder.ami_params.password
+
+    @staticmethod
+    def convert_to_deploy_azure_vm_resource_model(deployment_request):
+        """Convert deployment request JSON to the DeployAzureVMResourceModel model
+
+        :param deployment_request: (str) JSON string
+        :return: deploy_azure_vm_resource_models.DeployAzureVMResourceModel instance
+        """
+        data = jsonpickle.decode(deployment_request)
+        data_holder = DeployDataHolder(data)
+        deployment_resource_model = DeployAzureVMResourceModel()
+        deployment_resource_model.image_offer = data_holder.ami_params.image_offer
+        deployment_resource_model.image_publisher = data_holder.ami_params.image_publisher
+        deployment_resource_model.image_sku = data_holder.ami_params.image_sku
+        AzureModelsParser._set_base_deploy_azure_vm_model_params(deployment_resource_model, data_holder)
+
+        return deployment_resource_model
+
+    @staticmethod
+    def convert_to_deploy_azure_vm_from_custom_image_resource_model(deployment_request):
+        """Convert deployment request JSON to the DeployAzureVMFromCustomImageResourceModel model
+
+        :param deployment_request: (str) JSON string
+        :return: deploy_azure_vm_resource_models.DeployAzureVMFromCustomImageResourceModel instance
+        """
+        data = jsonpickle.decode(deployment_request)
+        data_holder = DeployDataHolder(data)
+        deployment_resource_model = DeployAzureVMFromCustomImageResourceModel()
+        deployment_resource_model.image_urn = data_holder.ami_params.image_urn
+        deployment_resource_model.image_os_type = data_holder.ami_params.image_os_type
+        AzureModelsParser._set_base_deploy_azure_vm_model_params(deployment_resource_model, data_holder)
 
         return deployment_resource_model
 
