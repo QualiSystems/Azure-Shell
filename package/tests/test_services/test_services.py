@@ -122,7 +122,7 @@ class TestStorageService(TestCase):
     @mock.patch("cloudshell.cp.azure.domain.services.storage_service.BlockBlobService")
     def test_get_blob_service(self, blob_service_class):
         """Check that method will return BlockBlobService instance"""
-        blob_service_class.return_value = mocked_file_service = MagicMock()
+        blob_service_class.return_value = mocked_blob_service = MagicMock()
         mocked_account_key = MagicMock()
         self.storage_service._get_storage_account_key = MagicMock(return_value=mocked_account_key)
 
@@ -138,7 +138,7 @@ class TestStorageService(TestCase):
 
         blob_service_class.assert_called_once_with(account_name=self.storage_name, account_key=mocked_account_key)
 
-        self.assertEqual(blob_service, mocked_file_service)
+        self.assertEqual(blob_service, mocked_blob_service)
         expected_cached_key = (self.group_name, self.storage_name)
         self.assertIn(expected_cached_key, self.storage_service._cached_blob_services)
         self.assertEqual(blob_service, self.storage_service._cached_blob_services[expected_cached_key])
@@ -211,7 +211,7 @@ class TestStorageService(TestCase):
                                                      container_name=container_name,
                                                      storage_name=storage_account_name)
 
-    def test_wait_until_blob_copied_ends_with_success_status(self, mocked_time=1):
+    def test_wait_until_blob_copied_ends_with_success_status(self):
         """Check that method will stop infinite loop if Blob copy operation ended with the success status"""
         container_name = "testcontainer"
         blob_name = "testblobname"
@@ -561,6 +561,7 @@ class TestVMService(TestCase):
 
     @mock.patch("cloudshell.cp.azure.domain.services.virtual_machine_service.VirtualMachine")
     def test__create_vm(self, virtual_machine_class):
+        """Check that method will create VirtualMachine instance and execute create_or_update request"""
         compute_management_client = MagicMock()
         region = "test_region"
         group_name = "test_group_name"
