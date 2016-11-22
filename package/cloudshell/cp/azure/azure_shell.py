@@ -77,7 +77,8 @@ class AzureShell(object):
 
                 cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(
                     command_context.resource)
-                azure_vm_deployment_model = self.model_parser.convert_to_deployment_resource_model(deployment_request)
+                azure_vm_deployment_model = self.model_parser.convert_to_deploy_azure_vm_resource_model(
+                    deployment_request)
                 azure_clients = AzureClientsManager(cloud_provider_model)
                 reservation = self.model_parser.convert_to_reservation_model(command_context.reservation)
 
@@ -88,6 +89,41 @@ class AzureShell(object):
 
                 with ValidatorsFactoryContext() as validator_factory:
                     deploy_data = self.deploy_azure_vm_operation.deploy(
+                        azure_vm_deployment_model=azure_vm_deployment_model,
+                        cloud_provider_model=cloud_provider_model,
+                        reservation=reservation,
+                        network_client=azure_clients.network_client,
+                        compute_client=azure_clients.compute_client,
+                        storage_client=azure_clients.storage_client,
+                        validator_factory=validator_factory,
+                        logger=logger)
+
+                    return self.command_result_parser.set_command_result(deploy_data)
+
+    def deploy_vm_from_custom_image(self, command_context, deployment_request):
+        """Deploy Azure Image from given Image URN
+
+        :param command_context: ResourceCommandContext instance
+        :param deployment_request: (str) JSON string
+        :return:
+        """
+        with LoggingSessionContext(command_context) as logger:
+            with ErrorHandlingContext(logger):
+                logger.info('Deploying Azure VM From Custom Image')
+                cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(
+                    command_context.resource)
+                azure_vm_deployment_model = (
+                    self.model_parser.convert_to_deploy_azure_vm_from_custom_image_resource_model(deployment_request))
+                azure_clients = AzureClientsManager(cloud_provider_model)
+                reservation = self.model_parser.convert_to_reservation_model(command_context.reservation)
+
+                if azure_vm_deployment_model.password:
+                    with CloudShellSessionContext(command_context) as cloudshell_session:
+                        decrypted_pass = cloudshell_session.DecryptPassword(azure_vm_deployment_model.password)
+                        azure_vm_deployment_model.password = decrypted_pass.Value
+
+                with ValidatorsFactoryContext() as validator_factory:
+                    deploy_data = self.deploy_azure_vm_operation.deploy_from_custom_image(
                         azure_vm_deployment_model=azure_vm_deployment_model,
                         cloud_provider_model=cloud_provider_model,
                         reservation=reservation,

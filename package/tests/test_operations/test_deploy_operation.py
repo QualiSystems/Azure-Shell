@@ -9,7 +9,7 @@ from cloudshell.cp.azure.domain.services.tags import TagService
 from cloudshell.cp.azure.domain.services.virtual_machine_service import VirtualMachineService
 from cloudshell.cp.azure.domain.vm_management.operations.deploy_operation import DeployAzureVMOperation
 from cloudshell.cp.azure.models.azure_cloud_provider_resource_model import AzureCloudProviderResourceModel
-from cloudshell.cp.azure.models.deploy_azure_vm_resource_model import DeployAzureVMResourceModel
+from cloudshell.cp.azure.models.deploy_azure_vm_resource_models import DeployAzureVMResourceModel
 
 
 class TestDeployAzureVMOperation(TestCase):
@@ -142,6 +142,7 @@ class TestDeployAzureVMOperation(TestCase):
         self.vm_service.delete_vm = Mock()
         self.vm_service.get_image_operation_system = MagicMock()
         self.deploy_operation._process_nsg_rules = Mock()
+        self.deploy_operation._rollback_deployed_resources = MagicMock()
 
         # Act
         self.assertRaises(Exception,
@@ -158,6 +159,23 @@ class TestDeployAzureVMOperation(TestCase):
         # Verify
         self.network_service.create_network_for_vm.assert_called_once()
         self.vm_service.create_vm.assert_called_once()
+        self.deploy_operation._rollback_deployed_resources.assert_called_once()
+
+    def test_rollback_deployed_resources(self):
+        """Check that deploy rollback method will delete resources"""
+        self.network_service.delete_nic = Mock()
+        self.network_service.delete_ip = Mock()
+        self.vm_service.delete_vm = Mock()
+
+        # Act
+        self.deploy_operation._rollback_deployed_resources(compute_client=MagicMock(),
+                                                           network_client=MagicMock(),
+                                                           group_name=MagicMock(),
+                                                           interface_name=MagicMock(),
+                                                           vm_name=MagicMock(),
+                                                           ip_name=MagicMock())
+
+        # Verify
         self.network_service.delete_nic.assert_called_once()
         self.network_service.delete_ip.assert_called_once()
         self.vm_service.delete_vm.assert_called_once()
