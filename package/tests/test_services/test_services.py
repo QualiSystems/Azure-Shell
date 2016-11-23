@@ -416,7 +416,8 @@ class TestStorageService(TestCase):
                                                                 group_name_copy_to=group_name_copy_to,
                                                                 storage_client=storage_client,
                                                                 ulr_model_copy_from=blob_model_copy_from,
-                                                                url_model_copy_to=blob_model_copy_to)
+                                                                url_model_copy_to=blob_model_copy_to,
+                                                                logger=self.logger)
         self.assertEqual(blob_url, expected_blob_url)
 
     @mock.patch("cloudshell.cp.azure.domain.services.storage_service.BlobCopyOperationState")
