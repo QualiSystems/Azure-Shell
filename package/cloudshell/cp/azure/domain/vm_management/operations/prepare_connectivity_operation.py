@@ -1,6 +1,12 @@
+import traceback
 from threading import Lock
 from azure.mgmt.network.models import SecurityRuleProtocol, SecurityRule, SecurityRuleAccess
+from msrest.exceptions import ClientRequestError
+from requests.packages.urllib3.exceptions import ConnectionError
+from retrying import retry
+
 from cloudshell.cp.azure.common.exceptions.virtual_network_not_found_exception import VirtualNetworkNotFoundException
+from cloudshell.cp.azure.common.helpers.retrying_helpers import retry_if_connection_error
 from cloudshell.cp.azure.common.operations_helper import OperationsHelper
 from cloudshell.cp.azure.domain.services.network_service import NetworkService
 from cloudshell.cp.azure.models.prepare_connectivity_action_result import PrepareConnectivityActionResult
@@ -35,6 +41,7 @@ class PrepareConnectivityOperation(object):
         self.security_group_service = security_group_service
         self.subnet_locker = Lock()
 
+    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def prepare_connectivity(self,
                              reservation,
                              cloud_provider_model,
@@ -44,7 +51,6 @@ class PrepareConnectivityOperation(object):
                              logger,
                              request):
         """
-
         :param logging.Logger logger:
         :param request:
         :param network_client:
@@ -84,9 +90,9 @@ class PrepareConnectivityOperation(object):
                               storage_client=storage_client)
 
         logger.info("Retrieving MGMT vNet from resource group {} by tag {}={}".format(
-            cloud_provider_model.management_group_name,
-            NetworkService.NETWORK_TYPE_TAG_NAME,
-            NetworkService.MGMT_NETWORK_TAG_VALUE))
+                cloud_provider_model.management_group_name,
+                NetworkService.NETWORK_TYPE_TAG_NAME,
+                NetworkService.MGMT_NETWORK_TAG_VALUE))
 
         virtual_networks = self.network_service.get_virtual_networks(network_client=network_client,
                                                                      group_name=cloud_provider_model.management_group_name)
@@ -99,9 +105,9 @@ class PrepareConnectivityOperation(object):
         self._validate_management_vnet(management_vnet)
 
         logger.info("Retrieving sandbox vNet from resource group {} by tag {}={}".format(
-            cloud_provider_model.management_group_name,
-            NetworkService.NETWORK_TYPE_TAG_NAME,
-            NetworkService.SANDBOX_NETWORK_TAG_VALUE))
+                cloud_provider_model.management_group_name,
+                NetworkService.NETWORK_TYPE_TAG_NAME,
+                NetworkService.SANDBOX_NETWORK_TAG_VALUE))
 
         sandbox_vnet = self.network_service.get_virtual_network_by_tag(virtual_networks=virtual_networks,
                                                                        tag_key=NetworkService.NETWORK_TYPE_TAG_NAME,
@@ -136,11 +142,11 @@ class PrepareConnectivityOperation(object):
             logger.info("Creating NSG management rules...")
 
             async_rules_operations = self._create_management_rules(
-                group_name=group_name,
-                management_vnet=management_vnet,
-                network_client=network_client,
-                security_group_name=security_group_name,
-                logger=logger)
+                    group_name=group_name,
+                    management_vnet=management_vnet,
+                    network_client=network_client,
+                    security_group_name=security_group_name,
+                    logger=logger)
 
             async_operations += async_rules_operations
             action_result.subnet_name = subnet_name
@@ -167,9 +173,9 @@ class PrepareConnectivityOperation(object):
         """
         with self.subnet_locker:
             logger.info(
-                "Creating a subnet {0} under: {1}/{2}.".format(subnet_name,
-                                                               cloud_provider_model.management_group_name,
-                                                               sandbox_vnet.name))
+                    "Creating a subnet {0} under: {1}/{2}.".format(subnet_name,
+                                                                   cloud_provider_model.management_group_name,
+                                                                   sandbox_vnet.name))
             self.network_service.create_subnet(network_client=network_client,
                                                resource_group_name=cloud_provider_model.management_group_name,
                                                subnet_name=subnet_name,
@@ -196,20 +202,20 @@ class PrepareConnectivityOperation(object):
                     .format(priority))
 
         operation_poller = self.security_group_service.create_network_security_group_custom_rule(
-            network_client=network_client,
-            group_name=group_name,
-            security_group_name=security_group_name,
-            rule=SecurityRule(
-                access=SecurityRuleAccess.deny,
-                direction="Inbound",
-                source_address_prefix='VirtualNetwork',
-                source_port_range=all_symbol,
-                name="rule_{}".format(priority),
-                destination_address_prefix=all_symbol,
-                destination_port_range=all_symbol,
-                priority=priority,
-                protocol=all_symbol),
-            async=True)
+                network_client=network_client,
+                group_name=group_name,
+                security_group_name=security_group_name,
+                rule=SecurityRule(
+                        access=SecurityRuleAccess.deny,
+                        direction="Inbound",
+                        source_address_prefix='VirtualNetwork',
+                        source_port_range=all_symbol,
+                        name="rule_{}".format(priority),
+                        destination_address_prefix=all_symbol,
+                        destination_port_range=all_symbol,
+                        priority=priority,
+                        protocol=all_symbol),
+                async=True)
 
         async_operations.append(operation_poller)
 
@@ -219,20 +225,20 @@ class PrepareConnectivityOperation(object):
         logger.info("Creating (async) NSG rule to allow management subnet traffic with priority {}".format(priority))
 
         operation_poller = self.security_group_service.create_network_security_group_custom_rule(
-            network_client=network_client,
-            group_name=group_name,
-            security_group_name=security_group_name,
-            rule=SecurityRule(
-                access=SecurityRuleAccess.allow,
-                direction="Inbound",
-                source_address_prefix=source_address_prefix,
-                source_port_range=all_symbol,
-                name="rule_{}".format(priority),
-                destination_address_prefix=all_symbol,
-                destination_port_range=all_symbol,
-                priority=priority,
-                protocol=all_symbol),
-            async=True)
+                network_client=network_client,
+                group_name=group_name,
+                security_group_name=security_group_name,
+                rule=SecurityRule(
+                        access=SecurityRuleAccess.allow,
+                        direction="Inbound",
+                        source_address_prefix=source_address_prefix,
+                        source_port_range=all_symbol,
+                        name="rule_{}".format(priority),
+                        destination_address_prefix=all_symbol,
+                        destination_port_range=all_symbol,
+                        priority=priority,
+                        protocol=all_symbol),
+                async=True)
 
         async_operations.append(operation_poller)
 

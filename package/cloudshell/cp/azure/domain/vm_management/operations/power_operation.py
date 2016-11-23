@@ -1,3 +1,8 @@
+from retrying import retry
+
+from cloudshell.cp.azure.common.helpers.retrying_helpers import retry_if_connection_error
+
+
 class PowerAzureVMOperation(object):
     def __init__(self, vm_service):
         """
@@ -6,6 +11,7 @@ class PowerAzureVMOperation(object):
         """
         self.vm_service = vm_service
 
+    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def power_on(self, compute_client, resource_group_name, vm_name):
         """Power on Azure VM instance
 
@@ -16,6 +22,7 @@ class PowerAzureVMOperation(object):
         """
         return self.vm_service.start_vm(compute_client, resource_group_name, vm_name)
 
+    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def power_off(self, compute_client, resource_group_name, vm_name):
         """Power off Azure VM instance
 
