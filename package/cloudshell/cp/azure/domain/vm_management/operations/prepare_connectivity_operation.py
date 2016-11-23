@@ -2,6 +2,7 @@ from threading import Lock
 from azure.mgmt.network.models import SecurityRuleProtocol, SecurityRule, SecurityRuleAccess
 from cloudshell.cp.azure.common.exceptions.virtual_network_not_found_exception import VirtualNetworkNotFoundException
 from cloudshell.cp.azure.common.operations_helper import OperationsHelper
+from cloudshell.cp.azure.domain.services.network_service import NetworkService
 from cloudshell.cp.azure.models.prepare_connectivity_action_result import PrepareConnectivityActionResult
 
 INVALID_REQUEST_ERROR = 'Invalid request: {0}'
@@ -86,14 +87,15 @@ class PrepareConnectivityOperation(object):
                                                                      group_name=cloud_provider_model.management_group_name)
 
         management_vnet = self.network_service.get_virtual_network_by_tag(virtual_networks=virtual_networks,
-                                                                          tag_key='network_type', tag_value='mgmt',
+                                                                          tag_key=NetworkService.NETWORK_TYPE_TAG_NAME,
+                                                                          tag_value=NetworkService.MGMT_NETWORK_TAG_VALUE,
                                                                           tags_service=self.tags_service)
 
         self._validate_management_vnet(management_vnet)
 
         sandbox_vnet = self.network_service.get_virtual_network_by_tag(virtual_networks=virtual_networks,
-                                                                       tag_key='network_type',
-                                                                       tag_value='sandbox',
+                                                                       tag_key=NetworkService.NETWORK_TYPE_TAG_NAME,
+                                                                       tag_value=NetworkService.SANDBOX_NETWORK_TAG_VALUE,
                                                                        tags_service=self.tags_service)
 
         self._validate_sandbox_vnet(sandbox_vnet)
