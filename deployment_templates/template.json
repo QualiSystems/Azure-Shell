@@ -1,13 +1,13 @@
 {
 	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
 	"contentVersion": "1.0.0.0",
-	"parameters": {
-		"sharedKey": {
-			"type": "securestring",
-			"metadata": {
-				"description": "Shared key (PSK) for IPSec tunnel"
-			}
-		},
+		"parameters": {
+		"adminUsername": {
+            "type": "string"
+        },
+        "adminPassword": {
+            "type": "securestring"
+        },		
 		"on_premise_CIDR": {
 			"defaultValue": "192.168.121.0/24",
 			"type": "String"
@@ -49,6 +49,7 @@
 		}
 	},
 	"variables": {
+		"virtualMachineName": "centos_quali_vm",            
 		"localGatewayName": "local_getway_network",
 	    "apiVersion": "2016-06-01",
 		"storageAccountName": "[concat(uniquestring(resourceGroup().id), 'strg')]",
@@ -64,6 +65,46 @@
         "gatewaySubnetRef": "[concat(variables('vnetID'),'/subnets/','GatewaySubnet')]"
 	},
 	"resources": [{
+		"name": "[variables('virtualMachineName')]",
+		"type": "Microsoft.Compute/virtualMachines",
+		"apiVersion": "2015-06-15",
+		"location": "[resourceGroup().location]",
+		"dependsOn": [],
+		"properties": {
+			"osProfile": {
+				"computerName": "[variables('virtualMachineName')]",
+				"adminUsername": "[parameters('adminUsername')]",
+				"adminPassword": "[parameters('adminPassword')]"
+			},
+			"hardwareProfile": {
+				"vmSize": "[parameters('virtualMachineSize')]"
+			},
+			"storageProfile": {
+				"imageReference": {
+					"publisher": "OpenLogic",
+					"offer": "CentOS",
+					"sku": "7.2",
+					"version": "latest"
+				},
+				"osDisk": {
+					"name": "[parameters('virtualMachineName')]",
+					"vhd": {
+						"uri": "[concat(concat(reference(resourceId(resourceGroup().name, 'Microsoft.Storage/storageAccounts', variables('storageAccountName')), '2015-06-15').primaryEndpoints['blob'], 'vhds/'), parameters('virtualMachineName'), '2016102316823.vhd')]"
+					},
+					"createOption": "fromImage"
+				},
+				"dataDisks": []
+			},
+			"networkProfile": {
+				"networkInterfaces": [
+					{
+						"id": "[resourceId('Microsoft.Network/networkInterfaces', parameters('networkInterfaceName'))]"
+					}
+				]
+			}
+		}
+	},	
+	{
 		"type": "Microsoft.Network/virtualNetworks",
 		"name": "[parameters('virtualNetworks_mgmt_vnet_name')]",
 		"apiVersion": "[variables('apiVersion')]",
@@ -214,8 +255,7 @@
 		  },
 		  "gatewayIpAddress": "[parameters('vpn_address')]"
 		}
-	},
-	 
+	},	 
 	{
         "apiVersion": "2015-06-15",
         "type": "Microsoft.Network/virtualNetworkGateways",
