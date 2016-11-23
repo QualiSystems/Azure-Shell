@@ -177,11 +177,13 @@ class DeployAzureVMOperation(object):
         vm_name = random_name
         group_name = str(reservation_id)
 
+        logger.info("Retrieve sandbox subnet {}".format(group_name))
         subnet = self._get_sandbox_subnet(network_client=network_client,
                                           cloud_provider_model=cloud_provider_model,
                                           subnet_name=group_name,
                                           logger=logger)
 
+        logger.info("Retrieve sandbox storage account name by resource group {}".format(group_name))
         storage_account_name = self._get_sandbox_storage_account_name(storage_client=storage_client,
                                                                       group_name=group_name,
                                                                       validator_factory=validator_factory)

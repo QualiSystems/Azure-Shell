@@ -217,7 +217,7 @@ class StorageService(object):
 
             elif blob.properties.copy.status in ["aborted", "failed"]:
                 blob_url = blob_service.make_blob_url(container_name, blob_name)
-                logger.info("Image was not copied to {}/{}. Status: {}".format(
+                logger.error("Image was not copied to {}/{}. Status: {}".format(
                     container_name, blob_name, blob.properties.copy.status))
 
                 raise Exception("Copying of file {} failed".format(blob_url))
@@ -342,7 +342,7 @@ class StorageService(object):
                         break
 
                     elif copied_blob_state is BlobCopyOperationState.failed:
-                        logger.info("Image {} copying was failed in another operation".format(
+                        logger.error("Image {} copying was failed in another operation".format(
                             source_copy_from))
                         raise Exception("Blob copying was failed")
 
@@ -367,7 +367,7 @@ class StorageService(object):
                     with self._copied_blob_urls_lock:
                         self._cached_copied_blob_urls[copied_blob_key]["state"] = BlobCopyOperationState.failed
 
-                    logger.info("Image {} copying was failed".format(source_copy_from))
+                    logger.exception("Image {} copying was failed".format(source_copy_from))
                     raise
 
                 logger.info("Image {} was successfully copied to {}".format(source_copy_from, copied_blob_url))
