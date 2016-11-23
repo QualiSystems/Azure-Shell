@@ -9,12 +9,12 @@
 			}
 		},
 		"on_premise_CIDR": {
-			"defaultValue": "192.168.120.0/24",
+			"defaultValue": "192.168.121.0/24",
 			"type": "String"
 		},
         "vpn_address": {
             "type": "string",
-            "defaultValue": "1.1.1.1"
+            "defaultValue": ""
         },		
 		"management_vnet_CIDR": {
 			"defaultValue": "192.168.120.0/24",
@@ -59,7 +59,7 @@
 			"peeringName": "vNet_sndbx-to-vNet_mgmt"
 		},
 		"gatewayPublicIPName" :"[uniquestring('azureGatewayIP')]",	
-		"gateway_vpn_name" :"[uniqueString('a_gateway_name')]",						
+		"gateway_vpn_name" :"[concat(uniqueString('vpn'),'vpn_name')]",
 		"vnetID": "[resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetworks_mgmt_vnet_name'))]",		
         "gatewaySubnetRef": "[concat(variables('vnetID'),'/subnets/','GatewaySubnet')]"
 	},
@@ -226,7 +226,7 @@
 		],
 		"properties": {
 		  "virtualNetworkGateway1": {
-			"id": "[resourceId('Microsoft.Network/virtualNetworkGateways', parameters('virtualNetworks_mgmt_vnet_name'))]"
+			"id": "[resourceId('Microsoft.Network/virtualNetworkGateways', parameters('gateway_vpn_name'))]"
 		  },
 		  "localNetworkGateway2": {
 			"id": "[resourceId('Microsoft.Network/localNetworkGateways', variables('localGatewayName'))]"
