@@ -215,27 +215,7 @@
 		  "gatewayIpAddress": "[parameters('vpn_address')]"
 		}
 	},
-	{
-		"apiVersion": "2015-06-15",
-		"name": "vpn_connection_s_to_s",
-		"type": "Microsoft.Network/connections",
-		"location": "[resourceGroup().location]",
-		"dependsOn": [
-		  "[concat('Microsoft.Network/virtualNetworkGateways/',variables('gateway_vpn_name'))]",
-		  "[concat('Microsoft.Network/localNetworkGateways/', variables('localGatewayName'))]"
-		],
-		"properties": {
-		  "virtualNetworkGateway1": {
-			"id": "[resourceId('Microsoft.Network/virtualNetworkGateways', parameters('gateway_vpn_name'))]"
-		  },
-		  "localNetworkGateway2": {
-			"id": "[resourceId('Microsoft.Network/localNetworkGateways', variables('localGatewayName'))]"
-		  },
-		  "connectionType": "IPsec",
-		  "routingWeight": 10,
-		  "sharedKey": "[parameters('sharedKey')]"
-		}
-	},	 
+	 
 	{
         "apiVersion": "2015-06-15",
         "type": "Microsoft.Network/virtualNetworkGateways",
