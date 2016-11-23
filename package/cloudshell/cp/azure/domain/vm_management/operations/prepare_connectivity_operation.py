@@ -54,7 +54,7 @@ class PrepareConnectivityOperation(object):
         :param cloudshell.cp.azure.models.azure_cloud_provider_resource_model.AzureCloudProviderResourceModel cloud_provider_model:cloud provider
         :return:
         """
-
+        async_operations = []  # list of AzureOperationPoller
         reservation_id = reservation.reservation_id
         group_name = str(reservation_id)
         subnet_name = group_name
@@ -123,9 +123,14 @@ class PrepareConnectivityOperation(object):
                                 sandbox_vnet=sandbox_vnet,
                                 subnet_name=subnet_name)
 
-            self._create_management_rules(group_name, management_vnet, network_client, security_group_name)
-
+            async_rules_operations = self._create_management_rules(group_name, management_vnet,
+                                                                   network_client, security_group_name)
+            async_operations += async_rules_operations
             action_result.subnet_name = subnet_name
+
+        # wait for all async operations
+        for operation_poller in async_operations:
+            operation_poller.wait()
 
         result.append(action_result)
         return result
@@ -158,39 +163,58 @@ class PrepareConnectivityOperation(object):
                                                wait_for_result=True)
 
     def _create_management_rules(self, group_name, management_vnet, network_client, security_group_name):
+        """Creates NSG management rules
 
+        :param group_name: (str) resource group name (reservation id)
+        :param management_vnet: (str) management network
+        :param network_client: azure.mgmt.network.NetworkManagementClient instance
+        :param security_group_name: NSG name from the Azure
+        :return: [msrestazure.azure_operation.AzureOperationPoller, ...] list of AzureOperationPoller for created rules
+        """
+        all_symbol = SecurityRuleProtocol.asterisk
+        async_operations = []
         # Rule 1: Deny inbound other subnets
         priority = 4000
-        all = SecurityRuleProtocol.asterisk
-        self.security_group_service.create_network_security_group_custom_rule(network_client=network_client,
-                                                                              group_name=group_name,
-                                                                              security_group_name=security_group_name,
-                                                                              rule=SecurityRule(
-                                                                                      access=SecurityRuleAccess.deny,
-                                                                                      direction="Inbound",
-                                                                                      source_address_prefix='VirtualNetwork',
-                                                                                      source_port_range=all,
-                                                                                      name="rule_{}".format(priority),
-                                                                                      destination_address_prefix=all,
-                                                                                      destination_port_range=all,
-                                                                                      priority=priority,
-                                                                                      protocol=all))
+        operation_poller = self.security_group_service.create_network_security_group_custom_rule(
+            network_client=network_client,
+            group_name=group_name,
+            security_group_name=security_group_name,
+            rule=SecurityRule(
+                access=SecurityRuleAccess.deny,
+                direction="Inbound",
+                source_address_prefix='VirtualNetwork',
+                source_port_range=all_symbol,
+                name="rule_{}".format(priority),
+                destination_address_prefix=all_symbol,
+                destination_port_range=all_symbol,
+                priority=priority,
+                protocol=all_symbol),
+            async=True)
+
+        async_operations.append(operation_poller)
+
         # Rule 2: Allow management subnet traffic rule
         source_address_prefix = management_vnet.address_space.address_prefixes[0]
         priority = 3900
-        self.security_group_service.create_network_security_group_custom_rule(network_client=network_client,
-                                                                              group_name=group_name,
-                                                                              security_group_name=security_group_name,
-                                                                              rule=SecurityRule(
-                                                                                      access=SecurityRuleAccess.allow,
-                                                                                      direction="Inbound",
-                                                                                      source_address_prefix=source_address_prefix,
-                                                                                      source_port_range=all,
-                                                                                      name="rule_{}".format(priority),
-                                                                                      destination_address_prefix=all,
-                                                                                      destination_port_range=all,
-                                                                                      priority=priority,
-                                                                                      protocol=all))
+        operation_poller = self.security_group_service.create_network_security_group_custom_rule(
+            network_client=network_client,
+            group_name=group_name,
+            security_group_name=security_group_name,
+            rule=SecurityRule(
+                access=SecurityRuleAccess.allow,
+                direction="Inbound",
+                source_address_prefix=source_address_prefix,
+                source_port_range=all_symbol,
+                name="rule_{}".format(priority),
+                destination_address_prefix=all_symbol,
+                destination_port_range=all_symbol,
+                priority=priority,
+                protocol=all_symbol),
+            async=True)
+
+        async_operations.append(operation_poller)
+
+        return async_operations
 
     @staticmethod
     def _validate_management_vnet(management_vnet):
