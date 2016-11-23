@@ -78,10 +78,15 @@ class PrepareConnectivityOperation(object):
                                                                                  tags=tags,
                                                                                  wait_until_created=True)
         # 3 Create a Key pair for the sandbox
+        logger.info("Creating a SSH key pair in the storage account {}".format(storage_account_name))
         self._create_key_pair(group_name=group_name,
-                              logger=logger,
                               storage_account_name=storage_account_name,
                               storage_client=storage_client)
+
+        logger.info("Retrieving MGMT vNet from resource group {} by tag {}={}".format(
+            cloud_provider_model.management_group_name,
+            NetworkService.NETWORK_TYPE_TAG_NAME,
+            NetworkService.MGMT_NETWORK_TAG_VALUE))
 
         virtual_networks = self.network_service.get_virtual_networks(network_client=network_client,
                                                                      group_name=cloud_provider_model.management_group_name)
@@ -92,6 +97,11 @@ class PrepareConnectivityOperation(object):
                                                                           tags_service=self.tags_service)
 
         self._validate_management_vnet(management_vnet)
+
+        logger.info("Retrieving sandbox vNet from resource group {} by tag {}={}".format(
+            cloud_provider_model.management_group_name,
+            NetworkService.NETWORK_TYPE_TAG_NAME,
+            NetworkService.SANDBOX_NETWORK_TAG_VALUE))
 
         sandbox_vnet = self.network_service.get_virtual_network_by_tag(virtual_networks=virtual_networks,
                                                                        tag_key=NetworkService.NETWORK_TYPE_TAG_NAME,
@@ -123,20 +133,27 @@ class PrepareConnectivityOperation(object):
                                 sandbox_vnet=sandbox_vnet,
                                 subnet_name=subnet_name)
 
-            async_rules_operations = self._create_management_rules(group_name, management_vnet,
-                                                                   network_client, security_group_name)
+            logger.info("Creating NSG management rules...")
+
+            async_rules_operations = self._create_management_rules(
+                group_name=group_name,
+                management_vnet=management_vnet,
+                network_client=network_client,
+                security_group_name=security_group_name,
+                logger=logger)
+
             async_operations += async_rules_operations
             action_result.subnet_name = subnet_name
 
         # wait for all async operations
+        logger.info("Waiting for async create operations to be done...")
         for operation_poller in async_operations:
             operation_poller.wait()
 
         result.append(action_result)
         return result
 
-    def _create_key_pair(self, group_name, logger, storage_account_name, storage_client):
-        logger.info("Creating a Key pair for the sandbox.")
+    def _create_key_pair(self, group_name, storage_account_name, storage_client):
         key_pair = self.key_pair_service.generate_key_pair()
         self.key_pair_service.save_key_pair(storage_client=storage_client,
                                             group_name=group_name,
@@ -162,19 +179,22 @@ class PrepareConnectivityOperation(object):
                                                network_security_group=network_security_group,
                                                wait_for_result=True)
 
-    def _create_management_rules(self, group_name, management_vnet, network_client, security_group_name):
+    def _create_management_rules(self, group_name, management_vnet, network_client, security_group_name, logger):
         """Creates NSG management rules
 
         :param group_name: (str) resource group name (reservation id)
         :param management_vnet: (str) management network
         :param network_client: azure.mgmt.network.NetworkManagementClient instance
         :param security_group_name: NSG name from the Azure
+        :param logger: logging.Logger instance
         :return: [msrestazure.azure_operation.AzureOperationPoller, ...] list of AzureOperationPoller for created rules
         """
         all_symbol = SecurityRuleProtocol.asterisk
         async_operations = []
-        # Rule 1: Deny inbound other subnets
         priority = 4000
+        logger.info("Creating (async) NSG rule to deny inbound traffic from other subnets with priority {}"
+                    .format(priority))
+
         operation_poller = self.security_group_service.create_network_security_group_custom_rule(
             network_client=network_client,
             group_name=group_name,
@@ -193,9 +213,11 @@ class PrepareConnectivityOperation(object):
 
         async_operations.append(operation_poller)
 
-        # Rule 2: Allow management subnet traffic rule
+        # Rule 2:
         source_address_prefix = management_vnet.address_space.address_prefixes[0]
         priority = 3900
+        logger.info("Creating (async) NSG rule to allow management subnet traffic with priority {}".format(priority))
+
         operation_poller = self.security_group_service.create_network_security_group_custom_rule(
             network_client=network_client,
             group_name=group_name,

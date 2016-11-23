@@ -12,3 +12,7 @@ class RuleData(object):
         self.port = port
         self.from_port = from_port
         self.to_port = to_port
+
+    def __repr__(self):
+        repr_string = super(RuleData, self).__repr__()
+        return "{} With attrs: {}".format(repr_string, self.__dict__)

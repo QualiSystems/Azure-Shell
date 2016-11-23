@@ -39,7 +39,7 @@ class TestCleanupConnectivity(TestCase):
         self.assertTrue(result['success'] == False)
         self.assertTrue(
             result['errorMessage'] == 'CleanupConnectivity ended with the error: {0}'.format(test_exception_message))
-        self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.logger.error))
+        self.logger.exception.assert_called()
 
     def test_cleanup(self):
         """

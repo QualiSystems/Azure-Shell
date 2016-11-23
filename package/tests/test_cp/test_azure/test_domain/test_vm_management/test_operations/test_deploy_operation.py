@@ -45,7 +45,8 @@ class TestDeployAzureVMOperation(TestCase):
         subnet = self.deploy_operation._get_sandbox_subnet(
             network_client=network_client,
             cloud_provider_model=cloud_provider_model,
-            subnet_name=subnet_name)
+            subnet_name=subnet_name,
+            logger=self.logger)
 
         # Verify
         self.network_service.get_sandbox_virtual_network.assert_called_once_with(
@@ -103,7 +104,8 @@ class TestDeployAzureVMOperation(TestCase):
             network_client=network_client,
             azure_vm_deployment_model=azure_vm_deployment_model,
             group_name=group_name,
-            ip_name=ip_name)
+            ip_name=ip_name,
+            logger=self.logger)
 
         # Verify
         self.assertEqual(ip_addr, expected_ip_addr)
@@ -121,7 +123,8 @@ class TestDeployAzureVMOperation(TestCase):
             network_client=network_client,
             azure_vm_deployment_model=azure_vm_deployment_model,
             group_name=group_name,
-            ip_name=ip_name)
+            ip_name=ip_name,
+            logger=self.logger)
 
         # Verify
         self.assertIsNone(ip_addr)
@@ -256,7 +259,8 @@ class TestDeployAzureVMOperation(TestCase):
             interface_name=test_name,
             ip_name=test_name,
             network_client=network_client,
-            vm_name=test_name)
+            vm_name=test_name,
+            logger=logger)
 
     def test_deploy_operation_virtual_networks_validation(self):
         # Arrange
@@ -352,7 +356,8 @@ class TestDeployAzureVMOperation(TestCase):
                                                            group_name=MagicMock(),
                                                            interface_name=MagicMock(),
                                                            vm_name=MagicMock(),
-                                                           ip_name=MagicMock())
+                                                           ip_name=MagicMock(),
+                                                           logger=MagicMock())
 
         # Verify
         self.network_service.delete_nic.assert_called_once()
@@ -365,6 +370,7 @@ class TestDeployAzureVMOperation(TestCase):
         network_client = MagicMock()
         azure_vm_deployment_model = MagicMock()
         nic = MagicMock()
+        logger = MagicMock()
         security_groups_list = MagicMock()
         self.deploy_operation.security_group_service.list_network_security_group.return_value = security_groups_list
         self.deploy_operation._validate_resource_is_single_per_group = MagicMock()
@@ -375,7 +381,8 @@ class TestDeployAzureVMOperation(TestCase):
             network_client=network_client,
             group_name=group_name,
             azure_vm_deployment_model=azure_vm_deployment_model,
-            nic=nic)
+            nic=nic,
+            logger=logger)
 
         # Verify
         self.deploy_operation.security_group_service.get_network_security_group.assert_called_once_with(
@@ -395,6 +402,7 @@ class TestDeployAzureVMOperation(TestCase):
         network_client = MagicMock()
         azure_vm_deployment_model = MagicMock()
         nic = MagicMock()
+        logger = MagicMock()
         self.deploy_operation._validate_resource_is_single_per_group = MagicMock()
         azure_vm_deployment_model.inbound_ports = ""
 
@@ -403,7 +411,8 @@ class TestDeployAzureVMOperation(TestCase):
             network_client=network_client,
             group_name=group_name,
             azure_vm_deployment_model=azure_vm_deployment_model,
-            nic=nic)
+            nic=nic,
+            logger=logger)
 
         # Verify
         self.deploy_operation.security_group_service.list_network_security_group.assert_not_called()
