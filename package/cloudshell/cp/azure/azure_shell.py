@@ -36,7 +36,7 @@ class AzureShell(object):
         self.vm_credentials_service = VMCredentialsService()
         self.key_pair_service = KeyPairService(storage_service=self.storage_service)
         self.security_group_service = SecurityGroupService(self.network_service)
-        self.access_key_operation = AccessKeyOperation(self.key_pair_service)
+        self.access_key_operation = AccessKeyOperation(self.key_pair_service, self.storage_service)
 
         self.prepare_connectivity_operation = PrepareConnectivityOperation(
             vm_service=self.vm_service,
@@ -282,13 +282,7 @@ class AzureShell(object):
                     logger.info("Starting GetAccessKey")
 
                     resource_group_name = command_context.remote_reservation.reservation_id
-                    storage_accounts_list = self.storage_service.get_storage_per_resource_group(
-                        azure_clients.storage_client,
-                        resource_group_name)
-
-                    validator_factory.try_validate(resource_type=StorageAccount, resource=storage_accounts_list)
-                    storage_account_name = storage_accounts_list[0].name
 
                     self.access_key_operation.get_access_key(storage_client=azure_clients.storage_client,
                                                              group_name=resource_group_name,
-                                                             storage_name=storage_account_name)
+                                                             validator_factory=validator_factory)
