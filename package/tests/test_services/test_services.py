@@ -8,6 +8,7 @@ from mock import MagicMock
 from mock import Mock
 from msrestazure.azure_operation import AzureOperationPoller
 
+from cloudshell.cp.azure.domain.services.cryptography_service import CryptographyService
 from cloudshell.cp.azure.domain.services.network_service import NetworkService
 from cloudshell.cp.azure.domain.services.key_pair import KeyPairService
 from cloudshell.cp.azure.domain.services.storage_service import StorageService
@@ -835,3 +836,15 @@ class TestSecurityGroupService(TestCase):
             network_security_group_name=security_group.name,
             security_rule_name=security_rule.name
         )
+
+    def test_cryptography_service(self):
+        # Arrange
+        plain_text = "password"
+        self.crypto_service = CryptographyService()
+
+        # Act
+        encrypted_text = self.crypto_service.encrypt(plain_text)
+        result = self.crypto_service.decrypt(encrypted_text)
+
+        # Verify
+        self.assertEqual(plain_text, result)
