@@ -126,6 +126,16 @@ class PrepareConnectivityOperation(object):
                 region=cloud_provider_model.region,
                 tags=tags)
 
+        logger.info("Creating NSG management rules...")
+        last_rule_poller = self._create_management_rules(
+            group_name=group_name,
+            management_vnet=management_vnet,
+            network_client=network_client,
+            security_group_name=security_group_name,
+            logger=logger)
+
+        async_operations.append(last_rule_poller)
+
         for action in request.actions:
             cidr = self._extract_cidr(action)
             logger.info("Received CIDR {0} from server".format(cidr))
@@ -139,20 +149,10 @@ class PrepareConnectivityOperation(object):
                                 sandbox_vnet=sandbox_vnet,
                                 subnet_name=subnet_name)
 
-            logger.info("Creating NSG management rules...")
-
-            async_rules_operations = self._create_management_rules(
-                    group_name=group_name,
-                    management_vnet=management_vnet,
-                    network_client=network_client,
-                    security_group_name=security_group_name,
-                    logger=logger)
-
-            async_operations += async_rules_operations
             action_result.subnet_name = subnet_name
 
         # wait for all async operations
-        logger.info("Waiting for async create operations to be done...")
+        logger.info("Waiting for async create operations to be done... {}".format(async_operations))
         for operation_poller in async_operations:
             operation_poller.wait()
 
@@ -188,17 +188,17 @@ class PrepareConnectivityOperation(object):
     def _create_management_rules(self, group_name, management_vnet, network_client, security_group_name, logger):
         """Creates NSG management rules
 
+        NOTE: NSG rules must be created only one by one, without concurrency
         :param group_name: (str) resource group name (reservation id)
         :param management_vnet: (str) management network
         :param network_client: azure.mgmt.network.NetworkManagementClient instance
         :param security_group_name: NSG name from the Azure
         :param logger: logging.Logger instance
-        :return: [msrestazure.azure_operation.AzureOperationPoller, ...] list of AzureOperationPoller for created rules
+        :return: msrestazure.azure_operation.AzureOperationPoller instance for the last NSG rule
         """
         all_symbol = SecurityRuleProtocol.asterisk
-        async_operations = []
         priority = 4000
-        logger.info("Creating (async) NSG rule to deny inbound traffic from other subnets with priority {}"
+        logger.info("Creating NSG rule to deny inbound traffic from other subnets with priority {}..."
                     .format(priority))
 
         operation_poller = self.security_group_service.create_network_security_group_custom_rule(
@@ -217,7 +217,8 @@ class PrepareConnectivityOperation(object):
                         protocol=all_symbol),
                 async=True)
 
-        async_operations.append(operation_poller)
+        # can't create next rule while previous is in the deploying state
+        operation_poller.wait()
 
         # Rule 2:
         source_address_prefix = management_vnet.address_space.address_prefixes[0]
@@ -240,9 +241,8 @@ class PrepareConnectivityOperation(object):
                         protocol=all_symbol),
                 async=True)
 
-        async_operations.append(operation_poller)
-
-        return async_operations
+        # last NSG rule can be created async
+        return operation_poller
 
     @staticmethod
     def _validate_management_vnet(management_vnet):
