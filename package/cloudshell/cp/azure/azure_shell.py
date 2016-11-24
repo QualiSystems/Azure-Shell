@@ -23,6 +23,8 @@ from cloudshell.cp.azure.domain.vm_management.operations.refresh_ip_operation im
 from cloudshell.cp.azure.domain.vm_management.operations.prepare_connectivity_operation import \
     PrepareConnectivityOperation
 from cloudshell.cp.azure.common.azure_clients import AzureClientsManager
+from cloudshell.cp.azure.domain.services.parsers.custom_param_extractor import VmCustomParamsExtractor
+from cloudshell.cp.azure.domain.vm_management.operations.app_ports_operation import DeployedAppPortsOperation
 
 
 class AzureShell(object):
@@ -36,6 +38,7 @@ class AzureShell(object):
         self.vm_credentials_service = VMCredentialsService()
         self.key_pair_service = KeyPairService(storage_service=self.storage_service)
         self.security_group_service = SecurityGroupService(self.network_service)
+        self.vm_custom_params_extractor = VmCustomParamsExtractor()
         self.access_key_operation = AccessKeyOperation(self.key_pair_service)
 
         self.prepare_connectivity_operation = PrepareConnectivityOperation(
@@ -64,6 +67,9 @@ class AzureShell(object):
             network_service=self.network_service,
             tags_service=self.tags_service,
             security_group_service=self.security_group_service)
+
+        self.deployed_app_ports_operation = DeployedAppPortsOperation(
+            vm_custom_params_extractor=self.vm_custom_params_extractor)
 
     def deploy_azure_vm(self, command_context, deployment_request):
         """Will deploy Azure Image on the cloud provider
@@ -334,3 +340,17 @@ class AzureShell(object):
                     self.access_key_operation.get_access_key(storage_client=azure_clients.storage_client,
                                                              group_name=resource_group_name,
                                                              storage_name=storage_account_name)
+
+    def get_application_ports(self, command_context):
+        """Get application ports in a nicely formatted manner
+
+        :param command_context: ResourceRemoteCommandContext
+        """
+        with LoggingSessionContext(command_context) as logger:
+            with ErrorHandlingContext(logger):
+                logger.info('Getting Application Ports...')
+                resource = command_context.remote_endpoints[0]
+                data_holder = self.model_parser.convert_app_resource_to_deployed_app(resource)
+
+                return self.deployed_app_ports_operation.get_formated_deployed_app_ports(
+                        data_holder.vmdetails.vmCustomParams)
