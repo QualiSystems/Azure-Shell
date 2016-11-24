@@ -50,7 +50,7 @@ class StorageService(object):
                                                                              tags=tags),
                                                                          raw=False)
         if wait_until_created:
-            storage_accounts_create.wait()
+            storage_accounts_create.wait(timeout=600)
 
         return storage_account_name
 
