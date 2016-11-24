@@ -1,4 +1,5 @@
 import traceback
+from multiprocessing.pool import ThreadPool
 from threading import Lock
 from azure.mgmt.network.models import SecurityRuleProtocol, SecurityRule, SecurityRuleAccess
 from msrest.exceptions import ClientRequestError
@@ -75,19 +76,10 @@ class PrepareConnectivityOperation(object):
 
         storage_account_name = OperationsHelper.generate_name(reservation_id)
 
-        # 2. Create a storage account
-        logger.info("Creating a storage account {0} .".format(storage_account_name))
-        action_result.storage_name = self.storage_service.create_storage_account(storage_client=storage_client,
-                                                                                 group_name=group_name,
-                                                                                 region=cloud_provider_model.region,
-                                                                                 storage_account_name=storage_account_name,
-                                                                                 tags=tags,
-                                                                                 wait_until_created=True)
-        # 3 Create a Key pair for the sandbox
-        logger.info("Creating a SSH key pair in the storage account {}".format(storage_account_name))
-        self._create_key_pair(group_name=group_name,
-                              storage_account_name=storage_account_name,
-                              storage_client=storage_client)
+        # 2+3. create storage account and keypairs (async)
+        pool = ThreadPool()
+        pool.apply_async(self._create_storage_and_keypairs,
+                         (logger, storage_client, storage_account_name, group_name, cloud_provider_model, tags))
 
         logger.info("Retrieving MGMT vNet from resource group {} by tag {}={}".format(
                 cloud_provider_model.management_group_name,
@@ -116,7 +108,7 @@ class PrepareConnectivityOperation(object):
 
         self._validate_sandbox_vnet(sandbox_vnet)
 
-        # 4.Create the NSG object
+        # 4. Create the NSG object
         security_group_name = OperationsHelper.generate_name(reservation_id)
         logger.info("Creating a network security group '{}' .".format(security_group_name))
         network_security_group = self.security_group_service.create_network_security_group(
@@ -127,37 +119,63 @@ class PrepareConnectivityOperation(object):
                 tags=tags)
 
         logger.info("Creating NSG management rules...")
-        last_rule_poller = self._create_management_rules(
-            group_name=group_name,
-            management_vnet=management_vnet,
-            network_client=network_client,
-            security_group_name=security_group_name,
-            logger=logger)
+        self._create_management_rules(
+                group_name=group_name,
+                management_vnet=management_vnet,
+                network_client=network_client,
+                security_group_name=security_group_name,
+                logger=logger)
 
-        async_operations.append(last_rule_poller)
+        cidr = self._extract_cidr(request)
+        logger.info("Received CIDR {0} from server".format(cidr))
 
-        for action in request.actions:
-            cidr = self._extract_cidr(action)
-            logger.info("Received CIDR {0} from server".format(cidr))
+        # 5. Create a subnet
+        self._create_subnet(cidr=cidr,
+                            cloud_provider_model=cloud_provider_model,
+                            logger=logger,
+                            network_client=network_client,
+                            network_security_group=network_security_group,
+                            sandbox_vnet=sandbox_vnet,
+                            subnet_name=subnet_name)
 
-            # 5. Create a subnet
-            self._create_subnet(cidr=cidr,
-                                cloud_provider_model=cloud_provider_model,
-                                logger=logger,
-                                network_client=network_client,
-                                network_security_group=network_security_group,
-                                sandbox_vnet=sandbox_vnet,
-                                subnet_name=subnet_name)
-
-            action_result.subnet_name = subnet_name
+        # 6. Attach the NSG to the subnet
+        self._create_subnet(cidr=cidr,
+                            cloud_provider_model=cloud_provider_model,
+                            logger=logger,
+                            network_client=network_client,
+                            network_security_group=network_security_group,
+                            sandbox_vnet=sandbox_vnet,
+                            subnet_name=subnet_name)
 
         # wait for all async operations
+        pool.close()
+        pool.join()
+
+        action_result.storage_name = storage_account_name
+        action_result.subnet_name = subnet_name
+        result.append(action_result)
+        return result
+
+    def _create_storage_and_keypairs(self, logger, storage_client, storage_account_name, group_name,
+                                     cloud_provider_model, tags):
+        # 2. Create a storage account
+        logger.info("Creating a storage account {0} .".format(storage_account_name))
+        self.storage_service.create_storage_account(storage_client=storage_client,
+                                                    group_name=group_name,
+                                                    region=cloud_provider_model.region,
+                                                    storage_account_name=storage_account_name,
+                                                    tags=tags,
+                                                    wait_until_created=True)
+        # 3 Create a Key pair for the sandbox
+        logger.info("Creating an SSH key pair in the storage account {}".format(storage_account_name))
+        self._create_key_pair(group_name=group_name,
+                              storage_account_name=storage_account_name,
+                              storage_client=storage_client)
+
+    def _wait_on_operations(self, async_operations, logger):
         logger.info("Waiting for async create operations to be done... {}".format(async_operations))
         for operation_poller in async_operations:
             operation_poller.wait()
-
-        result.append(action_result)
-        return result
 
     def _create_key_pair(self, group_name, storage_account_name, storage_client):
         key_pair = self.key_pair_service.generate_key_pair()
@@ -169,7 +187,7 @@ class PrepareConnectivityOperation(object):
     def _create_subnet(self, cidr, cloud_provider_model, logger, network_client, network_security_group, sandbox_vnet,
                        subnet_name):
         """
-        This method is atomic
+        This method is atomic because we have to sync subnet creation for the entire sandbox vnet
         """
         with self.subnet_locker:
             logger.info(
@@ -240,9 +258,7 @@ class PrepareConnectivityOperation(object):
                         priority=priority,
                         protocol=all_symbol),
                 async=True)
-
-        # last NSG rule can be created async
-        return operation_poller
+        operation_poller.wait()
 
     @staticmethod
     def _validate_management_vnet(management_vnet):
@@ -255,7 +271,12 @@ class PrepareConnectivityOperation(object):
             raise VirtualNetworkNotFoundException("Could not find Sandbox Virtual Network in Azure.")
 
     @staticmethod
-    def _extract_cidr(action):
+    def _extract_cidr(request):
+        # get first or default
+        action = next(iter(request.actions or []), None)
+        if action is None:
+            raise ValueError("Action is missing in request. Request: {}".format(request))
+
         cidrs = next((custom_attribute.attributeValue
                       for custom_attribute in action.customActionAttributes
                       if custom_attribute.attributeName == 'Network'), None)
