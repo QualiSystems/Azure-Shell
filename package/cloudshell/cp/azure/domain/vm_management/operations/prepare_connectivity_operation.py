@@ -61,7 +61,6 @@ class PrepareConnectivityOperation(object):
         :param cloudshell.cp.azure.models.azure_cloud_provider_resource_model.AzureCloudProviderResourceModel cloud_provider_model:cloud provider
         :return:
         """
-        async_operations = []  # list of AzureOperationPoller
         reservation_id = reservation.reservation_id
         group_name = str(reservation_id)
         subnet_name = group_name
@@ -78,8 +77,9 @@ class PrepareConnectivityOperation(object):
 
         # 2+3. create storage account and keypairs (async)
         pool = ThreadPool()
-        pool.apply_async(self._create_storage_and_keypairs,
-                         (logger, storage_client, storage_account_name, group_name, cloud_provider_model, tags))
+        storage_res = pool.apply_async(self._create_storage_and_keypairs,
+                                       (logger, storage_client, storage_account_name, group_name, cloud_provider_model,
+                                        tags))
 
         logger.info("Retrieving MGMT vNet from resource group {} by tag {}={}".format(
                 cloud_provider_model.management_group_name,
@@ -119,6 +119,7 @@ class PrepareConnectivityOperation(object):
                 tags=tags)
 
         logger.info("Creating NSG management rules...")
+        # 5. Set rules on NSG ti create a sandbox
         self._create_management_rules(
                 group_name=group_name,
                 management_vnet=management_vnet,
@@ -129,16 +130,7 @@ class PrepareConnectivityOperation(object):
         cidr = self._extract_cidr(request)
         logger.info("Received CIDR {0} from server".format(cidr))
 
-        # 5. Create a subnet
-        self._create_subnet(cidr=cidr,
-                            cloud_provider_model=cloud_provider_model,
-                            logger=logger,
-                            network_client=network_client,
-                            network_security_group=network_security_group,
-                            sandbox_vnet=sandbox_vnet,
-                            subnet_name=subnet_name)
-
-        # 6. Attach the NSG to the subnet
+        # 6. Create a subnet with NSG
         self._create_subnet(cidr=cidr,
                             cloud_provider_model=cloud_provider_model,
                             logger=logger,
@@ -150,6 +142,7 @@ class PrepareConnectivityOperation(object):
         # wait for all async operations
         pool.close()
         pool.join()
+        storage_res.get(timeout=900)  # will wait for 15 min and raise exception if storage account creation failed
 
         action_result.storage_name = storage_account_name
         action_result.subnet_name = subnet_name
@@ -158,6 +151,7 @@ class PrepareConnectivityOperation(object):
 
     def _create_storage_and_keypairs(self, logger, storage_client, storage_account_name, group_name,
                                      cloud_provider_model, tags):
+
         # 2. Create a storage account
         logger.info("Creating a storage account {0} .".format(storage_account_name))
         self.storage_service.create_storage_account(storage_client=storage_client,
@@ -171,6 +165,8 @@ class PrepareConnectivityOperation(object):
         self._create_key_pair(group_name=group_name,
                               storage_account_name=storage_account_name,
                               storage_client=storage_client)
+
+        return True
 
     def _wait_on_operations(self, async_operations, logger):
         logger.info("Waiting for async create operations to be done... {}".format(async_operations))
