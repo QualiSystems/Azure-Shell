@@ -14,7 +14,7 @@
 		},
         "vpn_address": {
             "type": "string",
-            "defaultValue": ""
+            "defaultValue": "1.1.1.1"
         },		
 		"management_vnet_CIDR": {
 			"defaultValue": "192.168.120.0/24",
@@ -49,7 +49,9 @@
 		}
 	},
 	"variables": {
-		"virtualMachineName": "centos_quali_vm",            
+		"virtualMachineName": "centos-es-vm",            
+		"publicIpAddressNameVM": "centos_ip_es",            
+		"vmNetworkInterface": "centos_quali_vm_nic",            
 		"localGatewayName": "local_getway_network",
 	    "apiVersion": "2016-06-01",
 		"storageAccountName": "[concat(uniquestring(resourceGroup().id), 'strg')]",
@@ -62,7 +64,8 @@
 		"gatewayPublicIPName" :"[uniquestring('azureGatewayIP')]",	
 		"gateway_vpn_name" :"[concat(uniqueString('vpn'),'vpn_name')]",
 		"vnetID": "[resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetworks_mgmt_vnet_name'))]",		
-        "gatewaySubnetRef": "[concat(variables('vnetID'),'/subnets/','GatewaySubnet')]"
+        "gatewaySubnetRefgatewaySubnetRef": "[concat(variables('vnetID'),'/subnets/','GatewaySubnet')]",
+		"location": "[resourceGroup().location]"
 	},
 	"resources": [{
 		"name": "[variables('virtualMachineName')]",
@@ -77,7 +80,7 @@
 				"adminPassword": "[parameters('adminPassword')]"
 			},
 			"hardwareProfile": {
-				"vmSize": "[parameters('virtualMachineSize')]"
+				"vmSize": "Standard_A3"
 			},
 			"storageProfile": {
 				"imageReference": {
@@ -87,9 +90,9 @@
 					"version": "latest"
 				},
 				"osDisk": {
-					"name": "[parameters('virtualMachineName')]",
+					"name": "[variables('virtualMachineName')]",
 					"vhd": {
-						"uri": "[concat(concat(reference(resourceId(resourceGroup().name, 'Microsoft.Storage/storageAccounts', variables('storageAccountName')), '2015-06-15').primaryEndpoints['blob'], 'vhds/'), parameters('virtualMachineName'), '2016102316823.vhd')]"
+						"uri": "[concat(concat(reference(resourceId(resourceGroup().name, 'Microsoft.Storage/storageAccounts', variables('storageAccountName')), '2015-06-15').primaryEndpoints['blob'], 'vhds/'), variables('virtualMachineName'), '2016102316823.vhd')]"
 					},
 					"createOption": "fromImage"
 				},
@@ -98,12 +101,61 @@
 			"networkProfile": {
 				"networkInterfaces": [
 					{
-						"id": "[resourceId('Microsoft.Network/networkInterfaces', parameters('networkInterfaceName'))]"
+						"id": "[resourceId('Microsoft.Network/networkInterfaces', variables('vmNetworkInterface'))]"
 					}
 				]
 			}
 		}
-	},	
+	},		
+	
+	{
+		"name": "[variables('vmNetworkInterface')]",
+		"type": "Microsoft.Network/networkInterfaces",
+		"apiVersion": "2016-09-01",
+		"location": "[variables('location')]",
+		"dependsOn": [
+			"[concat('Microsoft.Network/publicIpAddresses/', variables('publicIpAddressNameVM'))]"
+		],
+		"properties": {
+			"ipConfigurations": [
+				{
+					"name": "ipconfig1",
+					"properties": {
+						"subnet": {
+							"id": "[variables('gatewaySubnetRef')]"
+						},
+						"privateIPAllocationMethod": "Dynamic",
+						"publicIpAddress": {
+							"id": "[resourceId(variables('location'),'Microsoft.Network/publicIpAddresses', parameters('publicIpAddressName'))]"
+						}
+					}
+				}
+			],
+			"networkSecurityGroup": {
+				"id": "[resourceId(variables('location'), 'Microsoft.Network/networkSecurityGroups', parameters('networkSecurityGroupName'))]"
+			}
+		}
+	},
+	{
+		"name": "[variables('publicIpAddressNameVM')]",
+		"type": "Microsoft.Network/publicIpAddresses",
+		"apiVersion": "2016-09-01",
+		"location": "[resourceGroup().location]",
+		"properties": {
+			"publicIPAllocationMethod": "Dynamic"
+		}
+	},
+
+
+
+
+
+
+
+
+
+
+
 	{
 		"type": "Microsoft.Network/virtualNetworks",
 		"name": "[parameters('virtualNetworks_mgmt_vnet_name')]",
