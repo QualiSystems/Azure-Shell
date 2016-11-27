@@ -1,8 +1,10 @@
 from msrestazure.azure_exceptions import CloudError
+from retrying import retry
+
+from cloudshell.cp.azure.common.helpers.retrying_helpers import retry_if_connection_error
 
 
 class RefreshIPOperation(object):
-
     def __init__(self, vm_service):
         """
         :param cloudshell.cp.azure.domain.services.virtual_machine_service.VirtualMachineService vm_service:
@@ -10,6 +12,7 @@ class RefreshIPOperation(object):
         """
         self.vm_service = vm_service
 
+    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def refresh_ip(self, cloudshell_session, compute_client, network_client, resource_group_name, vm_name,
                    private_ip_on_resource, public_ip_on_resource, resource_fullname, logger):
         """Refresh Public and Private IP on CloudShell resource from corresponding deployed Azure instance
@@ -28,12 +31,12 @@ class RefreshIPOperation(object):
         # NOTE: NIC and IP Address names must be same as a VM name
         # check if VM exists and in the correct state
         logger.info("Check that VM {} exists under resource group {} and is active".format(
-            vm_name, resource_group_name))
+                vm_name, resource_group_name))
 
         self.vm_service.get_active_vm(
-            compute_management_client=compute_client,
-            group_name=resource_group_name,
-            vm_name=vm_name)
+                compute_management_client=compute_client,
+                group_name=resource_group_name,
+                vm_name=vm_name)
 
         try:
             nic = network_client.network_interfaces.get(resource_group_name, vm_name)

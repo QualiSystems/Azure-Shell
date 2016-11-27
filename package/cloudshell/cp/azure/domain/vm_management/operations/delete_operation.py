@@ -2,6 +2,9 @@ import traceback
 
 from azure.mgmt.network.models import Subnet
 from msrestazure.azure_exceptions import CloudError
+from retrying import retry
+
+from cloudshell.cp.azure.common.helpers.retrying_helpers import retry_if_connection_error
 
 
 class DeleteAzureVMOperation(object):
@@ -55,6 +58,7 @@ class DeleteAzureVMOperation(object):
 
         return result
 
+    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def remove_nsg_from_subnet(self, network_client, resource_group_name, cloud_provider_model, logger):
         management_group_name = cloud_provider_model.management_group_name
 
@@ -78,9 +82,11 @@ class DeleteAzureVMOperation(object):
         self.network_service.update_subnet(network_client, management_group_name, sandbox_virtual_network.name,
                                            subnet.name, subnet)
 
+    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def delete_resource_group(self, resource_client, group_name):
         self.vm_service.delete_resource_group(resource_management_client=resource_client, group_name=group_name)
 
+    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def delete_sandbox_subnet(self, network_client, cloud_provider_model, resource_group_name, logger):
         logger.info("Retrieving sandbox vNet from MGMT group {}".format(cloud_provider_model.management_group_name))
         sandbox_virtual_network = self.network_service.get_sandbox_virtual_network(network_client=network_client,
@@ -98,6 +104,7 @@ class DeleteAzureVMOperation(object):
         network_client.subnets.delete(cloud_provider_model.management_group_name, sandbox_virtual_network.name,
                                       subnet.name)
 
+    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def delete(self, compute_client, network_client, group_name, vm_name, logger):
         """
         :param group_name:
