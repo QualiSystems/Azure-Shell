@@ -64,7 +64,7 @@
 		"gatewayPublicIPName" :"[uniquestring('azureGatewayIP')]",	
 		"gateway_vpn_name" :"[concat(uniqueString('vpn'),'vpn_name')]",
 		"vnetID": "[resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetworks_mgmt_vnet_name'))]",		
-        "gatewaySubnetRefgatewaySubnetRef": "[concat(variables('vnetID'),'/subnets/','GatewaySubnet')]",
+        "gatewaySubnetRef": "[concat(variables('vnetID'),'/subnets/','GatewaySubnet')]",
 		"location": "[resourceGroup().location]"
 	},
 	"resources": [{
@@ -72,7 +72,7 @@
 		"type": "Microsoft.Compute/virtualMachines",
 		"apiVersion": "2015-06-15",
 		"location": "[resourceGroup().location]",
-		"dependsOn": [],
+		"dependsOn": ["[resourceId('Microsoft.Network/networkInterfaces', variables('vmNetworkInterface'))]"],
 		"properties": {
 			"osProfile": {
 				"computerName": "[variables('virtualMachineName')]",
@@ -126,7 +126,7 @@
 						},
 						"privateIPAllocationMethod": "Dynamic",
 						"publicIpAddress": {
-							"id": "[resourceId(variables('location'),'Microsoft.Network/publicIpAddresses', parameters('publicIpAddressName'))]"
+							"id": "[resourceId(variables('location'),'Microsoft.Network/publicIpAddresses', variables('publicIpAddressNameVM'))]"
 						}
 					}
 				}
