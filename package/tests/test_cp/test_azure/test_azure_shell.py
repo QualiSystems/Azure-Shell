@@ -7,6 +7,7 @@ from cloudshell.cp.azure.azure_shell import AzureShell
 
 class TestAzureShell(TestCase):
 
+    @mock.patch("cloudshell.cp.azure.azure_shell.DeployedAppPortsOperation")
     @mock.patch("cloudshell.cp.azure.azure_shell.CommandResultsParser")
     @mock.patch("cloudshell.cp.azure.azure_shell.AzureModelsParser")
     @mock.patch("cloudshell.cp.azure.azure_shell.VirtualMachineService")
@@ -23,7 +24,7 @@ class TestAzureShell(TestCase):
     def setUp(self, delete_azure_vm_operation, refresh_ip_operation, power_azure_vm_operation,
               deploy_azure_vm_operation, prepare_connectivity_operation, security_group_service,
               key_pair_service, tag_service, storage_service, network_service, vm_service,
-              azure_models_parser, commands_results_parser):
+              azure_models_parser, commands_results_parser, deployed_app_ports_operation):
 
         self.azure_shell = AzureShell()
         self.logger = mock.MagicMock()
@@ -393,3 +394,30 @@ class TestAzureShell(TestCase):
             public_ip_on_resource=public_ip,
             resource_fullname=resource_fullname,
             logger=self.logger)
+
+    @mock.patch("cloudshell.cp.azure.azure_shell.LoggingSessionContext")
+    @mock.patch("cloudshell.cp.azure.azure_shell.ErrorHandlingContext")
+    def test_get_application_ports(self, error_handling_class, logging_context_class):
+        """Check that method uses ErrorHandlingContext and get_formated_deployed_app_ports method"""
+        # mock LoggingSessionContext and ErrorHandlingContext
+        logging_context = mock.MagicMock(__enter__=mock.MagicMock(return_value=self.logger))
+        logging_context_class.return_value = logging_context
+        error_handling = mock.MagicMock()
+        error_handling_class.return_value = error_handling
+
+        resource = mock.MagicMock()
+        command_context = mock.MagicMock(remote_endpoints=[resource])
+        data_holder = mock.MagicMock()
+        self.azure_shell.model_parser.convert_app_resource_to_deployed_app.return_value = data_holder
+
+        # Act
+        self.azure_shell.get_application_ports(command_context=command_context)
+
+        # Verify
+        error_handling.__enter__.assert_called_once_with()
+        error_handling_class.assert_called_once_with(self.logger)
+
+        self.azure_shell.model_parser.convert_app_resource_to_deployed_app.assert_called_once_with(resource)
+
+        self.azure_shell.deployed_app_ports_operation.get_formated_deployed_app_ports.assert_called_once_with(
+            data_holder.vmdetails.vmCustomParams)

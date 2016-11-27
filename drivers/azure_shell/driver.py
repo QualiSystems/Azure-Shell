@@ -45,7 +45,7 @@ class AzureShellDriver(ResourceDriverInterface):
         return self.azure_shell.cleanup_connectivity(command_context=context)
 
     def GetApplicationPorts(self, context, ports):
-        pass
+        return self.azure_shell.get_application_ports(command_context=context)
 
     def get_inventory(self, context):
         return AutoLoadDetails([], [])
