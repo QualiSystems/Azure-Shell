@@ -3,10 +3,12 @@
 	"contentVersion": "1.0.0.0",
 		"parameters": {
 		"adminUsername": {
-            "type": "string"
+            "type": "string",
+			"defaultValue": "giluser"
         },
         "adminPassword": {
-            "type": "securestring"
+            "type": "securestring",
+			"defaultValue": "13fgfg$%65656#$DDFGF5"
         },		
 		"on_premise_CIDR": {
 			"defaultValue": "192.168.121.0/24",
@@ -21,7 +23,11 @@
 			"type": "String"
 		},
 		"management_vnet_subnet_CIDR": {
-			"defaultValue": "192.168.120.0/25",
+			"defaultValue": "192.168.120.0/28",
+			"type": "String"
+		},		
+		"management_vnet_default_subnet_CIDR": {
+			"defaultValue": "192.168.120.16/28",
 			"type": "String"
 		},
 		"virtualNetworks_mgmt_vnet_name": {
@@ -49,9 +55,7 @@
 		}
 	},
 	"variables": {
-		"virtualMachineName": "centos-es-vm",            
-		"publicIpAddressNameVM": "centos_ip_es",            
-		"vmNetworkInterface": "centos_quali_vm_nic",            
+		"nsg_management_name" : "nsg_management",          		           
 		"localGatewayName": "local_getway_network",
 	    "apiVersion": "2016-06-01",
 		"storageAccountName": "[concat(uniquestring(resourceGroup().id), 'strg')]",
@@ -61,18 +65,26 @@
 		"vNet2": {
 			"peeringName": "vNet_sndbx-to-vNet_mgmt"
 		},
-		"gatewayPublicIPName" :"[uniquestring('azureGatewayIP')]",	
-		"gateway_vpn_name" :"[concat(uniqueString('vpn'),'vpn_name')]",
-		"vnetID": "[resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetworks_mgmt_vnet_name'))]",		
+		"gatewayPublicIPName" : "[concat(uniquestring('azureGatewayPIP'),'_vpn_public_ip')]",	
+		"gateway_vpn_name" :"[concat(uniqueString('vpn'),'_vpn')]",
+		"vnetID": "[resourceId('Microsoft.Network/virtualNetworks',parameters('virtualNetworks_mgmt_vnet_name'))]",		
         "gatewaySubnetRef": "[concat(variables('vnetID'),'/subnets/','GatewaySubnet')]",
-		"location": "[resourceGroup().location]"
+        "SubnetRef": "[concat(variables('vnetID'),'/subnets/','default')]",
+		"location": "[resourceGroup().location]",
+		"es_nic_name":"nic_for_centos_es",
+		"virtualMachineName": "centos-es-vm",
+		"publicIpAddressNameVMCentosES": "centos_ip_es"
 	},
-	"resources": [{
+	"resources": [
+	{
 		"name": "[variables('virtualMachineName')]",
 		"type": "Microsoft.Compute/virtualMachines",
 		"apiVersion": "2015-06-15",
-		"location": "[resourceGroup().location]",
-		"dependsOn": ["[resourceId('Microsoft.Network/networkInterfaces', variables('vmNetworkInterface'))]"],
+		"location": "[variables('location')]",
+		"dependsOn": [
+			"[concat('Microsoft.Network/networkInterfaces/', variables('es_nic_name'))]",
+			"[concat('Microsoft.Storage/storageAccounts/', variables('storageAccountName'))]"
+		],
 		"properties": {
 			"osProfile": {
 				"computerName": "[variables('virtualMachineName')]",
@@ -92,7 +104,7 @@
 				"osDisk": {
 					"name": "[variables('virtualMachineName')]",
 					"vhd": {
-						"uri": "[concat(concat(reference(resourceId(resourceGroup().name, 'Microsoft.Storage/storageAccounts', variables('storageAccountName')), '2015-06-15').primaryEndpoints['blob'], 'vhds/'), variables('virtualMachineName'), '2016102316823.vhd')]"
+						"uri": "[concat(concat(reference(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), '2015-06-15').primaryEndpoints['blob'], 'vhds/'), variables('virtualMachineName'), '2016102316823.vhd')]"
 					},
 					"createOption": "fromImage"
 				},
@@ -101,43 +113,40 @@
 			"networkProfile": {
 				"networkInterfaces": [
 					{
-						"id": "[resourceId('Microsoft.Network/networkInterfaces', variables('vmNetworkInterface'))]"
+						"id": "[resourceId('Microsoft.Network/networkInterfaces', variables('es_nic_name'))]"
 					}
 				]
 			}
 		}
-	},		
-	
+	},	
 	{
-		"name": "[variables('vmNetworkInterface')]",
-		"type": "Microsoft.Network/networkInterfaces",
-		"apiVersion": "2016-09-01",
-		"location": "[variables('location')]",
-		"dependsOn": [
-			"[concat('Microsoft.Network/publicIpAddresses/', variables('publicIpAddressNameVM'))]"
-		],
-		"properties": {
-			"ipConfigurations": [
-				{
-					"name": "ipconfig1",
-					"properties": {
-						"subnet": {
-							"id": "[variables('gatewaySubnetRef')]"
-						},
-						"privateIPAllocationMethod": "Dynamic",
-						"publicIpAddress": {
-							"id": "[resourceId(variables('location'),'Microsoft.Network/publicIpAddresses', variables('publicIpAddressNameVM'))]"
-						}
-					}
-				}
-			],
-			"networkSecurityGroup": {
-				"id": "[resourceId(variables('location'), 'Microsoft.Network/networkSecurityGroups', parameters('networkSecurityGroupName'))]"
-			}
-		}
+            "name": "[variables('es_nic_name')]",
+            "type": "Microsoft.Network/networkInterfaces",
+            "apiVersion": "2016-09-01",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[concat('Microsoft.Network/virtualNetworks/', parameters('virtualNetworks_mgmt_vnet_name'))]",
+                "[concat('Microsoft.Network/publicIpAddresses/', variables('publicIpAddressNameVMCentosES'))]"
+            ],
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "subnet": {  
+								"id":"[variables('SubnetRef')]"
+                            },
+                            "privateIPAllocationMethod": "Dynamic",
+                            "publicIpAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIpAddresses', variables('publicIpAddressNameVMCentosES'))]"
+                            }
+                        }
+                    }
+                ]
+            }
 	},
 	{
-		"name": "[variables('publicIpAddressNameVM')]",
+		"name": "[variables('publicIpAddressNameVMCentosES')]",
 		"type": "Microsoft.Network/publicIpAddresses",
 		"apiVersion": "2016-09-01",
 		"location": "[resourceGroup().location]",
@@ -145,8 +154,6 @@
 			"publicIPAllocationMethod": "Dynamic"
 		}
 	},
-
-
 
 
 
@@ -168,12 +175,20 @@
 			"addressSpace": {
 				"addressPrefixes": ["[parameters('management_vnet_CIDR')]"]
 			},
-			"subnets": [{
-				"name": "GatewaySubnet",
-				"properties": {
-					"addressPrefix": "[parameters('management_vnet_subnet_CIDR')]"
-				}
-			}]
+			"subnets": [
+					{
+						"name": "GatewaySubnet",
+						"properties": {
+							"addressPrefix": "[parameters('management_vnet_subnet_CIDR')]"
+						}
+					},
+					{
+						"name": "default",
+						"properties": {
+							"addressPrefix": "[parameters('management_vnet_default_subnet_CIDR')]"
+						}
+					}
+			]
 		},
 		"resources": [{
 			"apiVersion": "[variables('apiVersion')]",
@@ -250,7 +265,7 @@
 	{
       "apiVersion": "[variables('apiVersion')]",
       "type": "Microsoft.Network/networkSecurityGroups",
-      "name": "nsg_management",
+      "name": "[variables('nsg_management_name')]",
       "location": "[resourceGroup().location]",
       "properties": {
         "securityRules": [
