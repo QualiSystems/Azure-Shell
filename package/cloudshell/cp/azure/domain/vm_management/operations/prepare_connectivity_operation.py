@@ -14,7 +14,8 @@ class PrepareConnectivityOperation(object):
                  storage_service,
                  tags_service,
                  key_pair_service,
-                 security_group_service):
+                 security_group_service,
+                 cryptography_service):
         """
 
         :param cloudshell.cp.azure.domain.services.virtual_machine_service.VirtualMachineService vm_service:
@@ -23,9 +24,11 @@ class PrepareConnectivityOperation(object):
         :param cloudshell.cp.azure.domain.services.tags.TagService tags_service:
         :param cloudshell.cp.azure.domain.services.key_pair.KeyPairService key_pair_service:
         :param cloudshell.cp.azure.domain.services.security_group.SecurityGroupService security_group_service:
+        :param cloudshell.cp.azure.domain.services.cryptography_service.CryptographyService cryptography_service:
         :return:
         """
 
+        self.cryptography_service = cryptography_service
         self.vm_service = vm_service
         self.network_service = network_service
         self.storage_service = storage_service
@@ -78,11 +81,11 @@ class PrepareConnectivityOperation(object):
                                                                                  wait_until_created=True)
         # 3 Create a Key pair for the sandbox
         key_pair = self._create_key_pair(group_name=group_name,
-                              logger=logger,
-                              storage_account_name=storage_account_name,
-                              storage_client=storage_client)
+                                         logger=logger,
+                                         storage_account_name=storage_account_name,
+                                         storage_client=storage_client)
 
-        action_result.access_key = key_pair.private_key
+        action_result.access_key = self.cryptography_service.encrypt(key_pair.private_key)
 
         virtual_networks = self.network_service.get_virtual_networks(network_client=network_client,
                                                                      group_name=cloud_provider_model.management_group_name)
@@ -104,11 +107,11 @@ class PrepareConnectivityOperation(object):
         security_group_name = OperationsHelper.generate_name(reservation_id)
         logger.info("Creating a network security group '{}' .".format(security_group_name))
         network_security_group = self.security_group_service.create_network_security_group(
-                network_client=network_client,
-                group_name=group_name,
-                security_group_name=security_group_name,
-                region=cloud_provider_model.region,
-                tags=tags)
+            network_client=network_client,
+            group_name=group_name,
+            security_group_name=security_group_name,
+            region=cloud_provider_model.region,
+            tags=tags)
 
         for action in request.actions:
             cidr = self._extract_cidr(action)
@@ -167,15 +170,15 @@ class PrepareConnectivityOperation(object):
                                                                               group_name=group_name,
                                                                               security_group_name=security_group_name,
                                                                               rule=SecurityRule(
-                                                                                      access=SecurityRuleAccess.deny,
-                                                                                      direction="Inbound",
-                                                                                      source_address_prefix='VirtualNetwork',
-                                                                                      source_port_range=all,
-                                                                                      name="rule_{}".format(priority),
-                                                                                      destination_address_prefix=all,
-                                                                                      destination_port_range=all,
-                                                                                      priority=priority,
-                                                                                      protocol=all))
+                                                                                  access=SecurityRuleAccess.deny,
+                                                                                  direction="Inbound",
+                                                                                  source_address_prefix='VirtualNetwork',
+                                                                                  source_port_range=all,
+                                                                                  name="rule_{}".format(priority),
+                                                                                  destination_address_prefix=all,
+                                                                                  destination_port_range=all,
+                                                                                  priority=priority,
+                                                                                  protocol=all))
         # Rule 2: Allow management subnet traffic rule
         source_address_prefix = management_vnet.address_space.address_prefixes[0]
         priority = 3900
@@ -183,15 +186,15 @@ class PrepareConnectivityOperation(object):
                                                                               group_name=group_name,
                                                                               security_group_name=security_group_name,
                                                                               rule=SecurityRule(
-                                                                                      access=SecurityRuleAccess.allow,
-                                                                                      direction="Inbound",
-                                                                                      source_address_prefix=source_address_prefix,
-                                                                                      source_port_range=all,
-                                                                                      name="rule_{}".format(priority),
-                                                                                      destination_address_prefix=all,
-                                                                                      destination_port_range=all,
-                                                                                      priority=priority,
-                                                                                      protocol=all))
+                                                                                  access=SecurityRuleAccess.allow,
+                                                                                  direction="Inbound",
+                                                                                  source_address_prefix=source_address_prefix,
+                                                                                  source_port_range=all,
+                                                                                  name="rule_{}".format(priority),
+                                                                                  destination_address_prefix=all,
+                                                                                  destination_port_range=all,
+                                                                                  priority=priority,
+                                                                                  protocol=all))
 
     @staticmethod
     def _validate_management_vnet(management_vnet):

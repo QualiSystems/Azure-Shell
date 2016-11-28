@@ -6,6 +6,7 @@ import jsonpickle
 
 from cloudshell.cp.azure.common.deploy_data_holder import DeployDataHolder
 from cloudshell.cp.azure.common.exceptions.virtual_network_not_found_exception import VirtualNetworkNotFoundException
+from cloudshell.cp.azure.domain.services.cryptography_service import CryptographyService
 from cloudshell.cp.azure.domain.services.security_group import SecurityGroupService
 
 from tests.helpers.test_helper import TestHelper
@@ -34,6 +35,7 @@ class TestPrepareConnectivity(TestCase):
         self.key_pair_service = KeyPairService(storage_service=self.storage_service)
         self.security_group_service = SecurityGroupService(self.network_service)
         self.logger = MagicMock()
+        self.cryptography_service = CryptographyService()
 
         self.prepare_connectivity_operation = PrepareConnectivityOperation(
             vm_service=self.vm_service,
@@ -41,7 +43,8 @@ class TestPrepareConnectivity(TestCase):
             storage_service=self.storage_service,
             tags_service=self.tag_service,
             key_pair_service=self.key_pair_service,
-            security_group_service=self.security_group_service)
+            security_group_service=self.security_group_service,
+            cryptography_service=self.cryptography_service)
 
     @mock.patch("cloudshell.cp.azure.domain.vm_management.operations.prepare_connectivity_operation.OperationsHelper")
     def test_prepare_connectivity(self, operation_helper_class):

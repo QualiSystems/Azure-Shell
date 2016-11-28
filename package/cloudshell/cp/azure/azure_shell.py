@@ -5,6 +5,7 @@ from cloudshell.core.context.error_handling_context import ErrorHandlingContext
 from cloudshell.shell.core.session.cloudshell_session import CloudShellSessionContext
 from cloudshell.cp.azure.common.deploy_data_holder import DeployDataHolder
 from cloudshell.cp.azure.domain.context.validators_factory_context import ValidatorsFactoryContext
+from cloudshell.cp.azure.domain.services.cryptography_service import CryptographyService
 from cloudshell.cp.azure.domain.services.tags import TagService
 from cloudshell.cp.azure.domain.vm_management.operations.access_key_operation import AccessKeyOperation
 from cloudshell.cp.azure.domain.vm_management.operations.delete_operation import DeleteAzureVMOperation
@@ -37,6 +38,7 @@ class AzureShell(object):
         self.key_pair_service = KeyPairService(storage_service=self.storage_service)
         self.security_group_service = SecurityGroupService(self.network_service)
         self.access_key_operation = AccessKeyOperation(self.key_pair_service, self.storage_service)
+        self.cryptography_service = CryptographyService()
 
         self.prepare_connectivity_operation = PrepareConnectivityOperation(
             vm_service=self.vm_service,
@@ -44,7 +46,8 @@ class AzureShell(object):
             storage_service=self.storage_service,
             tags_service=self.tags_service,
             key_pair_service=self.key_pair_service,
-            security_group_service=self.security_group_service)
+            security_group_service=self.security_group_service,
+            cryptography_service=self.cryptography_service)
 
         self.deploy_azure_vm_operation = DeployAzureVMOperation(
             vm_service=self.vm_service,
