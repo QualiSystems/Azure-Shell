@@ -1,14 +1,16 @@
-import uuid
-import re
-
 from azure.mgmt.storage.models import StorageAccount
+from azure.mgmt.compute.models import OperatingSystemTypes
+from retrying import retry
 
+from cloudshell.cp.azure.common.helpers.retrying_helpers import retry_if_connection_error, is_pool_closed_error
 from cloudshell.cp.azure.common.operations_helper import OperationsHelper
 from cloudshell.cp.azure.models.deploy_result_model import DeployResult
 from cloudshell.cp.azure.domain.services.parsers.rules_attribute_parser import RulesAttributeParser
 
 
 class DeployAzureVMOperation(object):
+    CUSTOM_IMAGES_CONTAINER_PREFIX = "customimages"
+
     def __init__(self,
                  vm_service,
                  network_service,
@@ -36,24 +38,30 @@ class DeployAzureVMOperation(object):
         self.tags_service = tags_service
         self.security_group_service = security_group_service
 
-    def _process_nsg_rules(self, network_client, group_name, azure_vm_deployment_model, nic):
+    def _process_nsg_rules(self, network_client, group_name, azure_vm_deployment_model, nic, logger):
         """Create Network Security Group rules if needed
 
         :param network_client: azure.mgmt.network.NetworkManagementClient instance
         :param group_name: resource group name (reservation id)
-        :param azure_vm_deployment_model: cloudshell.cp.azure.models.deploy_azure_vm_resource_model.DeployAzureVMResourceModel
+        :param azure_vm_deployment_model: deploy_azure_vm_resource_models.BaseDeployAzureVMResourceModel
         :param nic: azure.mgmt.network.models.NetworkInterface instance
+        :param logger: logging.Logger instance
         :return: None
         """
+        logger.info("Process inbound rules: {}".format(azure_vm_deployment_model.inbound_ports))
 
         if azure_vm_deployment_model.inbound_ports:
             inbound_rules = RulesAttributeParser.parse_port_group_attribute(
                 ports_attribute=azure_vm_deployment_model.inbound_ports)
 
+            logger.info("Parsed inbound rules {}".format(inbound_rules))
+
+            logger.info("Get NSG by group name {}".format(group_name))
             network_security_group = self.security_group_service.get_network_security_group(
                 network_client=network_client,
                 group_name=group_name)
 
+            logger.info("Create rules for the NSG {}".format(network_security_group.name))
             self.security_group_service.create_network_security_group_rules(
                 network_client=network_client,
                 group_name=group_name,
@@ -61,62 +69,148 @@ class DeployAzureVMOperation(object):
                 inbound_rules=inbound_rules,
                 destination_addr=nic.ip_configurations[0].private_ip_address)
 
-    def deploy(self, azure_vm_deployment_model,
-               cloud_provider_model,
-               reservation,
-               network_client,
-               compute_client,
-               storage_client,
-               validator_factory):
+            logger.info("NSG rules were successfully created for NSG {}".format(network_security_group.name))
+
+    def _get_sandbox_subnet(self, network_client, cloud_provider_model, subnet_name, logger):
+        """Get subnet for for given reservation
+
+        :param network_client: azure.mgmt.network.network_management_client.NetworkManagementClient
+        :param cloud_provider_model: cloudshell.cp.azure.models.azure_cloud_provider_resource_model.AzureCloudProviderResourceModel
+        :param subnet_name: (str) Azure subnet resource name
+        :param logger: logging.Logger instance
+        :return: azure.mgmt.network.models.Subnet instance
         """
+        sandbox_virtual_network = self.network_service.get_sandbox_virtual_network(
+            network_client=network_client,
+            group_name=cloud_provider_model.management_group_name,
+            tags_service=self.tags_service)
+
+        try:
+            return next(subnet for subnet in sandbox_virtual_network.subnets if subnet.name == subnet_name)
+        except StopIteration:
+            logger.error("Subnet {} was not found under the resource group {}".format(
+                subnet_name, cloud_provider_model.management_group_name))
+            raise Exception("Could not find a valid subnet.")
+
+    def _get_sandbox_storage_account_name(self, storage_client, group_name, validator_factory):
+        """Get storage account name for given reservation
+
+        :param storage_client: azure.mgmt.storage.storage_management_client.StorageManagementClient
+        :param group_name:
+        :param validator_factory:
+        :return: (str) storage account name
+        """
+        storage_accounts_list = self.storage_service.get_storage_per_resource_group(storage_client, group_name)
+        validator_factory.try_validate(resource_type=StorageAccount, resource=storage_accounts_list)
+
+        return storage_accounts_list[0].name
+
+    def _rollback_deployed_resources(self, compute_client, network_client, group_name, interface_name, vm_name,
+                                     ip_name, logger):
+        """Remove all created resources by Deploy VM operation on any Exception
+
+        :param compute_client: azure.mgmt.compute.compute_management_client.ComputeManagementClient
+        :param network_client: azure.mgmt.network.network_management_client.NetworkManagementClient instance
+        :param group_name: resource group name (reservation id)
+        :param interface_name: Azure NIC resource name
+        :param vm_name: Azure VM resource name
+        :param ip_name: Azure Public IP address resource name
+        :param logger: logging.Logger instance
+        :return:
+        """
+        logger.info("Delete VM {} ".format(vm_name))
+        self.vm_service.delete_vm(compute_management_client=compute_client,
+                                  group_name=group_name,
+                                  vm_name=vm_name)
+
+        logger.info("Delete NIC {} ".format(interface_name))
+        self.network_service.delete_nic(network_client=network_client,
+                                        group_name=group_name,
+                                        interface_name=interface_name)
+
+        logger.info("Delete IP {} ".format(ip_name))
+        self.network_service.delete_ip(network_client=network_client,
+                                       group_name=group_name,
+                                       ip_name=ip_name)
+
+    def _get_public_ip_address(self, network_client, azure_vm_deployment_model, group_name, ip_name, logger):
+        """Get Public IP address by Azure IP resource name
+
+        :param network_client: azure.mgmt.network.network_management_client.NetworkManagementClient instance
+        :param azure_vm_deployment_model: deploy_azure_vm_resource_models.BaseDeployAzureVMResourceModel
+        :param group_name: resource group name (reservation id)
+        :param ip_name: Azure Public IP address resource name
+        :param logger: logging.Logger instance
+        :return: (str) IP address or None
+        """
+        if azure_vm_deployment_model.add_public_ip:
+            logger.info("Retrieve Public IP {}".format(ip_name))
+            public_ip = self.network_service.get_public_ip(network_client=network_client,
+                                                           group_name=group_name,
+                                                           ip_name=ip_name)
+            ip_address = public_ip.ip_address
+            logger.info("Public IP is {}".format(ip_address))
+
+            return ip_address
+
+    def deploy_from_custom_image(self, azure_vm_deployment_model, cloud_provider_model, reservation, network_client,
+                                 compute_client, storage_client, validator_factory, logger):
+        """Deploy Azure VM from custom image URN
+
         :param cloudshell.cp.azure.common.validtors.validator_factory.ValidatorFactory validator_factory:
         :param azure.mgmt.storage.storage_management_client.StorageManagementClient storage_client:
         :param azure.mgmt.compute.compute_management_client.ComputeManagementClient compute_client:
         :param azure.mgmt.network.network_management_client.NetworkManagementClient network_client:
         :param reservation: cloudshell.cp.azure.models.reservation_model.ReservationModel
-        :param cloudshell.cp.azure.models.deploy_azure_vm_resource_model.DeployAzureVMResourceModel azure_vm_deployment_model:
+        :param cloudshell.cp.azure.models.deploy_azure_vm_resource_models.DeployAzureVMFromCustomImageResourceModel azure_vm_deployment_model:
         :param cloudshell.cp.azure.models.azure_cloud_provider_resource_model.AzureCloudProviderResourceModel cloud_provider_model:cloud provider
+        :param logging.Logger logger:
         :return:
         """
-
+        logger.info("Start Deploy Azure VM From Custom Image operation")
         reservation_id = reservation.reservation_id
-
-        app_name = azure_vm_deployment_model.app_name.replace(" ", "")
+        app_name = azure_vm_deployment_model.app_name.lower().replace(" ", "")
         resource_name = app_name
         base_name = resource_name
         random_name = OperationsHelper.generate_name(base_name)
-        group_name = str(reservation_id)
         interface_name = random_name
         ip_name = random_name
         computer_name = random_name
         vm_name = random_name
-        subnet_name = str(reservation_id)
+        group_name = str(reservation_id)
 
-        sandbox_virtual_network = self.network_service.get_sandbox_virtual_network(network_client=network_client,
-                                                                                   group_name=cloud_provider_model.management_group_name,
-                                                                                   tags_service=self.tags_service)
+        logger.info("Retrieve sandbox subnet {}".format(group_name))
+        subnet = self._get_sandbox_subnet(network_client=network_client,
+                                          cloud_provider_model=cloud_provider_model,
+                                          subnet_name=group_name,
+                                          logger=logger)
 
-        subnet = next((subnet for subnet in sandbox_virtual_network.subnets if subnet.name == subnet_name), None)
-        if subnet is None:
-            raise Exception("Could not find a valid subnet.")
-
-        storage_accounts_list = self.storage_service.get_storage_per_resource_group(storage_client, group_name)
-
-        validator_factory.try_validate(resource_type=StorageAccount, resource=storage_accounts_list)
-
-        storage_account_name = storage_accounts_list[0].name
+        logger.info("Retrieve sandbox storage account name by resource group {}".format(group_name))
+        storage_account_name = self._get_sandbox_storage_account_name(storage_client=storage_client,
+                                                                      group_name=group_name,
+                                                                      validator_factory=validator_factory)
 
         tags = self.tags_service.get_tags(vm_name, resource_name, subnet.name, reservation)
+        logger.info("Tags for the VM {}".format(tags))
 
-        os_type = self.vm_service.get_image_operation_system(
-            compute_management_client=compute_client,
-            location=cloud_provider_model.region,
-            publisher_name=azure_vm_deployment_model.image_publisher,
-            offer=azure_vm_deployment_model.image_offer,
-            skus=azure_vm_deployment_model.image_sku)
+        blob_url_model = self.storage_service.parse_blob_url(azure_vm_deployment_model.image_urn)
+
+        container_name_copy_to = "{}{}".format(self.CUSTOM_IMAGES_CONTAINER_PREFIX, blob_url_model.container_name)
+
+        logger.info("Copy custom image to the sandbox account")
+        image_urn = self.storage_service.copy_blob(
+            storage_client=storage_client,
+            group_name_copy_to=group_name,
+            storage_name_copy_to=storage_account_name,
+            container_name_copy_to=container_name_copy_to,
+            blob_name_copy_to=blob_url_model.blob_name,
+            source_copy_from=azure_vm_deployment_model.image_urn,
+            group_name_copy_from=cloud_provider_model.management_group_name,
+            logger=logger)
 
         try:
             # 1. Create network for vm
+            logger.info("Creating NIC '{}'".format(interface_name))
             nic = self.network_service.create_network_for_vm(network_client=network_client,
                                                              group_name=group_name,
                                                              interface_name=interface_name,
@@ -128,10 +222,12 @@ class DeployAzureVMOperation(object):
                                                              tags=tags)
 
             private_ip_address = nic.ip_configurations[0].private_ip_address
+            logger.info("NIC private IP is {}".format(private_ip_address))
 
             # 2. Prepare credentials for VM
+            logger.info("Prepare credentials for the VM {}".format(vm_name))
             vm_credentials = self.vm_credentials_service.prepare_credentials(
-                os_type=os_type,
+                os_type=OperatingSystemTypes.windows,  # TODO: what OS type should be here? only Linux/Windows available
                 username=azure_vm_deployment_model.username,
                 password=azure_vm_deployment_model.password,
                 storage_service=self.storage_service,
@@ -141,55 +237,55 @@ class DeployAzureVMOperation(object):
                 storage_name=storage_account_name)
 
             # 3. create NSG rules
+            logger.info("Processing Network Security Group rules")
             self._process_nsg_rules(network_client=network_client,
                                     group_name=group_name,
                                     azure_vm_deployment_model=azure_vm_deployment_model,
-                                    nic=nic)
+                                    nic=nic,
+                                    logger=logger)
 
             # 4. create Vm
-            result_create = self.vm_service.create_vm(compute_management_client=compute_client,
-                                                      image_offer=azure_vm_deployment_model.image_offer,
-                                                      image_publisher=azure_vm_deployment_model.image_publisher,
-                                                      image_sku=azure_vm_deployment_model.image_sku,
-                                                      image_version='latest',
-                                                      vm_credentials=vm_credentials,
-                                                      computer_name=computer_name,
-                                                      group_name=group_name,
-                                                      nic_id=nic.id,
-                                                      region=cloud_provider_model.region,
-                                                      storage_name=storage_account_name,
-                                                      vm_name=vm_name,
-                                                      tags=tags,
-                                                      instance_type=azure_vm_deployment_model.instance_type)
+            logger.info("Start Deploying VM {} From custom image {}".format(vm_name, image_urn))
+            result_create = self.vm_service.create_vm_from_custom_image(
+                compute_management_client=compute_client,
+                image_urn=image_urn,
+                image_os_type=azure_vm_deployment_model.image_os_type,
+                vm_credentials=vm_credentials,
+                computer_name=computer_name,
+                group_name=group_name,
+                nic_id=nic.id,
+                region=cloud_provider_model.region,
+                storage_name=storage_account_name,
+                vm_name=vm_name,
+                tags=tags,
+                instance_type=azure_vm_deployment_model.instance_type)
 
-        except Exception as e:
-            # On any exception removes all the created resources
-            self.vm_service.delete_vm(compute_management_client=compute_client,
-                                      group_name=group_name,
-                                      vm_name=vm_name)
+            logger.info("VM {} was successfully deployed".format(vm_name))
 
-            self.network_service.delete_nic(network_client=network_client,
-                                            group_name=group_name,
-                                            interface_name=interface_name)
+        except Exception:
+            logger.exception("Failed to deploy VM From custom Image. Error:")
+            self._rollback_deployed_resources(compute_client=compute_client,
+                                              network_client=network_client,
+                                              group_name=group_name,
+                                              interface_name=interface_name,
+                                              vm_name=vm_name,
+                                              ip_name=ip_name,
+                                              logger=logger)
 
-            self.network_service.delete_ip(network_client=network_client,
-                                           group_name=group_name,
-                                           ip_name=ip_name)
+            raise
 
-            raise e
-
-        if azure_vm_deployment_model.add_public_ip:
-            public_ip = self.network_service.get_public_ip(network_client=network_client,
-                                                           group_name=group_name,
-                                                           ip_name=ip_name)
-            public_ip_address = public_ip.ip_address
-        else:
-            public_ip_address = None
+        public_ip_address = self._get_public_ip_address(network_client=network_client,
+                                                        azure_vm_deployment_model=azure_vm_deployment_model,
+                                                        group_name=group_name,
+                                                        ip_name=ip_name,
+                                                        logger=logger)
 
         deployed_app_attributes = self._prepare_deployed_app_attributes(
             vm_credentials.admin_username,
             vm_credentials.admin_password,
             public_ip_address)
+
+        logger.info("VM {} was successfully deployed from custom image".format(vm_name))
 
         return DeployResult(vm_name=vm_name,
                             vm_uuid=result_create.vm_id,
@@ -205,6 +301,161 @@ class DeployAzureVMOperation(object):
                             public_ip=public_ip_address,
                             resource_group=reservation_id)
 
+    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
+    def deploy(self, azure_vm_deployment_model,
+               cloud_provider_model,
+               reservation,
+               network_client,
+               compute_client,
+               storage_client,
+               validator_factory,
+               logger):
+        """
+        :param cloudshell.cp.azure.common.validtors.validator_factory.ValidatorFactory validator_factory:
+        :param azure.mgmt.storage.storage_management_client.StorageManagementClient storage_client:
+        :param azure.mgmt.compute.compute_management_client.ComputeManagementClient compute_client:
+        :param azure.mgmt.network.network_management_client.NetworkManagementClient network_client:
+        :param reservation: cloudshell.cp.azure.models.reservation_model.ReservationModel
+        :param cloudshell.cp.azure.models.deploy_azure_vm_resource_models.DeployAzureVMResourceModel azure_vm_deployment_model:
+        :param cloudshell.cp.azure.models.azure_cloud_provider_resource_model.AzureCloudProviderResourceModel cloud_provider_model:cloud provider
+        :param logging.Logger logger:
+        :return:
+        """
+        logger.info("Start Deploy Azure VM operation")
+        reservation_id = reservation.reservation_id
+        app_name = azure_vm_deployment_model.app_name.replace(" ", "")
+        resource_name = app_name
+        base_name = resource_name
+        random_name = OperationsHelper.generate_name(base_name)
+        group_name = str(reservation_id)
+        interface_name = random_name
+        ip_name = random_name
+        computer_name = random_name
+        vm_name = random_name
+
+        logger.info("Retrieve sandbox subnet {}".format(group_name))
+        subnet = self._get_sandbox_subnet(network_client=network_client,
+                                          cloud_provider_model=cloud_provider_model,
+                                          subnet_name=group_name,
+                                          logger=logger)
+
+        logger.info("Retrieve sandbox storage account name by resource group {}".format(group_name))
+        storage_account_name = self._get_sandbox_storage_account_name(storage_client=storage_client,
+                                                                      group_name=group_name,
+                                                                      validator_factory=validator_factory)
+
+        tags = self.tags_service.get_tags(vm_name, resource_name, subnet.name, reservation)
+        logger.info("Tags for the VM {}".format(tags))
+
+        logger.info("Retrieve operation system type for the VM Image {}:{}:{}".format(
+            azure_vm_deployment_model.image_publisher,
+            azure_vm_deployment_model.image_offer,
+            azure_vm_deployment_model.image_sku))
+
+        os_type = self.vm_service.get_image_operation_system(
+            compute_management_client=compute_client,
+            location=cloud_provider_model.region,
+            publisher_name=azure_vm_deployment_model.image_publisher,
+            offer=azure_vm_deployment_model.image_offer,
+            skus=azure_vm_deployment_model.image_sku)
+
+        logger.info("Operation system type for the VM is {}".format(os_type))
+
+        try:
+            # 1. Create network for vm
+            logger.info("Creating NIC '{}'".format(interface_name))
+            nic = self.network_service.create_network_for_vm(network_client=network_client,
+                                                             group_name=group_name,
+                                                             interface_name=interface_name,
+                                                             ip_name=ip_name,
+                                                             region=cloud_provider_model.region,
+                                                             subnet=subnet,
+                                                             add_public_ip=azure_vm_deployment_model.add_public_ip,
+                                                             public_ip_type=azure_vm_deployment_model.public_ip_type,
+                                                             tags=tags)
+
+            private_ip_address = nic.ip_configurations[0].private_ip_address
+            logger.info("NIC private IP is {}".format(private_ip_address))
+
+            # 2. Prepare credentials for VM
+            logger.info("Prepare credentials for the VM {}".format(vm_name))
+            vm_credentials = self.vm_credentials_service.prepare_credentials(
+                os_type=os_type,
+                username=azure_vm_deployment_model.username,
+                password=azure_vm_deployment_model.password,
+                storage_service=self.storage_service,
+                key_pair_service=self.key_pair_service,
+                storage_client=storage_client,
+                group_name=group_name,
+                storage_name=storage_account_name)
+
+            # 3. create NSG rules
+            logger.info("Processing Network Security Group rules")
+            self._process_nsg_rules(network_client=network_client,
+                                    group_name=group_name,
+                                    azure_vm_deployment_model=azure_vm_deployment_model,
+                                    nic=nic,
+                                    logger=logger)
+
+            # 4. create Vm
+            logger.info("Start Deploying VM {}".format(vm_name))
+            result_create = self.vm_service.create_vm(compute_management_client=compute_client,
+                                                      image_offer=azure_vm_deployment_model.image_offer,
+                                                      image_publisher=azure_vm_deployment_model.image_publisher,
+                                                      image_sku=azure_vm_deployment_model.image_sku,
+                                                      image_version='latest',
+                                                      vm_credentials=vm_credentials,
+                                                      computer_name=computer_name,
+                                                      group_name=group_name,
+                                                      nic_id=nic.id,
+                                                      region=cloud_provider_model.region,
+                                                      storage_name=storage_account_name,
+                                                      vm_name=vm_name,
+                                                      tags=tags,
+                                                      instance_type=azure_vm_deployment_model.instance_type)
+
+            logger.info("VM {} was successfully deployed".format(vm_name))
+
+        except Exception as ex:
+            if is_pool_closed_error(ex):
+                raise  # raising 'pool closed' exception before rollback for retry
+
+            logger.exception("Failed to deploy VM. Error:")
+            self._rollback_deployed_resources(compute_client=compute_client,
+                                              network_client=network_client,
+                                              group_name=group_name,
+                                              interface_name=interface_name,
+                                              vm_name=vm_name,
+                                              ip_name=ip_name,
+                                              logger=logger)
+            raise
+
+        public_ip_address = self._get_public_ip_address(network_client=network_client,
+                                                        azure_vm_deployment_model=azure_vm_deployment_model,
+                                                        group_name=group_name,
+                                                        ip_name=ip_name,
+                                                        logger=logger)
+
+        deployed_app_attributes = self._prepare_deployed_app_attributes(
+            vm_credentials.admin_username,
+            vm_credentials.admin_password,
+            public_ip_address)
+
+        logger.info("VM {} was successfully deployed".format(vm_name))
+
+        return DeployResult(vm_name=vm_name,
+                            vm_uuid=result_create.vm_id,
+                            cloud_provider_resource_name=azure_vm_deployment_model.cloud_provider,
+                            auto_power_off=True,
+                            wait_for_ip=azure_vm_deployment_model.wait_for_ip,
+                            auto_delete=True,
+                            autoload=azure_vm_deployment_model.autoload,
+                            inbound_ports=azure_vm_deployment_model.inbound_ports,
+                            outbound_ports=azure_vm_deployment_model.outbound_ports,
+                            deployed_app_attributes=deployed_app_attributes,
+                            deployed_app_address=private_ip_address,
+                            public_ip=public_ip_address,
+                            resource_group=reservation_id)
 
     def _validate_resource_is_single_per_group(self, resources_list, group_name, resource_name):
         if len(resources_list) > 1:

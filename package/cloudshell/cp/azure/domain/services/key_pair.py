@@ -1,3 +1,5 @@
+from threading import Lock
+
 from Crypto.PublicKey import RSA
 
 from cloudshell.cp.azure.models.ssh_key import SSHKey
@@ -15,6 +17,8 @@ class KeyPairService(object):
         :param storage_service: cloudshell.cp.azure.domain.services.storage_service.StorageService instance
         """
         self._storage_service = storage_service
+        self._key_pair_lock = Lock()
+        self._cached_key_pairs = {}
 
     def generate_key_pair(self, key_length=2048):
         """Generate SSH key pair model
@@ -65,21 +69,30 @@ class KeyPairService(object):
         :param storage_name: (str) the name of the storage on Azure
         :return: cloudshell.cp.azure.models.ssh_key.SSHKey instance
         """
-        pub_key_file = self._storage_service.get_file(
-            storage_client=storage_client,
-            group_name=group_name,
-            storage_name=storage_name,
-            share_name=self.FILE_SHARE_NAME,
-            directory_name=self.FILE_SHARE_DIRECTORY,
-            file_name=self.SSH_PUB_KEY_NAME)
+        cached_key = (group_name, storage_name)
 
-        private_key_file = self._storage_service.get_file(
-            storage_client=storage_client,
-            group_name=group_name,
-            storage_name=storage_name,
-            share_name=self.FILE_SHARE_NAME,
-            directory_name=self.FILE_SHARE_DIRECTORY,
-            file_name=self.SSH_PRIVATE_KEY_NAME)
+        if cached_key not in self._cached_key_pairs:
+            with self._key_pair_lock:
+                ssh_key = self._cached_key_pairs.get(cached_key)
 
-        return SSHKey(private_key=private_key_file.content,
-                      public_key=pub_key_file.content)
+                if ssh_key is None:
+                    pub_key_file = self._storage_service.get_file(
+                        storage_client=storage_client,
+                        group_name=group_name,
+                        storage_name=storage_name,
+                        share_name=self.FILE_SHARE_NAME,
+                        directory_name=self.FILE_SHARE_DIRECTORY,
+                        file_name=self.SSH_PUB_KEY_NAME)
+
+                    private_key_file = self._storage_service.get_file(
+                        storage_client=storage_client,
+                        group_name=group_name,
+                        storage_name=storage_name,
+                        share_name=self.FILE_SHARE_NAME,
+                        directory_name=self.FILE_SHARE_DIRECTORY,
+                        file_name=self.SSH_PRIVATE_KEY_NAME)
+
+                    self._cached_key_pairs[cached_key] = SSHKey(private_key=private_key_file.content,
+                                                                public_key=pub_key_file.content)
+
+        return self._cached_key_pairs[cached_key]

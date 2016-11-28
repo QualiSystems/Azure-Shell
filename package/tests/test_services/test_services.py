@@ -12,6 +12,7 @@ from cloudshell.cp.azure.domain.services.cryptography_service import Cryptograph
 from cloudshell.cp.azure.domain.services.network_service import NetworkService
 from cloudshell.cp.azure.domain.services.key_pair import KeyPairService
 from cloudshell.cp.azure.domain.services.storage_service import StorageService
+from cloudshell.cp.azure.domain.services.tags import TagService
 from cloudshell.cp.azure.domain.services.virtual_machine_service import VirtualMachineService
 from cloudshell.cp.azure.domain.services.vm_credentials_service import VMCredentialsService
 from cloudshell.cp.azure.models.vm_credentials import VMCredentials
@@ -25,6 +26,7 @@ class TestStorageService(TestCase):
         self.group_name = "test_group_name"
         self.storage_name = "teststoragename"
         self.storage_client = mock.MagicMock()
+        self.logger = mock.MagicMock()
 
     def test_create_storage_account(self):
         # Arrange
@@ -43,10 +45,10 @@ class TestStorageService(TestCase):
         # Verify
         storage_client.storage_accounts.create.assert_called_with(group_name, account_name,
                                                                   StorageAccountCreateParameters(
-                                                                      sku=MagicMock(),
-                                                                      kind=kind_storage_value,
-                                                                      location=region,
-                                                                      tags=tags),
+                                                                          sku=MagicMock(),
+                                                                          kind=kind_storage_value,
+                                                                          location=region,
+                                                                          tags=tags),
                                                                   raw=False)
 
     def test_create_storage_account_wait_for_result(self):
@@ -76,8 +78,8 @@ class TestStorageService(TestCase):
 
         # Act
         result = self.storage_service.get_storage_per_resource_group(
-            storage_client,
-            group_name
+                storage_client,
+                group_name
         )
 
         # Verify
@@ -90,9 +92,9 @@ class TestStorageService(TestCase):
         self.storage_client.storage_accounts.list_keys.return_value = mock.MagicMock(keys=[storage_key])
 
         key = self.storage_service._get_storage_account_key(
-            storage_client=self.storage_client,
-            group_name=self.group_name,
-            storage_name=self.storage_name)
+                storage_client=self.storage_client,
+                group_name=self.group_name,
+                storage_name=self.storage_name)
 
         self.assertEqual(key, storage_key.value)
 
@@ -119,6 +121,30 @@ class TestStorageService(TestCase):
         expected_cached_key = (self.group_name, self.storage_name)
         self.assertIn(expected_cached_key, self.storage_service._cached_file_services)
         self.assertEqual(file_service, self.storage_service._cached_file_services[expected_cached_key])
+
+    @mock.patch("cloudshell.cp.azure.domain.services.storage_service.BlockBlobService")
+    def test_get_blob_service(self, blob_service_class):
+        """Check that method will return BlockBlobService instance"""
+        blob_service_class.return_value = mocked_blob_service = MagicMock()
+        mocked_account_key = MagicMock()
+        self.storage_service._get_storage_account_key = MagicMock(return_value=mocked_account_key)
+
+        # Act
+        blob_service = self.storage_service._get_blob_service(storage_client=self.storage_client,
+                                                              group_name=self.group_name,
+                                                              storage_name=self.storage_name)
+
+        # Verify
+        self.storage_service._get_storage_account_key.assert_called_once_with(storage_client=self.storage_client,
+                                                                              group_name=self.group_name,
+                                                                              storage_name=self.storage_name)
+
+        blob_service_class.assert_called_once_with(account_name=self.storage_name, account_key=mocked_account_key)
+
+        self.assertEqual(blob_service, mocked_blob_service)
+        expected_cached_key = (self.group_name, self.storage_name)
+        self.assertIn(expected_cached_key, self.storage_service._cached_blob_services)
+        self.assertEqual(blob_service, self.storage_service._cached_blob_services[expected_cached_key])
 
     def test_create_file(self):
         """Check that method uses storage client to save file to the Azure"""
@@ -169,6 +195,271 @@ class TestStorageService(TestCase):
                                                                file_name=file_name)
         self.assertEqual(azure_file, mocked_file)
 
+    @mock.patch("cloudshell.cp.azure.domain.services.storage_service.AzureBlobUrlModel")
+    def test_parse_blob_url(self, blob_url_model_class):
+        """Check that method will parse Azure blob URL into AzureBlobUrl model"""
+        storage_account_name = "testaccount"
+        container_name = "testcontainer"
+        blob_name = "testblobname"
+        blob_url = "https://{}.blob.core.windows.net/{}/{}".format(storage_account_name, container_name, blob_name)
+        expected_blob_url_model = MagicMock()
+        blob_url_model_class.return_value = expected_blob_url_model
+
+        # Act
+        blob_url_model = self.storage_service.parse_blob_url(blob_url=blob_url)
+
+        # Verify
+        self.assertEqual(blob_url_model, expected_blob_url_model)
+        blob_url_model_class.assert_called_once_with(blob_name=blob_name,
+                                                     container_name=container_name,
+                                                     storage_name=storage_account_name)
+
+    def test_wait_until_blob_copied_ends_with_success_status(self):
+        """Check that method will stop infinite loop if Blob copy operation ended with the success status"""
+        container_name = "testcontainer"
+        blob_name = "testblobname"
+        blob_service = MagicMock()
+        blob = MagicMock()
+        blob.properties.copy.status = "success"
+        blob_service.get_blob_properties.return_value = blob
+
+        # Act
+        self.storage_service._wait_until_blob_copied(
+            blob_service=blob_service,
+            container_name=container_name,
+            blob_name=blob_name,
+            logger=self.logger)
+
+        # Verify
+        blob_service.get_blob_properties.assert_called_once_with(container_name, blob_name)
+
+    def test_wait_until_blob_copied_ends_with_failed_status(self):
+        """Check that method will raise Exception if Blob copy operation ended with the failed status"""
+        container_name = "testcontainer"
+        blob_name = "testblobname"
+        blob_service = MagicMock()
+        blob = MagicMock()
+        blob.properties.copy.status = "failed"
+        blob_service.get_blob_properties.return_value = blob
+
+        with self.assertRaises(Exception):
+            self.storage_service._wait_until_blob_copied(
+                blob_service=blob_service,
+                container_name=container_name,
+                blob_name=blob_name,
+                logger=self.logger)
+
+    def test_wait_until_blob_copied_will_wait_for_operation(self):
+        """Check that method will continue loop if Blob copy operation is in copying status"""
+        container_name = "testcontainer"
+        blob_name = "testblobname"
+        blob_service = MagicMock()
+        blob = MagicMock()
+        blob.properties.copy.status = "copying"
+        blob_service.get_blob_properties.return_value = blob
+        sleep_time = 5
+
+        class ExitLoopException(Exception):
+            """Exception for existing infinite loop"""
+            pass
+
+        with mock.patch("cloudshell.cp.azure.domain.services.storage_service.time.sleep",
+                        side_effect=ExitLoopException) as sleep:
+
+            with self.assertRaises(ExitLoopException):
+                self.storage_service._wait_until_blob_copied(
+                    blob_service=blob_service,
+                    container_name=container_name,
+                    blob_name=blob_name,
+                    logger=self.logger,
+                    sleep_time=sleep_time)
+
+            # Verify
+            sleep.assert_called_once_with(sleep_time)
+
+    def test__copy_blob_file_already_exists(self):
+        """Check that method will not copy Blob if such one already exists under the storage/container"""
+        group_name_copy_from = "testgroupcopyfrom"
+        group_name_copy_to = "testgroupcopyto"
+        storage_client = MagicMock()
+        ulr_model_copy_from = MagicMock()
+        url_model_copy_to = MagicMock()
+        expected_url = "https://teststorage.blob.core.windows.net/testcontainer/testblob"
+        blob_service = MagicMock()
+        blob_service.exists.return_value = True
+        blob_service.make_blob_url.return_value = expected_url
+        self.storage_service._get_blob_service = MagicMock(return_value=blob_service)
+        self.storage_service._wait_until_blob_copied = MagicMock()
+
+        # Act
+        blob_url = self.storage_service._copy_blob(storage_client=storage_client,
+                                                   group_name_copy_from=group_name_copy_from,
+                                                   group_name_copy_to=group_name_copy_to,
+                                                   ulr_model_copy_from=ulr_model_copy_from,
+                                                   url_model_copy_to=url_model_copy_to,
+                                                   logger=self.logger)
+
+        # Verify
+        blob_service.exists.assert_called_once_with(blob_name=url_model_copy_to.blob_name,
+                                                    container_name=url_model_copy_to.container_name)
+
+        blob_service.create_container.assert_not_called()
+        blob_service.copy_blob.assert_not_called()
+        self.storage_service._wait_until_blob_copied.assert_not_called()
+        self.assertEqual(blob_url, expected_url)
+
+    def test__copy_blob_file_start_copy_operation(self):
+        """Check that method will copy Blob if such one is not present under the storage/container"""
+        group_name_copy_from = "testgroupcopyfrom"
+        group_name_copy_to = "testgroupcopyto"
+        storage_client = MagicMock()
+        ulr_model_copy_from = MagicMock()
+        url_model_copy_to = MagicMock()
+        expected_url = "https://teststorage.blob.core.windows.net/testcontainer/testblob"
+        blob_service = MagicMock()
+        blob_service.exists.return_value = False
+        blob_service.make_blob_url.return_value = expected_url
+        self.storage_service._get_blob_service = MagicMock(return_value=blob_service)
+        self.storage_service._wait_until_blob_copied = MagicMock()
+
+        # Act
+        blob_url = self.storage_service._copy_blob(storage_client=storage_client,
+                                                   group_name_copy_from=group_name_copy_from,
+                                                   group_name_copy_to=group_name_copy_to,
+                                                   ulr_model_copy_from=ulr_model_copy_from,
+                                                   url_model_copy_to=url_model_copy_to,
+                                                   logger=self.logger)
+
+        # Verify
+        blob_service.exists.assert_called_once_with(blob_name=url_model_copy_to.blob_name,
+                                                    container_name=url_model_copy_to.container_name)
+
+        blob_service.create_container.assert_called_once_with(container_name=url_model_copy_to.container_name,
+                                                              fail_on_exist=False)
+
+        blob_service.copy_blob.assert_called_once_with(blob_name=url_model_copy_to.blob_name,
+                                                       container_name=url_model_copy_to.container_name,
+                                                       copy_source=expected_url)
+
+        self.storage_service._wait_until_blob_copied.assert_called_once_with(
+            blob_name=url_model_copy_to.blob_name,
+            container_name=url_model_copy_to.container_name,
+            blob_service=blob_service,
+            logger=self.logger)
+
+        self.assertEqual(blob_url, expected_url)
+
+    @mock.patch("cloudshell.cp.azure.domain.services.storage_service.BlobCopyOperationState")
+    def test_copy_blob_retuns_blob_url_from_cache(self, blob_copying_state):
+        """Check that method will return copied Blob URL from the cache if file was already copied"""
+        group_name_copy_from = "test_group_copy_from"
+        group_name_copy_to = "test_group_copy_to"
+        storage_name_copy_to = "test_storage_name_copy_to"
+        container_name_copy_to = "test_container_name_copy_to"
+        blob_name_copy_to = "test_blob_name_copy_to"
+        source_copy_from = "https://teststoragesourse.blob.core.windows.net/testsourcecontainer/testsourceblob"
+        expected_blob_url = "https://teststorage.blob.core.windows.net/testcontainer/testblob"
+        storage_client = MagicMock()
+        self.storage_service._copy_blob = MagicMock()
+
+        cache_key = (storage_name_copy_to, container_name_copy_to, blob_name_copy_to)
+        self.storage_service._cached_copied_blob_urls = {
+            cache_key: {
+                "state": blob_copying_state.success,
+                "result": expected_blob_url
+            }
+        }
+
+        # Act
+        blob_url = self.storage_service.copy_blob(storage_client=storage_client,
+                                                  group_name_copy_from=group_name_copy_from,
+                                                  storage_name_copy_to=storage_name_copy_to,
+                                                  container_name_copy_to=container_name_copy_to,
+                                                  blob_name_copy_to=blob_name_copy_to,
+                                                  source_copy_from=source_copy_from,
+                                                  group_name_copy_to=group_name_copy_to,
+                                                  logger=self.logger)
+
+        # Verify
+        self.assertEqual(blob_url, expected_blob_url)
+        self.storage_service._copy_blob.assert_not_called()
+
+    @mock.patch("cloudshell.cp.azure.domain.services.storage_service.AzureBlobUrlModel")
+    def test_copy_blob_start_execute_copy_operation(self, blob_model_class):
+        """Check that method will execute copy operation"""
+        group_name_copy_from = "test_group_copy_from"
+        group_name_copy_to = "test_group_copy_to"
+        storage_name_copy_to = "test_storage_name_copy_to"
+        container_name_copy_to = "test_container_name_copy_to"
+        blob_name_copy_to = "test_blob_name_copy_to"
+        source_copy_from = "https://teststoragesourse.blob.core.windows.net/testsourcecontainer/testsourceblob"
+        expected_blob_url = "https://teststorage.blob.core.windows.net/testcontainer/testblob"
+        storage_client = MagicMock()
+        self.storage_service._copy_blob = MagicMock(return_value=expected_blob_url)
+        blob_model_copy_to = MagicMock()
+        blob_model_class.return_value = blob_model_copy_to
+        blob_model_copy_from = MagicMock()
+        self.storage_service.parse_blob_url = MagicMock(return_value=blob_model_copy_from)
+
+        # Act
+        blob_url = self.storage_service.copy_blob(storage_client=storage_client,
+                                                  group_name_copy_from=group_name_copy_from,
+                                                  storage_name_copy_to=storage_name_copy_to,
+                                                  container_name_copy_to=container_name_copy_to,
+                                                  blob_name_copy_to=blob_name_copy_to,
+                                                  source_copy_from=source_copy_from,
+                                                  group_name_copy_to=group_name_copy_to,
+                                                  logger=self.logger)
+
+        # Verify
+        self.storage_service.parse_blob_url.assert_called_once_with(source_copy_from)
+        self.storage_service._copy_blob.assert_called_once_with(group_name_copy_from=group_name_copy_from,
+                                                                group_name_copy_to=group_name_copy_to,
+                                                                storage_client=storage_client,
+                                                                ulr_model_copy_from=blob_model_copy_from,
+                                                                url_model_copy_to=blob_model_copy_to,
+                                                                logger=self.logger)
+        self.assertEqual(blob_url, expected_blob_url)
+
+    @mock.patch("cloudshell.cp.azure.domain.services.storage_service.BlobCopyOperationState")
+    @mock.patch("cloudshell.cp.azure.domain.services.storage_service.AzureBlobUrlModel")
+    def test_copy_blob_wait_until_copied_in_other_operation(self, blob_model_class, blob_copying_state):
+        """Check that method will wait until image will be copied in another operation (thread)"""
+        group_name_copy_from = "test_group_copy_from"
+        group_name_copy_to = "test_group_copy_to"
+        storage_name_copy_to = "test_storage_name_copy_to"
+        container_name_copy_to = "test_container_name_copy_to"
+        blob_name_copy_to = "test_blob_name_copy_to"
+        source_copy_from = "https://teststoragesourse.blob.core.windows.net/testsourcecontainer/testsourceblob"
+        storage_client = MagicMock()
+
+        cache_key = (storage_name_copy_to, container_name_copy_to, blob_name_copy_to)
+        self.storage_service._cached_copied_blob_urls = {
+            cache_key: {
+                "state": blob_copying_state.copying,
+            }
+        }
+
+        class ExitLoopException(Exception):
+            """Exception for existing infinite loop"""
+            pass
+
+        with mock.patch("cloudshell.cp.azure.domain.services.storage_service.time.sleep",
+                        side_effect=ExitLoopException) as sleep:
+
+            # Act
+            with self.assertRaises(ExitLoopException):
+                self.storage_service.copy_blob(storage_client=storage_client,
+                                               group_name_copy_from=group_name_copy_from,
+                                               storage_name_copy_to=storage_name_copy_to,
+                                               container_name_copy_to=container_name_copy_to,
+                                               blob_name_copy_to=blob_name_copy_to,
+                                               source_copy_from=source_copy_from,
+                                               group_name_copy_to=group_name_copy_to,
+                                               logger=self.logger)
+
+            sleep.assert_called_once()
+
 
 class TestNetworkService(TestCase):
     def setUp(self):
@@ -200,20 +491,20 @@ class TestNetworkService(TestCase):
         network_client.virtual_networks.create_or_update.assert_called_with(management_group_name,
                                                                             network_name,
                                                                             azure.mgmt.network.models.VirtualNetwork(
-                                                                                location=region,
-                                                                                tags=tags,
-                                                                                address_space=azure.mgmt.network.models.AddressSpace(
-                                                                                    address_prefixes=[
-                                                                                        vnet_cidr,
-                                                                                    ],
-                                                                                ),
-                                                                                subnets=[
-                                                                                    azure.mgmt.network.models.Subnet(
-                                                                                        network_security_group=network_security_group,
-                                                                                        name=subnet_name,
-                                                                                        address_prefix=subnet_cidr,
+                                                                                    location=region,
+                                                                                    tags=tags,
+                                                                                    address_space=azure.mgmt.network.models.AddressSpace(
+                                                                                            address_prefixes=[
+                                                                                                vnet_cidr,
+                                                                                            ],
                                                                                     ),
-                                                                                ],
+                                                                                    subnets=[
+                                                                                        azure.mgmt.network.models.Subnet(
+                                                                                                network_security_group=network_security_group,
+                                                                                                name=subnet_name,
+                                                                                                address_prefix=subnet_cidr,
+                                                                                        ),
+                                                                                    ],
                                                                             ),
                                                                             tags=tags)
 
@@ -252,15 +543,15 @@ class TestNetworkService(TestCase):
 
         # Act
         self.network_service.create_network_for_vm(
-            network_client=network_client,
-            group_name=management_group_name,
-            interface_name=interface_name,
-            ip_name=ip_name,
-            region=region,
-            subnet=MagicMock(),
-            add_public_ip=True,
-            public_ip_type="Static",
-            tags=tags)
+                network_client=network_client,
+                group_name=management_group_name,
+                interface_name=interface_name,
+                ip_name=ip_name,
+                region=region,
+                subnet=MagicMock(),
+                add_public_ip=True,
+                public_ip_type="Static",
+                tags=tags)
 
         # Verify
 
@@ -281,36 +572,133 @@ class TestVMService(TestCase):
     def setUp(self):
         self.vm_service = VirtualMachineService()
 
-    def test_vm_service_create_vm(self):
-        mock = MagicMock()
-        compute_management_client = mock
-        group_name = mock
-        vm_name = mock
-        region = 'a region'
-        tags = {}
-        compute_management_client.virtual_machines = mock
-        compute_management_client.virtual_machines.create_or_update = MagicMock(return_value=mock)
-        vm = 'some returned vm'
-        self.vm_service._get_virtual_machine = MagicMock(return_value=vm)
+    @mock.patch("cloudshell.cp.azure.domain.services.virtual_machine_service.VirtualMachine")
+    def test__create_vm(self, virtual_machine_class):
+        """Check that method will create VirtualMachine instance and execute create_or_update request"""
+        compute_management_client = MagicMock()
+        region = "test_region"
+        group_name = "test_group_name"
+        vm_name = "test_vm_name"
+        hardware_profile = MagicMock()
+        network_profile = MagicMock()
+        os_profile = MagicMock()
+        storage_profile = MagicMock()
+        tags = MagicMock()
+        vm = MagicMock()
+        virtual_machine_class.return_value = vm
 
         # Act
-        self.vm_service.create_vm(compute_management_client=compute_management_client,
-                                  image_offer=mock,
-                                  image_publisher=mock,
-                                  image_sku=mock,
-                                  image_version=mock,
-                                  vm_credentials=MagicMock(),
-                                  computer_name=mock,
-                                  group_name=group_name,
-                                  nic_id=mock,
-                                  region=region,
-                                  storage_name=mock,
-                                  vm_name=vm_name,
-                                  tags=tags,
-                                  instance_type=mock)
+        self.vm_service._create_vm(compute_management_client=compute_management_client,
+                                   region=region,
+                                   group_name=group_name,
+                                   vm_name=vm_name,
+                                   hardware_profile=hardware_profile,
+                                   network_profile=network_profile,
+                                   os_profile=os_profile,
+                                   storage_profile=storage_profile,
+                                   tags=tags)
 
         # Verify
         compute_management_client.virtual_machines.create_or_update.assert_called_with(group_name, vm_name, vm)
+        virtual_machine_class.assert_called_once_with(hardware_profile=hardware_profile,
+                                                      location=region,
+                                                      network_profile=network_profile,
+                                                      os_profile=os_profile,
+                                                      storage_profile=storage_profile,
+                                                      tags=tags)
+
+    @mock.patch("cloudshell.cp.azure.domain.services.virtual_machine_service.StorageProfile")
+    @mock.patch("cloudshell.cp.azure.domain.services.virtual_machine_service.NetworkProfile")
+    @mock.patch("cloudshell.cp.azure.domain.services.virtual_machine_service.HardwareProfile")
+    def test_create_vm(self, hardware_profile_class, network_profile_class, storage_profile_class):
+        """Check that method will prepare all required parameters and call _create_vm method"""
+        compute_management_client = MagicMock()
+        group_name = "test_group_name"
+        vm_name = "test_vm_name"
+        region = "test_region"
+        tags = MagicMock()
+        self.vm_service._create_vm = MagicMock()
+        os_profile = MagicMock()
+        hardware_profile = MagicMock()
+        network_profile = MagicMock()
+        storage_profile = MagicMock()
+        self.vm_service._prepare_os_profile = MagicMock(return_value=os_profile)
+        hardware_profile_class.return_value = hardware_profile
+        network_profile_class.return_value = network_profile
+        storage_profile_class.return_value = storage_profile
+
+        # Act
+        self.vm_service.create_vm(compute_management_client=compute_management_client,
+                                  image_offer=MagicMock(),
+                                  image_publisher=MagicMock(),
+                                  image_sku=MagicMock(),
+                                  image_version=MagicMock(),
+                                  vm_credentials=MagicMock(),
+                                  computer_name=MagicMock(),
+                                  group_name=group_name,
+                                  nic_id=MagicMock(),
+                                  region=region,
+                                  storage_name=MagicMock(),
+                                  vm_name=vm_name,
+                                  tags=tags,
+                                  instance_type=MagicMock())
+
+        # Verify
+        self.vm_service._create_vm.assert_called_once_with(compute_management_client=compute_management_client,
+                                                           group_name=group_name,
+                                                           hardware_profile=hardware_profile,
+                                                           network_profile=network_profile,
+                                                           os_profile=os_profile,
+                                                           region=region,
+                                                           storage_profile=storage_profile,
+                                                           tags=tags,
+                                                           vm_name=vm_name)
+
+    @mock.patch("cloudshell.cp.azure.domain.services.virtual_machine_service.StorageProfile")
+    @mock.patch("cloudshell.cp.azure.domain.services.virtual_machine_service.NetworkProfile")
+    @mock.patch("cloudshell.cp.azure.domain.services.virtual_machine_service.HardwareProfile")
+    def test_create_vm_from_custom_image(self, hardware_profile_class, network_profile_class, storage_profile_class):
+        """Check that method will prepare all required parameters and call _create_vm method"""
+        compute_management_client = MagicMock()
+        group_name = "test_group_name"
+        vm_name = "test_vm_name"
+        region = "test_region"
+        image_urn = "https://teststorage.blob.core.windows.net/testcontainer/testblob"
+        tags = MagicMock()
+        self.vm_service._create_vm = MagicMock()
+        os_profile = MagicMock()
+        hardware_profile = MagicMock()
+        network_profile = MagicMock()
+        storage_profile = MagicMock()
+        self.vm_service._prepare_os_profile = MagicMock(return_value=os_profile)
+        hardware_profile_class.return_value = hardware_profile
+        network_profile_class.return_value = network_profile
+        storage_profile_class.return_value = storage_profile
+
+        # Act
+        self.vm_service.create_vm_from_custom_image(compute_management_client=compute_management_client,
+                                                    image_urn=image_urn,
+                                                    image_os_type="Linux",
+                                                    vm_credentials=MagicMock(),
+                                                    computer_name=MagicMock(),
+                                                    group_name=group_name,
+                                                    nic_id=MagicMock(),
+                                                    region=region,
+                                                    storage_name=MagicMock(),
+                                                    vm_name=vm_name,
+                                                    tags=tags,
+                                                    instance_type=MagicMock())
+
+        # Verify
+        self.vm_service._create_vm.assert_called_once_with(compute_management_client=compute_management_client,
+                                                           group_name=group_name,
+                                                           hardware_profile=hardware_profile,
+                                                           network_profile=network_profile,
+                                                           os_profile=os_profile,
+                                                           region=region,
+                                                           storage_profile=storage_profile,
+                                                           tags=tags,
+                                                           vm_name=vm_name)
 
     def test_vm_service_create_resource_group(self):
         # Arrange
@@ -400,11 +788,11 @@ class TestVMService(TestCase):
         compute_client.virtual_machine_images.get.return_value = image
 
         os_type = self.vm_service.get_image_operation_system(
-            compute_management_client=compute_client,
-            location=mock.MagicMock(),
-            publisher_name=mock.MagicMock(),
-            offer=mock.MagicMock(),
-            skus=mock.MagicMock())
+                compute_management_client=compute_client,
+                location=mock.MagicMock(),
+                publisher_name=mock.MagicMock(),
+                offer=mock.MagicMock(),
+                skus=mock.MagicMock())
 
         compute_client.virtual_machine_images.list.assert_called_once()
         compute_client.virtual_machine_images.get.assert_called_once()
@@ -437,6 +825,28 @@ class TestVMService(TestCase):
             self.vm_service.get_active_vm(compute_management_client=compute_client, group_name=group_name,
                                           vm_name=vm_name)
 
+    @mock.patch("cloudshell.cp.azure.domain.services.virtual_machine_service.OperatingSystemTypes")
+    def test_prepare_image_os_type_returns_linux(self, operating_system_types):
+        """Check that method will return Linux OS type"""
+        image_os_type = "Linux"
+
+        # Act
+        res = self.vm_service._prepare_image_os_type(image_os_type=image_os_type)
+
+        # Verify
+        self.assertEqual(res, operating_system_types.linux)
+
+    @mock.patch("cloudshell.cp.azure.domain.services.virtual_machine_service.OperatingSystemTypes")
+    def test_prepare_image_os_type_returns_windows(self, operating_system_types):
+        """Check that method will return Windows OS type"""
+        image_os_type = "Windows"
+
+        # Act
+        res = self.vm_service._prepare_image_os_type(image_os_type=image_os_type)
+
+        # Verify
+        self.assertEqual(res, operating_system_types.windows)
+
 
 class TestVMCredentialsService(TestCase):
     def setUp(self):
@@ -460,12 +870,12 @@ class TestVMCredentialsService(TestCase):
         authorized_key_class.return_value = authorized_key = mock.MagicMock()
 
         ssh_key = self.vm_credentials._get_ssh_key(
-            username=self.test_username,
-            storage_service=self.test_storage_service,
-            key_pair_service=self.test_key_pair_service,
-            storage_client=self.test_storage_client,
-            group_name=self.test_group_name,
-            storage_name=self.test_storage_name)
+                username=self.test_username,
+                storage_service=self.test_storage_service,
+                key_pair_service=self.test_key_pair_service,
+                storage_client=self.test_storage_client,
+                group_name=self.test_group_name,
+                storage_name=self.test_storage_name)
 
         self.assertIs(ssh_key, authorized_key)
 
@@ -476,14 +886,14 @@ class TestVMCredentialsService(TestCase):
                                                                                         self.test_password))
 
         vm_creds = self.vm_credentials.prepare_credentials(
-            os_type=os_types.windows,
-            username=self.test_username,
-            password=self.test_password,
-            storage_service=self.test_storage_service,
-            key_pair_service=self.test_key_pair_service,
-            storage_client=self.test_storage_client,
-            group_name=self.test_group_name,
-            storage_name=self.test_storage_name)
+                os_type=os_types.windows,
+                username=self.test_username,
+                password=self.test_password,
+                storage_service=self.test_storage_service,
+                key_pair_service=self.test_key_pair_service,
+                storage_client=self.test_storage_client,
+                group_name=self.test_group_name,
+                storage_name=self.test_storage_name)
 
         self.vm_credentials._prepare_windows_credentials.assert_called_once_with(self.test_username, self.test_password)
         self.assertIsInstance(vm_creds, VMCredentials)
@@ -496,23 +906,23 @@ class TestVMCredentialsService(TestCase):
                                                                                       self.test_password,
                                                                                       mock.MagicMock()))
         vm_creds = self.vm_credentials.prepare_credentials(
-            os_type=os_types.linux,
-            username=self.test_username,
-            password=self.test_password,
-            storage_service=self.test_storage_service,
-            key_pair_service=self.test_key_pair_service,
-            storage_client=self.test_storage_client,
-            group_name=self.test_group_name,
-            storage_name=self.test_storage_name)
+                os_type=os_types.linux,
+                username=self.test_username,
+                password=self.test_password,
+                storage_service=self.test_storage_service,
+                key_pair_service=self.test_key_pair_service,
+                storage_client=self.test_storage_client,
+                group_name=self.test_group_name,
+                storage_name=self.test_storage_name)
 
         self.vm_credentials._prepare_linux_credentials.assert_called_once_with(
-            username=self.test_username,
-            password=self.test_password,
-            storage_service=self.test_storage_service,
-            key_pair_service=self.test_key_pair_service,
-            storage_client=self.test_storage_client,
-            group_name=self.test_group_name,
-            storage_name=self.test_storage_name)
+                username=self.test_username,
+                password=self.test_password,
+                storage_service=self.test_storage_service,
+                key_pair_service=self.test_key_pair_service,
+                storage_client=self.test_storage_client,
+                group_name=self.test_group_name,
+                storage_name=self.test_storage_name)
 
         self.assertIsInstance(vm_creds, VMCredentials)
 
@@ -536,13 +946,13 @@ class TestVMCredentialsService(TestCase):
     def test_prepare_linux_credentials(self):
         """Check that method will return same credentials if username and password were provided"""
         username, password, ssh_key = self.vm_credentials._prepare_linux_credentials(
-            username=self.test_username,
-            password=self.test_password,
-            storage_service=self.test_storage_service,
-            key_pair_service=self.test_key_pair_service,
-            storage_client=self.test_storage_client,
-            group_name=self.test_group_name,
-            storage_name=self.test_storage_name)
+                username=self.test_username,
+                password=self.test_password,
+                storage_service=self.test_storage_service,
+                key_pair_service=self.test_key_pair_service,
+                storage_client=self.test_storage_client,
+                group_name=self.test_group_name,
+                storage_name=self.test_storage_name)
 
         self.assertEqual(username, self.test_username)
         self.assertEqual(password, self.test_password)
@@ -554,13 +964,13 @@ class TestVMCredentialsService(TestCase):
         self.vm_credentials._get_ssh_key = mock.MagicMock(return_value=returned_ssh_key)
 
         username, password, ssh_key = self.vm_credentials._prepare_linux_credentials(
-            username="",
-            password="",
-            storage_service=self.test_storage_service,
-            key_pair_service=self.test_key_pair_service,
-            storage_client=self.test_storage_client,
-            group_name=self.test_group_name,
-            storage_name=self.test_storage_name)
+                username="",
+                password="",
+                storage_service=self.test_storage_service,
+                key_pair_service=self.test_key_pair_service,
+                storage_client=self.test_storage_client,
+                group_name=self.test_group_name,
+                storage_name=self.test_storage_name)
 
         self.assertEqual(username, self.vm_credentials.DEFAULT_LINUX_USERNAME)
         self.assertEqual(password, "")
@@ -594,29 +1004,29 @@ class TestKeyPairService(TestCase):
 
         # Act
         self.key_pair_service.save_key_pair(
-            storage_client=storage_client,
-            group_name=self.group_name,
-            storage_name=self.storage_name,
-            key_pair=key_pair)
+                storage_client=storage_client,
+                group_name=self.group_name,
+                storage_name=self.storage_name,
+                key_pair=key_pair)
 
         # Verify
         self.key_pair_service._storage_service.create_file.assert_any_call(
-            storage_client=storage_client,
-            group_name=self.group_name,
-            storage_name=self.storage_name,
-            share_name=self.key_pair_service.FILE_SHARE_NAME,
-            directory_name=self.key_pair_service.FILE_SHARE_DIRECTORY,
-            file_name=self.key_pair_service.SSH_PUB_KEY_NAME,
-            file_content=key_pair.public_key)
+                storage_client=storage_client,
+                group_name=self.group_name,
+                storage_name=self.storage_name,
+                share_name=self.key_pair_service.FILE_SHARE_NAME,
+                directory_name=self.key_pair_service.FILE_SHARE_DIRECTORY,
+                file_name=self.key_pair_service.SSH_PUB_KEY_NAME,
+                file_content=key_pair.public_key)
 
         self.key_pair_service._storage_service.create_file.assert_any_call(
-            storage_client=storage_client,
-            group_name=self.group_name,
-            storage_name=self.storage_name,
-            share_name=self.key_pair_service.FILE_SHARE_NAME,
-            directory_name=self.key_pair_service.FILE_SHARE_DIRECTORY,
-            file_name=self.key_pair_service.SSH_PRIVATE_KEY_NAME,
-            file_content=key_pair.private_key)
+                storage_client=storage_client,
+                group_name=self.group_name,
+                storage_name=self.storage_name,
+                share_name=self.key_pair_service.FILE_SHARE_NAME,
+                directory_name=self.key_pair_service.FILE_SHARE_DIRECTORY,
+                file_name=self.key_pair_service.SSH_PRIVATE_KEY_NAME,
+                file_content=key_pair.private_key)
 
     @mock.patch("cloudshell.cp.azure.domain.services.key_pair.SSHKey")
     def test_get_key_pair(self, ssh_key_class):
@@ -627,26 +1037,26 @@ class TestKeyPairService(TestCase):
 
         # Act
         key_pair = self.key_pair_service.get_key_pair(
-            storage_client=storage_client,
-            group_name=self.group_name,
-            storage_name=self.storage_name)
+                storage_client=storage_client,
+                group_name=self.group_name,
+                storage_name=self.storage_name)
 
         # Verify
         self.key_pair_service._storage_service.get_file.assert_any_call(
-            storage_client=storage_client,
-            group_name=self.group_name,
-            storage_name=self.storage_name,
-            share_name=self.key_pair_service.FILE_SHARE_NAME,
-            directory_name=self.key_pair_service.FILE_SHARE_DIRECTORY,
-            file_name=self.key_pair_service.SSH_PUB_KEY_NAME)
+                storage_client=storage_client,
+                group_name=self.group_name,
+                storage_name=self.storage_name,
+                share_name=self.key_pair_service.FILE_SHARE_NAME,
+                directory_name=self.key_pair_service.FILE_SHARE_DIRECTORY,
+                file_name=self.key_pair_service.SSH_PUB_KEY_NAME)
 
         self.key_pair_service._storage_service.get_file.assert_any_call(
-            storage_client=storage_client,
-            group_name=self.group_name,
-            storage_name=self.storage_name,
-            share_name=self.key_pair_service.FILE_SHARE_NAME,
-            directory_name=self.key_pair_service.FILE_SHARE_DIRECTORY,
-            file_name=self.key_pair_service.SSH_PRIVATE_KEY_NAME)
+                storage_client=storage_client,
+                group_name=self.group_name,
+                storage_name=self.storage_name,
+                share_name=self.key_pair_service.FILE_SHARE_NAME,
+                directory_name=self.key_pair_service.FILE_SHARE_DIRECTORY,
+                file_name=self.key_pair_service.SSH_PRIVATE_KEY_NAME)
 
         self.assertEqual(key_pair, mocked_ssh_key)
 
@@ -681,8 +1091,8 @@ class TestSecurityGroupService(TestCase):
         """Check that method calls azure network client to get list of NSGs and converts them into list"""
         # Act
         security_groups = self.security_group_service.list_network_security_group(
-            network_client=self.network_client,
-            group_name=self.group_name)
+                network_client=self.network_client,
+                group_name=self.group_name)
 
         # Verify
         self.network_client.network_security_groups.list.assert_called_once_with(self.group_name)
@@ -697,17 +1107,17 @@ class TestSecurityGroupService(TestCase):
 
         # Act
         nsg = self.security_group_service.create_network_security_group(
-            network_client=self.network_client,
-            group_name=self.group_name,
-            security_group_name=self.security_group_name,
-            region=region,
-            tags=tags)
+                network_client=self.network_client,
+                group_name=self.group_name,
+                security_group_name=self.security_group_name,
+                region=region,
+                tags=tags)
 
         # Verify
         self.network_client.network_security_groups.create_or_update.assert_called_once_with(
-            resource_group_name=self.group_name,
-            network_security_group_name=self.security_group_name,
-            parameters=nsg_model)
+                resource_group_name=self.group_name,
+                network_security_group_name=self.security_group_name,
+                parameters=nsg_model)
 
         self.assertEqual(nsg, self.network_client.network_security_groups.create_or_update().result())
 
@@ -721,9 +1131,9 @@ class TestSecurityGroupService(TestCase):
 
         # Act
         prepared_rule = self.security_group_service._prepare_security_group_rule(
-            rule_data=rule_data,
-            destination_addr=private_vm_ip,
-            priority=priority)
+                rule_data=rule_data,
+                destination_addr=private_vm_ip,
+                priority=priority)
 
         # Verify
         self.assertEqual(prepared_rule, security_rule)
@@ -739,23 +1149,23 @@ class TestSecurityGroupService(TestCase):
 
         # Act
         self.security_group_service.create_network_security_group_rules(
-            network_client=self.network_client,
-            group_name=self.group_name,
-            security_group_name=self.security_group_name,
-            inbound_rules=inbound_rules,
-            destination_addr=private_vm_ip)
+                network_client=self.network_client,
+                group_name=self.group_name,
+                security_group_name=self.security_group_name,
+                inbound_rules=inbound_rules,
+                destination_addr=private_vm_ip)
 
         # Verify
         self.security_group_service._prepare_security_group_rule.assert_called_once_with(
-            priority=self.security_group_service.RULE_DEFAULT_PRIORITY,
-            destination_addr=private_vm_ip,
-            rule_data=rule_data)
+                priority=self.security_group_service.RULE_DEFAULT_PRIORITY,
+                destination_addr=private_vm_ip,
+                rule_data=rule_data)
 
         self.network_client.security_rules.create_or_update.assert_called_with(
-            network_security_group_name=self.security_group_name,
-            resource_group_name=self.group_name,
-            security_rule_name=rule_model.name,
-            security_rule_parameters=rule_model)
+                network_security_group_name=self.security_group_name,
+                resource_group_name=self.group_name,
+                security_rule_name=rule_model.name,
+                security_rule_parameters=rule_model)
 
     def test_create_network_security_group_rules_with_existing_rules(self):
         """Check that method will call network_client for NSG rules creation starting from first available priority"""
@@ -773,23 +1183,23 @@ class TestSecurityGroupService(TestCase):
 
         # Act
         self.security_group_service.create_network_security_group_rules(
-            network_client=self.network_client,
-            group_name=self.group_name,
-            security_group_name=self.security_group_name,
-            inbound_rules=inbound_rules,
-            destination_addr=private_vm_ip)
+                network_client=self.network_client,
+                group_name=self.group_name,
+                security_group_name=self.security_group_name,
+                inbound_rules=inbound_rules,
+                destination_addr=private_vm_ip)
 
         # Verify
         self.security_group_service._prepare_security_group_rule.assert_called_once_with(
-            priority=self.security_group_service.RULE_DEFAULT_PRIORITY,
-            destination_addr=private_vm_ip,
-            rule_data=rule_data)
+                priority=self.security_group_service.RULE_DEFAULT_PRIORITY,
+                destination_addr=private_vm_ip,
+                rule_data=rule_data)
 
         self.network_client.security_rules.create_or_update.assert_called_with(
-            network_security_group_name=self.security_group_name,
-            resource_group_name=self.group_name,
-            security_rule_name=rule_model.name,
-            security_rule_parameters=rule_model)
+                network_security_group_name=self.security_group_name,
+                resource_group_name=self.group_name,
+                security_rule_name=rule_model.name,
+                security_rule_parameters=rule_model)
 
     def test_get_network_security_group(self):
         # Arrange
@@ -803,11 +1213,11 @@ class TestSecurityGroupService(TestCase):
 
         # Verify
         self.security_group_service.list_network_security_group.assert_called_once_with(
-            network_client=self.network_client,
-            group_name=self.group_name)
+                network_client=self.network_client,
+                group_name=self.group_name)
         self.security_group_service._validate_network_security_group_is_single_per_group.assert_called_once_with(
-            self.network_security_group,
-            self.group_name)
+                self.network_security_group,
+                self.group_name)
 
     def test_delete_security_rules(self):
         # Arrange
@@ -832,7 +1242,43 @@ class TestSecurityGroupService(TestCase):
 
         # Verify
         network_client.security_rules.delete.assert_called_once_with(
-            resource_group_name=resource_group_name,
-            network_security_group_name=security_group.name,
-            security_rule_name=security_rule.name
+                resource_group_name=resource_group_name,
+                network_security_group_name=security_group.name,
+                security_rule_name=security_rule.name
         )
+
+
+class TestTagService(TestCase):
+    def setUp(self):
+        self.tags_service = TagService()
+
+    def test_try_find_tag_list_is_none(self):
+        tags_list = None
+        tag_key = "SomeKey"
+        tag_value = self.tags_service.try_find_tag(tags_list=tags_list, tag_key=tag_key)
+        self.assertIsNone(tag_value)
+
+    def test_try_find_tag_keys_returns_none(self):
+        tags_list = None
+        tag_key = "SomeKey"
+        tag_value = self.tags_service.try_find_tag(tags_list=tags_list, tag_key=tag_key)
+        self.assertIsNone(tag_value)
+
+    def test_try_find_tag_keys_returns_empty_dict(self):
+        tags_list = {}
+        tag_key = "SomeKey"
+        tag_value = self.tags_service.try_find_tag(tags_list=tags_list, tag_key=tag_key)
+        self.assertIsNone(tag_value)
+
+    def test_try_find_tag_key_not_found(self):
+        tags_list = {"NotMyKey": "Val1"}
+        tag_key = "MyKey"
+        tag_value = self.tags_service.try_find_tag(tags_list=tags_list, tag_key=tag_key)
+        self.assertIsNone(tag_value)
+
+    def test_try_find_tag_returns_key_value(self):
+        tags_list = {"MyKey": "Val1"}
+        # tags_list.keys = Mock(return_value={"MyKey" : "Val1"})
+        tag_key = "MyKey"
+        tag_value = self.tags_service.try_find_tag(tags_list=tags_list, tag_key=tag_key)
+        self.assertEquals(tag_value, "Val1")
