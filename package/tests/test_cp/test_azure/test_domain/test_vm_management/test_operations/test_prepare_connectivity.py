@@ -1,28 +1,19 @@
 import uuid
 from unittest import TestCase
+
 import mock
+from mock import MagicMock, Mock
 
-import jsonpickle
-
-from cloudshell.cp.azure.common.deploy_data_holder import DeployDataHolder
 from cloudshell.cp.azure.common.exceptions.virtual_network_not_found_exception import VirtualNetworkNotFoundException
-from cloudshell.cp.azure.domain.services.security_group import SecurityGroupService
-
-from tests.helpers.test_helper import TestHelper
-
 from cloudshell.cp.azure.domain.services.key_pair import KeyPairService
-
-from cloudshell.cp.azure.domain.services.tags import TagService
-
 from cloudshell.cp.azure.domain.services.network_service import NetworkService
-
-from cloudshell.cp.azure.domain.services.virtual_machine_service import VirtualMachineService
-
+from cloudshell.cp.azure.domain.services.security_group import SecurityGroupService
 from cloudshell.cp.azure.domain.services.storage_service import StorageService
-
+from cloudshell.cp.azure.domain.services.tags import TagService
+from cloudshell.cp.azure.domain.services.virtual_machine_service import VirtualMachineService
 from cloudshell.cp.azure.domain.vm_management.operations.prepare_connectivity_operation import \
     PrepareConnectivityOperation
-from mock import MagicMock, Mock
+from tests.helpers.test_helper import TestHelper
 
 
 class TestPrepareConnectivity(TestCase):
@@ -98,21 +89,18 @@ class TestPrepareConnectivity(TestCase):
         network_client.network_security_groups.create_or_update.assert_called_once()
 
     def test_extract_cidr_throws_error(self):
-        action = MagicMock()
-
-        self.assertRaises(ValueError,
-                          self.prepare_connectivity_operation._extract_cidr,
-                          action)
-
         action = Mock()
         att = Mock()
         att.attributeName = 'Network'
         att.attributeValue = ''
         action.customActionAttributes = [att]
 
+        request = Mock()
+        request.actions = [action]
+
         self.assertRaises(ValueError,
                           self.prepare_connectivity_operation._extract_cidr,
-                          action)
+                          request)
 
     def test_prepare_connectivity_throes_exception_on_unavailable_VNETs(self):
         # Arrange

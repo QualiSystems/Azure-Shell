@@ -7,6 +7,7 @@ from cloudshell.cp.azure.azure_shell import AzureShell
 
 class TestAzureShell(TestCase):
 
+    @mock.patch("cloudshell.cp.azure.azure_shell.DeployedAppPortsOperation")
     @mock.patch("cloudshell.cp.azure.azure_shell.CommandResultsParser")
     @mock.patch("cloudshell.cp.azure.azure_shell.AzureModelsParser")
     @mock.patch("cloudshell.cp.azure.azure_shell.VirtualMachineService")
@@ -23,7 +24,7 @@ class TestAzureShell(TestCase):
     def setUp(self, delete_azure_vm_operation, refresh_ip_operation, power_azure_vm_operation,
               deploy_azure_vm_operation, prepare_connectivity_operation, security_group_service,
               key_pair_service, tag_service, storage_service, network_service, vm_service,
-              azure_models_parser, commands_results_parser):
+              azure_models_parser, commands_results_parser, deployed_app_ports_operation):
 
         self.azure_shell = AzureShell()
         self.logger = mock.MagicMock()
@@ -72,6 +73,57 @@ class TestAzureShell(TestCase):
         error_handling.__enter__.assert_called_once_with()
         error_handling_class.assert_called_once_with(self.logger)
         self.azure_shell.deploy_azure_vm_operation.deploy.assert_called_once_with(
+            azure_vm_deployment_model=azure_vm_deployment_model,
+            cloud_provider_model=cloud_provider_model,
+            reservation=reservation,
+            network_client=azure_clients_manager.network_client,
+            compute_client=azure_clients_manager.compute_client,
+            storage_client=azure_clients_manager.storage_client,
+            validator_factory=validator_factory,
+            logger=self.logger)
+
+    @mock.patch("cloudshell.cp.azure.azure_shell.ValidatorsFactoryContext")
+    @mock.patch("cloudshell.cp.azure.azure_shell.CloudShellSessionContext")
+    @mock.patch("cloudshell.cp.azure.azure_shell.AzureClientsManager")
+    @mock.patch("cloudshell.cp.azure.azure_shell.LoggingSessionContext")
+    @mock.patch("cloudshell.cp.azure.azure_shell.ErrorHandlingContext")
+    def test_deploy_vm_from_custom_image(self, error_handling_class, logging_context_class, azure_clients_manager_class,
+                             cloudshell_session_context_class, validators_factory_context_class):
+        """Check that method uses ErrorHandlingContext and deploy_azure_vm_operation.deploy_from_custom_image method"""
+        # mock Cloudshell Session
+        cloudshell_session = mock.MagicMock()
+        cloudshell_session_context = mock.MagicMock(__enter__=mock.MagicMock(return_value=cloudshell_session))
+        cloudshell_session_context_class.return_value = cloudshell_session_context
+        # mock LoggingSessionContext and ErrorHandlingContext
+        logging_context = mock.MagicMock(__enter__=mock.MagicMock(return_value=self.logger))
+        logging_context_class.return_value = logging_context
+        error_handling = mock.MagicMock()
+        error_handling_class.return_value = error_handling
+        # mock Azure clients
+        azure_clients_manager = mock.MagicMock()
+        azure_clients_manager_class.return_value = azure_clients_manager
+        # mock ValidatorsFactoryContext
+        validator_factory = mock.MagicMock()
+        validator_factory_context = mock.MagicMock(__enter__=mock.MagicMock(return_value=validator_factory))
+        validators_factory_context_class.return_value = validator_factory_context
+
+        command_context = mock.MagicMock()
+        deployment_request = mock.MagicMock()
+        azure_vm_deployment_model = mock.MagicMock()
+        cloud_provider_model = mock.MagicMock()
+        reservation = mock.MagicMock()
+        self.azure_shell.model_parser.convert_to_deploy_azure_vm_from_custom_image_resource_model.return_value = azure_vm_deployment_model
+        self.azure_shell.model_parser.convert_to_cloud_provider_resource_model.return_value = cloud_provider_model
+        self.azure_shell.model_parser.convert_to_reservation_model.return_value = reservation
+
+        # Act
+        self.azure_shell.deploy_vm_from_custom_image(command_context=command_context,
+                                                     deployment_request=deployment_request)
+
+        # Verify
+        error_handling.__enter__.assert_called_once_with()
+        error_handling_class.assert_called_once_with(self.logger)
+        self.azure_shell.deploy_azure_vm_operation.deploy_from_custom_image.assert_called_once_with(
             azure_vm_deployment_model=azure_vm_deployment_model,
             cloud_provider_model=cloud_provider_model,
             reservation=reservation,
@@ -340,4 +392,32 @@ class TestAzureShell(TestCase):
             vm_name=self.vm_name,
             private_ip_on_resource=private_ip,
             public_ip_on_resource=public_ip,
-            resource_fullname=resource_fullname)
+            resource_fullname=resource_fullname,
+            logger=self.logger)
+
+    @mock.patch("cloudshell.cp.azure.azure_shell.LoggingSessionContext")
+    @mock.patch("cloudshell.cp.azure.azure_shell.ErrorHandlingContext")
+    def test_get_application_ports(self, error_handling_class, logging_context_class):
+        """Check that method uses ErrorHandlingContext and get_formated_deployed_app_ports method"""
+        # mock LoggingSessionContext and ErrorHandlingContext
+        logging_context = mock.MagicMock(__enter__=mock.MagicMock(return_value=self.logger))
+        logging_context_class.return_value = logging_context
+        error_handling = mock.MagicMock()
+        error_handling_class.return_value = error_handling
+
+        resource = mock.MagicMock()
+        command_context = mock.MagicMock(remote_endpoints=[resource])
+        data_holder = mock.MagicMock()
+        self.azure_shell.model_parser.convert_app_resource_to_deployed_app.return_value = data_holder
+
+        # Act
+        self.azure_shell.get_application_ports(command_context=command_context)
+
+        # Verify
+        error_handling.__enter__.assert_called_once_with()
+        error_handling_class.assert_called_once_with(self.logger)
+
+        self.azure_shell.model_parser.convert_app_resource_to_deployed_app.assert_called_once_with(resource)
+
+        self.azure_shell.deployed_app_ports_operation.get_formated_deployed_app_ports.assert_called_once_with(
+            data_holder.vmdetails.vmCustomParams)

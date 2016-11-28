@@ -1,3 +1,8 @@
+from retrying import retry
+
+from cloudshell.cp.azure.common.helpers.retrying_helpers import retry_if_connection_error
+
+
 class AccessKeyOperation(object):
     def __init__(self, key_pair_service):
         """
@@ -6,6 +11,7 @@ class AccessKeyOperation(object):
         """
         self.key_pair_service = key_pair_service
 
+    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def get_access_key(self, storage_client, group_name, storage_name):
         """
         :param azure.mgmt.storage.storage_management_client.StorageManagementClient storage_client:
