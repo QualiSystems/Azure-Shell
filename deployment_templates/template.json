@@ -158,18 +158,7 @@
 		"properties": {
 			"publicIPAllocationMethod": "Dynamic"
 		}
-	},	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
+	},
 	{
 		"name": "[variables('virtualMachineQxName')]",
 		"type": "Microsoft.Compute/virtualMachines",
@@ -248,15 +237,6 @@
 			"publicIPAllocationMethod": "Dynamic"
 		}
 	},
-
-
-
-
-
-
-
-
-
 	{
 		"type": "Microsoft.Network/virtualNetworks",
 		"name": "[parameters('virtualNetworks_mgmt_vnet_name')]",
@@ -454,7 +434,7 @@
 	"outputs": {
 		"storageAccountName": {
 			"type": "string",
-			"value": "[variables('storageAccountName')]"
+			"value": "[resourceId('Microsoft.Network/virtualNetworks',parameters('virtualNetworks_mgmt_vnet_name'))]"
 		}
 	}
 }
