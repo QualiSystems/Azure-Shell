@@ -69,8 +69,7 @@
 		"location": "[resourceGroup().location]",
 				
 		"es_nic_name":"nic_for_centos_es",
-		"virtualMachineEsName": "centos-es-vm",
-		"publicIpAddressNameVMCentosES": "centos_ip_es",
+		"virtualMachineEsName": "centos-es-vm",		
 				
 		"qx_nic_name":"nic_for_centos_qx",
 		"virtualMachineQxName": "centos-qx-vm",
@@ -126,8 +125,7 @@
             "apiVersion": "2016-09-01",
             "location": "[resourceGroup().location]",
             "dependsOn": [
-                "[concat('Microsoft.Network/virtualNetworks/', parameters('virtualNetworks_mgmt_vnet_name'))]",
-                "[concat('Microsoft.Network/publicIpAddresses/', variables('publicIpAddressNameVMCentosES'))]"
+                "[concat('Microsoft.Network/virtualNetworks/', parameters('virtualNetworks_mgmt_vnet_name'))]"
             ],
             "properties": {
                 "ipConfigurations": [
@@ -137,23 +135,11 @@
                             "subnet": {  
 								"id":"[variables('SubnetRef')]"
                             },
-                            "privateIPAllocationMethod": "Dynamic",
-                            "publicIpAddress": {
-                                "id": "[resourceId('Microsoft.Network/publicIpAddresses', variables('publicIpAddressNameVMCentosES'))]"
-                            }
+                            "privateIPAllocationMethod": "Dynamic"
                         }
                     }
                 ]
             }
-	},
-	{
-		"name": "[variables('publicIpAddressNameVMCentosES')]",
-		"type": "Microsoft.Network/publicIpAddresses",
-		"apiVersion": "2016-09-01",
-		"location": "[resourceGroup().location]",
-		"properties": {
-			"publicIPAllocationMethod": "Dynamic"
-		}
 	},
 	{
 		"name": "[variables('virtualMachineQxName')]",
@@ -369,16 +355,7 @@
           }
         ]
       }
-    },	
-	{
-		"apiVersion": "2015-06-15",
-		"type": "Microsoft.Network/publicIPAddresses",
-		"name": "[variables('gatewayPublicIPName')]",
-		"location": "[resourceGroup().location]",
-		"properties": {
-		  "publicIPAllocationMethod": "Dynamic"
-		}
-	},	
+    },
 	{
 		"apiVersion": "2015-06-15",
 		"type": "Microsoft.Network/localNetworkGateways",
