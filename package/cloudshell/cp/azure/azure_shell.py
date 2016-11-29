@@ -5,6 +5,7 @@ from cloudshell.core.context.error_handling_context import ErrorHandlingContext
 from cloudshell.shell.core.session.cloudshell_session import CloudShellSessionContext
 from cloudshell.cp.azure.common.deploy_data_holder import DeployDataHolder
 from cloudshell.cp.azure.domain.context.validators_factory_context import ValidatorsFactoryContext
+from cloudshell.cp.azure.domain.services.cryptography_service import CryptographyService
 from cloudshell.cp.azure.domain.services.tags import TagService
 from cloudshell.cp.azure.domain.vm_management.operations.access_key_operation import AccessKeyOperation
 from cloudshell.cp.azure.domain.vm_management.operations.delete_operation import DeleteAzureVMOperation
@@ -41,7 +42,8 @@ class AzureShell(object):
         self.key_pair_service = KeyPairService(storage_service=self.storage_service)
         self.security_group_service = SecurityGroupService(self.network_service)
         self.vm_custom_params_extractor = VmCustomParamsExtractor()
-        self.access_key_operation = AccessKeyOperation(self.key_pair_service)
+        self.cryptography_service = CryptographyService()
+        self.access_key_operation = AccessKeyOperation(self.key_pair_service, self.storage_service)
 
         self.prepare_connectivity_operation = PrepareConnectivityOperation(
             vm_service=self.vm_service,
@@ -49,7 +51,8 @@ class AzureShell(object):
             storage_service=self.storage_service,
             tags_service=self.tags_service,
             key_pair_service=self.key_pair_service,
-            security_group_service=self.security_group_service)
+            security_group_service=self.security_group_service,
+            cryptography_service=self.cryptography_service)
 
         self.deploy_azure_vm_operation = DeployAzureVMOperation(
             vm_service=self.vm_service,
@@ -333,16 +336,10 @@ class AzureShell(object):
 
                 with ValidatorsFactoryContext() as validator_factory:
                     resource_group_name = command_context.remote_reservation.reservation_id
-                    storage_accounts_list = self.storage_service.get_storage_per_resource_group(
-                        azure_clients.storage_client,
-                        resource_group_name)
-
-                    validator_factory.try_validate(resource_type=StorageAccount, resource=storage_accounts_list)
-                    storage_account_name = storage_accounts_list[0].name
 
                     self.access_key_operation.get_access_key(storage_client=azure_clients.storage_client,
                                                              group_name=resource_group_name,
-                                                             storage_name=storage_account_name)
+                                                             validator_factory=validator_factory)
 
     def get_application_ports(self, command_context):
         """Get application ports in a nicely formatted manner

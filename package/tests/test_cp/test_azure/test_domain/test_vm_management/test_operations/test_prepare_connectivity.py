@@ -5,6 +5,7 @@ import mock
 from mock import MagicMock, Mock
 
 from cloudshell.cp.azure.common.exceptions.virtual_network_not_found_exception import VirtualNetworkNotFoundException
+from cloudshell.cp.azure.domain.services.cryptography_service import CryptographyService
 from cloudshell.cp.azure.domain.services.key_pair import KeyPairService
 from cloudshell.cp.azure.domain.services.network_service import NetworkService
 from cloudshell.cp.azure.domain.services.security_group import SecurityGroupService
@@ -25,6 +26,7 @@ class TestPrepareConnectivity(TestCase):
         self.key_pair_service = KeyPairService(storage_service=self.storage_service)
         self.security_group_service = SecurityGroupService(self.network_service)
         self.logger = MagicMock()
+        self.cryptography_service = CryptographyService()
 
         self.prepare_connectivity_operation = PrepareConnectivityOperation(
             vm_service=self.vm_service,
@@ -32,16 +34,18 @@ class TestPrepareConnectivity(TestCase):
             storage_service=self.storage_service,
             tags_service=self.tag_service,
             key_pair_service=self.key_pair_service,
-            security_group_service=self.security_group_service)
+            security_group_service=self.security_group_service,
+            cryptography_service=self.cryptography_service)
 
     @mock.patch("cloudshell.cp.azure.domain.vm_management.operations.prepare_connectivity_operation.OperationsHelper")
     def test_prepare_connectivity(self, operation_helper_class):
         # Arrange
-        self.key_pair_service.save_key_pair = MagicMock()
         self.key_pair_service.generate_key_pair = MagicMock()
+        self.key_pair_service.save_key_pair = MagicMock()
         self.network_service.get_virtual_network_by_tag = MagicMock()
         self.storage_service.create_storage_account = MagicMock()
         self.vm_service.create_resource_group = MagicMock()
+        self.cryptography_service.encrypt = MagicMock()
 
         req = MagicMock()
         action = MagicMock()
@@ -81,7 +85,7 @@ class TestPrepareConnectivity(TestCase):
         self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.network_service.get_virtual_network_by_tag, 2))
 
         # key pair created
-        self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.key_pair_service.save_key_pair))
+        self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.key_pair_service.save_key_pair, 2))
         self.assertTrue(TestHelper.CheckMethodCalledXTimes(network_client.virtual_networks.list))
         self.assertTrue(TestHelper.CheckMethodCalledXTimes(network_client.subnets.create_or_update))
 
@@ -112,6 +116,7 @@ class TestPrepareConnectivity(TestCase):
         self.network_service.create_subnet = MagicMock()
         self.network_service.get_virtual_network_by_tag = Mock(return_value=None)
         self.network_service.get_virtual_network_by_tag.side_effect = [None, Mock()]
+        self.cryptography_service.encrypt = MagicMock()
 
         req = MagicMock()
         action = MagicMock()
