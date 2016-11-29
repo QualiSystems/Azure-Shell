@@ -396,40 +396,7 @@
 		  },
 		  "gatewayIpAddress": "[parameters('vpn_address')]"
 		}
-	},	 
-	{
-        "apiVersion": "2015-06-15",
-        "type": "Microsoft.Network/virtualNetworkGateways",
-        "name": "[variables('gateway_vpn_name')]",  
-        "location": "[resourceGroup().location]",
-        "dependsOn": [
-          "[concat('Microsoft.Network/publicIPAddresses/', variables('gatewayPublicIPName'))]",
-          "[concat('Microsoft.Network/virtualNetworks/', parameters('virtualNetworks_mgmt_vnet_name'))]"
-        ],
-        "properties": {
-          "ipConfigurations": [
-            {
-              "properties": {
-                "privateIPAllocationMethod": "Dynamic",
-                "subnet": {
-                  "id": "[variables('gatewaySubnetRef')]"
-                },
-                "publicIPAddress": {
-                  "id": "[resourceId('Microsoft.Network/publicIPAddresses',variables('gatewayPublicIPName'))]"
-                }
-              },
-              "name": "vnetGatewayConfig"
-            }
-          ],
-          "sku": {
-            "name": "Standard",
-            "tier": "Standard"
-          },
-          "gatewayType": "Vpn",
-          "vpnType": "RouteBased",
-          "enableBgp": "false"
-        }
-      }	
+	}	
 	],
 	"outputs": {
 		"storageAccountName": {
