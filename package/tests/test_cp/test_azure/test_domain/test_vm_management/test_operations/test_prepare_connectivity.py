@@ -40,8 +40,8 @@ class TestPrepareConnectivity(TestCase):
     @mock.patch("cloudshell.cp.azure.domain.vm_management.operations.prepare_connectivity_operation.OperationsHelper")
     def test_prepare_connectivity(self, operation_helper_class):
         # Arrange
-        self.key_pair_service.save_key_pair = MagicMock()
         self.key_pair_service.generate_key_pair = MagicMock()
+        self.key_pair_service.save_key_pair = MagicMock()
         self.network_service.get_virtual_network_by_tag = MagicMock()
         self.storage_service.create_storage_account = MagicMock()
         self.vm_service.create_resource_group = MagicMock()
@@ -85,7 +85,7 @@ class TestPrepareConnectivity(TestCase):
         self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.network_service.get_virtual_network_by_tag, 2))
 
         # key pair created
-        # todo: self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.key_pair_service.save_key_pair))
+        self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.key_pair_service.save_key_pair, 2))
         self.assertTrue(TestHelper.CheckMethodCalledXTimes(network_client.virtual_networks.list))
         self.assertTrue(TestHelper.CheckMethodCalledXTimes(network_client.subnets.create_or_update))
 
