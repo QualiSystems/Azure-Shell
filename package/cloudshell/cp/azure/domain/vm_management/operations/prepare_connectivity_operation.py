@@ -22,7 +22,8 @@ class PrepareConnectivityOperation(object):
                  storage_service,
                  tags_service,
                  key_pair_service,
-                 security_group_service):
+                 security_group_service,
+                 cryptography_service):
         """
 
         :param cloudshell.cp.azure.domain.services.virtual_machine_service.VirtualMachineService vm_service:
@@ -31,9 +32,11 @@ class PrepareConnectivityOperation(object):
         :param cloudshell.cp.azure.domain.services.tags.TagService tags_service:
         :param cloudshell.cp.azure.domain.services.key_pair.KeyPairService key_pair_service:
         :param cloudshell.cp.azure.domain.services.security_group.SecurityGroupService security_group_service:
+        :param cloudshell.cp.azure.domain.services.cryptography_service.CryptographyService cryptography_service:
         :return:
         """
 
+        self.cryptography_service = cryptography_service
         self.vm_service = vm_service
         self.network_service = network_service
         self.storage_service = storage_service
@@ -85,6 +88,11 @@ class PrepareConnectivityOperation(object):
                 cloud_provider_model.management_group_name,
                 NetworkService.NETWORK_TYPE_TAG_NAME,
                 NetworkService.MGMT_NETWORK_TAG_VALUE))
+        key_pair = self._create_key_pair(group_name=group_name,
+                                         storage_account_name=storage_account_name,
+                                         storage_client=storage_client)
+
+        action_result.access_key = self.cryptography_service.encrypt(key_pair.private_key)
 
         virtual_networks = self.network_service.get_virtual_networks(network_client=network_client,
                                                                      group_name=cloud_provider_model.management_group_name)
@@ -112,11 +120,11 @@ class PrepareConnectivityOperation(object):
         security_group_name = OperationsHelper.generate_name(reservation_id)
         logger.info("Creating a network security group '{}' .".format(security_group_name))
         network_security_group = self.security_group_service.create_network_security_group(
-                network_client=network_client,
-                group_name=group_name,
-                security_group_name=security_group_name,
-                region=cloud_provider_model.region,
-                tags=tags)
+            network_client=network_client,
+            group_name=group_name,
+            security_group_name=security_group_name,
+            region=cloud_provider_model.region,
+            tags=tags)
 
         logger.info("Creating NSG management rules...")
         # 5. Set rules on NSG ti create a sandbox
@@ -179,6 +187,7 @@ class PrepareConnectivityOperation(object):
                                             group_name=group_name,
                                             storage_name=storage_account_name,
                                             key_pair=key_pair)
+        return key_pair
 
     def _create_subnet(self, cidr, cloud_provider_model, logger, network_client, network_security_group, sandbox_vnet,
                        subnet_name):
