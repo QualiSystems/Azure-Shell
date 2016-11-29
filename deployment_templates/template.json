@@ -67,18 +67,14 @@
         "gatewaySubnetRef": "[concat(variables('vnetID'),'/subnets/','GatewaySubnet')]",
         "SubnetRef": "[concat(variables('vnetID'),'/subnets/','default')]",
 		"location": "[resourceGroup().location]",
-		
-		
+				
 		"es_nic_name":"nic_for_centos_es",
 		"virtualMachineEsName": "centos-es-vm",
 		"publicIpAddressNameVMCentosES": "centos_ip_es",
-		
-		
+				
 		"qx_nic_name":"nic_for_centos_qx",
 		"virtualMachineQxName": "centos-qx-vm",
-		"publicIpAddressNameVMCentosQX": "centos_ip_qx"
-		
-		
+		"publicIpAddressNameVMCentosQX": "centos_ip_qx"			
 	},
 	"resources": [
 	{
@@ -234,7 +230,7 @@
 		"apiVersion": "2016-09-01",
 		"location": "[resourceGroup().location]",
 		"properties": {
-			"publicIPAllocationMethod": "Dynamic"
+			"publicIPAllocationMethod": "Static"
 		}
 	},
 	{
@@ -399,9 +395,9 @@
 	}	
 	],
 	"outputs": {
-		"storageAccountName": {
-			"type": "string",
-			"value": "[resourceId('Microsoft.Network/virtualNetworks',parameters('virtualNetworks_mgmt_vnet_name'))]"
+		"QualiXPublicIp": {
+		  "value": "[reference(variables('publicIpAddressNameVMCentosQX')).ipAddress]",
+		  "type": "string"
 		}
 	}
 }
