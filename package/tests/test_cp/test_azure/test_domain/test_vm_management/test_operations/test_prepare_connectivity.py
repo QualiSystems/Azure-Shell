@@ -85,7 +85,7 @@ class TestPrepareConnectivity(TestCase):
         self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.network_service.get_virtual_network_by_tag, 2))
 
         # key pair created
-        self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.key_pair_service.save_key_pair, 2))
+        self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.key_pair_service.save_key_pair))
         self.assertTrue(TestHelper.CheckMethodCalledXTimes(network_client.virtual_networks.list))
         self.assertTrue(TestHelper.CheckMethodCalledXTimes(network_client.subnets.create_or_update))
 
