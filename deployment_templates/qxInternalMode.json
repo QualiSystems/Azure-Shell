@@ -57,7 +57,7 @@
 					"osDisk": {
 						"name": "[variables('virtualMachineEsName')]",
 						"vhd": {
-							"uri": "[concat(concat(reference(variables('storageBlob'), '2015-06-15').primaryEndpoints['blob'], 'vhds/'), variables('virtualMachineQxName'), '2016102316823.vhd')]"
+							"uri": "[concat(concat(reference(parameters('storageBlob'), '2015-06-15').primaryEndpoints['blob'], 'vhds/'), variables('virtualMachineQxName'), '2016102316823.vhd')]"
 						},
 						"createOption": "fromImage"
 					},

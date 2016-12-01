@@ -176,7 +176,7 @@
           "adminPassword": { "value": "[parameters('adminPassword')]" },
           "virtualNetworks_mgmt_vnet_name": { "value": "[parameters('virtualNetworks_mgmt_vnet_name')]" },
 		  "storageAccountName":{"value":"[variables('storageAccountName')]"},
-		  "storageBlob":{"value":"[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"}		 		
+		  "storageBlob":{"value":"[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"}		 		
         }
       }
     },	
