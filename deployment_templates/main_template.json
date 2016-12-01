@@ -129,7 +129,7 @@
             "name": "[variables('es_nic_name')]",
             "type": "Microsoft.Network/networkInterfaces",
             "apiVersion": "2016-09-01",
-            "location": "[resourceGroup().location]",
+            "location": "[resourceGroup().location]",			
             "dependsOn": [
                 "[concat('Microsoft.Network/virtualNetworks/', parameters('virtualNetworks_mgmt_vnet_name'))]"
             ],
@@ -164,6 +164,7 @@
       "apiVersion": "2015-01-01",
       "name": "sbn0",
       "type": "Microsoft.Resources/deployments",
+	  "dependsOn": ["[concat('Microsoft.Storage/storageAccounts/', variables('storageAccountName'))]"],
       "properties": {
         "mode": "incremental",
         "templateLink": {
@@ -174,14 +175,17 @@
           "adminUsername": { "value": "[parameters('adminUsername')]" },
           "adminPassword": { "value": "[parameters('adminPassword')]" },
           "virtualNetworks_mgmt_vnet_name": { "value": "[parameters('virtualNetworks_mgmt_vnet_name')]" },
-		  "storageAccountName":{"value":"[variables('storageAccountName')]"}
+		  "storageAccountName":{"value":"[variables('storageAccountName')]"},
+		  "storageBlob":{"value":"[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"}		 		
         }
       }
     },	
-	
-	
-	
-	
+
+
+
+
+
+
 	
 	{
 		"type": "Microsoft.Network/virtualNetworks",

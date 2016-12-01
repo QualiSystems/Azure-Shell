@@ -21,6 +21,9 @@
 		},		
 		"storageAccountName":{
 			"type":"string"
+		},
+		"storageBlob":{
+			"type":"string"
 		}
 	},
 	"resources":[		
@@ -33,8 +36,7 @@
 			"apiVersion": "2015-06-15",
 			"location": "[resourceGroup().location]",
 			"dependsOn": [
-				"[concat('Microsoft.Network/networkInterfaces/', variables('qx_nic_name'))]",
-				"[concat('Microsoft.Storage/storageAccounts/', parameters('storageAccountName'))]"
+				"[concat('Microsoft.Network/networkInterfaces/', variables('qx_nic_name'))]"
 			],
 			"properties": {
 				"osProfile": {
@@ -55,7 +57,7 @@
 					"osDisk": {
 						"name": "[variables('virtualMachineEsName')]",
 						"vhd": {
-							"uri": "[concat(concat(reference(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2015-06-15').primaryEndpoints['blob'], 'vhds/'), variables('virtualMachineQxName'), '2016102316823.vhd')]"
+							"uri": "[concat(concat(reference(variables('storageBlob'), '2015-06-15').primaryEndpoints['blob'], 'vhds/'), variables('virtualMachineQxName'), '2016102316823.vhd')]"
 						},
 						"createOption": "fromImage"
 					},
