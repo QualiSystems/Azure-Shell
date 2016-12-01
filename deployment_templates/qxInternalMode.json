@@ -43,7 +43,7 @@
 			],
 			"properties": {
 				"osProfile": {
-					"computerName": "[variables('virtualMachineEsName')]",
+					"computerName": "[variables('virtualMachineQxName')]",
 					"adminUsername": "[parameters('adminUsername')]",
 					"adminPassword": "[parameters('adminPassword')]"
 				},
@@ -58,7 +58,7 @@
 						"version": "latest"
 					},
 					"osDisk": {
-						"name": "[variables('virtualMachineEsName')]",
+						"name": "[variables('virtualMachineQxName')]",
 						"vhd": {
 							"uri": "[concat(concat(reference(parameters('storageBlob'), '2015-06-15').primaryEndpoints['blob'], 'vhds/'), variables('virtualMachineQxName'), '2016102316823.vhd')]"
 						},
