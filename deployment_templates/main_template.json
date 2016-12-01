@@ -75,10 +75,7 @@
         "SubnetRef": "[concat(variables('vnetID'),'/subnets/','default')]",
 		"location": "[resourceGroup().location]",
 		"es_nic_name":"nic_for_centos_es",
-		"virtualMachineEsName": "centos-es-vm",
-		"qx_nic_name":"nic_for_centos_qx",
-		"virtualMachineQxName": "centos-qx-vm",
-		"publicIpAddressNameVMCentosQX": "centos_ip_qx",
+		"virtualMachineEsName": "centos-es-vm",		
 		"qx_template_location":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/feature/gil_create_json_deploy/deployment_templates/"
 	},
 	"resources": [
