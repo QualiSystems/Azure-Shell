@@ -18,6 +18,9 @@
 		"virtualNetworks_mgmt_vnet_name": {
 			"defaultValue": "management_vnet",
 			"type": "String"
+		},		
+		"storageAccountName":{
+			"type":"string"
 		}
 	},
 	"resources":[		
@@ -31,7 +34,7 @@
 			"location": "[resourceGroup().location]",
 			"dependsOn": [
 				"[concat('Microsoft.Network/networkInterfaces/', variables('qx_nic_name'))]",
-				"[concat('Microsoft.Storage/storageAccounts/', variables('storageAccountName'))]"
+				"[concat('Microsoft.Storage/storageAccounts/', parameters('storageAccountName'))]"
 			],
 			"properties": {
 				"osProfile": {
@@ -52,7 +55,7 @@
 					"osDisk": {
 						"name": "[variables('virtualMachineEsName')]",
 						"vhd": {
-							"uri": "[concat(concat(reference(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), '2015-06-15').primaryEndpoints['blob'], 'vhds/'), variables('virtualMachineQxName'), '2016102316823.vhd')]"
+							"uri": "[concat(concat(reference(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2015-06-15').primaryEndpoints['blob'], 'vhds/'), variables('virtualMachineQxName'), '2016102316823.vhd')]"
 						},
 						"createOption": "fromImage"
 					},
