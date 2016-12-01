@@ -67,9 +67,7 @@
 		},
 		"vNet2": {
 			"peeringName": "vNet_sndbx-to-vNet_mgmt"
-		},
-		"gatewayPublicIPName" : "[concat(uniquestring('azureGatewayPIP'),'_vpn_public_ip')]",
-		"gateway_vpn_name" :"[concat(uniqueString('vpn'),'_vpn')]",
+		},				
 		"vnetID": "[resourceId('Microsoft.Network/virtualNetworks',parameters('virtualNetworks_mgmt_vnet_name'))]",
         "gatewaySubnetRef": "[concat(variables('vnetID'),'/subnets/','GatewaySubnet')]",
         "SubnetRef": "[concat(variables('vnetID'),'/subnets/','default')]",

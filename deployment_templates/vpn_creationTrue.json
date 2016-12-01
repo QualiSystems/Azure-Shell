@@ -1,9 +1,52 @@
 {
 	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/vpn_creationTrue.json#",
 	"contentVersion": "1.0.0.0"	,
-	"variables":{			
+	"variables":{	
+		"gatewayPublicIPName" : "[concat(uniquestring('azureGatewayPIP'),'_vpn_public_ip')]",
+		"gateway_vpn_name" :"[concat(uniqueString('vpn'),'_vpn')]"
 	},
 	"parameters":{	
+		"virtualNetworks_mgmt_vnet_name": {
+			"defaultValue": "management_vnet",
+			"type": "String"
+		},
+		"gatewaySubnetRef":{
+			"type":"string"
+		}
 	},
-	"resources":[]	
+	"resources":[
+	{
+		"apiVersion": "2015-06-15",
+		"type": "Microsoft.Network/virtualNetworkGateways",
+		"name": "[variables('gateway_vpn_name')]",  
+		"location": "[resourceGroup().location]",
+		"dependsOn": [
+		  "[concat('Microsoft.Network/publicIPAddresses/', variables('gatewayPublicIPName'))]",
+		  "[concat('Microsoft.Network/virtualNetworks/', parameters('virtualNetworks_mgmt_vnet_name'))]"
+		],
+		"properties": {
+		  "ipConfigurations": [
+			{
+			  "properties": {
+				"privateIPAllocationMethod": "Dynamic",
+				"subnet": {
+				  "id": "[parameters('gatewaySubnetRef')]"
+				},
+				"publicIPAddress": {
+				  "id": "[resourceId('Microsoft.Network/publicIPAddresses',variables('gatewayPublicIPName'))]"
+				}
+			  },
+			  "name": "vnetGatewayConfig"
+			}
+		  ],
+		  "sku": {
+			"name": "Standard",
+			"tier": "Standard"
+		  },
+		  "gatewayType": "Vpn",
+		  "vpnType": "RouteBased",
+		  "enableBgp": "false"
+		}
+	}	
+	]	
 }
