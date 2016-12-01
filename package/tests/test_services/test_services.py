@@ -8,6 +8,7 @@ from mock import MagicMock
 from mock import Mock
 from msrestazure.azure_operation import AzureOperationPoller
 
+from cloudshell.cp.azure.domain.services.cryptography_service import CryptographyService
 from cloudshell.cp.azure.domain.services.network_service import NetworkService
 from cloudshell.cp.azure.domain.services.key_pair import KeyPairService
 from cloudshell.cp.azure.domain.services.storage_service import StorageService
