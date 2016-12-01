@@ -167,6 +167,7 @@
 	  "dependsOn": [
 		"[concat('Microsoft.Storage/storageAccounts/', variables('storageAccountName'))]",
 		"[concat('Microsoft.Network/virtualNetworks/', parameters('virtualNetworks_mgmt_vnet_name'))]"
+		
 	  ],
       "properties": {
         "mode": "incremental",

@@ -86,7 +86,7 @@
 							"name": "ipconfig2",
 							"properties": {
 								"subnet": {  
-									"id":"[variables('SubnetRef')]"
+									"id":"[parameters('SubnetRef')]"
 								},
 								"privateIPAllocationMethod": "Dynamic",
 								"publicIpAddress": {
