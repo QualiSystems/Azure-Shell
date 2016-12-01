@@ -24,6 +24,9 @@
 		},
 		"storageBlob":{
 			"type":"string"
+		},
+		"SubnetRef":{
+			"type":"string"
 		}
 	},
 	"resources":[		
