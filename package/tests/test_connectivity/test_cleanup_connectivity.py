@@ -36,9 +36,9 @@ class TestCleanupConnectivity(TestCase):
                                                             logger=self.logger)
 
         # Verify
-        self.assertTrue(result['success'] == False)
-        self.assertTrue(
-            result['errorMessage'] == 'CleanupConnectivity ended with the error: {0}'.format(test_exception_message))
+        self.assertFalse(result['success'])
+        self.assertEqual(result['errorMessage'],
+                         "CleanupConnectivity ended with the error(s): ['lalala']".format(test_exception_message))
         self.logger.exception.assert_called()
 
     def test_cleanup(self):
@@ -71,10 +71,22 @@ class TestCleanupConnectivity(TestCase):
                                                    logger=self.logger)
 
         # Verify
-        self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.delete_operation.remove_nsg_from_subnet))
-        self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.delete_operation.delete_sandbox_subnet))
-        self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.delete_operation.delete_resource_group))
+        self.delete_operation.remove_nsg_from_subnet.assert_called_once_with(network_client=network_client,
+                                                                             cloud_provider_model=cloud_provider_model,
+                                                                             resource_group_name=tested_group_name,
+                                                                             logger=self.logger)
+
+        self.delete_operation.delete_sandbox_subnet.assert_called_once_with(network_client=network_client,
+                                                                            cloud_provider_model=cloud_provider_model,
+                                                                            resource_group_name=tested_group_name,
+                                                                            logger=self.logger)
+
+        self.delete_operation.delete_resource_group.assert_called_once_with(resource_client=resource_client,
+                                                                            group_name=tested_group_name,
+                                                                            logger=self.logger)
+
         self.delete_operation.delete_resource_group.assert_called_with(resource_client=resource_client,
+                                                                       logger=self.logger,
                                                                        group_name=tested_group_name)
 
     def test_delete_sandbox_subnet_on_error(self):
