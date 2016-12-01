@@ -76,8 +76,7 @@
 				"name": "[variables('qx_nic_name')]",
 				"type": "Microsoft.Network/networkInterfaces",
 				"apiVersion": "2016-09-01",
-				"location": "[resourceGroup().location]",
-				"dependsOn": ["[concat('Microsoft.Network/virtualNetworks/', parameters('virtualNetworks_mgmt_vnet_name'))]"],
+				"location": "[resourceGroup().location]",				
 				"properties": {
 					"ipConfigurations": [
 						{

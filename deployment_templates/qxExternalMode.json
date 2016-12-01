@@ -74,8 +74,7 @@
 				"type": "Microsoft.Network/networkInterfaces",
 				"apiVersion": "2016-09-01",
 				"location": "[resourceGroup().location]",
-				"dependsOn": [
-					"[concat('Microsoft.Network/virtualNetworks/', parameters('virtualNetworks_mgmt_vnet_name'))]",
+				"dependsOn": [					
 					"[concat('Microsoft.Network/publicIpAddresses/', variables('publicIpAddressNameVMCentosQX'))]"
 				],
 				"properties": {
