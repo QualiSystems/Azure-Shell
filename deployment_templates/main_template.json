@@ -79,7 +79,8 @@
 		"virtualMachineEsName": "centos-es-vm",
 		"qx_nic_name":"nic_for_centos_qx",
 		"virtualMachineQxName": "centos-qx-vm",
-		"publicIpAddressNameVMCentosQX": "centos_ip_qx"
+		"publicIpAddressNameVMCentosQX": "centos_ip_qx",
+		"qx_template_location":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/feature/gil_create_json_deploy/deployment_templates/"
 	},
 	"resources": [
 	{
@@ -157,6 +158,9 @@
 	
 	
 	
+	
+	
+	
     {
       "apiVersion": "2015-01-01",
       "name": "sbn0",
@@ -164,7 +168,7 @@
       "properties": {
         "mode": "incremental",
         "templateLink": {
-          "uri": "[concat('qx',parameters('externalMode'),'Mode.json')]",
+          "uri": "[concat(variables('qx_template_location'),'qx',parameters('externalMode'),'Mode.json')]",
           "contentVersion": "1.1.0.0"
         },
         "parameters": {          
