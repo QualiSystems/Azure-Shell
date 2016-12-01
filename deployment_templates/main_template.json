@@ -169,7 +169,7 @@
         "mode": "incremental",
         "templateLink": {
           "uri": "[concat(variables('qx_template_location'),'qx',parameters('externalMode'),'Mode.json')]",
-          "contentVersion": "1.1.0.0"
+          "contentVersion": "1.0.0.0"
         },
         "parameters": {          
           "adminUsername": { "value": "[parameters('adminUsername')]" },

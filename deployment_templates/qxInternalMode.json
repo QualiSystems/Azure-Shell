@@ -28,7 +28,7 @@
 			"name": "[variables('virtualMachineQxName')]",
 			"type": "Microsoft.Compute/virtualMachines",
 			"apiVersion": "2015-06-15",
-			"location": "[variables('location')]",
+			"location": "[resourceGroup().location]",
 			"dependsOn": [
 				"[concat('Microsoft.Network/networkInterfaces/', variables('qx_nic_name'))]",
 				"[concat('Microsoft.Storage/storageAccounts/', variables('storageAccountName'))]"
