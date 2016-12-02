@@ -1,8 +1,6 @@
 from azure.mgmt.storage.models import StorageAccount
 from azure.mgmt.compute.models import OperatingSystemTypes
-from retrying import retry
 
-from cloudshell.cp.azure.common.helpers.retrying_helpers import retry_if_connection_error, is_pool_closed_error
 from cloudshell.cp.azure.common.operations_helper import OperationsHelper
 from cloudshell.cp.azure.models.deploy_result_model import DeployResult
 from cloudshell.cp.azure.domain.services.parsers.rules_attribute_parser import RulesAttributeParser
@@ -301,7 +299,6 @@ class DeployAzureVMOperation(object):
                             public_ip=public_ip_address,
                             resource_group=reservation_id)
 
-    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def deploy(self, azure_vm_deployment_model,
                cloud_provider_model,
                reservation,
@@ -416,10 +413,7 @@ class DeployAzureVMOperation(object):
 
             logger.info("VM {} was successfully deployed".format(vm_name))
 
-        except Exception as ex:
-            if is_pool_closed_error(ex):
-                raise  # raising 'pool closed' exception before rollback for retry
-
+        except Exception:
             logger.exception("Failed to deploy VM. Error:")
             self._rollback_deployed_resources(compute_client=compute_client,
                                               network_client=network_client,
