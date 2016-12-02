@@ -431,6 +431,13 @@ class TestDeployAzureVMOperation(TestCase):
             # Verify
             self.fail("Method should not raise any exception. Got: {}: {}".format(type(e), e))
 
+    def test_validate_deployment_model_raises_exception(self):
+        """Check that method will raise Exception if "Add Public IP" attr is False and "Inbound Ports" is not empty"""
+        vm_deployment_mode = MagicMock(inbound_ports="80:tcp", add_public_ip=False)
+
+        with self.assertRaises(Exception):
+            self.deploy_operation._validate_deployment_model(vm_deployment_mode)
+
     def test_validate_resource_is_single_per_group_several_resources(self):
         """Check that method will not throw Exception if length of resource list is more than 1"""
         group_name = "test_group_name"
