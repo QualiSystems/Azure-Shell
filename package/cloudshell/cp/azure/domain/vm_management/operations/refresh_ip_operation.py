@@ -1,16 +1,18 @@
-from msrestazure.azure_exceptions import CloudError
 from retrying import retry
 
 from cloudshell.cp.azure.common.helpers.retrying_helpers import retry_if_connection_error
 
 
 class RefreshIPOperation(object):
-    def __init__(self, vm_service):
+    def __init__(self, vm_service, resource_id_parser):
         """
-        :param cloudshell.cp.azure.domain.services.virtual_machine_service.VirtualMachineService vm_service:
+
+        :param vm_service: cloudshell.cp.azure.domain.services.virtual_machine_service.VirtualMachineService
+        :param resource_id_parser: cloudshell.cp.azure.domain.services.parsers.azure_model_parser.AzureModelsParser
         :return:
         """
         self.vm_service = vm_service
+        self.resource_id_parser = resource_id_parser
 
     @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def refresh_ip(self, cloudshell_session, compute_client, network_client, resource_group_name, vm_name,
@@ -28,31 +30,33 @@ class RefreshIPOperation(object):
         :param logger: logging.Logger instance
         :return
         """
-        # NOTE: NIC and IP Address names must be same as a VM name
         # check if VM exists and in the correct state
         logger.info("Check that VM {} exists under resource group {} and is active".format(
                 vm_name, resource_group_name))
 
-        self.vm_service.get_active_vm(
-                compute_management_client=compute_client,
-                group_name=resource_group_name,
-                vm_name=vm_name)
+        vm = self.vm_service.get_active_vm(
+            compute_management_client=compute_client,
+            group_name=resource_group_name,
+            vm_name=vm_name)
 
-        try:
-            nic = network_client.network_interfaces.get(resource_group_name, vm_name)
-            private_ip_on_azure = nic.ip_configurations[0].private_ip_address
-        except CloudError:
-            logger.info("Cant find NIC {} under resource group {}".format(vm_name, resource_group_name),
-                        exc_info=True)
-            private_ip_on_azure = ""
+        nic_reference = vm.network_profile.network_interfaces[0]
+        nic_name = self.resource_id_parser.get_name_from_resource_id(nic_reference.id)
+        logger.info("Retrieving NIC {} for VM {}".format(nic_name, vm_name))
+        nic = network_client.network_interfaces.get(resource_group_name, nic_name)
 
-        try:
-            pub_ip_addr = network_client.public_ip_addresses.get(resource_group_name, vm_name)
-            public_ip_on_azure = pub_ip_addr.ip_address
-        except CloudError:
-            logger.info("Cant find Public IP {} under resource group {}".format(vm_name, resource_group_name),
-                        exc_info=True)
+        vm_ip_configuration = nic.ip_configurations[0]
+        private_ip_on_azure = vm_ip_configuration.private_ip_address
+
+        public_ip_reference = vm_ip_configuration.public_ip_address
+
+        if public_ip_reference is None:
+            logger.info("There is no Public IP attached to VM {}".format(vm_name))
             public_ip_on_azure = ""
+        else:
+            public_ip_name = self.resource_id_parser.get_name_from_resource_id(public_ip_reference.id)
+            logger.info("Retrieving Public IP {} for VM {}".format(public_ip_name, vm_name))
+            pub_ip_addr = network_client.public_ip_addresses.get(resource_group_name, public_ip_name)
+            public_ip_on_azure = pub_ip_addr.ip_address
 
         logger.info("Public IP on Azure: '{}'".format(public_ip_on_azure))
         logger.info("Public IP on CloudShell: '{}'".format(public_ip_on_resource))
