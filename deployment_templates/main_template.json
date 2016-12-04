@@ -21,15 +21,7 @@
 		"management_vnet_default_subnet_CIDR": {
 			"defaultValue": "192.168.120.16/28",
 			"type": "String"
-		},
-		"storageAccountType": {
-			"type": "string",
-			"defaultValue": "Standard_LRS",
-			"allowedValues": ["Standard_LRS"],
-			"metadata": {
-				"description": "Storage Account type"
-			}
-		},		
+		},			
 		"externalMode":{
 			"type":"string",
 			"defaultValue":"External",
@@ -51,6 +43,7 @@
 		
 	},
 	"variables": {
+		"storageAccountType": "Standard_LRS",
 		"virtualNetworks_mgmt_vnet_name": "management_vnet",
 		"virtualNetworks_sandbox_vnet_name": "sandbox_vnet",
 		"nsg_management_name" : "nsg_management",          		           		
@@ -308,7 +301,7 @@
 		"apiVersion": "2016-05-01",
 		"location": "[resourceGroup().location]",
 		"sku": {
-			"name": "[parameters('storageAccountType')]"
+			"name": "[variables('storageAccountType')]"
 		},
 		"kind": "Storage",
 		"properties": {}
