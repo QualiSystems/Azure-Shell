@@ -9,15 +9,7 @@
         "adminPassword": {
             "type": "securestring",
 			"defaultValue": "13fgfg$%65656#$DDFGF5"
-        },		
-		"on_premise_CIDR": {
-			"defaultValue": "192.168.121.0/24",
-			"type": "String"
-		},
-        "vpn_address": {
-            "type": "string",
-            "defaultValue": "1.1.1.1"
-        },		
+        },			
 		"management_vnet_CIDR": {
 			"defaultValue": "192.168.120.0/24",
 			"type": "String"
@@ -30,14 +22,6 @@
 			"defaultValue": "192.168.120.16/28",
 			"type": "String"
 		},
-		"virtualNetworks_mgmt_vnet_name": {
-			"defaultValue": "management_vnet",
-			"type": "String"
-		},
-		"virtualNetworks_sandbox_vnet_name": {
-			"defaultValue": "sandbox_vnet",
-			"type": "String"
-		},
 		"storageAccountType": {
 			"type": "string",
 			"defaultValue": "Standard_LRS",
@@ -45,29 +29,40 @@
 			"metadata": {
 				"description": "Storage Account type"
 			}
-		},
+		},		
+		"externalMode":{
+			"type":"string",
+			"defaultValue":"External",
+			"allowedValues":["External","Internal"]
+		}			
 		"createWithVpn":{
 			"type":"string",
 			"defaultValue":"False",
 			"allowedValues":["True","False"]			
 		},
-		"externalMode":{
-			"type":"string",
-			"defaultValue":"External",
-			"allowedValues":["External","Internal"]
-		}
+		"on_premise_CIDR": {
+			"defaultValue": "192.168.121.0/24",
+			"type": "String"
+		},
+        "vpn_address": {
+            "type": "string",
+            "defaultValue": ""
+        }
+		
 	},
 	"variables": {
+		"virtualNetworks_mgmt_vnet_name": "management_vnet",
+		"virtualNetworks_sandbox_vnet_name": "sandbox_vnet",
 		"nsg_management_name" : "nsg_management",          		           		
 	    "apiVersion": "2016-06-01",
-		"storageAccountName": "[concat(uniquestring(resourceGroup().id), 'strg')]",
+		"storageAccountName": "[concat('storageAccount_'uniquestring(resourceGroup().id))]",
 		"vNet1": {
 			"peeringName": "vNet_mgmt-to-vNet_sndbx"
 		},
 		"vNet2": {
 			"peeringName": "vNet_sndbx-to-vNet_mgmt"
 		},				
-		"vnetID": "[resourceId('Microsoft.Network/virtualNetworks',parameters('virtualNetworks_mgmt_vnet_name'))]",
+		"vnetID": "[resourceId('Microsoft.Network/virtualNetworks',variables('virtualNetworks_mgmt_vnet_name'))]",
         "gatewaySubnetRef": "[concat(variables('vnetID'),'/subnets/','GatewaySubnet')]",
         "SubnetRef": "[concat(variables('vnetID'),'/subnets/','default')]",
 		"location": "[resourceGroup().location]",
@@ -126,7 +121,7 @@
             "apiVersion": "2016-09-01",
             "location": "[resourceGroup().location]",			
             "dependsOn": [
-                "[concat('Microsoft.Network/virtualNetworks/', parameters('virtualNetworks_mgmt_vnet_name'))]"
+                "[concat('Microsoft.Network/virtualNetworks/', variables('virtualNetworks_mgmt_vnet_name'))]"
             ],
             "properties": {
                 "ipConfigurations": [
@@ -165,7 +160,7 @@
       "type": "Microsoft.Resources/deployments",
 	  "dependsOn": [
 		"[concat('Microsoft.Storage/storageAccounts/', variables('storageAccountName'))]",
-		"[concat('Microsoft.Network/virtualNetworks/', parameters('virtualNetworks_mgmt_vnet_name'))]"
+		"[concat('Microsoft.Network/virtualNetworks/', variables('virtualNetworks_mgmt_vnet_name'))]"
 		
 	  ],
       "properties": {
@@ -177,7 +172,7 @@
         "parameters": {          
           "adminUsername": { "value": "[parameters('adminUsername')]" },
           "adminPassword": { "value": "[parameters('adminPassword')]" },
-          "virtualNetworks_mgmt_vnet_name": { "value": "[parameters('virtualNetworks_mgmt_vnet_name')]" },
+          "virtualNetworks_mgmt_vnet_name": { "value": "[variables('virtualNetworks_mgmt_vnet_name')]" },
 		  "storageAccountName":{"value":"[variables('storageAccountName')]"},
 		  "storageBlob":{"value":"[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"},
 		  "SubnetRef":{"value":"[variables('SubnetRef')]"}
@@ -191,7 +186,7 @@
       "name": "vpnDeployment",
       "type": "Microsoft.Resources/deployments",
 	  "dependsOn": [	  
-	  "[concat('Microsoft.Network/virtualNetworks/', parameters('virtualNetworks_mgmt_vnet_name'))]"
+	  "[concat('Microsoft.Network/virtualNetworks/', variables('virtualNetworks_mgmt_vnet_name'))]"
 		
 	  ],
       "properties": {
@@ -201,7 +196,7 @@
           "contentVersion": "1.0.0.0"
         },
         "parameters": {          
-          "virtualNetworks_mgmt_vnet_name": { "value": "[parameters('virtualNetworks_mgmt_vnet_name')]" },		  
+          "virtualNetworks_mgmt_vnet_name": { "value": "[variables('virtualNetworks_mgmt_vnet_name')]" },		  
 		  "gatewaySubnetRef":{"value":"[variables('gatewaySubnetRef')]"},
 		  "on_premise_CIDR":{"value":"[parameters('on_premise_CIDR')]"}
         }
@@ -223,7 +218,7 @@
 	
 	{
 		"type": "Microsoft.Network/virtualNetworks",
-		"name": "[parameters('virtualNetworks_mgmt_vnet_name')]",
+		"name": "[variables('virtualNetworks_mgmt_vnet_name')]",
 		"apiVersion": "[variables('apiVersion')]",
 		"location": "[variables('location')]",
 		"tags": {
@@ -253,8 +248,8 @@
 			"type": "virtualNetworkPeerings",
 			"name": "[variables('vNet1').peeringName]",
 			"location": "[resourceGroup().location]",
-			"dependsOn": ["[concat('Microsoft.Network/virtualNetworks/', parameters('virtualNetworks_mgmt_vnet_name'))]",
-			"[concat('Microsoft.Network/virtualNetworks/', parameters('virtualNetworks_sandbox_vnet_name'))]"],
+			"dependsOn": ["[concat('Microsoft.Network/virtualNetworks/', variables('virtualNetworks_mgmt_vnet_name'))]",
+			"[concat('Microsoft.Network/virtualNetworks/', variables('virtualNetworks_sandbox_vnet_name'))]"],
 			"comments": "This is the peering from vNet Management to vNet Sandbox",
 			"properties": {
 				"allowVirtualNetworkAccess": "true",
@@ -262,7 +257,7 @@
 				"allowGatewayTransit": "false",
 				"useRemoteGateways": "false",
 				"remoteVirtualNetwork": {
-					"id": "[resourceId('Microsoft.Network/virtualNetworks',parameters('virtualNetworks_sandbox_vnet_name'))]"
+					"id": "[resourceId('Microsoft.Network/virtualNetworks',variables('virtualNetworks_sandbox_vnet_name'))]"
 				}
 			}
 		}],
@@ -270,7 +265,7 @@
 	},
 	{
 		"type": "Microsoft.Network/virtualNetworks",
-		"name": "[parameters('virtualNetworks_sandbox_vnet_name')]",
+		"name": "[variables('virtualNetworks_sandbox_vnet_name')]",
 		"apiVersion": "[variables('apiVersion')]",
 		"location": "[variables('location')]",
 		"tags": {
@@ -292,8 +287,8 @@
 			"type": "virtualNetworkPeerings",
 			"name": "[variables('vNet2').peeringName]",
 			"location": "[resourceGroup().location]",
-			"dependsOn": ["[concat('Microsoft.Network/virtualNetworks/', parameters('virtualNetworks_sandbox_vnet_name'))]",
-			"[concat('Microsoft.Network/virtualNetworks/', parameters('virtualNetworks_mgmt_vnet_name'))]"],
+			"dependsOn": ["[concat('Microsoft.Network/virtualNetworks/', variables('virtualNetworks_sandbox_vnet_name'))]",
+			"[concat('Microsoft.Network/virtualNetworks/', variables('virtualNetworks_mgmt_vnet_name'))]"],
 			"comments": "This is the peering from vNet Sandbox to vNet Management",
 			"properties": {
 				"allowVirtualNetworkAccess": "true",
@@ -301,7 +296,7 @@
 				"allowGatewayTransit": "false",
 				"useRemoteGateways": "false",
 				"remoteVirtualNetwork": {
-					"id": "[resourceId('Microsoft.Network/virtualNetworks',parameters('virtualNetworks_mgmt_vnet_name'))]"
+					"id": "[resourceId('Microsoft.Network/virtualNetworks',variables('virtualNetworks_mgmt_vnet_name'))]"
 				}
 			}
 		}],
@@ -316,9 +311,7 @@
 			"name": "[parameters('storageAccountType')]"
 		},
 		"kind": "Storage",
-		"properties": {
-			
-		}
+		"properties": {}
 	},
 	{
       "apiVersion": "[variables('apiVersion')]",
