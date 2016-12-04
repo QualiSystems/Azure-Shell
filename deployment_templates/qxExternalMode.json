@@ -73,6 +73,9 @@
 				}
 			}
 		},			
+		
+		
+		
 		{
 		  "type": "Microsoft.Compute/virtualMachines/extensions",
 		  "name": "[concat('qx_script_', 'vm/ext')]",
@@ -80,7 +83,7 @@
 		  "location": "[resourceGroup().location]",
 		  "dependsOn": [
                 "[concat('Microsoft.Compute/virtualMachines/', variables('virtualMachineQxName'))]"
-            ]		  
+            ],		  
 		  "properties": {
 			"publisher": "Microsoft.Azure.Extensions",
 			"type": "CustomScript",
