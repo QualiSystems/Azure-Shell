@@ -114,9 +114,13 @@
             "apiVersion": "2016-09-01",
             "location": "[resourceGroup().location]",			
             "dependsOn": [
-                "[concat('Microsoft.Network/virtualNetworks/', variables('virtualNetworks_mgmt_vnet_name'))]"
+                "[concat('Microsoft.Network/virtualNetworks/', variables('virtualNetworks_mgmt_vnet_name'))]",
+				"[concat('Microsoft.Network/networkSecurityGroups/', variables('nsg_management_name'))]"
             ],
             "properties": {
+				"networkSecurityGroup": {
+						  "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsg_management_name'))]"
+					},
                 "ipConfigurations": [
                     {
                         "name": "ipconfig1",
