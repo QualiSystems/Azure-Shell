@@ -169,7 +169,10 @@ class PrepareConnectivityOperation(object):
                                          storage_account_name=storage_account_name,
                                          storage_client=storage_client)
 
-        action_result.access_key = self.cryptography_service.encrypt(key_pair.private_key)
+        cryptography_dto = self.cryptography_service.encrypt(key_pair.private_key)
+
+        action_result.access_key = cryptography_dto.encrypted_input
+        action_result.secret_key = cryptography_dto.encrypted_asymmetric_key
 
         return True
 
