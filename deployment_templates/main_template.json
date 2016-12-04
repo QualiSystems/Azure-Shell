@@ -74,7 +74,8 @@
 		"location": "[resourceGroup().location]",
 		"es_nic_name":"nic_for_centos_es",
 		"virtualMachineEsName": "centos-es-vm",		
-		"qx_template_location":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/feature/gil_create_json_deploy/deployment_templates/"
+		"qx_template_location":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/feature/gil_create_json_deploy/deployment_templates/".
+		"vpn_template_location":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/feature/gil_create_json_deploy/deployment_templates/".
 	},
 	"resources": [
 	{
@@ -162,6 +163,33 @@
 	  "dependsOn": [
 		"[concat('Microsoft.Storage/storageAccounts/', variables('storageAccountName'))]",
 		"[concat('Microsoft.Network/virtualNetworks/', parameters('virtualNetworks_mgmt_vnet_name'))]"
+		
+	  ],
+      "properties": {
+        "mode": "incremental",
+        "templateLink": {
+          "uri": "[concat(variables('qx_template_location'),'qx',parameters('externalMode'),'Mode.json')]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {          
+          "adminUsername": { "value": "[parameters('adminUsername')]" },
+          "adminPassword": { "value": "[parameters('adminPassword')]" },
+          "virtualNetworks_mgmt_vnet_name": { "value": "[parameters('virtualNetworks_mgmt_vnet_name')]" },
+		  "storageAccountName":{"value":"[variables('storageAccountName')]"},
+		  "storageBlob":{"value":"[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"},
+		  "SubnetRef":{"value":"[variables('SubnetRef')]"}
+        }
+      }
+    },	
+	
+	
+    {
+      "apiVersion": "2015-01-01",
+      "name": "sbn0",
+      "type": "Microsoft.Resources/deployments",
+	  "dependsOn": [
+	  "[concat('Microsoft.Network/publicIPAddresses/', variables('gatewayPublicIPName'))]",
+	  "[concat('Microsoft.Network/virtualNetworks/', parameters('virtualNetworks_mgmt_vnet_name'))]"
 		
 	  ],
       "properties": {
