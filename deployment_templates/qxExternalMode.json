@@ -89,7 +89,7 @@
 			"type": "CustomScript",
 			"typeHandlerVersion": "2.0",			
 			"settings": {
-			  "fileUris": "[variables('scriptUrl')]"
+			  "fileUris": ["[variables('scriptUrl')]"]
 			},
 			"protectedSettings": {
 				"commandToExecute": "[variables('commandToExe')]"
