@@ -4,7 +4,8 @@
 	"variables":{	
 		"qx_nic_name":"nic_for_centos_qx",
 		"virtualMachineQxName": "centos-qx-vm",
-		"publicIpAddressNameVMCentosQX": "centos_ip_qx"	
+		"publicIpAddressNameVMCentosQX": "centos_ip_qx",
+		"nsg_management_name" : "nsg_qx"
 	},
 	"parameters":{
 		"adminUsername": {
@@ -18,7 +19,7 @@
 		"virtualNetworks_mgmt_vnet_name": {
 			"defaultValue": "management_vnet",
 			"type": "String"
-		},		
+		},
 		"storageAccountName":{
 			"type":"string"
 		},
@@ -30,16 +31,13 @@
 		}
 	},
 	"resources":[		
-	
-	
-	
 		{
 			"name": "[variables('virtualMachineQxName')]",
 			"type": "Microsoft.Compute/virtualMachines",
 			"apiVersion": "2015-06-15",
 			"location": "[resourceGroup().location]",
 			"dependsOn": [
-				"[concat('Microsoft.Network/networkInterfaces/', variables('qx_nic_name'))]"
+				"[concat('Microsoft.Network/networkInterfaces/', variables('qx_nic_name'))]"				
 			],
 			"properties": {
 				"osProfile": {
@@ -79,24 +77,51 @@
 				"name": "[variables('qx_nic_name')]",
 				"type": "Microsoft.Network/networkInterfaces",
 				"apiVersion": "2016-09-01",
-				"location": "[resourceGroup().location]",				
-				"properties": {
+				"location": "[resourceGroup().location]",
+				"dependsOn": [					
+					"[concat('Microsoft.Network/publicIpAddresses/', variables('publicIpAddressNameVMCentosQX'))]",
+					"[concat('Microsoft.Network/networkSecurityGroups/', variables('nsg_management_name'))]"
+				],
+				"properties": {			
+					"networkSecurityGroup": {
+						  "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsg_management_name'))]"
+					},
 					"ipConfigurations": [
 						{
 							"name": "ipconfig2",
 							"properties": {
-								"subnet": {  
-									"id":"[parameters('SubnetRef')]"
-								},
-								"privateIPAllocationMethod": "Dynamic"
+									"subnet": {  
+										"id":"[parameters('SubnetRef')]"
+									},
+									"privateIPAllocationMethod": "Dynamic"			
 							}
 						}
 					]
 				}
-		}						
+		},
+		{
+		  "apiVersion": "2016-06-01",
+		  "type": "Microsoft.Network/networkSecurityGroups",
+		  "name": "[variables('nsg_management_name')]",
+		  "location": "[resourceGroup().location]",
+		  "properties": {
+			"securityRules": [
+			  {
+				"name": "first_rule",
+				"properties": {
+				  "description": "This is the second rule",
+				  "protocol": "Tcp",
+				  "sourcePortRange": "*",
+				  "destinationPortRange": "443",
+				  "sourceAddressPrefix": "*",
+				  "destinationAddressPrefix": "*",
+				  "access": "Allow",
+				  "priority": 1000,
+				  "direction": "Inbound"
+				}
+			  }
+			]
+		  }
+		}
 	]
-	
-	
-	
-	
 }
