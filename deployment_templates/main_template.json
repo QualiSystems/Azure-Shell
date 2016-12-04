@@ -58,8 +58,7 @@
 		}
 	},
 	"variables": {
-		"nsg_management_name" : "nsg_management",          		           
-		"localGatewayName": "local_getway_network",
+		"nsg_management_name" : "nsg_management",          		           		
 	    "apiVersion": "2016-06-01",
 		"storageAccountName": "[concat(uniquestring(resourceGroup().id), 'strg')]",
 		"vNet1": {
@@ -203,7 +202,8 @@
         },
         "parameters": {          
           "virtualNetworks_mgmt_vnet_name": { "value": "[parameters('virtualNetworks_mgmt_vnet_name')]" },		  
-		  "gatewaySubnetRef":{"value":"[variables('gatewaySubnetRef')]"}
+		  "gatewaySubnetRef":{"value":"[variables('gatewaySubnetRef')]"},
+		  "on_premise_CIDR":{"value":"[parameters('on_premise_CIDR')]"}
         }
       }
     },	
@@ -357,20 +357,6 @@
           }
         ]
       }
-    },
-	{
-		"apiVersion": "2015-06-15",
-		"type": "Microsoft.Network/localNetworkGateways",
-		"name": "[variables('localGatewayName')]",
-		"location": "[resourceGroup().location]",
-		"properties": {
-		  "localNetworkAddressSpace": {
-			"addressPrefixes": [
-			  "[parameters('on_premise_CIDR')]"
-			]
-		  },
-		  "gatewayIpAddress": "[parameters('vpn_address')]"
-		}
-	}	
+    }	
 	]
 }

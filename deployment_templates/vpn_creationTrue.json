@@ -3,7 +3,8 @@
 	"contentVersion": "1.0.0.0"	,
 	"variables":{	
 		"gatewayPublicIPName" : "[concat(uniquestring('azureGatewayPIP'),'_vpn_public_ip')]",
-		"gateway_vpn_name" :"[concat(uniqueString('vpn'),'_vpn')]"
+		"gateway_vpn_name" :"[concat(uniqueString('vpn'),'_vpn')]",
+		"localGatewayName": "local_getway_network",
 	},
 	"parameters":{	
 		"virtualNetworks_mgmt_vnet_name": {
@@ -12,6 +13,9 @@
 		},
 		"gatewaySubnetRef":{
 			"type":"string"
+		},
+		"on_premise_CIDR": {			
+			"type": "String"
 		}
 	},
 	"resources":[
@@ -53,7 +57,25 @@
 		"properties": {
 		  "publicIPAllocationMethod": "Dynamic"
 		}
+	},
+	
+	
+	,
+	{
+		"apiVersion": "2015-06-15",
+		"type": "Microsoft.Network/localNetworkGateways",
+		"name": "[variables('localGatewayName')]",
+		"location": "[resourceGroup().location]",
+		"properties": {
+		  "localNetworkAddressSpace": {
+			"addressPrefixes": [
+			  "[parameters('on_premise_CIDR')]"
+			]
+		  },
+		  "gatewayIpAddress": "[parameters('vpn_address')]"
+		}
 	}
+	
 	],
 	"outputs": {
 		"VPNPublicIp": {
