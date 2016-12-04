@@ -75,17 +75,15 @@
 				}
 			}
 		},			
-		
-		
-		
+
+
+
 		{
 		  "type": "Microsoft.Compute/virtualMachines/extensions",
-		  "name": "[concat('qx_script_', 'vm/ext')]",
+		  "name": "[concat('qx_script_vm')]",
 		  "apiVersion": "2015-06-15",
 		  "location": "[resourceGroup().location]",
-		  "dependsOn": [
-                "[concat('Microsoft.Compute/virtualMachines/', variables('virtualMachineQxName'))]"
-            ],		  
+		  "dependsOn": ["[concat('Microsoft.Compute/virtualMachines/', variables('virtualMachineQxName'))]"],
 		  "properties": {
 			"publisher": "Microsoft.Azure.Extensions",
 			"type": "CustomScript",
@@ -95,11 +93,14 @@
 			},
 			"protectedSettings": {
 				"commandToExecute": "[variables('commandToExe')]"
-			}			
+			}
 		  }
 		},
 	
-	
+
+
+
+
 		{
 				"name": "[variables('qx_nic_name')]",
 				"type": "Microsoft.Network/networkInterfaces",
