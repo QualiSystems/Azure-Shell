@@ -109,7 +109,7 @@
 			}
 		},
 		{
-		  "apiVersion": "[variables('apiVersion')]",
+		  "apiVersion": "2016-06-01",
 		  "type": "Microsoft.Network/networkSecurityGroups",
 		  "name": "[variables('nsg_management_name')]",
 		  "location": "[resourceGroup().location]",
