@@ -1,6 +1,5 @@
-import traceback
+from functools import partial
 
-from azure.mgmt.network.models import Subnet
 from msrestazure.azure_exceptions import CloudError
 from retrying import retry
 
@@ -37,31 +36,42 @@ class DeleteAzureVMOperation(object):
         logger.info("Start Cleanup Connectivity operation")
         result = {'success': True}
 
-        try:
-            logger.info("Removing NSG from the subnet...")
-            self.remove_nsg_from_subnet(network_client=network_client, cloud_provider_model=cloud_provider_model,
-                                        resource_group_name=resource_group_name,
-                                        logger=logger)
+        remove_nsg_from_subnet_command = partial(self.remove_nsg_from_subnet,
+                                                 network_client=network_client,
+                                                 cloud_provider_model=cloud_provider_model,
+                                                 resource_group_name=resource_group_name,
+                                                 logger=logger)
 
-            logger.info("Deleting sandbox subnet...")
-            self.delete_sandbox_subnet(network_client=network_client, cloud_provider_model=cloud_provider_model,
-                                       resource_group_name=resource_group_name,
-                                       logger=logger)
+        delete_sandbox_subnet_command = partial(self.delete_sandbox_subnet,
+                                                network_client=network_client,
+                                                cloud_provider_model=cloud_provider_model,
+                                                resource_group_name=resource_group_name,
+                                                logger=logger)
 
-            logger.info("Deleting resource group...")
-            self.delete_resource_group(resource_client=resource_client, group_name=resource_group_name)
+        delete_resource_group_command = partial(self.delete_resource_group,
+                                                resource_client=resource_client,
+                                                group_name=resource_group_name,
+                                                logger=logger)
 
-        except Exception as ex:
-            logger.exception("Error in cleanup connectivity. Error: ")
+        errors = []
+        for command in (remove_nsg_from_subnet_command, delete_sandbox_subnet_command, delete_resource_group_command):
+            try:
+                command()
+            except Exception as e:
+                logger.exception("Error in cleanup connectivity. Error: ")
+                errors.append(e.message)
+
+        if errors:
             result['success'] = False
-            result['errorMessage'] = 'CleanupConnectivity ended with the error: {0}'.format(ex.message)
+            result['errorMessage'] = 'CleanupConnectivity ended with the error(s): {}'.format(errors)
 
         return result
 
     @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def remove_nsg_from_subnet(self, network_client, resource_group_name, cloud_provider_model, logger):
-        management_group_name = cloud_provider_model.management_group_name
+        logger.info("Removing NSG from the subnet...")
 
+        management_group_name = cloud_provider_model.management_group_name
         logger.info("Retrieving sandbox vNet from MGMT group {}".format(management_group_name))
         sandbox_virtual_network = self.network_service.get_sandbox_virtual_network(network_client=network_client,
                                                                                    group_name=management_group_name,
@@ -71,10 +81,9 @@ class DeleteAzureVMOperation(object):
                       None)
 
         if subnet is None:
-            logger.error("Could not find subnet {} in resource group {} to delete it".format(
+            logger.warning("Could not find subnet {} in resource group {} to detach NSG".format(
                 resource_group_name, management_group_name))
-
-            raise Exception("Could not find a valid subnet.")
+            return
 
         subnet.network_security_group = None
 
@@ -83,11 +92,14 @@ class DeleteAzureVMOperation(object):
                                            subnet.name, subnet)
 
     @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
-    def delete_resource_group(self, resource_client, group_name):
+    def delete_resource_group(self, resource_client, group_name, logger):
+        logger.info("Deleting resource group...")
         self.vm_service.delete_resource_group(resource_management_client=resource_client, group_name=group_name)
 
     @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def delete_sandbox_subnet(self, network_client, cloud_provider_model, resource_group_name, logger):
+        logger.info("Deleting sandbox subnet...")
+
         logger.info("Retrieving sandbox vNet from MGMT group {}".format(cloud_provider_model.management_group_name))
         sandbox_virtual_network = self.network_service.get_sandbox_virtual_network(network_client=network_client,
                                                                                    group_name=cloud_provider_model.management_group_name,
@@ -95,11 +107,11 @@ class DeleteAzureVMOperation(object):
 
         subnet = next((subnet for subnet in sandbox_virtual_network.subnets if subnet.name == resource_group_name),
                       None)
-        if subnet is None:
-            logger.error("Could not find subnet {} in resource group {} to delete it".format(
-                resource_group_name, cloud_provider_model.management_group_name))
 
-            raise Exception("Could not find a valid subnet.")
+        if subnet is None:
+            logger.warning("Could not find subnet {} in resource group {} to delete it".format(
+                resource_group_name, cloud_provider_model.management_group_name))
+            return
 
         network_client.subnets.delete(cloud_provider_model.management_group_name, sandbox_virtual_network.name,
                                       subnet.name)
