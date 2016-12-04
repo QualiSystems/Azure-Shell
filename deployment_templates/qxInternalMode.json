@@ -3,8 +3,7 @@
 	"contentVersion": "1.0.0.0"	,
 	"variables":{	
 		"qx_nic_name":"nic_for_centos_qx",
-		"virtualMachineQxName": "centos-qx-vm",
-		"publicIpAddressNameVMCentosQX": "centos_ip_qx",
+		"virtualMachineQxName": "centos-qx-vm",		
 		"nsg_management_name" : "nsg_qx"
 	},
 	"parameters":{
@@ -78,8 +77,7 @@
 				"type": "Microsoft.Network/networkInterfaces",
 				"apiVersion": "2016-09-01",
 				"location": "[resourceGroup().location]",
-				"dependsOn": [					
-					"[concat('Microsoft.Network/publicIpAddresses/', variables('publicIpAddressNameVMCentosQX'))]",
+				"dependsOn": [										
 					"[concat('Microsoft.Network/networkSecurityGroups/', variables('nsg_management_name'))]"
 				],
 				"properties": {			
