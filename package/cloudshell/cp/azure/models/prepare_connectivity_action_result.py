@@ -10,3 +10,4 @@ class PrepareConnectivityActionResult(object):
         self.storage_name = ''
         self.type = 'PrepareNetwork'
         self.access_key = ''
+        self.secret_key = ''
