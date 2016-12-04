@@ -38,6 +38,20 @@ class TestRulesAttributeParser(TestCase):
         self.assertIs(parsed_rule, expected_rule)
 
     @mock.patch("cloudshell.cp.azure.domain.services.parsers.rules_attribute_parser.RuleData")
+    def test_single_port_parse_with_uppercase_protocol(self, rule_data_class):
+        """Check that method will return RuleData instance with correct attributes when protocol is in upper case"""
+        test_rule_data = "80:UDP"
+        expected_rule = mock.MagicMock()
+        rule_data_class.return_value = expected_rule
+
+        # Act
+        parsed_rule = self.tested_class._single_port_parse(test_rule_data)
+
+        # Verify
+        rule_data_class.assert_called_once_with(port='80', protocol='udp')
+        self.assertIs(parsed_rule, expected_rule)
+
+    @mock.patch("cloudshell.cp.azure.domain.services.parsers.rules_attribute_parser.RuleData")
     def test_single_port_parse_single_port_with_protocol(self, rule_data_class):
         """Check that method will return RuleData instance with correct attributes"""
         test_rule_data = "80:udp"
