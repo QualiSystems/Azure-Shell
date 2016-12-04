@@ -4,7 +4,9 @@
 	"variables":{	
 		"qx_nic_name":"nic_for_centos_qx",
 		"virtualMachineQxName": "centos-qx-vm",		
-		"nsg_management_name" : "nsg_qx"
+		"nsg_management_name" : "nsg_qx",
+		"scriptUrl":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/feature/gil_create_json_deploy/deployment_templates/guacamole-quali-install.sh",
+		"commandToExe":"sh guacamole-quali-install.sh"
 	},
 	"parameters":{
 		"adminUsername": {
@@ -72,6 +74,30 @@
 				}
 			}
 		},	
+		
+		
+		
+		{
+		  "type": "Microsoft.Compute/virtualMachines/extensions",
+		  "name": "[concat(variables('virtualMachineQxName'),'/qsScript')]",
+		  "apiVersion": "2015-06-15",
+		  "location": "[resourceGroup().location]",
+		  "dependsOn": ["[concat('Microsoft.Compute/virtualMachines/', variables('virtualMachineQxName'))]"],
+		  "properties": {
+			"publisher": "Microsoft.Azure.Extensions",
+			"type": "CustomScript",
+			"typeHandlerVersion": "2.0",			
+			"settings": {
+			  "fileUris": ["[variables('scriptUrl')]"]
+			},
+			"protectedSettings": {
+				"commandToExecute": "[variables('commandToExe')]"
+			}
+		  }
+		},
+		
+		
+		
 		{
 				"name": "[variables('qx_nic_name')]",
 				"type": "Microsoft.Network/networkInterfaces",
