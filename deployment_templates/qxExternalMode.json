@@ -78,8 +78,8 @@
 		  "name": "[concat('qx_script_', 'vm/ext')]",
 		  "apiVersion": "2015-06-15",
 		  "location": "[resourceGroup().location]",
-		  "dependsOn": [
-				"[concat('Microsoft.Compute/virtualMachines/', [variables('virtualMachineQxName')])]"				
+		  "dependsOn": [				
+				"[concat('Microsoft.Compute/virtualMachines/', variables('virtualMachineQxName'))]"								
 		  ],
 		  "properties": {
 			"publisher": "Microsoft.Azure.Extensions",
