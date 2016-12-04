@@ -86,9 +86,7 @@
 			"type": "CustomScript",
 			"typeHandlerVersion": "1.0",			
 			"settings": {
-			  "fileUris": [
-				"fileUris": ["https://raw.githubusercontent.com/QualiSystems/Azure-Shell/feature/gil_create_json_deploy/deployment_templates/guacamole-quali-install.sh"]
-			  ]
+			  "fileUris": ["https://raw.githubusercontent.com/QualiSystems/Azure-Shell/feature/gil_create_json_deploy/deployment_templates/guacamole-quali-install.sh"]			 
 			},
 			"commandToExecute": "sh guacamole-quali-install.sh",			
 		  }
