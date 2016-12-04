@@ -94,7 +94,9 @@
 									"publicIpAddress": {
 										"id": "[resourceId('Microsoft.Network/publicIpAddresses', variables('publicIpAddressNameVMCentosQX'))]"
 									},
-									"networkSecurityGroup": {"id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsg_management_name'))]"}																	
+									"networkSecurityGroup": {
+										  "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsg_management_name'))]"
+									}			
 							}
 						}
 					]
