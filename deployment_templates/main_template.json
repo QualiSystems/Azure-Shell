@@ -147,6 +147,10 @@
 	
 	
 	
+
+
+
+
 	
 	
 	
@@ -158,7 +162,7 @@
 	
     {
       "apiVersion": "2015-01-01",
-      "name": "sbn0",
+      "name": "qxDeployment",
       "type": "Microsoft.Resources/deployments",
 	  "dependsOn": [
 		"[concat('Microsoft.Storage/storageAccounts/', variables('storageAccountName'))]",
@@ -185,7 +189,7 @@
 	
     {
       "apiVersion": "2015-01-01",
-      "name": "sbn0",
+      "name": "vpnDeployment",
       "type": "Microsoft.Resources/deployments",
 	  "dependsOn": [
 	  "[concat('Microsoft.Network/publicIPAddresses/', variables('gatewayPublicIPName'))]",
@@ -195,7 +199,7 @@
       "properties": {
         "mode": "incremental",
         "templateLink": {
-          "uri": "[concat(variables('qx_template_location'),'qx',parameters('externalMode'),'Mode.json')]",
+          "uri": "[concat(variables('vpn_template_location'),'vpn_creation',parameters('createWithVpn'),'.json')]",
           "contentVersion": "1.0.0.0"
         },
         "parameters": {          
@@ -211,6 +215,13 @@
 
 
 
+
+
+
+
+
+
+	
 
 
 
