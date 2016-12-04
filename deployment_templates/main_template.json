@@ -48,7 +48,7 @@
 		"virtualNetworks_sandbox_vnet_name": "sandbox_vnet",
 		"nsg_management_name" : "nsg_es",
 	    "apiVersion": "2016-06-01",
-		"storageAccountName": "[concat('storageAccount_'uniquestring(resourceGroup().id))]",
+		"storageAccountName": "[concat('storageAccount_',uniquestring(resourceGroup().id))]",
 		"vNet1": {
 			"peeringName": "vNet_mgmt-to-vNet_sndbx"
 		},
