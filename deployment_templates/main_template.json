@@ -46,7 +46,7 @@
 		"storageAccountType": "Standard_LRS",
 		"virtualNetworks_mgmt_vnet_name": "management_vnet",
 		"virtualNetworks_sandbox_vnet_name": "sandbox_vnet",
-		"nsg_management_name" : "nsg_management",          		           		
+		"nsg_management_name" : "nsg_es",
 	    "apiVersion": "2016-06-01",
 		"storageAccountName": "[concat('storageAccount_'uniquestring(resourceGroup().id))]",
 		"vNet1": {
@@ -311,24 +311,7 @@
       "type": "Microsoft.Network/networkSecurityGroups",
       "name": "[variables('nsg_management_name')]",
       "location": "[resourceGroup().location]",
-      "properties": {
-        "securityRules": [
-		  {
-            "name": "first_rule",
-            "properties": {
-              "description": "This is the second rule",
-              "protocol": "Tcp",
-              "sourcePortRange": "*",
-              "destinationPortRange": "443",
-              "sourceAddressPrefix": "*",
-              "destinationAddressPrefix": "*",
-              "access": "Allow",
-              "priority": 1000,
-              "direction": "Inbound"
-            }
-          }
-        ]
-      }
+      "properties": {"securityRules": []}
     }	
 	]
 }

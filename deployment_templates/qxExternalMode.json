@@ -4,7 +4,8 @@
 	"variables":{	
 		"qx_nic_name":"nic_for_centos_qx",
 		"virtualMachineQxName": "centos-qx-vm",
-		"publicIpAddressNameVMCentosQX": "centos_ip_qx"	
+		"publicIpAddressNameVMCentosQX": "centos_ip_qx",
+		"nsg_management_name" : "nsg_qx"
 	},
 	"parameters":{
 		"adminUsername": {
@@ -78,7 +79,8 @@
 				"apiVersion": "2016-09-01",
 				"location": "[resourceGroup().location]",
 				"dependsOn": [					
-					"[concat('Microsoft.Network/publicIpAddresses/', variables('publicIpAddressNameVMCentosQX'))]"
+					"[concat('Microsoft.Network/publicIpAddresses/', variables('publicIpAddressNameVMCentosQX'))]",
+					"[concat('Microsoft.Network/networkSecurityGroups/', variables('nsg_management_name'))]"
 				],
 				"properties": {
 					"ipConfigurations": [
@@ -105,7 +107,31 @@
 			"properties": {
 				"publicIPAllocationMethod": "Static"
 			}
-		}	
+		},
+		{
+		  "apiVersion": "[variables('apiVersion')]",
+		  "type": "Microsoft.Network/networkSecurityGroups",
+		  "name": "[variables('nsg_management_name')]",
+		  "location": "[resourceGroup().location]",
+		  "properties": {
+			"securityRules": [
+			  {
+				"name": "first_rule",
+				"properties": {
+				  "description": "This is the second rule",
+				  "protocol": "Tcp",
+				  "sourcePortRange": "*",
+				  "destinationPortRange": "443",
+				  "sourceAddressPrefix": "*",
+				  "destinationAddressPrefix": "*",
+				  "access": "Allow",
+				  "priority": 1000,
+				  "direction": "Inbound"
+				}
+			  }
+			]
+		  }
+		}		
 		
 		
 	],
