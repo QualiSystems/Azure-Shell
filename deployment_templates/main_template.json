@@ -26,7 +26,7 @@
 			"type":"string",
 			"defaultValue":"External",
 			"allowedValues":["External","Internal"]
-		}			
+		},			
 		"createWithVpn":{
 			"type":"string",
 			"defaultValue":"False",
