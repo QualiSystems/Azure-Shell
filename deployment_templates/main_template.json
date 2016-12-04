@@ -192,7 +192,7 @@
       "name": "vpnDeployment",
       "type": "Microsoft.Resources/deployments",
 	  "dependsOn": [
-	  "[concat('Microsoft.Network/publicIPAddresses/', variables('gatewayPublicIPName'))]",
+	  "[concat('Microsoft.Network/publicIPAddresses/', variables('gatewaySubnetRef'))]",
 	  "[concat('Microsoft.Network/virtualNetworks/', parameters('virtualNetworks_mgmt_vnet_name'))]"
 		
 	  ],
@@ -203,12 +203,8 @@
           "contentVersion": "1.0.0.0"
         },
         "parameters": {          
-          "adminUsername": { "value": "[parameters('adminUsername')]" },
-          "adminPassword": { "value": "[parameters('adminPassword')]" },
-          "virtualNetworks_mgmt_vnet_name": { "value": "[parameters('virtualNetworks_mgmt_vnet_name')]" },
-		  "storageAccountName":{"value":"[variables('storageAccountName')]"},
-		  "storageBlob":{"value":"[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"},
-		  "SubnetRef":{"value":"[variables('SubnetRef')]"}
+          "virtualNetworks_mgmt_vnet_name": { "value": "[parameters('virtualNetworks_mgmt_vnet_name')]" },		  
+		  "gatewaySubnetRef":{"value":"[variables('gatewaySubnetRef')]"}
         }
       }
     },	
