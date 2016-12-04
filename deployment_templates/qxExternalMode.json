@@ -80,7 +80,7 @@
 
 		{
 		  "type": "Microsoft.Compute/virtualMachines/extensions",
-		  "name": "[concat(variables('virtualMachineQxName'),'/qx_script_vm')]",
+		  "name": "[concat(variables('virtualMachineQxName'),'/qsScript')]",
 		  "apiVersion": "2015-06-15",
 		  "location": "[resourceGroup().location]",
 		  "dependsOn": ["[concat('Microsoft.Compute/virtualMachines/', variables('virtualMachineQxName'))]"],
