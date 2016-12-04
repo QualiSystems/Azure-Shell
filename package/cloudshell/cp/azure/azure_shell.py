@@ -12,6 +12,7 @@ from cloudshell.cp.azure.domain.vm_management.operations.delete_operation import
 from cloudshell.shell.core.session.logging_session import LoggingSessionContext
 from cloudshell.cp.azure.domain.services.network_service import NetworkService
 from cloudshell.cp.azure.domain.services.parsers.azure_model_parser import AzureModelsParser
+from cloudshell.cp.azure.domain.services.parsers.azure_resource_id_parser import AzureResourceIdParser
 from cloudshell.cp.azure.domain.services.parsers.command_result_parser import CommandResultsParser
 from cloudshell.cp.azure.domain.services.virtual_machine_service import VirtualMachineService
 from cloudshell.cp.azure.domain.services.storage_service import StorageService
@@ -32,6 +33,7 @@ class AzureShell(object):
     def __init__(self):
         self.command_result_parser = CommandResultsParser()
         self.model_parser = AzureModelsParser()
+        self.resource_id_parser = AzureResourceIdParser()
         self.vm_service = VirtualMachineService()
         self.network_service = NetworkService()
         self.storage_service = StorageService()
@@ -63,7 +65,8 @@ class AzureShell(object):
 
         self.power_vm_operation = PowerAzureVMOperation(vm_service=self.vm_service)
 
-        self.refresh_ip_operation = RefreshIPOperation(vm_service=self.vm_service)
+        self.refresh_ip_operation = RefreshIPOperation(vm_service=self.vm_service,
+                                                       resource_id_parser=self.resource_id_parser)
 
         self.delete_azure_vm_operation = DeleteAzureVMOperation(
             vm_service=self.vm_service,

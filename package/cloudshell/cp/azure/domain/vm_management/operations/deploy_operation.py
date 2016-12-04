@@ -179,6 +179,8 @@ class DeployAzureVMOperation(object):
         vm_name = random_name
         group_name = str(reservation_id)
 
+        self._validate_deployment_model(azure_vm_deployment_model)
+
         logger.info("Retrieve sandbox subnet {}".format(group_name))
         subnet = self._get_sandbox_subnet(network_client=network_client,
                                           cloud_provider_model=cloud_provider_model,
@@ -333,6 +335,8 @@ class DeployAzureVMOperation(object):
         computer_name = random_name
         vm_name = random_name
 
+        self._validate_deployment_model(azure_vm_deployment_model)
+
         logger.info("Retrieve sandbox subnet {}".format(group_name))
         subnet = self._get_sandbox_subnet(network_client=network_client,
                                           cloud_provider_model=cloud_provider_model,
@@ -456,6 +460,10 @@ class DeployAzureVMOperation(object):
                             deployed_app_address=private_ip_address,
                             public_ip=public_ip_address,
                             resource_group=reservation_id)
+
+    def _validate_deployment_model(self, vm_deployment_model):
+        if vm_deployment_model.inbound_ports and not vm_deployment_model.add_public_ip:
+            raise Exception('"Inbound Ports" attribute must be empty when "Add Public IP" is false')
 
     def _validate_resource_is_single_per_group(self, resources_list, group_name, resource_name):
         if len(resources_list) > 1:
