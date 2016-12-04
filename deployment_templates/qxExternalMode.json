@@ -76,7 +76,7 @@
 		{
 		  "type": "Microsoft.Compute/virtualMachines/extensions",
 		  "name": "[concat('qx_script_', 'vm/ext')]",
-		  "apiVersion": "2015-05-01-preview",
+		  "apiVersion": "2015-06-15",
 		  "location": "[resourceGroup().location]",
 		  "dependsOn": [
 				"[concat('Microsoft.Compute/virtualMachines/', [variables('virtualMachineQxName')])]"				
@@ -84,7 +84,7 @@
 		  "properties": {
 			"publisher": "Microsoft.Azure.Extensions",
 			"type": "CustomScript",
-			"typeHandlerVersion": "1.0",			
+			"typeHandlerVersion": "2.0",			
 			"settings": {
 			  "fileUris": ["https://raw.githubusercontent.com/QualiSystems/Azure-Shell/feature/gil_create_json_deploy/deployment_templates/guacamole-quali-install.sh"]
 			},
