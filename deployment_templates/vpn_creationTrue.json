@@ -54,5 +54,11 @@
 		  "publicIPAllocationMethod": "Dynamic"
 		}
 	}
-	]	
+	],
+	"outputs": {
+		"VPNPublicIp": {
+		  "value": "[reference(variables('gatewayPublicIPName')).ipAddress]",
+		  "type": "string"
+		}
+	}	
 }
