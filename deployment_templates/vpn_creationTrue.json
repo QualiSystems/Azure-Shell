@@ -20,7 +20,7 @@
 		"type": "Microsoft.Network/virtualNetworkGateways",
 		"name": "[variables('gateway_vpn_name')]",  
 		"location": "[resourceGroup().location]",
-		"dependsOn": [],
+		"dependsOn": ["[concat('Microsoft.Network/publicIPAddresses/', variables('gatewayPublicIPName'))]"],
 		"properties": {
 		  "ipConfigurations": [
 			{
@@ -44,6 +44,15 @@
 		  "vpnType": "RouteBased",
 		  "enableBgp": "false"
 		}
-	}	
+	},
+	{
+		"apiVersion": "2015-06-15",
+		"type": "Microsoft.Network/publicIPAddresses",
+		"name": "[variables('gatewayPublicIPName')]",
+		"location": "[resourceGroup().location]",
+		"properties": {
+		  "publicIPAllocationMethod": "Dynamic"
+		}
+	}
 	]	
 }
