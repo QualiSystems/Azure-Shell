@@ -74,8 +74,8 @@
 		"location": "[resourceGroup().location]",
 		"es_nic_name":"nic_for_centos_es",
 		"virtualMachineEsName": "centos-es-vm",		
-		"qx_template_location":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/feature/gil_create_json_deploy/deployment_templates/".
-		"vpn_template_location":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/feature/gil_create_json_deploy/deployment_templates/".
+		"qx_template_location":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/feature/gil_create_json_deploy/deployment_templates/",
+		"vpn_template_location":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/feature/gil_create_json_deploy/deployment_templates/"
 	},
 	"resources": [
 	{
@@ -191,8 +191,7 @@
       "apiVersion": "2015-01-01",
       "name": "vpnDeployment",
       "type": "Microsoft.Resources/deployments",
-	  "dependsOn": [
-	  "[concat('Microsoft.Network/publicIPAddresses/', variables('gatewaySubnetRef'))]",
+	  "dependsOn": [	  
 	  "[concat('Microsoft.Network/virtualNetworks/', parameters('virtualNetworks_mgmt_vnet_name'))]"
 		
 	  ],

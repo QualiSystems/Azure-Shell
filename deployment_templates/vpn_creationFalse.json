@@ -4,6 +4,13 @@
 	"variables":{			
 	},
 	"parameters":{	
+		"virtualNetworks_mgmt_vnet_name": {
+			"defaultValue": "management_vnet",
+			"type": "String"
+		},
+		"gatewaySubnetRef":{
+			"type":"string"
+		}
 	},
 	"resources":[]	
 }
