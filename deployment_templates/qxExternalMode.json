@@ -82,7 +82,10 @@
 					"[concat('Microsoft.Network/publicIpAddresses/', variables('publicIpAddressNameVMCentosQX'))]",
 					"[concat('Microsoft.Network/networkSecurityGroups/', variables('nsg_management_name'))]"
 				],
-				"properties": {
+				"properties": {			
+					"networkSecurityGroup": {
+						  "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsg_management_name'))]"
+					},
 					"ipConfigurations": [
 						{
 							"name": "ipconfig2",
@@ -93,9 +96,6 @@
 									"privateIPAllocationMethod": "Dynamic",
 									"publicIpAddress": {
 										"id": "[resourceId('Microsoft.Network/publicIpAddresses', variables('publicIpAddressNameVMCentosQX'))]"
-									},
-									"networkSecurityGroup": {
-										  "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsg_management_name'))]"
 									}			
 							}
 						}
