@@ -87,13 +87,14 @@
 						{
 							"name": "ipconfig2",
 							"properties": {
-								"subnet": {  
-									"id":"[parameters('SubnetRef')]"
-								},
-								"privateIPAllocationMethod": "Dynamic",
-								"publicIpAddress": {
-									"id": "[resourceId('Microsoft.Network/publicIpAddresses', variables('publicIpAddressNameVMCentosQX'))]"
-								}
+									"subnet": {  
+										"id":"[parameters('SubnetRef')]"
+									},
+									"privateIPAllocationMethod": "Dynamic",
+									"publicIpAddress": {
+										"id": "[resourceId('Microsoft.Network/publicIpAddresses', variables('publicIpAddressNameVMCentosQX'))]"
+									},
+									"networkSecurityGroup": {"id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsg_management_name'))]"}																	
 							}
 						}
 					]
@@ -131,9 +132,7 @@
 			  }
 			]
 		  }
-		}		
-		
-		
+		}
 	],
 	"outputs": {
 		"QualiXPublicIp": {
