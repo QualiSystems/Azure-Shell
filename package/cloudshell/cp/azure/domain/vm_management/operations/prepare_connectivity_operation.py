@@ -150,24 +150,28 @@ class PrepareConnectivityOperation(object):
     def _create_storage_and_keypairs(self, logger, storage_client, storage_account_name, group_name,
                                      cloud_provider_model, tags, action_result):
 
-        # 2. Create a storage account
-        logger.info("Creating a storage account {0} .".format(storage_account_name))
-        self.storage_service.create_storage_account(storage_client=storage_client,
-                                                    group_name=group_name,
-                                                    region=cloud_provider_model.region,
-                                                    storage_account_name=storage_account_name,
-                                                    tags=tags,
-                                                    wait_until_created=True)
-        # 3 Create a Key pair for the sandbox
-        logger.info("Creating an SSH key pair in the storage account {}".format(storage_account_name))
-        key_pair = self._create_key_pair(group_name=group_name,
-                                         storage_account_name=storage_account_name,
-                                         storage_client=storage_client)
+        try:
+            # 2. Create a storage account
+            logger.info("Creating a storage account {0} .".format(storage_account_name))
+            self.storage_service.create_storage_account(storage_client=storage_client,
+                                                        group_name=group_name,
+                                                        region=cloud_provider_model.region,
+                                                        storage_account_name=storage_account_name,
+                                                        tags=tags,
+                                                        wait_until_created=True)
+            # 3 Create a Key pair for the sandbox
+            logger.info("Creating an SSH key pair in the storage account {}".format(storage_account_name))
+            key_pair = self._create_key_pair(group_name=group_name,
+                                             storage_account_name=storage_account_name,
+                                             storage_client=storage_client)
 
-        cryptography_dto = self.cryptography_service.encrypt(key_pair.private_key)
+            cryptography_dto = self.cryptography_service.encrypt(key_pair.private_key)
 
-        action_result.access_key = cryptography_dto.encrypted_input
-        action_result.secret_key = cryptography_dto.encrypted_asymmetric_key
+            action_result.access_key = cryptography_dto.encrypted_input
+            action_result.secret_key = cryptography_dto.encrypted_asymmetric_key
+        except Exception as exc:
+            logger.error(traceback.format_exc())
+            raise
 
         return True
 
