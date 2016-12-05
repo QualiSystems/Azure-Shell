@@ -1,12 +1,12 @@
 #!/bin/bash
 
 REQUIRED_MONO_VERSION="4.0.1"
+ES_DOWNLOAD_LINK="https://s3.amazonaws.com/alex-az/ExecutionServer.tar"
 
-execution_server_path=${1}  # "/home/adminuser/ExecutionServer"
-cs_server_host=${2}  # "192.168.120.20"
-cs_server_user=${3}  # "user"
-cs_server_pass=${4}  # "userassword"
-es_name=${5}  # "ES_NAME"
+cs_server_host=${1}  # "192.168.120.20"
+cs_server_user=${2}  # "user"
+cs_server_pass=${3}  # "userassword"
+es_name=${4}  # "ES_NAME"
 
 
 command_exists () {
@@ -65,12 +65,18 @@ setup_supervisor() {
 	echo -e '\n[program:cloudshell_execution_server]\ncommand=/usr/bin/mono '$execution_server_path'/QsExecutionServer.exe console\nenvironment=MONO_IOMAP=all\n' >> /etc/supervisord.conf
 }
 
+# download ES
+wget $ES_DOWNLOAD_LINK -O es.tar
+mkdir ExecutionServer
+tar -xf es.tar -C ExecutionServer/ --strip-components=1
+execution_server_path=$(pwd)"/ExecutionServer"
+
 if [command_exists mono]
 	then
 		echo "Mono installed, checking version..."
 		res=$(mono -V);
 	
-		if ! [contains "res" REQUIRED_MONO_VERSION]
+		if ! [contains "res" $REQUIRED_MONO_VERSION]
 			then
 				echo "Mono Version is not $REQUIRED_MONO_VERSION"
 				unistall_mono_old_version
