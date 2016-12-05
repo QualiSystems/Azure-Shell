@@ -2,15 +2,11 @@
 
 REQUIRED_MONO_VERSION="4.0.1"
 
-
-
-# assume that these variable will be passed somehow, maybe as ENV variables
-execution_server_path="/home/adminuser/ExecutionServer"
-cs_server_host="192.168.120.20"
-cs_server_user="admin"
-cs_server_pass="admin"
-es_name="TEST_ES_NAME"
-
+execution_server_path=${1}  # "/home/adminuser/ExecutionServer"
+cs_server_host=${2}  # "192.168.120.20"
+cs_server_user=${3}  # "user"
+cs_server_pass=${4}  # "userassword"
+es_name=${5}  # "ES_NAME"
 
 
 command_exists () {

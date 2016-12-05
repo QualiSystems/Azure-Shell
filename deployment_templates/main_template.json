@@ -75,7 +75,7 @@
 		"scriptUrl":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/feature/gil_create_json_deploy/deployment_templates/guacamole-quali-install.sh",
 		"commandToExe":"sh guacamole-quali-install.sh",
 		"scriptUrlES":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/feature/gil_create_json_deploy/deployment_templates/cloudshell_install_script.sh",
-		"commandToExeES":"sh cloudshell_install_script.sh",
+		"commandToExeES":"[concat('sudo /bin/sh cloudshell_install_script.sh ', '/home/adminuser/ExecutionServer ', parameters('qauliServerIP '),parameters('qauliServerUser '), parameters('qauliServerPassword '),variables('virtualMachineEsName') )]"
 	},
 	"resources": [
 	{
