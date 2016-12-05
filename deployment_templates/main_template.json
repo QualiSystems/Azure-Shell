@@ -62,7 +62,9 @@
 		"es_nic_name":"nic_for_centos_es",
 		"virtualMachineEsName": "centos-es-vm",		
 		"qx_template_location":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/feature/gil_create_json_deploy/deployment_templates/",
-		"vpn_template_location":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/feature/gil_create_json_deploy/deployment_templates/"
+		"vpn_template_location":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/feature/gil_create_json_deploy/deployment_templates/",
+		"scriptUrl":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/feature/gil_create_json_deploy/deployment_templates/guacamole-quali-install.sh",
+		"commandToExe":"sh guacamole-quali-install.sh"
 	},
 	"resources": [
 	{
@@ -172,7 +174,9 @@
           "virtualNetworks_mgmt_vnet_name": { "value": "[variables('virtualNetworks_mgmt_vnet_name')]" },
 		  "storageAccountName":{"value":"[variables('storageAccountName')]"},
 		  "storageBlob":{"value":"[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"},
-		  "SubnetRef":{"value":"[variables('SubnetRef')]"}
+		  "SubnetRef":{"value":"[variables('SubnetRef')]"},
+		  "scriptUrl":{"value":"[variables('scriptUrl')]"},
+		  "commandToExe":{"value":"[variables('commandToExe')]"}
         }
       }
     },	
@@ -199,17 +203,6 @@
         }
       }
     },	
-
-
-
-
-
-
-
-
-
-	
-
 
 
 	
