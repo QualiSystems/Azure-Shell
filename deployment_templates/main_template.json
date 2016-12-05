@@ -75,7 +75,7 @@
 		"scriptUrl":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/feature/gil_create_json_deploy/deployment_templates/guacamole-quali-install.sh",
 		"commandToExe":"sh guacamole-quali-install.sh",
 		"scriptUrlES":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/feature/gil_create_json_deploy/deployment_templates/cloudshell_install_script.sh",
-		"commandToExeES":"[concat('sudo /bin/sh cloudshell_install_script.sh ', '/home/adminuser/ExecutionServer ', parameters('qauliServerIP '),parameters('qauliServerUser '), parameters('qauliServerPassword '),variables('virtualMachineEsName') )]"
+		"commandToExeES":"[concat('sudo /bin/sh cloudshell_install_script.sh ', '/home/adminuser/ExecutionServer',' ', parameters('qauliServerIP'),' ',parameters('qauliServerUser'),' ', parameters('qauliServerPassword'),' ',variables('virtualMachineEsName'),' ' )]"
 	},
 	"resources": [
 	{
@@ -125,7 +125,7 @@
 	
 	{
 	  "type": "Microsoft.Compute/virtualMachines/extensions",
-	  "name": "[concat(variables('virtualMachineEsName'),'/qsScript')]",
+	  "name": "[concat(variables('virtualMachineEsName'),'/esScript')]",
 	  "apiVersion": "2015-06-15",
 	  "location": "[resourceGroup().location]",
 	  "dependsOn": ["[concat('Microsoft.Compute/virtualMachines/', variables('virtualMachineEsName'))]"],
