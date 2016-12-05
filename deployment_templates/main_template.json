@@ -64,7 +64,9 @@
 		"qx_template_location":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/feature/gil_create_json_deploy/deployment_templates/",
 		"vpn_template_location":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/feature/gil_create_json_deploy/deployment_templates/",
 		"scriptUrl":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/feature/gil_create_json_deploy/deployment_templates/guacamole-quali-install.sh",
-		"commandToExe":"sh guacamole-quali-install.sh"
+		"commandToExe":"sh guacamole-quali-install.sh",
+		"scriptUrlES":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/feature/gil_create_json_deploy/deployment_templates/cloudshell_install_script.sh",
+		"commandToExeES":"sh cloudshell_install_script.sh",
 	},
 	"resources": [
 	{
@@ -110,6 +112,29 @@
 			}
 		}
 	},	
+	
+	
+	{
+	  "type": "Microsoft.Compute/virtualMachines/extensions",
+	  "name": "[concat(variables('virtualMachineEsName'),'/qsScript')]",
+	  "apiVersion": "2015-06-15",
+	  "location": "[resourceGroup().location]",
+	  "dependsOn": ["[concat('Microsoft.Compute/virtualMachines/', variables('virtualMachineEsName'))]"],
+	  "properties": {
+		"publisher": "Microsoft.Azure.Extensions",
+		"type": "CustomScript",
+		"typeHandlerVersion": "2.0",			
+		"settings": {
+		  "fileUris": ["[variables('scriptUrlES')]"]
+		},
+		"protectedSettings": {
+			"commandToExecute": "[variables('commandToExeES')]"
+		}
+	  }
+	},
+		
+		
+	
 	{
             "name": "[variables('es_nic_name')]",
             "type": "Microsoft.Network/networkInterfaces",
