@@ -80,28 +80,7 @@
 		},	
 		
 		
-		
-		{
-		  "type": "Microsoft.Compute/virtualMachines/extensions",
-		  "name": "[concat(variables('virtualMachineQxName'),'/qsScript')]",
-		  "apiVersion": "2015-06-15",
-		  "location": "[resourceGroup().location]",
-		  "dependsOn": ["[concat('Microsoft.Compute/virtualMachines/', variables('virtualMachineQxName'))]"],
-		  "properties": {
-			"publisher": "Microsoft.Azure.Extensions",
-			"type": "CustomScript",
-			"typeHandlerVersion": "2.0",			
-			"settings": {
-			  "fileUris": ["[parameters('scriptUrl')]"]
-			},
-			"protectedSettings": {
-				"commandToExecute": "[parameters('commandToExe')]"
-			}
-		  }
-		},
-		
-		
-		
+				
 		{
 				"name": "[variables('qx_nic_name')]",
 				"type": "Microsoft.Network/networkInterfaces",
