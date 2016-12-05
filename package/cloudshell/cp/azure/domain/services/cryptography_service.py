@@ -17,12 +17,13 @@ class CryptographyService(object):
     def __init__(self):
         """
         """
+        self.rsa_service = RsaService()
 
     def encrypt(self, input):
         secret_key = base64.b64encode(os.urandom(16))
 
         encrypted_input = AESCipher(secret_key).encrypt(input)
-        encrypted_secret_key = RsaService.encrypt(secret_key)
+        encrypted_secret_key = self.rsa_service.encrypt(secret_key)
 
         cryptography_dto = CryptographyDto()
         cryptography_dto.encrypted_input = encrypted_input
