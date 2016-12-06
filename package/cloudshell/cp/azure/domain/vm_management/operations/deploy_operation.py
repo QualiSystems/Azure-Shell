@@ -153,6 +153,15 @@ class DeployAzureVMOperation(object):
 
             return ip_address
 
+    def _prepare_computer_name(self, name):
+        """Prepare computer name for the VM
+
+        :param name: (str) app_name name
+        :return: (str) computer name
+        """
+        # max length for the Windows computer name must 15
+        return OperationsHelper.generate_name(name, length=15)
+
     def deploy_from_custom_image(self, azure_vm_deployment_model, cloud_provider_model, reservation, network_client,
                                  compute_client, storage_client, validator_factory, logger):
         """Deploy Azure VM from custom image URN
@@ -175,7 +184,7 @@ class DeployAzureVMOperation(object):
         random_name = OperationsHelper.generate_name(base_name)
         interface_name = random_name
         ip_name = random_name
-        computer_name = random_name
+        computer_name = self._prepare_computer_name(random_name)
         vm_name = random_name
         group_name = str(reservation_id)
 
@@ -332,7 +341,7 @@ class DeployAzureVMOperation(object):
         group_name = str(reservation_id)
         interface_name = random_name
         ip_name = random_name
-        computer_name = random_name
+        computer_name = self._prepare_computer_name(random_name)
         vm_name = random_name
 
         self._validate_deployment_model(azure_vm_deployment_model)
