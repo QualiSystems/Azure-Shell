@@ -8,7 +8,6 @@ class BaseDeployAzureVMResourceModel(object):
         self.autoload = False  # type: bool
         self.add_public_ip = False  # type: bool
         self.inbound_ports = ''  # type: str
-        self.outbound_ports = ''  # type: str
         self.public_ip_type = ''  # type: str
         self.app_name = ''  # type: str
         self.username = ''  # type: str

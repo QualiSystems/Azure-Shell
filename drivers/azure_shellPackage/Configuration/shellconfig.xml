@@ -12,16 +12,11 @@
             <Attributes>
                 <Attribute Name="Region" Value="" />
                 <Attribute Value="" Name="Instance Type"/>
-                <Attribute Value="" Name="Azure Mgmt NSG ID"/>
-                <Attribute Value="" Name="Azure Mgmt Network ID"/>
-                <Attribute Value="" Name="Keypairs Location"/>
                 <Attribute Value="" Name="Networks In Use"/>
                 <Attribute Value="" Name="Azure Subscription ID"/>
                 <Attribute Value="" Name="Azure Tenant"/>
                 <Attribute Value="" Name="Azure Secret"/>
                 <Attribute Value="" Name="Azure Client ID"/>
-                <Attribute Value="" Name="Azure Mgmt VNET"/>
-                <Attribute Value="" Name="Storage Type"/>
                 <Attribute Value="" Name="Management Group Name"/>
             </Attributes>
         </ResourceTemplate>

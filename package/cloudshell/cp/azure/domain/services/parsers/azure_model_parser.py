@@ -28,7 +28,6 @@ class AzureModelsParser(object):
         deployment_resource_model.group_name = data_holder.ami_params.group_name
         deployment_resource_model.inbound_ports = data_holder.ami_params.inbound_ports
         deployment_resource_model.instance_type = data_holder.ami_params.instance_type
-        deployment_resource_model.outbound_ports = data_holder.ami_params.outbound_ports
         deployment_resource_model.public_ip_type = data_holder.ami_params.public_ip_type
         deployment_resource_model.vm_name = data_holder.ami_params.vm_name
         deployment_resource_model.wait_for_ip = data_holder.ami_params.wait_for_ip
@@ -78,16 +77,12 @@ class AzureModelsParser(object):
         resource_context = resource.attributes
         azure_resource_model = AzureCloudProviderResourceModel()
         azure_resource_model.azure_client_id = resource_context['Azure Client ID']
-        azure_resource_model.azure_mgmt_network_d = resource_context['Azure Mgmt Network ID']
-        azure_resource_model.azure_mgmt_nsg_id = resource_context['Azure Mgmt NSG ID']
         azure_resource_model.azure_secret = resource_context['Azure Secret']
         azure_resource_model.azure_subscription_id = resource_context['Azure Subscription ID']
         azure_resource_model.azure_tenant = resource_context['Azure Tenant']
         azure_resource_model.instance_type = resource_context['Instance Type']
-        azure_resource_model.keypairs_location = resource_context['Keypairs Location']
         azure_resource_model.networks_in_use = resource_context['Networks In Use']
         azure_resource_model.region = resource_context['Region']
-        azure_resource_model.storage_type = resource_context['Storage Type']
         azure_resource_model.management_group_name = resource_context['Management Group Name']
 
         return azure_resource_model

@@ -68,7 +68,6 @@ class TestAzureModelsParser(TestCase):
         self.assertEqual(deploy_azure_vm_model.group_name, data_holder.ami_params.group_name)
         self.assertEqual(deploy_azure_vm_model.inbound_ports, data_holder.ami_params.inbound_ports)
         self.assertEqual(deploy_azure_vm_model.instance_type, data_holder.ami_params.instance_type)
-        self.assertEqual(deploy_azure_vm_model.outbound_ports, data_holder.ami_params.outbound_ports)
         self.assertEqual(deploy_azure_vm_model.public_ip_type, data_holder.ami_params.public_ip_type)
         self.assertEqual(deploy_azure_vm_model.vm_name, data_holder.ami_params.vm_name)
         self.assertEqual(deploy_azure_vm_model.wait_for_ip, data_holder.ami_params.wait_for_ip)
@@ -107,16 +106,12 @@ class TestAzureModelsParser(TestCase):
         test_resource = mock.Mock()
         test_resource.attributes = {}
         test_resource.attributes["Azure Client ID"] = test_azure_client_id = mock.MagicMock()
-        test_resource.attributes["Azure Mgmt Network ID"] = test_azure_mgmt_id = mock.MagicMock()
-        test_resource.attributes["Azure Mgmt NSG ID"] = test_azure_mgmt_nsg_id = mock.MagicMock()
         test_resource.attributes["Azure Secret"] = test_azure_secret = mock.MagicMock()
         test_resource.attributes["Azure Subscription ID"] = test_azure_subscription_id = mock.MagicMock()
         test_resource.attributes["Azure Tenant"] = test_azure_tenant = mock.MagicMock()
         test_resource.attributes["Instance Type"] = test_instance_type = mock.MagicMock()
-        test_resource.attributes["Keypairs Location"] = test_keypairts_location = mock.MagicMock()
         test_resource.attributes["Networks In Use"] = test_networks_in_use = mock.MagicMock()
         test_resource.attributes["Region"] = test_region = mock.MagicMock()
-        test_resource.attributes["Storage Type"] = test_storage_type = mock.MagicMock()
         test_resource.attributes["Management Group Name"] = test_mgmt_group_name = mock.MagicMock()
 
         # Act
@@ -125,16 +120,12 @@ class TestAzureModelsParser(TestCase):
         # Verify
         self.assertIs(result, azure_cp_model)
         self.assertEqual(result.azure_client_id, test_azure_client_id)
-        self.assertEqual(result.azure_mgmt_network_d, test_azure_mgmt_id)
-        self.assertEqual(result.azure_mgmt_nsg_id, test_azure_mgmt_nsg_id)
         self.assertEqual(result.azure_secret, test_azure_secret)
         self.assertEqual(result.azure_subscription_id, test_azure_subscription_id)
         self.assertEqual(result.azure_tenant, test_azure_tenant)
         self.assertEqual(result.instance_type, test_instance_type)
-        self.assertEqual(result.keypairs_location, test_keypairts_location)
         self.assertEqual(result.networks_in_use, test_networks_in_use)
         self.assertEqual(result.region, test_region)
-        self.assertEqual(result.storage_type, test_storage_type)
         self.assertEqual(result.management_group_name, test_mgmt_group_name)
 
     @mock.patch("cloudshell.cp.azure.domain.services.parsers.azure_model_parser.ReservationModel")
