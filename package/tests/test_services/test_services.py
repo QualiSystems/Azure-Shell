@@ -1282,3 +1282,15 @@ class TestTagService(TestCase):
         tag_key = "MyKey"
         tag_value = self.tags_service.try_find_tag(tags_list=tags_list, tag_key=tag_key)
         self.assertEquals(tag_value, "Val1")
+
+    def test_cryptography_service(self):
+        # Arrange
+        plain_text = "password"
+        self.crypto_service = CryptographyService()
+
+        # Act
+        encrypted_text = self.crypto_service.encrypt(plain_text)
+
+        # Verify
+        # self.assertEqual(plain_text, result)
+        # no check - just verify there is no exception
