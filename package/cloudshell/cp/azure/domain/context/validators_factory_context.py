@@ -8,7 +8,7 @@ class ValidatorsFactoryContext(object):
 
         # Adding subnet validator
         storage_validation_rule_none_vnet = StorageValidationRuleOneVnet('StorageValidationRuleNoneVnet',
-                                                                         'Resource Group should contain Only One Storage.')
+                                                                         'Resource Group should contain Only One Storage')
 
         self.validator_factory.add_validator(StorageValidator([storage_validation_rule_none_vnet]))
 
