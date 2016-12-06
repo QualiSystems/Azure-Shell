@@ -455,3 +455,15 @@ class TestDeployAzureVMOperation(TestCase):
 
         with self.assertRaises(Exception):
             self.deploy_operation._validate_resource_is_single_per_group(resource_list, group_name, resource_name)
+
+    @mock.patch("cloudshell.cp.azure.domain.vm_management.operations.deploy_operation.OperationsHelper.generate_name")
+    def test_prepare_computer_name(self, generate_name):
+        """Check that method will use OperationsHelper.generate_name to process computer name"""
+        computer_name = MagicMock()
+        generate_name.return_value = computer_name
+        name = "test_name"
+        # Act
+        res = self.deploy_operation._prepare_computer_name(name)
+        # Verify
+        generate_name.assert_called_once_with(name, length=15)
+        self.assertEqual(res, computer_name)
