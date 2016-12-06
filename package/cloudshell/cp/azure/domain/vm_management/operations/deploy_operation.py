@@ -1,7 +1,6 @@
 from azure.mgmt.storage.models import StorageAccount
 from azure.mgmt.compute.models import OperatingSystemTypes
 
-from cloudshell.cp.azure.common.operations_helper import OperationsHelper
 from cloudshell.cp.azure.models.deploy_result_model import DeployResult
 from cloudshell.cp.azure.domain.services.parsers.rules_attribute_parser import RulesAttributeParser
 
@@ -16,7 +15,8 @@ class DeployAzureVMOperation(object):
                  vm_credentials_service,
                  key_pair_service,
                  tags_service,
-                 security_group_service):
+                 security_group_service,
+                 name_provider_service):
         """
 
         :param cloudshell.cp.azure.domain.services.virtual_machine_service.VirtualMachineService vm_service:
@@ -26,6 +26,7 @@ class DeployAzureVMOperation(object):
         :param cloudshell.cp.azure.domain.services.key_pair.KeyPairService key_pair_service:
         :param cloudshell.cp.azure.domain.services.tags.TagService tags_service:
         :param cloudshell.cp.azure.domain.services.security_group.SecurityGroupService security_group_service:
+        :param cloudshell.cp.azure.domain.services.name_provider.NameProviderService name_provider_service:
         :return:
         """
         self.vm_service = vm_service
@@ -35,6 +36,7 @@ class DeployAzureVMOperation(object):
         self.key_pair_service = key_pair_service
         self.tags_service = tags_service
         self.security_group_service = security_group_service
+        self.name_provider_service = name_provider_service
 
     def _process_nsg_rules(self, network_client, group_name, azure_vm_deployment_model, nic, logger):
         """Create Network Security Group rules if needed
@@ -158,7 +160,7 @@ class DeployAzureVMOperation(object):
         :return: (str) computer name
         """
         # max length for the Windows computer name must 15
-        return OperationsHelper.generate_name(name, length=15)
+        return self.name_provider_service.generate_name(name, length=15)
 
     def deploy_from_custom_image(self, azure_vm_deployment_model, cloud_provider_model, reservation, network_client,
                                  compute_client, storage_client, validator_factory, logger):
@@ -179,7 +181,7 @@ class DeployAzureVMOperation(object):
         app_name = azure_vm_deployment_model.app_name.lower().replace(" ", "")
         resource_name = app_name
         base_name = resource_name
-        random_name = OperationsHelper.generate_name(base_name)
+        random_name = self.name_provider_service.generate_name(base_name)
         interface_name = random_name
         ip_name = random_name
         computer_name = self._prepare_computer_name(random_name)
@@ -334,7 +336,7 @@ class DeployAzureVMOperation(object):
         app_name = azure_vm_deployment_model.app_name.replace(" ", "")
         resource_name = app_name
         base_name = resource_name
-        random_name = OperationsHelper.generate_name(base_name)
+        random_name = self.name_provider_service.generate_name(base_name)
         group_name = str(reservation_id)
         interface_name = random_name
         ip_name = random_name
