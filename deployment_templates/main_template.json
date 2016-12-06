@@ -75,7 +75,8 @@
 		"scriptUrl":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/feature/gil_create_json_deploy/deployment_templates/guacamole-quali-install.sh",
 		"commandToExe":"sh guacamole-quali-install.sh",
 		"scriptUrlES":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/feature/gil_create_json_deploy/deployment_templates/cloudshell_install_script.sh",
-		"commandToExeES":"[concat('echo ',parameters('adminPassword'),' | sudo -S /bin/sh cloudshell_install_script.sh ', parameters('qualiServerIP'),' ',parameters('qualiServerUser'),' ', parameters('qualiServerPassword'),' ',variables('virtualMachineEsName'),' ? script.log 2>&1 ' )]"
+		"commandToExeES":"[concat('echo ',parameters('adminPassword'),' | sudo -S /bin/sh cloudshell_install_script.sh ', parameters('qualiServerIP'),' ',parameters('qualiServerUser'),' ', parameters('qualiServerPassword'),' ',variables('virtualMachineEsName'),' ? script.log 2>&1 ' )]",
+		"vmSize":"Standard_A3"
 	},
 	"resources": [
 	{
@@ -94,7 +95,7 @@
 				"adminPassword": "[parameters('adminPassword')]"
 			},
 			"hardwareProfile": {
-				"vmSize": "Standard_A3"
+				"vmSize": "[variables('vmSize')]"
 			},
 			"storageProfile": {
 				"imageReference": {
@@ -210,7 +211,8 @@
 		  "storageBlob":{"value":"[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"},
 		  "SubnetRef":{"value":"[variables('SubnetRef')]"},
 		  "scriptUrl":{"value":"[variables('scriptUrl')]"},
-		  "commandToExe":{"value":"[variables('commandToExe')]"}
+		  "commandToExe":{"value":"[variables('commandToExe')]"},
+		  "vmSize":{"value":"[variables('vmSize')]"}
         }
       }
     },	

@@ -7,6 +7,9 @@
 		"nsg_management_name" : "nsg_qx"
 	},
 	"parameters":{
+		"vmSize":{
+			"type": "String"
+		},
 		"adminUsername": {
             "type": "string",
 			"defaultValue": "giluser"
@@ -51,7 +54,7 @@
 					"adminPassword": "[parameters('adminPassword')]"
 				},
 				"hardwareProfile": {
-					"vmSize": "Standard_A3"
+					"vmSize": "[parameters('vmSize')]"
 				},
 				"storageProfile": {
 					"imageReference": {
