@@ -175,10 +175,11 @@ class SecurityGroupService(object):
                     destination_addr=destination_addr,
                     priority=next(priority_generator))
 
-    def delete_security_rules(self, network_client, resource_group_name, vm_name):
+    def delete_security_rules(self, network_client, resource_group_name, vm_name, logger):
         """
         removes NSG inbound rules for virtual machine (based on private ip address)
 
+        :param logger:
         :param vm_name:
         :param network_client: azure.mgmt.network.NetworkManagementClient instance
         :param resource_group_name: resource group name (reservation id)
@@ -203,8 +204,11 @@ class SecurityGroupService(object):
             return
 
         for vm_rule in vm_rules:
-            network_client.security_rules.delete(
+            logger.info("Deleting security group rule '{}'.".format(vm_rule.name))
+            result = network_client.security_rules.delete(
                 resource_group_name=resource_group_name,
                 network_security_group_name=security_group.name,
                 security_rule_name=vm_rule.name
             )
+            result.wait()
+            logger.info("Security group rule '{}' deleted.".format(vm_rule.name))
