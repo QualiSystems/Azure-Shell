@@ -1238,7 +1238,7 @@ class TestSecurityGroupService(TestCase):
         self.network_service.get_private_ip = Mock(return_value=private_ip_address)
 
         # Act
-        self.security_group_service.delete_security_rules(network_client, resource_group_name, vm_name)
+        self.security_group_service.delete_security_rules(network_client, resource_group_name, vm_name, Mock())
 
         # Verify
         network_client.security_rules.delete.assert_called_once_with(
