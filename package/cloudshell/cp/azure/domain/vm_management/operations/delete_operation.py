@@ -123,7 +123,8 @@ class DeleteAzureVMOperation(object):
             logger.info("Deleting security group rules...")
             self.security_group_service.delete_security_rules(network_client=network_client,
                                                               resource_group_name=group_name,
-                                                              vm_name=vm_name)
+                                                              vm_name=vm_name,
+                                                              logger=logger)
 
             logger.info("Deleting VM {}...".format(vm_name))
             self.vm_service.delete_vm(compute_management_client=compute_client,
