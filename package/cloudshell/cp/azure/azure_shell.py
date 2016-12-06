@@ -111,6 +111,7 @@ class AzureShell(object):
                         validator_factory=validator_factory,
                         logger=logger)
 
+                    logger.info('End deploying Azure VM')
                     return self.command_result_parser.set_command_result(deploy_data)
 
     def deploy_vm_from_custom_image(self, command_context, deployment_request):
@@ -147,6 +148,7 @@ class AzureShell(object):
                         validator_factory=validator_factory,
                         logger=logger)
 
+                    logger.info('End deploying Azure VM From Custom Image')
                     return self.command_result_parser.set_command_result(deploy_data)
 
     def prepare_connectivity(self, context, request):
@@ -180,6 +182,7 @@ class AzureShell(object):
                     logger=logger,
                     request=prepare_connectivity_request)
 
+                logger.info('End Preparing Connectivity for Azure VM')
                 return self.command_result_parser.set_command_result({'driverResponse': {'actionResults': result}})
 
     def cleanup_connectivity(self, command_context):
@@ -200,6 +203,7 @@ class AzureShell(object):
                     resource_group_name=resource_group_name,
                     logger=logger)
 
+                logger.info('End Teardown')
                 return self.command_result_parser.set_command_result({'driverResponse': {'actionResults': [result]}})
 
     def delete_azure_vm(self, command_context):
@@ -223,6 +227,8 @@ class AzureShell(object):
                     group_name=resource_group_name,
                     vm_name=vm_name,
                     logger=logger)
+
+                logger.info('End Deleting Azure VM')
 
     def power_on_vm(self, command_context):
         """Power on Azure VM
