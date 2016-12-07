@@ -52,19 +52,19 @@
     <AttributeInfo Name="Generic Input" DefaultValue="" Description="" IsReadOnly="false" Type="String">
       <Rules/>
     </AttributeInfo>
-    <AttributeInfo Name="Region" DefaultValue="" Description="The public cloud region to be used by this cloud provider resource." IsReadOnly="false" Type="String">
+    <AttributeInfo Name="Region" DefaultValue="" Description="The Azure region to be used by this cloud provider resource." IsReadOnly="false" Type="String">
       <Rules>
         <Rule Name="Configuration" />
         <Rule Name="Setting" />
       </Rules>
     </AttributeInfo>
-    <AttributeInfo Name="Instance Type"  DefaultValue="" Description="The Microsoft Azure instance type. The instance type determines the CPU, memory and networking capacity of the instance. For example: Standard_A1-8v2." IsReadOnly="false" Type="String">
+    <AttributeInfo Name="Instance Type"  DefaultValue="" Description="The Microsoft Azure instance type. The instance type determines the CPU, memory and networking capacity of the VM. For example: “Standard_A1-8v2”." IsReadOnly="false" Type="String">
       <Rules>
         <Rule Name="Configuration" />
         <Rule Name="Setting" />
       </Rules>
     </AttributeInfo>
-    <AttributeInfo Name="Networks In Use"  DefaultValue="" Description="Reserved networks that will be excluded when allocating Sandbox networks. Should include at least the management network. The syntax is comma separated CIDRs. For example: 10.0.0.0/24, 10.1.0.0/16, 172.31.0.0/24." IsReadOnly="false" Type="String">
+    <AttributeInfo Name="Networks In Use"  DefaultValue="" Description="Reserved networks to be excluded when allocating Sandbox networks. The value should include at least the Management Network. The syntax is comma-separated CIDRs. For example: “10.0.0.0/24, 10.1.0.0/16, 172.31.0.0/24”." IsReadOnly="false" Type="String">
       <Rules>
         <Rule Name="Configuration" />
         <Rule Name="Setting" />
@@ -72,19 +72,19 @@
     </AttributeInfo>
 
     <!--Cloud Provider new Attributes-->
-    <AttributeInfo Name="Azure Subscription ID"  DefaultValue="" Description="" IsReadOnly="false" Type="String">
+    <AttributeInfo Name="Azure Subscription ID"  DefaultValue="" Description="The Subscription ID of the Azure user." IsReadOnly="false" Type="String">
       <Rules>
         <Rule Name="Configuration" />
         <Rule Name="Setting" />
       </Rules>
     </AttributeInfo>
-    <AttributeInfo Name="Azure Tenant"  DefaultValue="" Description="Typically a name of an organization, that uses the cloud services created and provisioned by a hosting service provider" IsReadOnly="false" Type="String">
+    <AttributeInfo Name="Azure Tenant"  DefaultValue="" Description="Typically a name of an organization, which uses the cloud services created and provisioned by a hosting service provider." IsReadOnly="false" Type="String">
       <Rules>
         <Rule Name="Configuration" />
         <Rule Name="Setting" />
       </Rules>
     </AttributeInfo>
-    <AttributeInfo Name="Azure Secret"  DefaultValue="" Description="Secret key associated with the Azure API web application. The secret key allows CloudShell to access the Azure API and is generated as part of the web application’s configuration process. For more information, see Configure Azure API to work with CloudShell." IsReadOnly="false" Type="Password">
+    <AttributeInfo Name="Azure Secret"  DefaultValue="" Description="Secret key associated with the Azure API web application. The secret key allows CloudShell to access the Azure API and is generated as part of the web application’s configuration process. For more information, see the “Configure Azure API to work with CloudShell” article in the CloudShell online help." IsReadOnly="false" Type="Password">
       <Rules>
         <Rule Name="Configuration" />
         <Rule Name="Setting" />
@@ -96,7 +96,7 @@
         <Rule Name="Setting" />
       </Rules>
     </AttributeInfo>
-    <AttributeInfo Name="Management Group Name"  DefaultValue="" Description="The Management Resource Group name." IsReadOnly="false" Type="String">
+    <AttributeInfo Name="Management Group Name"  DefaultValue="" Description="The name of the Management Resource Group." IsReadOnly="false" Type="String">
       <Rules>
         <Rule Name="Configuration" />
         <Rule Name="Setting" />
