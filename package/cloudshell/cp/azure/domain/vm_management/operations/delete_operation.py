@@ -1,9 +1,7 @@
 from functools import partial
+from threading import Lock
 
 from msrestazure.azure_exceptions import CloudError
-from retrying import retry
-
-from cloudshell.cp.azure.common.helpers.retrying_helpers import retry_if_connection_error
 
 
 class DeleteAzureVMOperation(object):
@@ -24,6 +22,7 @@ class DeleteAzureVMOperation(object):
         self.network_service = network_service
         self.tags_service = tags_service
         self.security_group_service = security_group_service
+        self.subnet_locker = Lock()
 
     def cleanup_connectivity(self, network_client, resource_client, cloud_provider_model, resource_group_name, logger):
         """
@@ -67,7 +66,6 @@ class DeleteAzureVMOperation(object):
 
         return result
 
-    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def remove_nsg_from_subnet(self, network_client, resource_group_name, cloud_provider_model, logger):
         logger.info("Removing NSG from the subnet...")
 
@@ -87,16 +85,18 @@ class DeleteAzureVMOperation(object):
 
         subnet.network_security_group = None
 
-        logger.info("Updating subnet {} with NSG set to null".format(subnet.name))
-        self.network_service.update_subnet(network_client, management_group_name, sandbox_virtual_network.name,
-                                           subnet.name, subnet)
+        """
+        This call is atomic because we have to sync subnet updating for the entire sandbox vnet
+        """
+        with self.subnet_locker:
+            logger.info("Updating subnet {} with NSG set to null".format(subnet.name))
+            self.network_service.update_subnet(network_client, management_group_name, sandbox_virtual_network.name,
+                                               subnet.name, subnet)
 
-    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def delete_resource_group(self, resource_client, group_name, logger):
         logger.info("Deleting resource group...")
         self.vm_service.delete_resource_group(resource_management_client=resource_client, group_name=group_name)
 
-    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def delete_sandbox_subnet(self, network_client, cloud_provider_model, resource_group_name, logger):
         logger.info("Deleting sandbox subnet...")
 
@@ -113,10 +113,11 @@ class DeleteAzureVMOperation(object):
                 resource_group_name, cloud_provider_model.management_group_name))
             return
 
-        network_client.subnets.delete(cloud_provider_model.management_group_name, sandbox_virtual_network.name,
-                                      subnet.name)
+        with self.subnet_locker:
+            logger.info("Deleting subnet {}".format(subnet.name))
+            network_client.subnets.delete(cloud_provider_model.management_group_name, sandbox_virtual_network.name,
+                                          subnet.name)
 
-    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def delete(self, compute_client, network_client, group_name, vm_name, logger):
         """
         :param group_name:

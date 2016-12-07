@@ -1,5 +1,8 @@
 import azure
 from azure.mgmt.network.models import NetworkInterface, NetworkInterfaceIPConfiguration, IPAllocationMethod
+from retrying import retry
+
+from cloudshell.cp.azure.common.helpers.retrying_helpers import retry_if_connection_error
 
 
 class NetworkService(object):
@@ -46,7 +49,7 @@ class NetworkService(object):
                 tags=tags)
 
         # 2. Create NIC
-        result = self.create_nic(interface_name,
+        nic = self.create_nic(interface_name,
                                  group_name,
                                  network_client,
                                  public_ip_address,
@@ -56,23 +59,18 @@ class NetworkService(object):
                                  tags)
 
         # 3. update the type of private ip from dynamic to static (ip itself must be supplied)
-        private_ip_address = result.result().ip_configurations[0].private_ip_address
-        self.create_nic_with_static_private_ip(interface_name,
-                                               group_name,
-                                               network_client,
-                                               private_ip_address,
-                                               public_ip_address,
-                                               region,
-                                               subnet,
-                                               tags)
+        private_ip_address = nic.ip_configurations[0].private_ip_address
 
-        network_interface = network_client.network_interfaces.get(
-            group_name,
-            interface_name,
-        )
+        return self.create_nic_with_static_private_ip(interface_name,
+                                                      group_name,
+                                                      network_client,
+                                                      private_ip_address,
+                                                      public_ip_address,
+                                                      region,
+                                                      subnet,
+                                                      tags)
 
-        return network_interface
-
+    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def create_nic_with_static_private_ip(self, interface_name, management_group_name, network_client,
                                           private_ip_address,
                                           public_ip_address, region, subnet, tags):
@@ -88,7 +86,7 @@ class NetworkService(object):
         :param tags:
         :return:
         """
-        result = network_client.network_interfaces.create_or_update(
+        operation_poller = network_client.network_interfaces.create_or_update(
             management_group_name,
             interface_name,
             NetworkInterface(
@@ -105,8 +103,10 @@ class NetworkService(object):
                 tags=tags
             ),
         )
-        result.wait()
 
+        return operation_poller.result()
+
+    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def create_nic(self, interface_name, management_group_name, network_client, public_ip_address, region, subnet,
                    private_ip_allocation_method, tags):
         """
@@ -121,7 +121,7 @@ class NetworkService(object):
         :param tags:
         :return:
         """
-        result = network_client.network_interfaces.create_or_update(
+        operation_poller = network_client.network_interfaces.create_or_update(
             management_group_name,
             interface_name,
             NetworkInterface(
@@ -137,9 +137,10 @@ class NetworkService(object):
                 tags=tags
             ),
         )
-        result.wait()
-        return result
 
+        return operation_poller.result()
+
+    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def _create_public_ip(self, network_client, region, group_name, ip_name, public_ip_type, tags):
         """Create Azure Public IP resource
 
@@ -186,6 +187,7 @@ class NetworkService(object):
 
         return allocation_type
 
+    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def create_subnet(self, network_client,
                       resource_group_name,
                       subnet_name,
@@ -208,15 +210,17 @@ class NetworkService(object):
         :return:
         """
 
-        result = network_client.subnets.create_or_update(resource_group_name,
-                                                         virtual_network.name,
-                                                         subnet_name,
-                                                         azure.mgmt.network.models.Subnet(address_prefix=subnet_cidr,
-                                                                                          network_security_group=network_security_group))
+        operation_poller = network_client.subnets.create_or_update(resource_group_name,
+                                                                   virtual_network.name,
+                                                                   subnet_name,
+                                                                   azure.mgmt.network.models.Subnet(
+                                                                       address_prefix=subnet_cidr,
+                                                                       network_security_group=network_security_group))
 
         if wait_for_result:
-            result.wait()
+            return operation_poller.result()
 
+    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def update_subnet(self, network_client, resource_group_name, virtual_network_name, subnet_name, subnet):
         """
 
@@ -226,12 +230,13 @@ class NetworkService(object):
         :param subnet_name:
         :param azure.mgmt.network.models.Subnet subnet:
         """
-        result = network_client.subnets.create_or_update(resource_group_name,
-                                                         virtual_network_name,
-                                                         subnet_name,
-                                                         subnet)
-        result.wait()
+        operation_poller = network_client.subnets.create_or_update(resource_group_name,
+                                                                   virtual_network_name,
+                                                                   subnet_name,
+                                                                   subnet)
+        return operation_poller.result()
 
+    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def create_virtual_network(self, management_group_name,
                                network_client,
                                network_name,
@@ -279,6 +284,7 @@ class NetworkService(object):
         subnet = network_client.subnets.get(management_group_name, network_name, subnet_name)
         return subnet
 
+    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def get_public_ip(self, network_client, group_name, ip_name):
         """
 
@@ -290,6 +296,7 @@ class NetworkService(object):
 
         return network_client.public_ip_addresses.get(group_name, ip_name)
 
+    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def get_private_ip(self, network_client, group_name, vm_name):
         """
 
@@ -300,6 +307,7 @@ class NetworkService(object):
         nic = network_client.network_interfaces.get(group_name, vm_name)
         return nic.ip_configurations[0].private_ip_address
 
+    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def delete_nic(self, network_client, group_name, interface_name):
         """
 
@@ -312,6 +320,7 @@ class NetworkService(object):
 
         result.wait()
 
+    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def delete_ip(self, network_client, group_name, ip_name):
         """
 
@@ -322,6 +331,7 @@ class NetworkService(object):
         """
         result = network_client.public_ip_addresses.delete(group_name, ip_name)
 
+    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def get_virtual_networks(self, network_client, group_name):
         """
 

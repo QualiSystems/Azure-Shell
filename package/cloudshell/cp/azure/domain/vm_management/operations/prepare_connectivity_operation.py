@@ -1,13 +1,10 @@
 import traceback
 from multiprocessing.pool import ThreadPool
 from threading import Lock
+
 from azure.mgmt.network.models import SecurityRuleProtocol, SecurityRule, SecurityRuleAccess
-from msrest.exceptions import ClientRequestError
-from requests.packages.urllib3.exceptions import ConnectionError
-from retrying import retry
 
 from cloudshell.cp.azure.common.exceptions.virtual_network_not_found_exception import VirtualNetworkNotFoundException
-from cloudshell.cp.azure.common.helpers.retrying_helpers import retry_if_connection_error
 from cloudshell.cp.azure.domain.services.network_service import NetworkService
 from cloudshell.cp.azure.models.prepare_connectivity_action_result import PrepareConnectivityActionResult
 
@@ -47,7 +44,6 @@ class PrepareConnectivityOperation(object):
         self.name_provider_service = name_provider_service
         self.subnet_locker = Lock()
 
-    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def prepare_connectivity(self,
                              reservation,
                              cloud_provider_model,
