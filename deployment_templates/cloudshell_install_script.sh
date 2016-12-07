@@ -39,7 +39,6 @@ install_mono () {
 	rpm --import xamarin.gpg
 	# Add Mono repository
 	yum-config-manager --add-repo http://download.mono-project.com/repo/centos/
-	yes | yum install epel-release
 	yum -y update
 	# Install Mono
 	yes | yum install mono-devel-4.0.1 --skip-broken
@@ -63,6 +62,7 @@ setup_supervisor() {
 }
 
 # Install Python pip
+yes | yum install epel-release
 yes | yum -y install python-pip
 yes | pip install -U pip
 
