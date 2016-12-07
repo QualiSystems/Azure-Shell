@@ -1,14 +1,9 @@
-import traceback
 from multiprocessing.pool import ThreadPool
 from threading import Lock
+
 from azure.mgmt.network.models import SecurityRuleProtocol, SecurityRule, SecurityRuleAccess
-from msrest.exceptions import ClientRequestError
-from requests.packages.urllib3.exceptions import ConnectionError
-from retrying import retry
 
 from cloudshell.cp.azure.common.exceptions.virtual_network_not_found_exception import VirtualNetworkNotFoundException
-from cloudshell.cp.azure.common.helpers.retrying_helpers import retry_if_connection_error
-from cloudshell.cp.azure.common.operations_helper import OperationsHelper
 from cloudshell.cp.azure.domain.services.network_service import NetworkService
 from cloudshell.cp.azure.models.prepare_connectivity_action_result import PrepareConnectivityActionResult
 
@@ -23,7 +18,8 @@ class PrepareConnectivityOperation(object):
                  tags_service,
                  key_pair_service,
                  security_group_service,
-                 cryptography_service):
+                 cryptography_service,
+                 name_provider_service):
         """
 
         :param cloudshell.cp.azure.domain.services.virtual_machine_service.VirtualMachineService vm_service:
@@ -33,6 +29,7 @@ class PrepareConnectivityOperation(object):
         :param cloudshell.cp.azure.domain.services.key_pair.KeyPairService key_pair_service:
         :param cloudshell.cp.azure.domain.services.security_group.SecurityGroupService security_group_service:
         :param cloudshell.cp.azure.domain.services.cryptography_service.CryptographyService cryptography_service:
+        :param cloudshell.cp.azure.domain.services.name_provider.NameProviderService name_provider_service:
         :return:
         """
 
@@ -43,9 +40,9 @@ class PrepareConnectivityOperation(object):
         self.tags_service = tags_service
         self.key_pair_service = key_pair_service
         self.security_group_service = security_group_service
+        self.name_provider_service = name_provider_service
         self.subnet_locker = Lock()
 
-    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def prepare_connectivity(self,
                              reservation,
                              cloud_provider_model,
@@ -76,7 +73,7 @@ class PrepareConnectivityOperation(object):
         self.vm_service.create_resource_group(resource_management_client=resource_client, group_name=group_name,
                                               region=cloud_provider_model.region, tags=tags)
 
-        storage_account_name = OperationsHelper.generate_name(reservation_id)
+        storage_account_name = self.name_provider_service.generate_name(reservation_id)
 
         # 2+3. create storage account and keypairs (async)
         pool = ThreadPool()
@@ -112,7 +109,7 @@ class PrepareConnectivityOperation(object):
         self._validate_sandbox_vnet(sandbox_vnet)
 
         # 4. Create the NSG object
-        security_group_name = OperationsHelper.generate_name(reservation_id)
+        security_group_name = self.name_provider_service.generate_name(reservation_id)
         logger.info("Creating a network security group '{}' .".format(security_group_name))
         network_security_group = self.security_group_service.create_network_security_group(
             network_client=network_client,
