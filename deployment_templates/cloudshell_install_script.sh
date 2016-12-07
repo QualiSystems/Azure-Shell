@@ -44,9 +44,6 @@ install_mono () {
 	# Install Mono
 	yes | yum install mono-devel-4.0.1 --skip-broken
 	yes | yum install mono-complete-4.0.1 --skip-broken
-	# Install Python pip
-	yes | yum -y install python-pip
-	yes | pip install -U pip
 	# Install required stuff to build cryptography package
 	yes | yum -y install gcc 
 	yes | yum -y install python-devel
@@ -62,8 +59,12 @@ setup_supervisor() {
 	yes | yum install supervisor
 	# create config file
 	echo_supervisord_conf > /etc/supervisord.conf
-	echo -e '\n[program:cloudshell_execution_server]\ndirectory='$execution_server_path'\ncommand=/usr/bin/mono QsExecutionServer.exe console\nenvironment=MONO_IOMAP=all\n' >> /etc/supervisord.conf
+	echo -e '\n[program:cloudshell_execution_server]\ndirectory='$execution_server_path'\ncommand=/bin/bash -c "/usr/bin/mono QsExecutionServerConsoleConfig.exe /s:'$cs_server_host' /u:'$cs_server_user' /p:'$cs_server_pass' /esn:'$es_name' && /usr/bin/mono QsExecutionServer.exe console"\nenvironment=MONO_IOMAP=all\n' >> /etc/supervisord.conf
 }
+
+# Install Python pip
+yes | yum -y install python-pip
+yes | pip install -U pip
 
 # download ES
 wget $ES_DOWNLOAD_LINK -O es.tar
@@ -91,12 +92,9 @@ setup_supervisor
 # install virtualenv
 pip install virtualenv
 
-python_path=$(which python)
-
-/usr/bin/mono $execution_server_path/QsExecutionServerConsoleConfig.exe /s:$cs_server_host /u:$cs_server_user /p:$cs_server_pass /esn:$es_name
-
 # add python path to customer.config
-sed -i "s~</appSettings>~<add key='ScriptRunnerExecutablePath' value='${python_path}' />\n</appSettings>~g" customer.config
+# python_path=$(which python)
+# sed -i "s~</appSettings>~<add key='ScriptRunnerExecutablePath' value='${python_path}' />\n</appSettings>~g" customer.config
 
 service supervisord start
 
