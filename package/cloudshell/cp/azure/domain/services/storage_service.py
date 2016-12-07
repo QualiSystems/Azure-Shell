@@ -9,7 +9,9 @@ from azure.mgmt.storage.models import SkuName, StorageAccountCreateParameters
 from azure.storage.file import FileService
 from azure.storage.blob import BlockBlobService
 from azure.storage.blob.models import BlobPermissions
+from retrying import retry
 
+from cloudshell.cp.azure.common.helpers.retrying_helpers import retry_if_connection_error
 from cloudshell.cp.azure.models.azure_blob_url import AzureBlobUrlModel
 from cloudshell.cp.azure.models.blob_copy_operation import BlobCopyOperationState
 
@@ -27,7 +29,9 @@ class StorageService(object):
         self._cached_blob_services = {}
         self._cached_copied_blob_urls = {}
 
-    def create_storage_account(self, storage_client, group_name, region, storage_account_name, tags,wait_until_created=False):
+    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
+    def create_storage_account(self, storage_client, group_name, region, storage_account_name, tags,
+                               wait_until_created=False):
         """
 
         :param storage_client:
@@ -54,6 +58,7 @@ class StorageService(object):
 
         return storage_account_name
 
+    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def get_storage_per_resource_group(self, storage_client, group_name):
         """
 
@@ -63,6 +68,7 @@ class StorageService(object):
         """
         return list(storage_client.storage_accounts.list_by_resource_group(group_name))
 
+    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def _get_storage_account_key(self, storage_client, group_name, storage_name):
         """Get firsts storage account access key for some storage
 
@@ -135,6 +141,7 @@ class StorageService(object):
 
         return blob_service
 
+    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def get_file(self, storage_client, group_name, storage_name, share_name, directory_name, file_name):
         """Read file from the Azure storage as a sting
 
@@ -158,6 +165,7 @@ class StorageService(object):
 
         return azure_file
 
+    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def create_file(self, storage_client, group_name, storage_name, share_name,
                     directory_name, file_name, file_content):
         """Create file on the Azure
@@ -198,6 +206,7 @@ class StorageService(object):
                                  container_name=container_name,
                                  blob_name=blob_name)
 
+    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def _wait_until_blob_copied(self, blob_service, container_name, blob_name, logger, sleep_time=10):
         """Wait until Blob file is copied from one storage to another
 
@@ -227,6 +236,7 @@ class StorageService(object):
 
             time.sleep(sleep_time)
 
+    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def _copy_blob(self, storage_client, group_name_copy_from, group_name_copy_to,
                    ulr_model_copy_from, url_model_copy_to, logger):
         """Copy Blob from one storage account to another
