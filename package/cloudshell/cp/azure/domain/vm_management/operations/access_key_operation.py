@@ -1,8 +1,4 @@
-from retrying import retry
 from azure.mgmt.storage.models import StorageAccount
-
-from cloudshell.cp.azure.common.helpers.retrying_helpers import retry_if_connection_error
-from cloudshell.cp.azure.domain.context.validators_factory_context import ValidatorsFactoryContext
 
 
 class AccessKeyOperation(object):
@@ -14,7 +10,6 @@ class AccessKeyOperation(object):
         self.key_pair_service = key_pair_service
         self.storage_service = storage_service
 
-    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def get_access_key(self, storage_client, group_name, validator_factory):
         """
         :param validator_factory:

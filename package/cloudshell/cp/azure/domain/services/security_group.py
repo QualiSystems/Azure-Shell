@@ -2,6 +2,9 @@ from threading import Lock
 
 from azure.mgmt.network.models import NetworkSecurityGroup
 from azure.mgmt.network.models import SecurityRule
+from retrying import retry
+
+from cloudshell.cp.azure.common.helpers.retrying_helpers import retry_if_connection_error
 
 
 class SecurityGroupService(object):
@@ -37,6 +40,7 @@ class SecurityGroupService(object):
 
             i += 1
 
+    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def list_network_security_group(self, network_client, group_name):
         """Get all NSG from the Azure for given resource group
 
@@ -46,6 +50,7 @@ class SecurityGroupService(object):
         """
         return list(network_client.network_security_groups.list(group_name))
 
+    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def create_network_security_group(self, network_client, group_name, security_group_name, region, tags=None):
         """Create NSG on the Azure
 
@@ -87,6 +92,7 @@ class SecurityGroupService(object):
             priority=priority,
             protocol=rule_data.protocol)
 
+    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def create_network_security_group_rule(self, network_client, group_name, security_group_name, rule_data,
                                            destination_addr, priority, access="Allow"):
         """Create NSG inbound rule on the Azure
@@ -111,6 +117,7 @@ class SecurityGroupService(object):
 
         return operation_poller.result()
 
+    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def create_network_security_group_custom_rule(self, network_client, group_name, security_group_name, rule,
                                                   async=False):
         """Create NSG inbound management rule on the Azure
@@ -134,6 +141,7 @@ class SecurityGroupService(object):
 
         return operation_poller.result()
 
+    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def get_network_security_group(self, network_client, group_name):
         network_security_groups = self.list_network_security_group(
             network_client=network_client,
@@ -148,6 +156,7 @@ class SecurityGroupService(object):
         if len(resources_list) == 0:
             raise Exception("The resource group {} does not contain a network security group.".format(group_name))
 
+    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def create_network_security_group_rules(self, network_client, group_name, security_group_name,
                                             inbound_rules, destination_addr, start_from=None):
         """Create NSG inbound rules on the Azure
@@ -175,6 +184,7 @@ class SecurityGroupService(object):
                     destination_addr=destination_addr,
                     priority=next(priority_generator))
 
+    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def delete_security_rules(self, network_client, resource_group_name, vm_name, logger):
         """
         removes NSG inbound rules for virtual machine (based on private ip address)
