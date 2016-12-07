@@ -27,6 +27,7 @@ class TestPrepareConnectivity(TestCase):
         self.security_group_service = SecurityGroupService(self.network_service)
         self.logger = MagicMock()
         self.cryptography_service = CryptographyService()
+        self.name_provider_service = MagicMock()
 
         self.prepare_connectivity_operation = PrepareConnectivityOperation(
             vm_service=self.vm_service,
@@ -35,10 +36,10 @@ class TestPrepareConnectivity(TestCase):
             tags_service=self.tag_service,
             key_pair_service=self.key_pair_service,
             security_group_service=self.security_group_service,
-            cryptography_service=self.cryptography_service)
+            cryptography_service=self.cryptography_service,
+            name_provider_service=self.name_provider_service)
 
-    @mock.patch("cloudshell.cp.azure.domain.vm_management.operations.prepare_connectivity_operation.OperationsHelper")
-    def test_prepare_connectivity(self, operation_helper_class):
+    def test_prepare_connectivity(self):
         # Arrange
         self.key_pair_service.generate_key_pair = MagicMock()
         self.key_pair_service.save_key_pair = MagicMock()

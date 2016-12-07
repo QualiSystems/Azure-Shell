@@ -19,6 +19,7 @@ from cloudshell.cp.azure.domain.services.storage_service import StorageService
 from cloudshell.cp.azure.domain.services.vm_credentials_service import VMCredentialsService
 from cloudshell.cp.azure.domain.services.key_pair import KeyPairService
 from cloudshell.cp.azure.domain.services.security_group import SecurityGroupService
+from cloudshell.cp.azure.domain.services.name_provider import NameProviderService
 from cloudshell.cp.azure.domain.vm_management.operations.deploy_operation import DeployAzureVMOperation
 from cloudshell.cp.azure.domain.vm_management.operations.power_operation import PowerAzureVMOperation
 from cloudshell.cp.azure.domain.vm_management.operations.refresh_ip_operation import RefreshIPOperation
@@ -43,6 +44,7 @@ class AzureShell(object):
         self.security_group_service = SecurityGroupService(self.network_service)
         self.vm_custom_params_extractor = VmCustomParamsExtractor()
         self.cryptography_service = CryptographyService()
+        self.name_provider_service = NameProviderService()
         self.access_key_operation = AccessKeyOperation(self.key_pair_service, self.storage_service)
 
         self.prepare_connectivity_operation = PrepareConnectivityOperation(
@@ -52,7 +54,8 @@ class AzureShell(object):
             tags_service=self.tags_service,
             key_pair_service=self.key_pair_service,
             security_group_service=self.security_group_service,
-            cryptography_service=self.cryptography_service)
+            cryptography_service=self.cryptography_service,
+            name_provider_service=self.name_provider_service)
 
         self.deploy_azure_vm_operation = DeployAzureVMOperation(
             vm_service=self.vm_service,
@@ -61,7 +64,8 @@ class AzureShell(object):
             key_pair_service=self.key_pair_service,
             tags_service=self.tags_service,
             vm_credentials_service=self.vm_credentials_service,
-            security_group_service=self.security_group_service)
+            security_group_service=self.security_group_service,
+            name_provider_service=self.name_provider_service)
 
         self.power_vm_operation = PowerAzureVMOperation(vm_service=self.vm_service)
 
