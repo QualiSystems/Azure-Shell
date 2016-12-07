@@ -1,4 +1,5 @@
 from functools import partial
+from threading import Lock
 
 from msrestazure.azure_exceptions import CloudError
 
@@ -21,6 +22,7 @@ class DeleteAzureVMOperation(object):
         self.network_service = network_service
         self.tags_service = tags_service
         self.security_group_service = security_group_service
+        self.subnet_locker = Lock()
 
     def cleanup_connectivity(self, network_client, resource_client, cloud_provider_model, resource_group_name, logger):
         """
@@ -83,9 +85,13 @@ class DeleteAzureVMOperation(object):
 
         subnet.network_security_group = None
 
-        logger.info("Updating subnet {} with NSG set to null".format(subnet.name))
-        self.network_service.update_subnet(network_client, management_group_name, sandbox_virtual_network.name,
-                                           subnet.name, subnet)
+        """
+        This call is atomic because we have to sync subnet updating for the entire sandbox vnet
+        """
+        with self.subnet_locker:
+            logger.info("Updating subnet {} with NSG set to null".format(subnet.name))
+            self.network_service.update_subnet(network_client, management_group_name, sandbox_virtual_network.name,
+                                               subnet.name, subnet)
 
     def delete_resource_group(self, resource_client, group_name, logger):
         logger.info("Deleting resource group...")
@@ -107,8 +113,10 @@ class DeleteAzureVMOperation(object):
                 resource_group_name, cloud_provider_model.management_group_name))
             return
 
-        network_client.subnets.delete(cloud_provider_model.management_group_name, sandbox_virtual_network.name,
-                                      subnet.name)
+        with self.subnet_locker:
+            logger.info("Deleting subnet {}".format(subnet.name))
+            network_client.subnets.delete(cloud_provider_model.management_group_name, sandbox_virtual_network.name,
+                                          subnet.name)
 
     def delete(self, compute_client, network_client, group_name, vm_name, logger):
         """
