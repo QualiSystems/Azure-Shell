@@ -418,7 +418,7 @@ class DeployAzureVMOperation(object):
                                                       image_offer=azure_vm_deployment_model.image_offer,
                                                       image_publisher=azure_vm_deployment_model.image_publisher,
                                                       image_sku=azure_vm_deployment_model.image_sku,
-                                                      image_version='latest',
+                                                      image_version=azure_vm_deployment_model.image_version,
                                                       vm_credentials=vm_credentials,
                                                       computer_name=computer_name,
                                                       group_name=group_name,
