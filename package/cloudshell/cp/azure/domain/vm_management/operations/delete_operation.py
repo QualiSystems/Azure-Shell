@@ -9,12 +9,14 @@ class DeleteAzureVMOperation(object):
                  vm_service,
                  network_service,
                  tags_service,
-                 security_group_service):
+                 security_group_service,
+                 storage_service):
         """
         :param cloudshell.cp.azure.domain.services.virtual_machine_service.VirtualMachineService vm_service:
         :param cloudshell.cp.azure.domain.services.network_service.NetworkService network_service:
         :param cloudshell.cp.azure.domain.services.tags.TagService tags_service:
         :param cloudshell.cp.azure.domain.services.security_group.SecurityGroupService security_group_service:
+        :param cloudshell.cp.azure.domain.services.storage_service.StorageService storage_service:
         :return:
         """
 
@@ -22,6 +24,7 @@ class DeleteAzureVMOperation(object):
         self.network_service = network_service
         self.tags_service = tags_service
         self.security_group_service = security_group_service
+        self.storage_service = storage_service
         self.subnet_locker = Lock()
 
     def cleanup_connectivity(self, network_client, resource_client, cloud_provider_model, resource_group_name, logger):
@@ -118,43 +121,136 @@ class DeleteAzureVMOperation(object):
             network_client.subnets.delete(cloud_provider_model.management_group_name, sandbox_virtual_network.name,
                                           subnet.name)
 
-    def delete(self, compute_client, network_client, group_name, vm_name, logger):
-        """
-        :param group_name:
-        :param network_client:
-        :param vm_name: the same as ip_name and interface_name
-        :param compute_client:
-        :param logger:
+    def _delete_security_rules(self, network_client, group_name, vm_name, logger):
+        """Delete NSG rules for given VM
+
+        :param network_client: azure.mgmt.network.NetworkManagementClient instance
+        :param group_name: (str) The name of the resource group
+        :param vm_name: (str) the same as ip_name and interface_name
+        :param logger: logging.Logger instance
         :return:
         """
-        try:
-            logger.info("Deleting security group rules...")
-            self.security_group_service.delete_security_rules(network_client=network_client,
-                                                              resource_group_name=group_name,
-                                                              vm_name=vm_name,
-                                                              logger=logger)
+        logger.info("Deleting security group rules...")
+        self.security_group_service.delete_security_rules(network_client=network_client,
+                                                          resource_group_name=group_name,
+                                                          vm_name=vm_name,
+                                                          logger=logger)
 
-            logger.info("Deleting VM {}...".format(vm_name))
-            self.vm_service.delete_vm(compute_management_client=compute_client,
-                                      group_name=group_name,
-                                      vm_name=vm_name)
+    def _delete_vhd_disk(self, compute_client, storage_client, group_name, vm_name, logger):
+        """Delete VHD Disk Blob resource on the azure for given VM
 
-            logger.info("Deleting Interface {}...".format(vm_name))
-            self.network_service.delete_nic(network_client=network_client,
-                                            group_name=group_name,
-                                            interface_name=vm_name)
+        :param compute_client: azure.mgmt.compute.ComputeManagementClient instance
+        :param group_name: (str) The name of the resource group
+        :param vm_name: (str) the same as ip_name and interface_name
+        :param logger: logging.Logger instance
+        :return:
+        """
+        logger.info("Deleting VHD Disk {}...".format(vm_name))
+        vm = self.vm_service.get_vm(compute_management_client=compute_client,
+                                    group_name=group_name,
+                                    vm_name=vm_name)
 
-            logger.info("Deleting Public IP {}...".format(vm_name))
-            self.network_service.delete_ip(network_client=network_client,
+        url_model = self.storage_service.parse_blob_url(blob_url=vm.storage_profile.os_disk.vhd.uri)
+        self.storage_service.delete_blob(storage_client=storage_client,
+                                         group_name=group_name,
+                                         storage_name=url_model.storage_name,
+                                         container_name=url_model.container_name,
+                                         blob_name=url_model.blob_name)
+
+    def _delete_vm(self, compute_client, group_name, vm_name, logger):
+        """Delete VM resource on the azure
+
+        :param compute_client: azure.mgmt.compute.ComputeManagementClient instance
+        :param group_name: (str) The name of the resource group
+        :param vm_name: (str) the same as ip_name and interface_name
+        :param logger: logging.Logger instance
+        :return:
+        """
+        logger.info("Deleting VM {}...".format(vm_name))
+        self.vm_service.delete_vm(compute_management_client=compute_client,
+                                  group_name=group_name,
+                                  vm_name=vm_name)
+
+    def _delete_nic(self, network_client, group_name, vm_name, logger):
+        """Delete NIC resource on the azure for given VM
+
+        :param network_client: azure.mgmt.network.NetworkManagementClient instance
+        :param group_name: (str) The name of the resource group
+        :param vm_name: (str) the same as ip_name and interface_name
+        :param logger: logging.Logger instance
+        :return:
+        """
+        logger.info("Deleting Interface {}...".format(vm_name))
+        self.network_service.delete_nic(network_client=network_client,
+                                        group_name=group_name,
+                                        interface_name=vm_name)
+
+    def _delete_public_ip(self, network_client, group_name, vm_name, logger):
+        """Delete Public IP resource on the azure for given VM
+
+        :param network_client: azure.mgmt.network.NetworkManagementClient instance
+        :param group_name: (str) The name of the resource group
+        :param vm_name: (str) the same as ip_name and interface_name
+        :param logger: logging.Logger instance
+        :return:
+        """
+        logger.info("Deleting Public IP {}...".format(vm_name))
+        self.network_service.delete_ip(network_client=network_client,
+                                       group_name=group_name,
+                                       ip_name=vm_name)
+
+    def delete(self, compute_client, network_client, storage_client, group_name, vm_name, logger):
+        """Delete VM and all related resources
+
+        :param compute_client: azure.mgmt.compute.ComputeManagementClient instance
+        :param network_client: azure.mgmt.network.NetworkManagementClient instance
+        :param storage_client: azure.mgmt.storage.StorageManagementClient instance
+        :param group_name: (str) The name of the resource group
+        :param vm_name: (str) the same as ip_name and interface_name
+        :param logger: logging.Logger instance
+        :return:
+        """
+        delete_security_rules_command = partial(self._delete_security_rules,
+                                                network_client=network_client,
+                                                group_name=group_name,
+                                                vm_name=vm_name,
+                                                logger=logger)
+
+        delete_vm_command = partial(self._delete_vm,
+                                    compute_client=compute_client,
+                                    group_name=group_name,
+                                    vm_name=vm_name,
+                                    logger=logger)
+
+        delete_vhd_disk_command = partial(self._delete_vhd_disk,
+                                          compute_client=compute_client,
+                                          storage_client=storage_client,
+                                          group_name=group_name,
+                                          vm_name=vm_name,
+                                          logger=logger)
+
+        delete_nic_command = partial(self._delete_nic,
+                                     network_client=network_client,
+                                     group_name=group_name,
+                                     vm_name=vm_name,
+                                     logger=logger)
+
+        delete_public_ip_command = partial(self._delete_public_ip,
+                                           network_client=network_client,
                                            group_name=group_name,
-                                           ip_name=vm_name)
+                                           vm_name=vm_name,
+                                           logger=logger)
 
-        except CloudError as e:
-            if e.response.reason == "Not Found":
-                logger.info('Deleting Azure VM Exception:', exc_info=1)
-            else:
+        for command in (delete_security_rules_command, delete_vm_command, delete_vhd_disk_command, delete_nic_command,
+                        delete_public_ip_command):
+            try:
+                command()
+            except CloudError as e:
+                if e.response.reason == "Not Found":
+                    logger.info('Deleting Azure VM Not Found Exception:', exc_info=1)
+                else:
+                    logger.exception('Deleting Azure VM Exception:')
+                    raise
+            except Exception:
                 logger.exception('Deleting Azure VM Exception:')
                 raise
-        except Exception:
-            logger.exception('Deleting Azure VM Exception:')
-            raise

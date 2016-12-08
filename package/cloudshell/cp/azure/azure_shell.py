@@ -76,7 +76,8 @@ class AzureShell(object):
             vm_service=self.vm_service,
             network_service=self.network_service,
             tags_service=self.tags_service,
-            security_group_service=self.security_group_service)
+            security_group_service=self.security_group_service,
+            storage_service=self.storage_service)
 
         self.deployed_app_ports_operation = DeployedAppPortsOperation(
             vm_custom_params_extractor=self.vm_custom_params_extractor)
@@ -228,6 +229,7 @@ class AzureShell(object):
                 self.delete_azure_vm_operation.delete(
                     compute_client=azure_clients.compute_client,
                     network_client=azure_clients.network_client,
+                    storage_client=azure_clients.storage_client,
                     group_name=resource_group_name,
                     vm_name=vm_name,
                     logger=logger)

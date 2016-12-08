@@ -5,6 +5,7 @@ from mock import Mock, MagicMock
 from cloudshell.cp.azure.domain.services.network_service import NetworkService
 from cloudshell.cp.azure.domain.services.security_group import SecurityGroupService
 from cloudshell.cp.azure.domain.services.tags import TagService
+from cloudshell.cp.azure.domain.services.storage_service import StorageService
 from cloudshell.cp.azure.domain.services.virtual_machine_service import VirtualMachineService
 from cloudshell.cp.azure.domain.vm_management.operations.delete_operation import DeleteAzureVMOperation
 from tests.helpers.test_helper import TestHelper
@@ -16,10 +17,12 @@ class TestCleanupConnectivity(TestCase):
         self.network_service = NetworkService()
         self.tags_service = TagService()
         self.security_group_service = SecurityGroupService(self.network_service)
+        self.storage_service = StorageService()
         self.delete_operation = DeleteAzureVMOperation(vm_service=self.vm_service,
                                                        network_service=self.network_service,
                                                        tags_service=self.tags_service,
-                                                       security_group_service=self.security_group_service)
+                                                       security_group_service=self.security_group_service,
+                                                       storage_service=self.storage_service)
         self.logger = MagicMock()
 
     def test_cleanup_on_error(self):
