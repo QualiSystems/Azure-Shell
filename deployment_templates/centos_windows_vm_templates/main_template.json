@@ -174,7 +174,7 @@
 		  "SubnetRef":{"value":"[variables('SubnetRef')]"},
 		  "scriptUrl":{"value":"[variables('scriptUrl')]"},
 		  "commandToExe":{"value":"[variables('commandToExe')]"},
-		  "vmSize":{"value":"[variables('vmSize')]"}
+		  "vmSize":{"value":"Standard_A2"}
         }
       }
     },	
