@@ -23,13 +23,16 @@ class TestDeployAzureVMOperation(TestCase):
         self.key_pair_service = Mock()
         self.security_group_service = MagicMock()
         self.tags_service = TagService()
+        self.name_provider_service = MagicMock()
+
         self.deploy_operation = DeployAzureVMOperation(vm_service=self.vm_service,
                                                        network_service=self.network_service,
                                                        storage_service=self.storage_service,
                                                        vm_credentials_service=self.vm_credentials_service,
                                                        key_pair_service=self.key_pair_service,
                                                        tags_service=self.tags_service,
-                                                       security_group_service=self.security_group_service)
+                                                       security_group_service=self.security_group_service,
+                                                       name_provider_service=self.name_provider_service)
 
     def test_get_sandbox_subnet(self):
         """Check that method will call network service to get sandbox vNet and will return it's subnet by given name"""
@@ -220,8 +223,7 @@ class TestDeployAzureVMOperation(TestCase):
         self.deploy_operation._get_sandbox_subnet.assert_called_once()
         self.deploy_operation._get_sandbox_storage_account_name.assert_called_once()
 
-    @mock.patch("cloudshell.cp.azure.domain.vm_management.operations.deploy_operation.OperationsHelper.generate_name")
-    def test_deploy_from_custom_image_delete_all_resources_on_error(self, generate_name_func):
+    def test_deploy_from_custom_image_delete_all_resources_on_error(self):
         """Check that method will delete all created resources in case of any Exception occurs while deploying"""
         azure_vm_deployment_model = MagicMock(app_name="")
         cloud_provider_model = MagicMock()
@@ -231,8 +233,8 @@ class TestDeployAzureVMOperation(TestCase):
         storage_client = MagicMock()
         validator_factory = MagicMock()
         test_name = "test_generated_name"
-        generate_name_func.return_value = test_name
         logger = MagicMock()
+        self.name_provider_service.generate_name.return_value = test_name
         self.deploy_operation._rollback_deployed_resources = MagicMock()
         self.deploy_operation._get_sandbox_subnet = MagicMock()
         self.deploy_operation._get_sandbox_storage_account_name = MagicMock()
@@ -455,3 +457,14 @@ class TestDeployAzureVMOperation(TestCase):
 
         with self.assertRaises(Exception):
             self.deploy_operation._validate_resource_is_single_per_group(resource_list, group_name, resource_name)
+
+    def test_prepare_computer_name(self):
+        """Check that method will use NameProviderService.generate_name to process computer name"""
+        computer_name = MagicMock()
+        self.name_provider_service.generate_name.return_value = computer_name
+        name = "test_name"
+        # Act
+        res = self.deploy_operation._prepare_computer_name(name)
+        # Verify
+        self.name_provider_service.generate_name.assert_called_once_with(name, length=15)
+        self.assertEqual(res, computer_name)

@@ -5,9 +5,10 @@ from azure.mgmt.compute.models.linux_configuration import LinuxConfiguration
 from azure.mgmt.compute.models.ssh_configuration import SshConfiguration
 from azure.mgmt.resource.resources.models import ResourceGroup
 from azure.mgmt.compute.models.ssh_public_key import SshPublicKey
-
-
 from azure.mgmt.compute.models import OperatingSystemTypes
+from retrying import retry
+
+from cloudshell.cp.azure.common.helpers.retrying_helpers import retry_if_connection_error
 
 
 class VirtualMachineService(object):
@@ -33,6 +34,7 @@ class VirtualMachineService(object):
 
         return vm
 
+    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def get_vm(self, compute_management_client, group_name, vm_name):
         """
 
@@ -55,6 +57,7 @@ class VirtualMachineService(object):
 
         return LinuxConfiguration(disable_password_authentication=True, ssh=ssh_config)
 
+    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def _create_vm(self, compute_management_client, region, group_name, vm_name, hardware_profile, network_profile,
                    os_profile, storage_profile, tags):
         """Create and deploy Azure VM from the given parameters
@@ -241,14 +244,17 @@ class VirtualMachineService(object):
             storage_profile=storage_profile,
             tags=tags)
 
+    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def create_resource_group(self, resource_management_client, group_name, region, tags):
         return resource_management_client.resource_groups.create_or_update(group_name,
                                                                            ResourceGroup(location=region, tags=tags))
 
+    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def delete_resource_group(self, resource_management_client, group_name):
         result = resource_management_client.resource_groups.delete(group_name)
         result.wait()
 
+    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def delete_vm(self, compute_management_client, group_name, vm_name):
         """
 
@@ -258,9 +264,10 @@ class VirtualMachineService(object):
         :return:
         """
         result = compute_management_client.virtual_machines.delete(resource_group_name=group_name,
-                                                          vm_name=vm_name)
+                                                                   vm_name=vm_name)
         result.wait()
 
+    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def start_vm(self, compute_management_client, group_name, vm_name, async=False):
         """Start Azure VM instance
 
@@ -275,6 +282,7 @@ class VirtualMachineService(object):
         if not async:
             return operation_poller.result()
 
+    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def stop_vm(self, compute_management_client, group_name, vm_name, async=False):
         """Stop Azure VM instance
 
@@ -289,6 +297,7 @@ class VirtualMachineService(object):
         if not async:
             return operation_poller.result()
 
+    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def get_image_operation_system(self, compute_management_client, location, publisher_name, offer, skus):
         """Get operation system from the given image
 

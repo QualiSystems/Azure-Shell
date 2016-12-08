@@ -19,6 +19,7 @@ from cloudshell.cp.azure.domain.services.storage_service import StorageService
 from cloudshell.cp.azure.domain.services.vm_credentials_service import VMCredentialsService
 from cloudshell.cp.azure.domain.services.key_pair import KeyPairService
 from cloudshell.cp.azure.domain.services.security_group import SecurityGroupService
+from cloudshell.cp.azure.domain.services.name_provider import NameProviderService
 from cloudshell.cp.azure.domain.vm_management.operations.deploy_operation import DeployAzureVMOperation
 from cloudshell.cp.azure.domain.vm_management.operations.power_operation import PowerAzureVMOperation
 from cloudshell.cp.azure.domain.vm_management.operations.refresh_ip_operation import RefreshIPOperation
@@ -43,6 +44,7 @@ class AzureShell(object):
         self.security_group_service = SecurityGroupService(self.network_service)
         self.vm_custom_params_extractor = VmCustomParamsExtractor()
         self.cryptography_service = CryptographyService()
+        self.name_provider_service = NameProviderService()
         self.access_key_operation = AccessKeyOperation(self.key_pair_service, self.storage_service)
 
         self.prepare_connectivity_operation = PrepareConnectivityOperation(
@@ -52,7 +54,8 @@ class AzureShell(object):
             tags_service=self.tags_service,
             key_pair_service=self.key_pair_service,
             security_group_service=self.security_group_service,
-            cryptography_service=self.cryptography_service)
+            cryptography_service=self.cryptography_service,
+            name_provider_service=self.name_provider_service)
 
         self.deploy_azure_vm_operation = DeployAzureVMOperation(
             vm_service=self.vm_service,
@@ -61,7 +64,8 @@ class AzureShell(object):
             key_pair_service=self.key_pair_service,
             tags_service=self.tags_service,
             vm_credentials_service=self.vm_credentials_service,
-            security_group_service=self.security_group_service)
+            security_group_service=self.security_group_service,
+            name_provider_service=self.name_provider_service)
 
         self.power_vm_operation = PowerAzureVMOperation(vm_service=self.vm_service)
 
@@ -111,6 +115,7 @@ class AzureShell(object):
                         validator_factory=validator_factory,
                         logger=logger)
 
+                    logger.info('End deploying Azure VM')
                     return self.command_result_parser.set_command_result(deploy_data)
 
     def deploy_vm_from_custom_image(self, command_context, deployment_request):
@@ -147,6 +152,7 @@ class AzureShell(object):
                         validator_factory=validator_factory,
                         logger=logger)
 
+                    logger.info('End deploying Azure VM From Custom Image')
                     return self.command_result_parser.set_command_result(deploy_data)
 
     def prepare_connectivity(self, context, request):
@@ -180,6 +186,7 @@ class AzureShell(object):
                     logger=logger,
                     request=prepare_connectivity_request)
 
+                logger.info('End Preparing Connectivity for Azure VM')
                 return self.command_result_parser.set_command_result({'driverResponse': {'actionResults': result}})
 
     def cleanup_connectivity(self, command_context):
@@ -200,6 +207,7 @@ class AzureShell(object):
                     resource_group_name=resource_group_name,
                     logger=logger)
 
+                logger.info('End Teardown')
                 return self.command_result_parser.set_command_result({'driverResponse': {'actionResults': [result]}})
 
     def delete_azure_vm(self, command_context):
@@ -223,6 +231,8 @@ class AzureShell(object):
                     group_name=resource_group_name,
                     vm_name=vm_name,
                     logger=logger)
+
+                logger.info('End Deleting Azure VM')
 
     def power_on_vm(self, command_context):
         """Power on Azure VM
