@@ -53,7 +53,7 @@
         "SubnetRef": "[concat(variables('vnetID'),'/subnets/','default')]",
 		"location": "[resourceGroup().location]",
 		"es_nic_name":"QualiNic",
-		"virtualMachineEsName": "QualiVM",
+		"virtualMachineEsName": "Quali-vm",
 		"qx_template_location":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/feature/gil_es_qs_combine/deployment_templates/centos_windows_vm_templates/",		
 		"scriptUrl":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/feature/gil_create_json_deploy/deployment_templates/guacamole-quali-install.sh",
 		"commandToExe":"sh guacamole-quali-install.sh",
