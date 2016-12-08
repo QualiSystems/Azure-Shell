@@ -1,6 +1,6 @@
 from azure.mgmt.compute.models import OSProfile, HardwareProfile, NetworkProfile, \
     NetworkInterfaceReference, CachingTypes, DiskCreateOptionTypes, VirtualHardDisk, ImageReference, OSDisk, \
-    VirtualMachine, StorageProfile
+    VirtualMachine, StorageProfile, Plan
 from azure.mgmt.compute.models.linux_configuration import LinuxConfiguration
 from azure.mgmt.compute.models.ssh_configuration import SshConfiguration
 from azure.mgmt.resource.resources.models import ResourceGroup
@@ -59,7 +59,7 @@ class VirtualMachineService(object):
 
     @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def _create_vm(self, compute_management_client, region, group_name, vm_name, hardware_profile, network_profile,
-                   os_profile, storage_profile, tags):
+                   os_profile, storage_profile, tags, plan=None):
         """Create and deploy Azure VM from the given parameters
 
         :param compute_management_client: azure.mgmt.compute.compute_management_client.ComputeManagementClient
@@ -78,7 +78,8 @@ class VirtualMachineService(object):
                                          os_profile=os_profile,
                                          hardware_profile=hardware_profile,
                                          network_profile=network_profile,
-                                         storage_profile=storage_profile)
+                                         storage_profile=storage_profile,
+                                         plan=plan)
 
         vm_result = compute_management_client.virtual_machines.create_or_update(group_name, vm_name, virtual_machine)
         return vm_result.result()
@@ -233,6 +234,8 @@ class VirtualMachineService(object):
 
         storage_profile = StorageProfile(os_disk=os_disk, image_reference=image_reference)
 
+        plan = Plan(name=image_sku, publisher=image_publisher, product=image_offer)
+
         return self._create_vm(
             compute_management_client=compute_management_client,
             region=region,
@@ -242,7 +245,8 @@ class VirtualMachineService(object):
             network_profile=network_profile,
             os_profile=os_profile,
             storage_profile=storage_profile,
-            tags=tags)
+            tags=tags,
+            plan=plan)
 
     @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def create_resource_group(self, resource_management_client, group_name, region, tags):
