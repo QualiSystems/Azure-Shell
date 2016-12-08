@@ -38,7 +38,8 @@
 		},
 		"vNet2": {
 			"peeringName": "vNet_sndbx-to-vNet_mgmt"
-		},						
+		},	
+		"vnetID": "[resourceId('Microsoft.Network/virtualNetworks',variables('virtualNetworks_mgmt_vnet_name'))]",
         "SubnetRef": "[concat(variables('vnetID'),'/subnets/','default')]",
 		"location": "[resourceGroup().location]",
 		"es_nic_name":"QualiNic",
