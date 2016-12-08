@@ -12,12 +12,10 @@
 			"type": "string"
 		},	
 		"adminUsername": {
-            "type": "string",
-			"defaultValue": "giluser"
+            "type": "string",			
         },
         "adminPassword": {
             "type": "securestring",
-			"defaultValue": "13fgfg$%65656#$DDFGF5"
         },			
 		"management_vnet_CIDR": {
 			"defaultValue": "192.168.120.0/24",
@@ -35,21 +33,7 @@
 			"type":"string",
 			"defaultValue":"External",
 			"allowedValues":["External","Internal"]
-		},			
-		"createWithVpn":{
-			"type":"string",
-			"defaultValue":"False",
-			"allowedValues":["True","False"]			
-		},
-		"on_premise_CIDR": {
-			"defaultValue": "",
-			"type": "String"
-		},
-        "vpn_address": {
-            "type": "string",
-            "defaultValue": ""
-        }
-		
+		}		
 	},
 	"variables": {
 		"storageAccountType": "Standard_LRS",
@@ -68,11 +52,11 @@
         "gatewaySubnetRef": "[concat(variables('vnetID'),'/subnets/','GatewaySubnet')]",
         "SubnetRef": "[concat(variables('vnetID'),'/subnets/','default')]",
 		"location": "[resourceGroup().location]",
-		"es_nic_name":"nic_for_centos_es",
-		"virtualMachineEsName": "centos-es-vm",		
+		"es_nic_name":"QualiNic",
+		"virtualMachineEsName": "QualiVM",
 		"qx_template_location":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/feature/gil_create_json_deploy/deployment_templates/",
 		"vpn_template_location":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/feature/gil_create_json_deploy/deployment_templates/",
-		"scriptUrl":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/feature/gil_create_json_deploy/deployment_templates/guacamole-quali-install.sh",
+		"scriptUrl":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/feature/gil_create_json_deploy/deployment_templates/guacamole-quali-install.sh",				
 		"commandToExe":"sh guacamole-quali-install.sh",
 		"scriptUrlES":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/feature/gil_create_json_deploy/deployment_templates/cloudshell_install_script.sh",
 		"commandToExeES":"[concat('sh cloudshell_install_script.sh ', parameters('qualiServerIP'),' ',parameters('qualiServerUser'),' ', parameters('qualiServerPassword'),' ',variables('virtualMachineEsName') )]",
@@ -99,9 +83,9 @@
 			},
 			"storageProfile": {
 				"imageReference": {
-					"publisher": "OpenLogic",
-					"offer": "CentOS",
-					"sku": "7.2",
+					"publisher": "MicrosoftWindowsServer",
+					"offer": "WindowsServer",
+					"sku": "2012-R2-Datacenter",
 					"version": "latest"
 				},
 				"osDisk": {
@@ -122,29 +106,7 @@
 			}
 		}
 	},	
-	
-	
-	{
-	  "type": "Microsoft.Compute/virtualMachines/extensions",
-	  "name": "[concat(variables('virtualMachineEsName'),'/esScript')]",
-	  "apiVersion": "2015-06-15",
-	  "location": "[resourceGroup().location]",
-	  "dependsOn": ["[concat('Microsoft.Compute/virtualMachines/', variables('virtualMachineEsName'))]"],
-	  "properties": {
-		"publisher": "Microsoft.Azure.Extensions",
-		"type": "CustomScript",
-		"typeHandlerVersion": "2.0",			
-		"settings": {
-		  "fileUris": ["[variables('scriptUrlES')]"]
-		},
-		"protectedSettings": {
-			"commandToExecute": "[variables('commandToExeES')]"
-		}
-	  }
-	},
-		
-		
-	
+				
 	{
             "name": "[variables('es_nic_name')]",
             "type": "Microsoft.Network/networkInterfaces",
@@ -216,31 +178,6 @@
         }
       }
     },	
-	
-	
-    {
-      "apiVersion": "2015-01-01",
-      "name": "vpnDeployment",
-      "type": "Microsoft.Resources/deployments",
-	  "dependsOn": [	  
-	  "[concat('Microsoft.Network/virtualNetworks/', variables('virtualNetworks_mgmt_vnet_name'))]"
-		
-	  ],
-      "properties": {
-        "mode": "incremental",
-        "templateLink": {
-          "uri": "[concat(variables('vpn_template_location'),'vpn_creation',parameters('createWithVpn'),'.json')]",
-          "contentVersion": "1.0.0.0"
-        },
-        "parameters": {          
-          "virtualNetworks_mgmt_vnet_name": { "value": "[variables('virtualNetworks_mgmt_vnet_name')]" },		  
-		  "gatewaySubnetRef":{"value":"[variables('gatewaySubnetRef')]"},
-		  "on_premise_CIDR":{"value":"[parameters('on_premise_CIDR')]"}
-        }
-      }
-    },	
-
-
 	
 	{
 		"type": "Microsoft.Network/virtualNetworks",
