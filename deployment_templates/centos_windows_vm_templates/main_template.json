@@ -179,13 +179,7 @@
 			"addressSpace": {
 				"addressPrefixes": ["[parameters('management_vnet_CIDR')]"]
 			},
-			"subnets": [
-					{
-						"name": "GatewaySubnet",
-						"properties": {
-							"addressPrefix": "[parameters('management_vnet_subnet_CIDR')]"
-						}
-					},
+			"subnets": [					
 					{
 						"name": "default",
 						"properties": {
