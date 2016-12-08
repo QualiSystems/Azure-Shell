@@ -51,7 +51,8 @@
 		"commandToExe":"sh guacamole-quali-install.sh",
 		"scriptUrlES":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/feature/gil_create_json_deploy/deployment_templates/cloudshell_install_script.sh",		
 		"vmSize":"Standard_A3",
-		"qualiVMSize": "Standard_A2"
+		"qualiVMSize": "Standard_A2",
+		"publicIpAddressNameQualiVM": "quali_ip"
 	},
 	"resources": [
 	{
@@ -105,7 +106,8 @@
             "location": "[resourceGroup().location]",			
             "dependsOn": [
                 "[concat('Microsoft.Network/virtualNetworks/', variables('virtualNetworks_mgmt_vnet_name'))]",
-				"[concat('Microsoft.Network/networkSecurityGroups/', variables('nsg_management_name'))]"
+				"[concat('Microsoft.Network/networkSecurityGroups/', variables('nsg_management_name'))]",
+				"[concat('Microsoft.Network/publicIpAddresses/', variables('publicIpAddressNameQualiVM'))]",
             ],
             "properties": {
 				"networkSecurityGroup": {
@@ -118,14 +120,25 @@
                             "subnet": {  
 								"id":"[variables('SubnetRef')]"
                             },
-                            "privateIPAllocationMethod": "Dynamic"
+                            "privateIPAllocationMethod": "Dynamic",
+							"publicIpAddress": {
+										"id": "[resourceId('Microsoft.Network/publicIpAddresses', variables('publicIpAddressNameQualiVM'))]"
+							}
                         }
                     }
                 ]
             }
 	},
 
-
+	{
+		"name": "[variables('publicIpAddressNameQualiVM')]",
+		"type": "Microsoft.Network/publicIpAddresses",
+		"apiVersion": "2016-09-01",
+		"location": "[resourceGroup().location]",
+		"properties": {
+			"publicIPAllocationMethod": "Static"
+		}
+	},
 
     {
       "apiVersion": "2015-01-01",
