@@ -1,13 +1,7 @@
 {
 	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
 	"contentVersion": "1.0.0.0",
-	"parameters": {		
-		"qualiServerUser":{
-			"type": "string"
-		},
-		"qualiServerPassword":{
-			"type": "securestring"
-		},
+	"parameters": {
 		"qualiServerIP":{
 			"type": "string"
 		},	
@@ -36,7 +30,7 @@
 		}		
 	},
 	"variables": {
-		"storageAccountType": "Standard_LRS",
+		"storageAccountType": "Standard_LRS",		
 		"virtualNetworks_mgmt_vnet_name": "management_vnet",
 		"virtualNetworks_sandbox_vnet_name": "sandbox_vnet",
 		"nsg_management_name" : "nsg_es",
@@ -57,9 +51,9 @@
 		"qx_template_location":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/feature/gil_es_qs_combine/deployment_templates/centos_windows_vm_templates/",		
 		"scriptUrl":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/feature/gil_create_json_deploy/deployment_templates/guacamole-quali-install.sh",
 		"commandToExe":"sh guacamole-quali-install.sh",
-		"scriptUrlES":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/feature/gil_create_json_deploy/deployment_templates/cloudshell_install_script.sh",
-		"commandToExeES":"[concat('sh cloudshell_install_script.sh ', parameters('qualiServerIP'),' ',parameters('qualiServerUser'),' ', parameters('qualiServerPassword'),' ',variables('virtualMachineEsName') )]",
-		"vmSize":"Standard_A3"
+		"scriptUrlES":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/feature/gil_create_json_deploy/deployment_templates/cloudshell_install_script.sh",		
+		"vmSize":"Standard_A3",
+		"qualiVMSize": "Standard_A2"
 	},
 	"resources": [
 	{
@@ -173,7 +167,7 @@
 		  "SubnetRef":{"value":"[variables('SubnetRef')]"},
 		  "scriptUrl":{"value":"[variables('scriptUrl')]"},
 		  "commandToExe":{"value":"[variables('commandToExe')]"},
-		  "vmSize":{"value":"Standard_A2"}
+		  "vmSize":{"value":"[variables('qualiVMSize')]"}
         }
       }
     },	
