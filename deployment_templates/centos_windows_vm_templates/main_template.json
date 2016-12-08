@@ -107,7 +107,7 @@
             "dependsOn": [
                 "[concat('Microsoft.Network/virtualNetworks/', variables('virtualNetworks_mgmt_vnet_name'))]",
 				"[concat('Microsoft.Network/networkSecurityGroups/', variables('nsg_management_name'))]",
-				"[concat('Microsoft.Network/publicIpAddresses/', variables('publicIpAddressNameQualiVM'))]",
+				"[concat('Microsoft.Network/publicIpAddresses/', variables('publicIpAddressNameQualiVM'))]"
             ],
             "properties": {
 				"networkSecurityGroup": {
