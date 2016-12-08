@@ -33,7 +33,7 @@
 		"storageAccountType": "Standard_LRS",		
 		"virtualNetworks_mgmt_vnet_name": "management_vnet",
 		"virtualNetworks_sandbox_vnet_name": "sandbox_vnet",
-		"nsg_management_name" : "nsg_es",
+		"nsg_management_name" : "nsg_Quali",
 	    "apiVersion": "2016-06-01",
 		"storageAccountName": "[concat('storage',uniquestring(resourceGroup().id))]",
 		"vNet1": {
@@ -41,9 +41,7 @@
 		},
 		"vNet2": {
 			"peeringName": "vNet_sndbx-to-vNet_mgmt"
-		},				
-		"vnetID": "[resourceId('Microsoft.Network/virtualNetworks',variables('virtualNetworks_mgmt_vnet_name'))]",
-        "gatewaySubnetRef": "[concat(variables('vnetID'),'/subnets/','GatewaySubnet')]",
+		},						
         "SubnetRef": "[concat(variables('vnetID'),'/subnets/','default')]",
 		"location": "[resourceGroup().location]",
 		"es_nic_name":"QualiNic",
@@ -126,23 +124,9 @@
                 ]
             }
 	},
-	
-	
-	
-	
 
 
 
-
-	
-	
-	
-	
-	
-	
-	
-	
-	
     {
       "apiVersion": "2015-01-01",
       "name": "qxDeployment",
@@ -274,7 +258,53 @@
       "type": "Microsoft.Network/networkSecurityGroups",
       "name": "[variables('nsg_management_name')]",
       "location": "[resourceGroup().location]",
-      "properties": {"securityRules": []}
+      "properties": {	  	  
+		"securityRules": [
+		  {
+			"name": "first_rule",
+			"properties": {
+			  "description": "This is the first rule",
+			  "protocol": "Tcp",
+			  "sourcePortRange": "*",
+			  "destinationPortRange": "443",
+			  "sourceAddressPrefix": "*",
+			  "destinationAddressPrefix": "*",
+			  "access": "Allow",
+			  "priority": 1000,
+			  "direction": "Inbound"
+			}
+		  },
+		  {
+			"name": "second_rule",
+			"properties": {
+			  "description": "This is the second rule",
+			  "protocol": "Tcp",
+			  "sourcePortRange": "*",
+			  "destinationPortRange": "80",
+			  "sourceAddressPrefix": "*",
+			  "destinationAddressPrefix": "*",
+			  "access": "Allow",
+			  "priority": 1010,
+			  "direction": "Inbound"
+			}
+		  },
+		  {
+			"name": "third_rule",
+			"properties": {
+			  "description": "This is the third rule",
+			  "protocol": "Tcp",
+			  "sourcePortRange": "*",
+			  "destinationPortRange": "3389",
+			  "sourceAddressPrefix": "*",
+			  "destinationAddressPrefix": "*",
+			  "access": "Allow",
+			  "priority": 1020,
+			  "direction": "Inbound"
+			}
+		  }
+
+		]
+	  }
     }	
 	]
 }
