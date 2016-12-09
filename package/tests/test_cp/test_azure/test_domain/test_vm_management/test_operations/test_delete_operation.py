@@ -23,6 +23,89 @@ class TestDeleteOperation(TestCase):
                                                        tags_service=self.tags_service,
                                                        security_group_service=self.security_group_service)
 
+    def test_cleanup_on_error(self):
+        # Arrange
+        test_exception_message = "lalala"
+        self.delete_operation.remove_nsg_from_subnet = Mock(side_effect=Exception(test_exception_message))
+        self.delete_operation.delete_sandbox_subnet = Mock()
+
+        # Act
+        result = self.delete_operation.cleanup_connectivity(network_client=Mock(),
+                                                            resource_client=Mock(),
+                                                            cloud_provider_model=Mock(),
+                                                            resource_group_name=Mock(),
+                                                            logger=self.logger)
+
+        # Verify
+        self.assertFalse(result['success'])
+        self.assertEqual(result['errorMessage'],
+                         "CleanupConnectivity ended with the error(s): ['lalala']".format(test_exception_message))
+        self.logger.exception.assert_called()
+
+    def test_cleanup(self):
+        """
+        :return:
+        """
+
+        # Arrange
+        self.delete_operation.remove_nsg_from_subnet = Mock()
+        self.delete_operation.delete_resource_group = Mock()
+        self.delete_operation.delete_sandbox_subnet = Mock()
+        tested_group_name = "test_group"
+        resource_client = Mock()
+        network_client = Mock()
+        cloud_provider_model = Mock()
+
+        vnet = Mock()
+        subnet = Mock()
+        subnet.name = tested_group_name
+        vnet.subnets = [subnet]
+        reservation = Mock()
+        reservation.reservation_id = tested_group_name
+        self.network_service.get_sandbox_virtual_network = Mock(return_value=vnet)
+
+        # Act
+        self.delete_operation.cleanup_connectivity(network_client=network_client,
+                                                   resource_client=resource_client,
+                                                   cloud_provider_model=cloud_provider_model,
+                                                   resource_group_name=tested_group_name,
+                                                   logger=self.logger)
+
+        # Verify
+        self.delete_operation.remove_nsg_from_subnet.assert_called_once_with(network_client=network_client,
+                                                                             cloud_provider_model=cloud_provider_model,
+                                                                             resource_group_name=tested_group_name,
+                                                                             logger=self.logger)
+
+        self.delete_operation.delete_sandbox_subnet.assert_called_once_with(network_client=network_client,
+                                                                            cloud_provider_model=cloud_provider_model,
+                                                                            resource_group_name=tested_group_name,
+                                                                            logger=self.logger)
+
+        self.delete_operation.delete_resource_group.assert_called_once_with(resource_client=resource_client,
+                                                                            group_name=tested_group_name,
+                                                                            logger=self.logger)
+
+        self.delete_operation.delete_resource_group.assert_called_with(resource_client=resource_client,
+                                                                       logger=self.logger,
+                                                                       group_name=tested_group_name)
+
+    def test_delete_sandbox_subnet_on_error(self):
+        # Arrange
+        self.vm_service.delete_resource_group = Mock()
+        self.vm_service.delete_sandbox_subnet = Mock()
+        tested_group_name = "test_group"
+        vnet = Mock()
+        subnet = Mock()
+        subnet.name = "test_group_for_exception"
+        vnet.subnets = [subnet]
+        reservation = Mock()
+        reservation.reservation_id = tested_group_name
+        self.network_service.get_sandbox_virtual_network = Mock(return_value=vnet)
+
+        # Act
+        self.assertRaises(Exception, self.delete_operation.delete_sandbox_subnet)
+
     def test_delete_operation(self):
         """
         :return:
