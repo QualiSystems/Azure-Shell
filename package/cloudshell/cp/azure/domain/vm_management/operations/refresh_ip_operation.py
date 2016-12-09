@@ -1,8 +1,3 @@
-from retrying import retry
-
-from cloudshell.cp.azure.common.helpers.retrying_helpers import retry_if_connection_error
-
-
 class RefreshIPOperation(object):
     def __init__(self, vm_service, resource_id_parser):
         """
@@ -14,7 +9,6 @@ class RefreshIPOperation(object):
         self.vm_service = vm_service
         self.resource_id_parser = resource_id_parser
 
-    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def refresh_ip(self, cloudshell_session, compute_client, network_client, resource_group_name, vm_name,
                    private_ip_on_resource, public_ip_on_resource, resource_fullname, logger):
         """Refresh Public and Private IP on CloudShell resource from corresponding deployed Azure instance
