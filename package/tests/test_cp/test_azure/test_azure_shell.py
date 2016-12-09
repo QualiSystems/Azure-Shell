@@ -133,13 +133,15 @@ class TestAzureShell(TestCase):
             validator_factory=validator_factory,
             logger=self.logger)
 
+    @mock.patch("cloudshell.cp.azure.azure_shell.CloudShellSessionContext")
     @mock.patch("cloudshell.cp.azure.azure_shell.jsonpickle")
     @mock.patch("cloudshell.cp.azure.azure_shell.DeployDataHolder")
     @mock.patch("cloudshell.cp.azure.azure_shell.AzureClientsManager")
     @mock.patch("cloudshell.cp.azure.azure_shell.LoggingSessionContext")
     @mock.patch("cloudshell.cp.azure.azure_shell.ErrorHandlingContext")
     def test_prepare_connectivity(self, error_handling_class, logging_context_class,
-                                  azure_clients_manager_class, deploy_data_holder_class, jsonpickle):
+                                  azure_clients_manager_class, deploy_data_holder_class, jsonpickle,
+                                  cloudshell_session_context_class):
         """Check that method uses ErrorHandlingContext and prepare_connectivity_operation"""
         # mock LoggingSessionContext and ErrorHandlingContext
         logging_context = mock.MagicMock(__enter__=mock.MagicMock(return_value=self.logger))
@@ -180,12 +182,17 @@ class TestAzureShell(TestCase):
         self.azure_shell.command_result_parser.set_command_result.assert_called_once_with(
             {'driverResponse': {'actionResults': prepare_connectivity_result}})
 
+    @mock.patch("cloudshell.cp.azure.azure_shell.CloudShellSessionContext")
     @mock.patch("cloudshell.cp.azure.azure_shell.AzureClientsManager")
     @mock.patch("cloudshell.cp.azure.azure_shell.LoggingSessionContext")
     @mock.patch("cloudshell.cp.azure.azure_shell.ErrorHandlingContext")
-    def test_cleanup_connectivity(self, error_handling_class, logging_context_class,
-                                  azure_clients_manager_class):
+    def test_cleanup_connectivity(self, error_handling_class, logging_context_class, azure_clients_manager_class,
+                                  cloudshell_session_context_class):
         """Check that method uses ErrorHandlingContext and delete_azure_vm_operation"""
+        # mock Cloudshell Session
+        cloudshell_session = mock.MagicMock()
+        cloudshell_session_context = mock.MagicMock(__enter__=mock.MagicMock(return_value=cloudshell_session))
+        cloudshell_session_context_class.return_value = cloudshell_session_context
         # mock LoggingSessionContext and ErrorHandlingContext
         logging_context = mock.MagicMock(__enter__=mock.MagicMock(return_value=self.logger))
         logging_context_class.return_value = logging_context
@@ -213,10 +220,12 @@ class TestAzureShell(TestCase):
             resource_group_name=self.group_name,
             logger=self.logger)
 
+    @mock.patch("cloudshell.cp.azure.azure_shell.CloudShellSessionContext")
     @mock.patch("cloudshell.cp.azure.azure_shell.AzureClientsManager")
     @mock.patch("cloudshell.cp.azure.azure_shell.LoggingSessionContext")
     @mock.patch("cloudshell.cp.azure.azure_shell.ErrorHandlingContext")
-    def test_delete_azure_vm(self, error_handling_class, logging_context_class, azure_clients_manager_class):
+    def test_delete_azure_vm(self, error_handling_class, logging_context_class, azure_clients_manager_class,
+                             cloudshell_session_context_class):
         """Check that method uses ErrorHandlingContext and delete_azure_vm_operation.delete method"""
         # mock LoggingSessionContext and ErrorHandlingContext
         logging_context = mock.MagicMock(__enter__=mock.MagicMock(return_value=self.logger))
@@ -421,3 +430,19 @@ class TestAzureShell(TestCase):
 
         self.azure_shell.deployed_app_ports_operation.get_formated_deployed_app_ports.assert_called_once_with(
             data_holder.vmdetails.vmCustomParams)
+
+    def test_set_decrypted_azure_secret(self):
+        """Check that method will update azure_secret attribute on cloud provider model with decrypted value"""
+        cloudshell_session = mock.MagicMock()
+        cloud_provider_model = mock.MagicMock()
+        decrypted_azure_secret = mock.MagicMock()
+        cloudshell_session.DecryptPassword.return_value = decrypted_azure_secret
+
+        # Act
+        self.azure_shell._set_decrypted_azure_secret(cloudshell_session=cloudshell_session,
+                                                     cloud_provider_model=cloud_provider_model,
+                                                     logger=self.logger)
+
+        # Verify
+        cloudshell_session.DecryptPassword.assert_called_once()
+        self.assertEqual(cloud_provider_model.azure_secret, decrypted_azure_secret.Value)
