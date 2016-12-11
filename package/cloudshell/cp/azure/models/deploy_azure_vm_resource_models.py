@@ -21,6 +21,7 @@ class DeployAzureVMResourceModel(BaseDeployAzureVMResourceModel):
         self.image_publisher = ''  # type: str
         self.image_offer = ''  # type: str
         self.image_sku = ''  # type: str
+        self.image_version = ''  # type: str
 
 
 class DeployAzureVMFromCustomImageResourceModel(BaseDeployAzureVMResourceModel):
