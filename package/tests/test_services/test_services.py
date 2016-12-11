@@ -459,6 +459,27 @@ class TestStorageService(TestCase):
 
             sleep.assert_called_once()
 
+    def test_delete_blob(self):
+        """Check that method will call delete_blob method on the blob service"""
+        blob_service = MagicMock()
+        container_name = "test_container_name"
+        blob_name = "test_blob_name"
+        self.storage_service._get_blob_service = MagicMock(return_value=blob_service)
+
+        # Act
+        self.storage_service.delete_blob(storage_client=self.storage_client,
+                                         group_name=self.group_name,
+                                         storage_name=self.storage_name,
+                                         container_name=container_name,
+                                         blob_name=blob_name)
+
+        # Verify
+        self.storage_service._get_blob_service.assert_called_once_with(storage_client=self.storage_client,
+                                                                       group_name=self.group_name,
+                                                                       storage_name=self.storage_name)
+
+        blob_service.delete_blob.assert_called_once_with(container_name=container_name, blob_name=blob_name)
+
 
 class TestNetworkService(TestCase):
     def setUp(self):
