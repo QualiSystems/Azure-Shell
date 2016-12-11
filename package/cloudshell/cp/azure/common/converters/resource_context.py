@@ -64,6 +64,7 @@ class ResourceContextConverter(object):
         deployed_resource.image_publisher = resource.attributes['Image Publisher']
         deployed_resource.image_offer = resource.attributes['Image Offer']
         deployed_resource.image_sku = resource.attributes['Image SKU']
+        deployed_resource.image_version = resource.attributes['Image Version']
 
         return deployed_resource
 
