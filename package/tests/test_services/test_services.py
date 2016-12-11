@@ -2,6 +2,7 @@ from unittest import TestCase
 
 import azure
 import mock
+from azure.mgmt.compute.models import Plan
 from azure.mgmt.network.models import IPAllocationMethod, NetworkSecurityGroup, SecurityRule
 from azure.mgmt.storage.models import StorageAccountCreateParameters
 from mock import MagicMock
@@ -586,6 +587,7 @@ class TestVMService(TestCase):
         tags = MagicMock()
         vm = MagicMock()
         virtual_machine_class.return_value = vm
+        plan = MagicMock()
 
         # Act
         self.vm_service._create_vm(compute_management_client=compute_management_client,
@@ -596,7 +598,8 @@ class TestVMService(TestCase):
                                    network_profile=network_profile,
                                    os_profile=os_profile,
                                    storage_profile=storage_profile,
-                                   tags=tags)
+                                   tags=tags,
+                                   plan=plan)
 
         # Verify
         compute_management_client.virtual_machines.create_or_update.assert_called_with(group_name, vm_name, vm)
@@ -605,7 +608,8 @@ class TestVMService(TestCase):
                                                       network_profile=network_profile,
                                                       os_profile=os_profile,
                                                       storage_profile=storage_profile,
-                                                      tags=tags)
+                                                      tags=tags,
+                                                      plan=plan)
 
     @mock.patch("cloudshell.cp.azure.domain.services.virtual_machine_service.StorageProfile")
     @mock.patch("cloudshell.cp.azure.domain.services.virtual_machine_service.NetworkProfile")
@@ -626,12 +630,17 @@ class TestVMService(TestCase):
         hardware_profile_class.return_value = hardware_profile
         network_profile_class.return_value = network_profile
         storage_profile_class.return_value = storage_profile
+        image_sku = MagicMock()
+        image_offer = MagicMock()
+        image_publisher = MagicMock()
+
+        plan = Plan(name=image_sku, publisher=image_publisher, product=image_offer)
 
         # Act
         self.vm_service.create_vm(compute_management_client=compute_management_client,
-                                  image_offer=MagicMock(),
-                                  image_publisher=MagicMock(),
-                                  image_sku=MagicMock(),
+                                  image_offer=image_offer,
+                                  image_publisher=image_publisher,
+                                  image_sku=image_sku,
                                   image_version=MagicMock(),
                                   vm_credentials=MagicMock(),
                                   computer_name=MagicMock(),
@@ -652,7 +661,8 @@ class TestVMService(TestCase):
                                                            region=region,
                                                            storage_profile=storage_profile,
                                                            tags=tags,
-                                                           vm_name=vm_name)
+                                                           vm_name=vm_name,
+                                                           plan=plan)
 
     @mock.patch("cloudshell.cp.azure.domain.services.virtual_machine_service.StorageProfile")
     @mock.patch("cloudshell.cp.azure.domain.services.virtual_machine_service.NetworkProfile")
