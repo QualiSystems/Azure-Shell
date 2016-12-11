@@ -11,12 +11,10 @@
 			"type": "String"
 		},
 		"adminUsername": {
-            "type": "string",
-			"defaultValue": "giluser"
+            "type": "string"
         },
         "adminPassword": {
-            "type": "securestring",
-			"defaultValue": "13fgfg$%65656#$DDFGF5"
+            "type": "securestring"
         },	
 		"virtualNetworks_mgmt_vnet_name": {
 			"defaultValue": "management_vnet",

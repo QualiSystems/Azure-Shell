@@ -1,6 +1,6 @@
 from azure.mgmt.compute.models import OSProfile, HardwareProfile, NetworkProfile, \
     NetworkInterfaceReference, CachingTypes, DiskCreateOptionTypes, VirtualHardDisk, ImageReference, OSDisk, \
-    VirtualMachine, StorageProfile
+    VirtualMachine, StorageProfile, Plan
 from azure.mgmt.compute.models.linux_configuration import LinuxConfiguration
 from azure.mgmt.compute.models.ssh_configuration import SshConfiguration
 from azure.mgmt.resource.resources.models import ResourceGroup
@@ -59,7 +59,7 @@ class VirtualMachineService(object):
 
     @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def _create_vm(self, compute_management_client, region, group_name, vm_name, hardware_profile, network_profile,
-                   os_profile, storage_profile, tags):
+                   os_profile, storage_profile, tags, vm_plan=None):
         """Create and deploy Azure VM from the given parameters
 
         :param compute_management_client: azure.mgmt.compute.compute_management_client.ComputeManagementClient
@@ -78,7 +78,8 @@ class VirtualMachineService(object):
                                          os_profile=os_profile,
                                          hardware_profile=hardware_profile,
                                          network_profile=network_profile,
-                                         storage_profile=storage_profile)
+                                         storage_profile=storage_profile,
+                                         plan=vm_plan)
 
         vm_result = compute_management_client.virtual_machines.create_or_update(group_name, vm_name, virtual_machine)
         return vm_result.result()
@@ -195,7 +196,8 @@ class VirtualMachineService(object):
                   storage_name,
                   vm_name,
                   tags,
-                  instance_type):
+                  instance_type,
+                  purchase_plan):
         """
 
         :param instance_type: (str) Azure instance type
@@ -212,6 +214,7 @@ class VirtualMachineService(object):
         :param storage_name: Azure storage name
         :param vm_name: name for VM
         :param tags: Azure tags
+        :param purchase_plan: PurchasePlan
         :return:
         """
         os_profile = self._prepare_os_profile(vm_credentials=vm_credentials,
@@ -233,6 +236,10 @@ class VirtualMachineService(object):
 
         storage_profile = StorageProfile(os_disk=os_disk, image_reference=image_reference)
 
+        vm_plan = None
+        if purchase_plan is not None:
+            vm_plan = Plan(name=purchase_plan.name, publisher=purchase_plan.publisher, product=purchase_plan.product)
+
         return self._create_vm(
             compute_management_client=compute_management_client,
             region=region,
@@ -242,7 +249,8 @@ class VirtualMachineService(object):
             network_profile=network_profile,
             os_profile=os_profile,
             storage_profile=storage_profile,
-            tags=tags)
+            tags=tags,
+            vm_plan=vm_plan)
 
     @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def create_resource_group(self, resource_management_client, group_name, region, tags):
@@ -298,7 +306,7 @@ class VirtualMachineService(object):
             return operation_poller.result()
 
     @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
-    def get_image_operation_system(self, compute_management_client, location, publisher_name, offer, skus):
+    def get_virtual_machine_image(self, compute_management_client, location, publisher_name, offer, skus):
         """Get operation system from the given image
 
         :param compute_management_client: azure.mgmt.compute.compute_management_client.ComputeManagementClient
@@ -324,4 +332,4 @@ class VirtualMachineService(object):
             skus=skus,
             version=version)
 
-        return deployed_image.os_disk_image.operating_system
+        return deployed_image
