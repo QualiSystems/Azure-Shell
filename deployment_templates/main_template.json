@@ -2,52 +2,62 @@
 	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
 	"contentVersion": "1.0.0.0",
 	"parameters": {		
-		"qualiServerUser":{
-			"type": "string"
+		"CloudShellAdmin":{
+			"type": "string",
+			"metadata": {"description": "The CloudShell admin user"}
 		},
-		"qualiServerPassword":{
-			"type": "securestring"
+		"CloudShellAdminPassword":{
+			"type": "securestring",
+			"metadata": {"description": "The CloudShell admin’s password"}
 		},
-		"qualiServerIP":{
-			"type": "string"
+		"CloudShellServerIP":{
+			"type": "string",
+			"metadata": {"description": "The IP address of the Quali Server"}
 		},	
-		"adminUsername": {
+		"CloudShellSSHUserName": {
             "type": "string",
-			"defaultValue": "giluser"
+			"metadata": {"description": "The CloudShell SSH user to be used to access CloudShell components in the Management VNet. For example, QualiX Server and TestShell Execution Server."}
         },
-        "adminPassword": {
+        "CloudShellSSHPassword": {
             "type": "securestring",
-			"defaultValue": "13fgfg$%65656#$DDFGF5"
+			"metadata": {"description": "The CloudShell SSH user’s password."}
         },			
-		"management_vnet_CIDR": {
+		"ManagementVnetCIDR": {
 			"defaultValue": "192.168.120.0/24",
-			"type": "String"
+			"type": "String",
+			"metadata": {"description": "The IP range (in CIDR notation) to be used for the Management VNet. Specify a class C CIDR (/24). Example: 192.168.120.0/24"}
 		},
-		"management_vnet_subnet_CIDR": {
+		"ManagementVnetVPNSubnetCIDR": {
 			"defaultValue": "192.168.120.0/28",
-			"type": "String"
+			"type": "String",
+			"metadata": {"description": "Relevant if “Create VPN Endpoint” is set to True. The IP range (in CIDR notation) of the subnet in which the VPN connection is set. This range must be included in the Management VNet’s range. Example: 192.168.120.0/28"}
 		},		
-		"management_vnet_default_subnet_CIDR": {
+		"ManagementVnetSubnetCIDR": {
 			"defaultValue": "192.168.120.16/28",
-			"type": "String"
+			"type": "String",
+			"metadata": {"description": "The IP range (in CIDR notation) of the subnet to be used by the Management VNet. This range must be included in the Management VNet’s range. This subnet is used by CloudShell components such as QualiX Server and TestShell Execution Server. Example: 192.168.120.16/28"}
 		},			
-		"externalMode":{
+		"DeploymentMode":{
 			"type":"string",
 			"defaultValue":"External",
-			"allowedValues":["External","Internal"]
+			"allowedValues":["External","Internal"],
+			"metadata": {"description": "Use external deployment to create a QualiX VM with a public IP, or internal deployment to create the QualiX VM with a private IP. The private IP is accessible from the networks that are connected to the Management VNet (such as the network in which the Quali Server resides)."}
 		},			
-		"createWithVpn":{
+		"CreateVPNEndpoint":{
 			"type":"string",
 			"defaultValue":"False",
-			"allowedValues":["True","False"]			
+			"allowedValues":["True","False"],
+			"metadata": {"description": "Set to True to create a VPN endpoint for the Management VNet to support a hybrid scenario."}
 		},
-		"on_premise_CIDR": {
+		"OnPremiseCIDR": {
 			"defaultValue": "",
-			"type": "String"
+			"type": "String",
+			"metadata": {"description": "The IP range (in CIDR notation) of the private network in which the Quali Server resides (outside of the Management VNet)."}
 		},
-        "vpn_address": {
+        "VPNAddress": {
             "type": "string",
-            "defaultValue": ""
+            "defaultValue": "",
+			"metadata": {"description": "The public IP address of the router on the network in which Quali Server resides."}
         }
 		
 	},
@@ -75,7 +85,7 @@
 		"scriptUrl":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/feature/gil_create_json_deploy/deployment_templates/guacamole-quali-install.sh",
 		"commandToExe":"sh guacamole-quali-install.sh",
 		"scriptUrlES":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/feature/gil_create_json_deploy/deployment_templates/cloudshell_install_script.sh",
-		"commandToExeES":"[concat('sh cloudshell_install_script.sh ', parameters('qualiServerIP'),' ',parameters('qualiServerUser'),' ', parameters('qualiServerPassword'),' ',variables('virtualMachineEsName') )]",
+		"commandToExeES":"[concat('sh cloudshell_install_script.sh ', parameters('CloudShellServerIP'),' ',parameters('CloudShelladmin'),' ', parameters('CloudShellAdminPassword'),' ',variables('virtualMachineEsName') )]",
 		"vmSize":"Standard_A3"
 	},
 	"resources": [
@@ -91,8 +101,8 @@
 		"properties": {
 			"osProfile": {
 				"computerName": "[variables('virtualMachineEsName')]",
-				"adminUsername": "[parameters('adminUsername')]",
-				"adminPassword": "[parameters('adminPassword')]"
+				"adminUsername": "[parameters('CloudShellSSHUserName')]",
+				"adminPassword": "[parameters('CloudShellSSHPassword')]"
 			},
 			"hardwareProfile": {
 				"vmSize": "[variables('vmSize')]"
@@ -200,12 +210,12 @@
       "properties": {
         "mode": "incremental",
         "templateLink": {
-          "uri": "[concat(variables('qx_template_location'),'qx',parameters('externalMode'),'Mode.json')]",
+          "uri": "[concat(variables('qx_template_location'),'qx',parameters('DeploymentMode'),'Mode.json')]",
           "contentVersion": "1.0.0.0"
         },
         "parameters": {          
-          "adminUsername": { "value": "[parameters('adminUsername')]" },
-          "adminPassword": { "value": "[parameters('adminPassword')]" },
+          "adminUsername": { "value": "[parameters('CloudShellSSHUserName')]" },
+          "adminPassword": { "value": "[parameters('CloudShellSSHPassword')]" },
           "virtualNetworks_mgmt_vnet_name": { "value": "[variables('virtualNetworks_mgmt_vnet_name')]" },
 		  "storageAccountName":{"value":"[variables('storageAccountName')]"},
 		  "storageBlob":{"value":"[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"},
@@ -229,13 +239,14 @@
       "properties": {
         "mode": "incremental",
         "templateLink": {
-          "uri": "[concat(variables('vpn_template_location'),'vpn_creation',parameters('createWithVpn'),'.json')]",
+          "uri": "[concat(variables('vpn_template_location'),'vpn_creation',parameters('CreateVPNEndpoint'),'.json')]",
           "contentVersion": "1.0.0.0"
         },
         "parameters": {          
           "virtualNetworks_mgmt_vnet_name": { "value": "[variables('virtualNetworks_mgmt_vnet_name')]" },		  
 		  "gatewaySubnetRef":{"value":"[variables('gatewaySubnetRef')]"},
-		  "on_premise_CIDR":{"value":"[parameters('on_premise_CIDR')]"}
+		  "on_premise_CIDR":{"value":"[parameters('OnPremiseCIDR')]"},
+		  "vpn_address":{"value":"[parameters('VPNAddress')]"}
         }
       }
     },	
@@ -252,19 +263,19 @@
 		},
 		"properties": {
 			"addressSpace": {
-				"addressPrefixes": ["[parameters('management_vnet_CIDR')]"]
+				"addressPrefixes": ["[parameters('ManagementVnetCIDR')]"]
 			},
 			"subnets": [
 					{
 						"name": "GatewaySubnet",
 						"properties": {
-							"addressPrefix": "[parameters('management_vnet_subnet_CIDR')]"
+							"addressPrefix": "[parameters('ManagementVnetVPNSubnetCIDR')]"
 						}
 					},
 					{
 						"name": "default",
 						"properties": {
-							"addressPrefix": "[parameters('management_vnet_default_subnet_CIDR')]"
+							"addressPrefix": "[parameters('ManagementVnetSubnetCIDR')]"
 						}
 					}
 			]
