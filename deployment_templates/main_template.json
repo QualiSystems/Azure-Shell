@@ -3,49 +3,61 @@
 	"contentVersion": "1.0.0.0",
 	"parameters": {		
 		"CloudShelladmin":{
-			"type": "string"
+			"type": "string",
+			"metadata": {"description": "The CloudShell admin user"}
 		},
 		"CloudShellAdminPassword":{
-			"type": "securestring"
+			"type": "securestring",
+			"metadata": {"description": "The CloudShell admin’s password"}
 		},
 		"CloudShellServerIP":{
-			"type": "string"
+			"type": "string",
+			"metadata": {"description": "The IP address of the Quali Server"}
 		},	
 		"CloudShellSSHUserName": {
-            "type": "string"			
+            "type": "string",
+			"metadata": {"description": "The CloudShell SSH user to be used to access CloudShell components in the Management VNet. For example, QualiX Server and TestShell Execution Server."}
         },
         "CloudShellSSHPassword": {
-            "type": "securestring"		
+            "type": "securestring",
+			"metadata": {"description": "The CloudShell SSH user’s password."}
         },			
 		"ManagementVNetCIDR": {
 			"defaultValue": "192.168.120.0/24",
-			"type": "String"
+			"type": "String",
+			"metadata": {"description": "The IP range (in CIDR notation) to be used for the Management VNet. Specify a class C CIDR (/24). Example: 192.168.120.0/24"}
 		},
 		"ManagementVNetVPNSubnetCIDR": {
 			"defaultValue": "192.168.120.0/28",
-			"type": "String"
+			"type": "String",
+			"metadata": {"description": "Relevant if “Create VPN Endpoint” is set to True. The IP range (in CIDR notation) of the subnet in which the VPN connection is set. This range must be included in the Management VNet’s range. Example: 192.168.120.0/28"}
 		},		
 		"ManagementVNetSubnetCIDR": {
 			"defaultValue": "192.168.120.16/28",
-			"type": "String"
+			"type": "String",
+			"metadata": {"description": "The IP range (in CIDR notation) of the subnet to be used by the Management VNet. This range must be included in the Management VNet’s range. This subnet is used by CloudShell components such as QualiX Server and TestShell Execution Server. Example: 192.168.120.16/28"}
 		},			
 		"DeploymentMode":{
 			"type":"string",
 			"defaultValue":"External",
-			"allowedValues":["External","Internal"]
+			"allowedValues":["External","Internal"],
+			"metadata": {"description": "Use external deployment to create a QualiX VM with a public IP, or internal deployment to create the QualiX VM with a private IP. The private IP is accessible from the networks that are connected to the Management VNet (such as the network in which the Quali Server resides)."}
 		},			
 		"CreateVPNEndpoint":{
 			"type":"string",
 			"defaultValue":"False",
-			"allowedValues":["True","False"]			
+			"allowedValues":["True","False"],
+			"metadata": {"description": "Set to True to create a VPN endpoint for the Management VNet to support a hybrid scenario."}
 		},
 		"OnPremiseCIDR": {
 			"defaultValue": "",
-			"type": "String"
+			"type": "String",
+			"metadata": {"description": "The IP range (in CIDR notation) of the private network in which the Quali Server resides (outside of the Management VNet)."}
 		},
         "VPNAddress": {
             "type": "string",
-            "defaultValue": ""
+            "defaultValue": "",
+			"metadata": {"description": "The public IP address of the router on the network in which Quali Server resides."}
         }
 		
 	},
