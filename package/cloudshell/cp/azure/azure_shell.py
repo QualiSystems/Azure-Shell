@@ -347,7 +347,7 @@ class AzureShell(object):
                 with ValidatorsFactoryContext() as validator_factory:
                     resource_group_name = command_context.remote_reservation.reservation_id
 
-                    self.access_key_operation.get_access_key(storage_client=azure_clients.storage_client,
+                    return self.access_key_operation.get_access_key(storage_client=azure_clients.storage_client,
                                                              group_name=resource_group_name,
                                                              validator_factory=validator_factory)
 
