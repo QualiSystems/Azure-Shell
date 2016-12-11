@@ -80,12 +80,13 @@
 		"location": "[resourceGroup().location]",
 		"es_nic_name":"ExecutionServer-VM-NIC",
 		"virtualMachineEsName": "ExecutionServer-VM",		
+		"virtualMachineEsNameInVM": "[concat('azure',variables('location'))]",
 		"qx_template_location":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/feature/gil_create_json_deploy/deployment_templates/",
 		"vpn_template_location":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/feature/gil_create_json_deploy/deployment_templates/",
 		"scriptUrl":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/feature/gil_create_json_deploy/deployment_templates/guacamole-quali-install.sh",
 		"commandToExe":"sh guacamole-quali-install.sh",
 		"scriptUrlES":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/feature/gil_create_json_deploy/deployment_templates/cloudshell_install_script.sh",
-		"commandToExeES":"[concat('sh cloudshell_install_script.sh ', parameters('CloudShellServerIP'),' ',parameters('CloudShelladmin'),' ', parameters('CloudShellAdminPassword'),' ',variables('virtualMachineEsName') )]",
+		"commandToExeES":"[concat('sh cloudshell_install_script.sh ', parameters('CloudShellServerIP'),' ',parameters('CloudShelladmin'),' ', parameters('CloudShellAdminPassword'),' ',variables('virtualMachineEsNameInVM') )]",
 		"vmSize":"Standard_A3"
 	},
 	"resources": [
