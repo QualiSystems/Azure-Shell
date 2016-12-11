@@ -2,48 +2,48 @@
 	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
 	"contentVersion": "1.0.0.0",
 	"parameters": {		
-		"qualiServerUser":{
+		"CloudShelladmin":{
 			"type": "string"
 		},
-		"qualiServerPassword":{
+		"CloudShellAdminPassword":{
 			"type": "securestring"
 		},
-		"qualiServerIP":{
+		"CloudShellServerIP":{
 			"type": "string"
 		},	
-		"adminUsername": {
+		"CloudShellSSHUserName": {
             "type": "string"			
         },
-        "adminPassword": {
+        "CloudShellSSHPassword": {
             "type": "securestring"		
         },			
-		"management_vnet_CIDR": {
+		"ManagementVNetCIDR": {
 			"defaultValue": "192.168.120.0/24",
 			"type": "String"
 		},
-		"management_vnet_subnet_CIDR": {
+		"ManagementVNetVPNSubnetCIDR": {
 			"defaultValue": "192.168.120.0/28",
 			"type": "String"
 		},		
-		"management_vnet_default_subnet_CIDR": {
+		"ManagementVNetSubnetCIDR": {
 			"defaultValue": "192.168.120.16/28",
 			"type": "String"
 		},			
-		"externalMode":{
+		"DeploymentMode":{
 			"type":"string",
 			"defaultValue":"External",
 			"allowedValues":["External","Internal"]
 		},			
-		"createWithVpn":{
+		"CreateVPNEndpoint":{
 			"type":"string",
 			"defaultValue":"False",
 			"allowedValues":["True","False"]			
 		},
-		"on_premise_CIDR": {
+		"OnPremiseCIDR": {
 			"defaultValue": "",
 			"type": "String"
 		},
-        "vpn_address": {
+        "VPNAddress": {
             "type": "string",
             "defaultValue": ""
         }
@@ -73,7 +73,7 @@
 		"scriptUrl":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/feature/gil_create_json_deploy/deployment_templates/guacamole-quali-install.sh",
 		"commandToExe":"sh guacamole-quali-install.sh",
 		"scriptUrlES":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/feature/gil_create_json_deploy/deployment_templates/cloudshell_install_script.sh",
-		"commandToExeES":"[concat('sh cloudshell_install_script.sh ', parameters('qualiServerIP'),' ',parameters('qualiServerUser'),' ', parameters('qualiServerPassword'),' ',variables('virtualMachineEsName') )]",
+		"commandToExeES":"[concat('sh cloudshell_install_script.sh ', parameters('CloudShellServerIP'),' ',parameters('CloudShelladmin'),' ', parameters('CloudShellAdminPassword'),' ',variables('virtualMachineEsName') )]",
 		"vmSize":"Standard_A3"
 	},
 	"resources": [
@@ -89,8 +89,8 @@
 		"properties": {
 			"osProfile": {
 				"computerName": "[variables('virtualMachineEsName')]",
-				"adminUsername": "[parameters('adminUsername')]",
-				"adminPassword": "[parameters('adminPassword')]"
+				"adminUsername": "[parameters('CloudShellSSHUserName')]",
+				"adminPassword": "[parameters('CloudShellSSHPassword')]"
 			},
 			"hardwareProfile": {
 				"vmSize": "[variables('vmSize')]"
@@ -198,12 +198,12 @@
       "properties": {
         "mode": "incremental",
         "templateLink": {
-          "uri": "[concat(variables('qx_template_location'),'qx',parameters('externalMode'),'Mode.json')]",
+          "uri": "[concat(variables('qx_template_location'),'qx',parameters('DeploymentMode'),'Mode.json')]",
           "contentVersion": "1.0.0.0"
         },
         "parameters": {          
-          "adminUsername": { "value": "[parameters('adminUsername')]" },
-          "adminPassword": { "value": "[parameters('adminPassword')]" },
+          "adminUsername": { "value": "[parameters('CloudShellSSHUserName')]" },
+          "adminPassword": { "value": "[parameters('CloudShellSSHPassword')]" },
           "virtualNetworks_mgmt_vnet_name": { "value": "[variables('virtualNetworks_mgmt_vnet_name')]" },
 		  "storageAccountName":{"value":"[variables('storageAccountName')]"},
 		  "storageBlob":{"value":"[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"},
@@ -227,13 +227,14 @@
       "properties": {
         "mode": "incremental",
         "templateLink": {
-          "uri": "[concat(variables('vpn_template_location'),'vpn_creation',parameters('createWithVpn'),'.json')]",
+          "uri": "[concat(variables('vpn_template_location'),'vpn_creation',parameters('CreateVPNEndpoint'),'.json')]",
           "contentVersion": "1.0.0.0"
         },
         "parameters": {          
           "virtualNetworks_mgmt_vnet_name": { "value": "[variables('virtualNetworks_mgmt_vnet_name')]" },		  
 		  "gatewaySubnetRef":{"value":"[variables('gatewaySubnetRef')]"},
-		  "on_premise_CIDR":{"value":"[parameters('on_premise_CIDR')]"}
+		  "on_premise_CIDR":{"value":"[parameters('OnPremiseCIDR')]"},
+		  "vpn_address":{"value":"[parameters('VPNAddress')]"}
         }
       }
     },	
@@ -250,19 +251,19 @@
 		},
 		"properties": {
 			"addressSpace": {
-				"addressPrefixes": ["[parameters('management_vnet_CIDR')]"]
+				"addressPrefixes": ["[parameters('ManagementVNetCIDR')]"]
 			},
 			"subnets": [
 					{
 						"name": "GatewaySubnet",
 						"properties": {
-							"addressPrefix": "[parameters('management_vnet_subnet_CIDR')]"
+							"addressPrefix": "[parameters('ManagementVNetVPNSubnetCIDR')]"
 						}
 					},
 					{
 						"name": "default",
 						"properties": {
-							"addressPrefix": "[parameters('management_vnet_default_subnet_CIDR')]"
+							"addressPrefix": "[parameters('ManagementVNetSubnetCIDR')]"
 						}
 					}
 			]
