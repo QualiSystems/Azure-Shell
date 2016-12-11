@@ -145,7 +145,7 @@ class TestDeployAzureVMOperation(TestCase):
         self.storage_service.get_storage_per_resource_group = MagicMock()
         self.network_service.get_virtual_networks = Mock(return_value=[MagicMock()])
         self.network_service.create_network_for_vm = MagicMock()
-        self.vm_service.get_image_operation_system = MagicMock()
+        self.vm_service.get_virtual_machine_image = MagicMock()
         self.vm_service.create_vm = MagicMock()
         self.deploy_operation._process_nsg_rules = MagicMock()
         resource_model = DeployAzureVMResourceModel()
@@ -174,7 +174,7 @@ class TestDeployAzureVMOperation(TestCase):
                                      Mock())
 
         # Verify
-        self.vm_service.get_image_operation_system.assert_called_once()
+        self.vm_service.get_virtual_machine_image.assert_called_once()
         self.network_service.create_network_for_vm.assert_called_once()
         self.vm_service.create_vm.assert_called_once()
         self.network_service.create_network_for_vm.assert_called_once()
@@ -325,7 +325,7 @@ class TestDeployAzureVMOperation(TestCase):
         self.network_service.delete_nic = Mock()
         self.network_service.delete_ip = Mock()
         self.vm_service.delete_vm = Mock()
-        self.vm_service.get_image_operation_system = MagicMock()
+        self.vm_service.get_virtual_machine_image = MagicMock()
         self.deploy_operation._process_nsg_rules = Mock()
         self.deploy_operation._rollback_deployed_resources = MagicMock()
 
