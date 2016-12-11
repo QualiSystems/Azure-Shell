@@ -2,7 +2,7 @@
 	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
 	"contentVersion": "1.0.0.0",
 	"parameters": {		
-		"CloudShelladmin":{
+		"CloudShellAdmin":{
 			"type": "string",
 			"metadata": {"description": "The CloudShell admin user"}
 		},
@@ -22,17 +22,17 @@
             "type": "securestring",
 			"metadata": {"description": "The CloudShell SSH user’s password."}
         },			
-		"ManagementVNetCIDR": {
+		"ManagementVnetCIDR": {
 			"defaultValue": "192.168.120.0/24",
 			"type": "String",
 			"metadata": {"description": "The IP range (in CIDR notation) to be used for the Management VNet. Specify a class C CIDR (/24). Example: 192.168.120.0/24"}
 		},
-		"ManagementVNetVPNSubnetCIDR": {
+		"ManagementVnetVPNSubnetCIDR": {
 			"defaultValue": "192.168.120.0/28",
 			"type": "String",
 			"metadata": {"description": "Relevant if “Create VPN Endpoint” is set to True. The IP range (in CIDR notation) of the subnet in which the VPN connection is set. This range must be included in the Management VNet’s range. Example: 192.168.120.0/28"}
 		},		
-		"ManagementVNetSubnetCIDR": {
+		"ManagementVnetSubnetCIDR": {
 			"defaultValue": "192.168.120.16/28",
 			"type": "String",
 			"metadata": {"description": "The IP range (in CIDR notation) of the subnet to be used by the Management VNet. This range must be included in the Management VNet’s range. This subnet is used by CloudShell components such as QualiX Server and TestShell Execution Server. Example: 192.168.120.16/28"}
@@ -263,19 +263,19 @@
 		},
 		"properties": {
 			"addressSpace": {
-				"addressPrefixes": ["[parameters('ManagementVNetCIDR')]"]
+				"addressPrefixes": ["[parameters('ManagementVnetCIDR')]"]
 			},
 			"subnets": [
 					{
 						"name": "GatewaySubnet",
 						"properties": {
-							"addressPrefix": "[parameters('ManagementVNetVPNSubnetCIDR')]"
+							"addressPrefix": "[parameters('ManagementVnetVPNSubnetCIDR')]"
 						}
 					},
 					{
 						"name": "default",
 						"properties": {
-							"addressPrefix": "[parameters('ManagementVNetSubnetCIDR')]"
+							"addressPrefix": "[parameters('ManagementVnetSubnetCIDR')]"
 						}
 					}
 			]
