@@ -63,9 +63,9 @@
 	},
 	"variables": {
 		"storageAccountType": "Standard_LRS",
-		"virtualNetworks_mgmt_vnet_name": "management_vnet",
-		"virtualNetworks_sandbox_vnet_name": "sandbox_vnet",
-		"nsg_management_name" : "nsg_es",
+		"virtualNetworks_mgmt_vnet_name": "CloudShell-Management-Vnet",
+		"virtualNetworks_sandbox_vnet_name": "CloudShell-Sandbox-Vnet",
+		"nsg_management_name" : "ExecutionServer-Security-Group",
 	    "apiVersion": "2016-06-01",
 		"storageAccountName": "[concat('storage',uniquestring(resourceGroup().id))]",
 		"vNet1": {
@@ -78,8 +78,8 @@
         "gatewaySubnetRef": "[concat(variables('vnetID'),'/subnets/','GatewaySubnet')]",
         "SubnetRef": "[concat(variables('vnetID'),'/subnets/','default')]",
 		"location": "[resourceGroup().location]",
-		"es_nic_name":"nic_for_centos_es",
-		"virtualMachineEsName": "centos-es-vm",		
+		"es_nic_name":"ExecutionServer-VM-NIC",
+		"virtualMachineEsName": "ExecutionServer-VM",		
 		"qx_template_location":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/feature/gil_create_json_deploy/deployment_templates/",
 		"vpn_template_location":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/feature/gil_create_json_deploy/deployment_templates/",
 		"scriptUrl":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/feature/gil_create_json_deploy/deployment_templates/guacamole-quali-install.sh",
@@ -136,7 +136,7 @@
 	
 	{
 	  "type": "Microsoft.Compute/virtualMachines/extensions",
-	  "name": "[concat(variables('virtualMachineEsName'),'/esScript')]",
+	  "name": "[concat(variables('virtualMachineEsName'),'/ExecutionServerScript')]",
 	  "apiVersion": "2015-06-15",
 	  "location": "[resourceGroup().location]",
 	  "dependsOn": ["[concat('Microsoft.Compute/virtualMachines/', variables('virtualMachineEsName'))]"],

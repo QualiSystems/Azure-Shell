@@ -2,9 +2,9 @@
 	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/qxExternalMode.json#",
 	"contentVersion": "1.0.0.0"	,
 	"variables":{	
-		"qx_nic_name":"nic_for_centos_qx",
-		"virtualMachineQxName": "centos-qx-vm",		
-		"nsg_management_name" : "nsg_qx"
+		"qx_nic_name":"QualiX-VM-NIC",
+		"virtualMachineQxName": "QualiX-VM",		
+		"nsg_management_name" : "QualiX-Security-Group"
 	},
 	"parameters":{
 		"vmSize":{
@@ -84,7 +84,7 @@
 		
 		{
 		  "type": "Microsoft.Compute/virtualMachines/extensions",
-		  "name": "[concat(variables('virtualMachineQxName'),'/qsScript')]",
+		  "name": "[concat(variables('virtualMachineQxName'),'/QualiX-Script')]",
 		  "apiVersion": "2015-06-15",
 		  "location": "[resourceGroup().location]",
 		  "dependsOn": ["[concat('Microsoft.Compute/virtualMachines/', variables('virtualMachineQxName'))]"],
@@ -138,7 +138,7 @@
 			  {
 				"name": "first_rule",
 				"properties": {
-				  "description": "This is the second rule",
+				  "description": "This is the first rule",
 				  "protocol": "Tcp",
 				  "sourcePortRange": "*",
 				  "destinationPortRange": "443",
