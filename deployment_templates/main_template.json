@@ -12,12 +12,10 @@
 			"type": "string"
 		},	
 		"adminUsername": {
-            "type": "string",
-			"defaultValue": "giluser"
+            "type": "string"			
         },
         "adminPassword": {
-            "type": "securestring",
-			"defaultValue": "13fgfg$%65656#$DDFGF5"
+            "type": "securestring"		
         },			
 		"management_vnet_CIDR": {
 			"defaultValue": "192.168.120.0/24",
