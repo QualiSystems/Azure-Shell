@@ -44,10 +44,9 @@
 		"location": "[resourceGroup().location]",
 		"es_nic_name":"QualiNic",
 		"virtualMachineEsName": "Quali-vm",
-		"qx_template_location":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/feature/gil_es_qs_combine/deployment_templates/centos_windows_vm_templates/",		
-		"scriptUrl":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/feature/gil_create_json_deploy/deployment_templates/guacamole-quali-install.sh",
+		"qx_template_location":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/feature/gil_es_qs_combine/deployment_templates/centos_windows_vm_templates/",
+		"scriptUrl":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/develop/deployment_templates/cloudshell_install_script.sh",
 		"commandToExe":"sh guacamole-quali-install.sh",
-		"scriptUrlES":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/feature/gil_create_json_deploy/deployment_templates/cloudshell_install_script.sh",		
 		"vmSize":"Standard_A3",
 		"qualiVMSize": "Standard_A2",
 		"publicIpAddressNameQualiVM": "quali_ip"
