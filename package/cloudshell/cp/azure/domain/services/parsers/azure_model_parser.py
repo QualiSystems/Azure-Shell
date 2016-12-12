@@ -34,6 +34,9 @@ class AzureModelsParser(object):
         deployment_resource_model.app_name = data_holder.app_name
         deployment_resource_model.username = data_holder.ami_params.username
         deployment_resource_model.password = data_holder.ami_params.password
+        deployment_resource_model.extension_script_file = data_holder.ami_params.extension_script_file
+        deployment_resource_model.extension_script_configurations = (
+            data_holder.ami_params.extension_script_configurations)
 
     @staticmethod
     def convert_to_deploy_azure_vm_resource_model(deployment_request):
