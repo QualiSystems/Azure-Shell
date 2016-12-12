@@ -38,7 +38,7 @@ class DeployAzureVMOperation(object):
         self.security_group_service = security_group_service
         self.name_provider_service = name_provider_service
 
-    def _process_nsg_rules(self, network_client, group_name, azure_vm_deployment_model, nic, logger):
+    def _process_nsg_rules(self, network_client, group_name, azure_vm_deployment_model, nic, logger,lock):
         """Create Network Security Group rules if needed
 
         :param network_client: azure.mgmt.network.NetworkManagementClient instance
@@ -67,7 +67,8 @@ class DeployAzureVMOperation(object):
                 group_name=group_name,
                 security_group_name=network_security_group.name,
                 inbound_rules=inbound_rules,
-                destination_addr=nic.ip_configurations[0].private_ip_address)
+                destination_addr=nic.ip_configurations[0].private_ip_address,
+                lock=lock)
 
             logger.info("NSG rules were successfully created for NSG {}".format(network_security_group.name))
 
@@ -319,8 +320,10 @@ class DeployAzureVMOperation(object):
                compute_client,
                storage_client,
                validator_factory,
-               logger):
+               logger,
+               lock_object):
         """
+        :param lock_object:
         :param cloudshell.cp.azure.common.validtors.validator_factory.ValidatorFactory validator_factory:
         :param azure.mgmt.storage.storage_management_client.StorageManagementClient storage_client:
         :param azure.mgmt.compute.compute_management_client.ComputeManagementClient compute_client:
@@ -409,8 +412,8 @@ class DeployAzureVMOperation(object):
                                     group_name=group_name,
                                     azure_vm_deployment_model=azure_vm_deployment_model,
                                     nic=nic,
-                                    logger=logger)
-
+                                    logger=logger,
+                                    lock=lock_object)
             # 4. create Vm
             logger.info("Start Deploying VM {}".format(vm_name))
             result_create = self.vm_service.create_vm(compute_management_client=compute_client,

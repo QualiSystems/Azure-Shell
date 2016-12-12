@@ -6,6 +6,7 @@ from cloudshell.shell.core.session.cloudshell_session import CloudShellSessionCo
 from cloudshell.cp.azure.common.deploy_data_holder import DeployDataHolder
 from cloudshell.cp.azure.domain.context.validators_factory_context import ValidatorsFactoryContext
 from cloudshell.cp.azure.domain.services.cryptography_service import CryptographyService
+from cloudshell.cp.azure.domain.services.lock_service import LockService
 from cloudshell.cp.azure.domain.services.tags import TagService
 from cloudshell.cp.azure.domain.vm_management.operations.access_key_operation import AccessKeyOperation
 from cloudshell.cp.azure.domain.vm_management.operations.delete_operation import DeleteAzureVMOperation
@@ -46,6 +47,8 @@ class AzureShell(object):
         self.cryptography_service = CryptographyService()
         self.name_provider_service = NameProviderService()
         self.access_key_operation = AccessKeyOperation(self.key_pair_service, self.storage_service)
+        self.lock_service = LockService()
+        self.resource_group_lock = {}
 
         self.prepare_connectivity_operation = PrepareConnectivityOperation(
             vm_service=self.vm_service,
@@ -106,6 +109,10 @@ class AzureShell(object):
                         azure_vm_deployment_model.password = decrypted_pass.Value
 
                 with ValidatorsFactoryContext() as validator_factory:
+
+                    lock = self.lock_service.create_or_update_lock(self.resource_group_lock,
+                                                                   reservation.reservation_id)
+
                     deploy_data = self.deploy_azure_vm_operation.deploy(
                         azure_vm_deployment_model=azure_vm_deployment_model,
                         cloud_provider_model=cloud_provider_model,
@@ -114,7 +121,8 @@ class AzureShell(object):
                         compute_client=azure_clients.compute_client,
                         storage_client=azure_clients.storage_client,
                         validator_factory=validator_factory,
-                        logger=logger)
+                        logger=logger,
+                        lock_object=lock)
 
                     logger.info('End deploying Azure VM')
                     return self.command_result_parser.set_command_result(deploy_data)
@@ -350,8 +358,8 @@ class AzureShell(object):
                     resource_group_name = command_context.remote_reservation.reservation_id
 
                     return self.access_key_operation.get_access_key(storage_client=azure_clients.storage_client,
-                                                             group_name=resource_group_name,
-                                                             validator_factory=validator_factory)
+                                                                    group_name=resource_group_name,
+                                                                    validator_factory=validator_factory)
 
     def get_application_ports(self, command_context):
         """Get application ports in a nicely formatted manner
@@ -365,4 +373,4 @@ class AzureShell(object):
                 data_holder = self.model_parser.convert_app_resource_to_deployed_app(resource)
 
                 return self.deployed_app_ports_operation.get_formated_deployed_app_ports(
-                        data_holder.vmdetails.vmCustomParams)
+                    data_holder.vmdetails.vmCustomParams)
