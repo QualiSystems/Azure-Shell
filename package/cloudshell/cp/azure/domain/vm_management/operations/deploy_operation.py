@@ -364,12 +364,14 @@ class DeployAzureVMOperation(object):
             azure_vm_deployment_model.image_offer,
             azure_vm_deployment_model.image_sku))
 
-        os_type = self.vm_service.get_image_operation_system(
+        virtual_machine_image = self.vm_service.get_virtual_machine_image(
             compute_management_client=compute_client,
             location=cloud_provider_model.region,
             publisher_name=azure_vm_deployment_model.image_publisher,
             offer=azure_vm_deployment_model.image_offer,
             skus=azure_vm_deployment_model.image_sku)
+
+        os_type = virtual_machine_image.os_disk_image.operating_system
 
         logger.info("Operation system type for the VM is {}".format(os_type))
 
@@ -415,7 +417,7 @@ class DeployAzureVMOperation(object):
                                                       image_offer=azure_vm_deployment_model.image_offer,
                                                       image_publisher=azure_vm_deployment_model.image_publisher,
                                                       image_sku=azure_vm_deployment_model.image_sku,
-                                                      image_version='latest',
+                                                      image_version=azure_vm_deployment_model.image_version,
                                                       vm_credentials=vm_credentials,
                                                       computer_name=computer_name,
                                                       group_name=group_name,
@@ -424,7 +426,8 @@ class DeployAzureVMOperation(object):
                                                       storage_name=storage_account_name,
                                                       vm_name=vm_name,
                                                       tags=tags,
-                                                      instance_type=azure_vm_deployment_model.instance_type)
+                                                      instance_type=azure_vm_deployment_model.instance_type,
+                                                      purchase_plan=virtual_machine_image.plan)
 
             logger.info("VM {} was successfully deployed".format(vm_name))
 

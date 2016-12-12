@@ -35,10 +35,10 @@ class TestStorageService(TestCase):
         # Verify
         storage_client.storage_accounts.create.assert_called_with(group_name, account_name,
                                                                   StorageAccountCreateParameters(
-                                                                          sku=MagicMock(),
-                                                                          kind=kind_storage_value,
-                                                                          location=region,
-                                                                          tags=tags),
+                                                                      sku=MagicMock(),
+                                                                      kind=kind_storage_value,
+                                                                      location=region,
+                                                                      tags=tags),
                                                                   raw=False)
 
     def test_create_storage_account_wait_for_result(self):
@@ -68,8 +68,8 @@ class TestStorageService(TestCase):
 
         # Act
         result = self.storage_service.get_storage_per_resource_group(
-                storage_client,
-                group_name
+            storage_client,
+            group_name
         )
 
         # Verify
@@ -82,9 +82,9 @@ class TestStorageService(TestCase):
         self.storage_client.storage_accounts.list_keys.return_value = mock.MagicMock(keys=[storage_key])
 
         key = self.storage_service._get_storage_account_key(
-                storage_client=self.storage_client,
-                group_name=self.group_name,
-                storage_name=self.storage_name)
+            storage_client=self.storage_client,
+            group_name=self.group_name,
+            storage_name=self.storage_name)
 
         self.assertEqual(key, storage_key.value)
 
@@ -255,7 +255,6 @@ class TestStorageService(TestCase):
 
         with mock.patch("cloudshell.cp.azure.domain.services.storage_service.time.sleep",
                         side_effect=ExitLoopException) as sleep:
-
             with self.assertRaises(ExitLoopException):
                 self.storage_service._wait_until_blob_copied(
                     blob_service=blob_service,
@@ -436,7 +435,6 @@ class TestStorageService(TestCase):
 
         with mock.patch("cloudshell.cp.azure.domain.services.storage_service.time.sleep",
                         side_effect=ExitLoopException) as sleep:
-
             # Act
             with self.assertRaises(ExitLoopException):
                 self.storage_service.copy_blob(storage_client=storage_client,
@@ -449,3 +447,24 @@ class TestStorageService(TestCase):
                                                logger=self.logger)
 
             sleep.assert_called_once()
+
+    def test_delete_blob(self):
+        """Check that method will call delete_blob method on the blob service"""
+        blob_service = MagicMock()
+        container_name = "test_container_name"
+        blob_name = "test_blob_name"
+        self.storage_service._get_blob_service = MagicMock(return_value=blob_service)
+
+        # Act
+        self.storage_service.delete_blob(storage_client=self.storage_client,
+                                         group_name=self.group_name,
+                                         storage_name=self.storage_name,
+                                         container_name=container_name,
+                                         blob_name=blob_name)
+
+        # Verify
+        self.storage_service._get_blob_service.assert_called_once_with(storage_client=self.storage_client,
+                                                                       group_name=self.group_name,
+                                                                       storage_name=self.storage_name)
+
+        blob_service.delete_blob.assert_called_once_with(container_name=container_name, blob_name=blob_name)

@@ -250,6 +250,7 @@ class TestAzureShell(TestCase):
         self.azure_shell.delete_azure_vm_operation.delete.assert_called_once_with(
             compute_client=azure_clients_manager.compute_client,
             network_client=azure_clients_manager.network_client,
+            storage_client=azure_clients_manager.storage_client,
             group_name=self.group_name,
             vm_name=self.vm_name,
             logger=self.logger)

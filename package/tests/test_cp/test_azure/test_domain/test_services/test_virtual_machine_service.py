@@ -1,5 +1,6 @@
 from unittest import TestCase
 
+from azure.mgmt.compute.models import Plan
 import mock
 from mock import MagicMock
 
@@ -24,6 +25,7 @@ class TestVirtualMachineService(TestCase):
         tags = MagicMock()
         vm = MagicMock()
         virtual_machine_class.return_value = vm
+        plan = MagicMock()
 
         # Act
         self.vm_service._create_vm(compute_management_client=compute_management_client,
@@ -34,7 +36,8 @@ class TestVirtualMachineService(TestCase):
                                    network_profile=network_profile,
                                    os_profile=os_profile,
                                    storage_profile=storage_profile,
-                                   tags=tags)
+                                   tags=tags,
+                                   vm_plan=plan)
 
         # Verify
         compute_management_client.virtual_machines.create_or_update.assert_called_with(group_name, vm_name, vm)
@@ -43,7 +46,8 @@ class TestVirtualMachineService(TestCase):
                                                       network_profile=network_profile,
                                                       os_profile=os_profile,
                                                       storage_profile=storage_profile,
-                                                      tags=tags)
+                                                      tags=tags,
+                                                      plan=plan)
 
     @mock.patch("cloudshell.cp.azure.domain.services.virtual_machine_service.StorageProfile")
     @mock.patch("cloudshell.cp.azure.domain.services.virtual_machine_service.NetworkProfile")
@@ -64,12 +68,17 @@ class TestVirtualMachineService(TestCase):
         hardware_profile_class.return_value = hardware_profile
         network_profile_class.return_value = network_profile
         storage_profile_class.return_value = storage_profile
+        image_sku = MagicMock()
+        image_offer = MagicMock()
+        image_publisher = MagicMock()
+
+        plan = Plan(name=image_sku, publisher=image_publisher, product=image_offer)
 
         # Act
         self.vm_service.create_vm(compute_management_client=compute_management_client,
-                                  image_offer=MagicMock(),
-                                  image_publisher=MagicMock(),
-                                  image_sku=MagicMock(),
+                                  image_offer=image_offer,
+                                  image_publisher=image_publisher,
+                                  image_sku=image_sku,
                                   image_version=MagicMock(),
                                   vm_credentials=MagicMock(),
                                   computer_name=MagicMock(),
@@ -79,7 +88,8 @@ class TestVirtualMachineService(TestCase):
                                   storage_name=MagicMock(),
                                   vm_name=vm_name,
                                   tags=tags,
-                                  instance_type=MagicMock())
+                                  instance_type=MagicMock(),
+                                  purchase_plan=plan)
 
         # Verify
         self.vm_service._create_vm.assert_called_once_with(compute_management_client=compute_management_client,
@@ -90,7 +100,8 @@ class TestVirtualMachineService(TestCase):
                                                            region=region,
                                                            storage_profile=storage_profile,
                                                            tags=tags,
-                                                           vm_name=vm_name)
+                                                           vm_name=vm_name,
+                                                           vm_plan=plan)
 
     @mock.patch("cloudshell.cp.azure.domain.services.virtual_machine_service.StorageProfile")
     @mock.patch("cloudshell.cp.azure.domain.services.virtual_machine_service.NetworkProfile")
@@ -219,22 +230,22 @@ class TestVirtualMachineService(TestCase):
 
         self.assertIs(res, linux_configuration)
 
-    def test_get_image_operation_system(self):
+    def test_get_virtual_machine_image(self):
         """Check that method returns operating_system of the provided image"""
         compute_client = mock.MagicMock()
         image = mock.MagicMock()
         compute_client.virtual_machine_images.get.return_value = image
 
-        os_type = self.vm_service.get_image_operation_system(
-                compute_management_client=compute_client,
-                location=mock.MagicMock(),
-                publisher_name=mock.MagicMock(),
-                offer=mock.MagicMock(),
-                skus=mock.MagicMock())
+        vm_image = self.vm_service.get_virtual_machine_image(
+            compute_management_client=compute_client,
+            location=mock.MagicMock(),
+            publisher_name=mock.MagicMock(),
+            offer=mock.MagicMock(),
+            skus=mock.MagicMock())
 
         compute_client.virtual_machine_images.list.assert_called_once()
         compute_client.virtual_machine_images.get.assert_called_once()
-        self.assertEqual(os_type, image.os_disk_image.operating_system)
+        self.assertEqual(vm_image.os_disk_image.operating_system, image.os_disk_image.operating_system)
 
     def test_get_active_vm(self):
         """Check that method will return Azure VM if instance exists and is in "Succeeded" provisioning state"""

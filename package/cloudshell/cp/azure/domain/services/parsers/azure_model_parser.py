@@ -49,6 +49,7 @@ class AzureModelsParser(object):
         deployment_resource_model.image_offer = data_holder.ami_params.image_offer
         deployment_resource_model.image_publisher = data_holder.ami_params.image_publisher
         deployment_resource_model.image_sku = data_holder.ami_params.image_sku
+        deployment_resource_model.image_version = data_holder.ami_params.image_version
         AzureModelsParser._set_base_deploy_azure_vm_model_params(deployment_resource_model, data_holder)
 
         return deployment_resource_model
