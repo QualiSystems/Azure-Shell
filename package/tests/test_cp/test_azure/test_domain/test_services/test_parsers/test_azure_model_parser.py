@@ -113,20 +113,24 @@ class TestAzureModelsParser(TestCase):
         test_resource.attributes["Networks In Use"] = test_networks_in_use = mock.MagicMock()
         test_resource.attributes["Region"] = test_region = mock.MagicMock()
         test_resource.attributes["Management Group Name"] = test_mgmt_group_name = mock.MagicMock()
+        cloudshell_session = mock.MagicMock()
+        decrypted_azure_secret = mock.MagicMock()
+        cloudshell_session.DecryptPassword.return_value = decrypted_azure_secret
 
         # Act
-        result = self.tested_class.convert_to_cloud_provider_resource_model(test_resource)
+        result = self.tested_class.convert_to_cloud_provider_resource_model(resource=test_resource,
+                                                                            cloudshell_session=cloudshell_session)
 
         # Verify
         self.assertIs(result, azure_cp_model)
         self.assertEqual(result.azure_client_id, test_azure_client_id)
-        self.assertEqual(result.azure_secret, test_azure_secret)
         self.assertEqual(result.azure_subscription_id, test_azure_subscription_id)
         self.assertEqual(result.azure_tenant, test_azure_tenant)
         self.assertEqual(result.instance_type, test_instance_type)
         self.assertEqual(result.networks_in_use, test_networks_in_use)
         self.assertEqual(result.region, test_region)
         self.assertEqual(result.management_group_name, test_mgmt_group_name)
+        self.assertEqual(result.azure_secret, decrypted_azure_secret.Value)
 
     @mock.patch("cloudshell.cp.azure.domain.services.parsers.azure_model_parser.ReservationModel")
     def test_convert_to_reservation_model(self, reservation_model_class):

@@ -430,19 +430,3 @@ class TestAzureShell(TestCase):
 
         self.azure_shell.deployed_app_ports_operation.get_formated_deployed_app_ports.assert_called_once_with(
             data_holder.vmdetails.vmCustomParams)
-
-    def test_set_decrypted_azure_secret(self):
-        """Check that method will update azure_secret attribute on cloud provider model with decrypted value"""
-        cloudshell_session = mock.MagicMock()
-        cloud_provider_model = mock.MagicMock()
-        decrypted_azure_secret = mock.MagicMock()
-        cloudshell_session.DecryptPassword.return_value = decrypted_azure_secret
-
-        # Act
-        self.azure_shell._set_decrypted_azure_secret(cloudshell_session=cloudshell_session,
-                                                     cloud_provider_model=cloud_provider_model,
-                                                     logger=self.logger)
-
-        # Verify
-        cloudshell_session.DecryptPassword.assert_called_once()
-        self.assertEqual(cloud_provider_model.azure_secret, decrypted_azure_secret.Value)

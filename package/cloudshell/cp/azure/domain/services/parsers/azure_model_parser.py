@@ -69,21 +69,25 @@ class AzureModelsParser(object):
         return deployment_resource_model
 
     @staticmethod
-    def convert_to_cloud_provider_resource_model(resource):
+    def convert_to_cloud_provider_resource_model(resource, cloudshell_session):
         """
         :param resource:
+        :param cloudshell_session: cloudshell.api.cloudshell_api.CloudShellAPISession instance
         :return: AzureCloudProviderResourceModel
         """
         resource_context = resource.attributes
         azure_resource_model = AzureCloudProviderResourceModel()
         azure_resource_model.azure_client_id = resource_context['Azure Client ID']
-        azure_resource_model.azure_secret = resource_context['Azure Secret']
         azure_resource_model.azure_subscription_id = resource_context['Azure Subscription ID']
         azure_resource_model.azure_tenant = resource_context['Azure Tenant']
         azure_resource_model.instance_type = resource_context['Instance Type']
         azure_resource_model.networks_in_use = resource_context['Networks In Use']
         azure_resource_model.region = resource_context['Region']
         azure_resource_model.management_group_name = resource_context['Management Group Name']
+
+        encrypted_azure_secret = resource_context['Azure Secret']
+        azure_secret = cloudshell_session.DecryptPassword(encrypted_azure_secret)
+        azure_resource_model.azure_secret = azure_secret.Value
 
         return azure_resource_model
 
