@@ -6,7 +6,7 @@ from cloudshell.shell.core.session.cloudshell_session import CloudShellSessionCo
 from cloudshell.cp.azure.common.deploy_data_holder import DeployDataHolder
 from cloudshell.cp.azure.domain.context.validators_factory_context import ValidatorsFactoryContext
 from cloudshell.cp.azure.domain.services.cryptography_service import CryptographyService
-from cloudshell.cp.azure.domain.services.lock_service import LockService
+from cloudshell.cp.azure.domain.services.lock_service import GenericLockProvider
 from cloudshell.cp.azure.domain.services.tags import TagService
 from cloudshell.cp.azure.domain.vm_management.operations.access_key_operation import AccessKeyOperation
 from cloudshell.cp.azure.domain.vm_management.operations.delete_operation import DeleteAzureVMOperation
@@ -47,8 +47,7 @@ class AzureShell(object):
         self.cryptography_service = CryptographyService()
         self.name_provider_service = NameProviderService()
         self.access_key_operation = AccessKeyOperation(self.key_pair_service, self.storage_service)
-        self.lock_service = LockService()
-        self.resource_group_lock = {}
+        self.lock_service = GenericLockProvider()
 
         self.prepare_connectivity_operation = PrepareConnectivityOperation(
             vm_service=self.vm_service,
@@ -68,7 +67,8 @@ class AzureShell(object):
             tags_service=self.tags_service,
             vm_credentials_service=self.vm_credentials_service,
             security_group_service=self.security_group_service,
-            name_provider_service=self.name_provider_service)
+            name_provider_service=self.name_provider_service,
+            generic_lock_provider=self.lock_service)
 
         self.power_vm_operation = PowerAzureVMOperation(vm_service=self.vm_service)
 
@@ -109,10 +109,6 @@ class AzureShell(object):
                         azure_vm_deployment_model.password = decrypted_pass.Value
 
                 with ValidatorsFactoryContext() as validator_factory:
-
-                    lock = self.lock_service.create_or_update_lock(self.resource_group_lock,
-                                                                   reservation.reservation_id)
-
                     deploy_data = self.deploy_azure_vm_operation.deploy(
                         azure_vm_deployment_model=azure_vm_deployment_model,
                         cloud_provider_model=cloud_provider_model,
@@ -121,8 +117,7 @@ class AzureShell(object):
                         compute_client=azure_clients.compute_client,
                         storage_client=azure_clients.storage_client,
                         validator_factory=validator_factory,
-                        logger=logger,
-                        lock_object=lock)
+                        logger=logger)
 
                     logger.info('End deploying Azure VM')
                     return self.command_result_parser.set_command_result(deploy_data)
@@ -208,6 +203,8 @@ class AzureShell(object):
 
                 azure_clients = AzureClientsManager(cloud_provider_model)
                 resource_group_name = command_context.reservation.reservation_id
+
+                self.lock_service.remove_lock_resource(resource_group_name)
 
                 result = self.delete_azure_vm_operation.cleanup_connectivity(
                     network_client=azure_clients.network_client,

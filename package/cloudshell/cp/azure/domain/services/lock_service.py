@@ -1,9 +1,11 @@
 from threading import Lock
 
 
-class LockService(object):
+class GenericLockProvider(object):
     def __init__(self):
-        self.lock = Lock()
+        self.lock_dictionary = {}
+
+        self._lock = Lock()
 
     def _allocate_lock(self):
         """
@@ -12,14 +14,24 @@ class LockService(object):
         """
         return Lock()
 
-    def create_or_update_lock(self, lock_dictionary, lock_key):
+    def get_resource_lock(self, lock_key):
         """
 
         :param lock_dictionary: {}
         :param lock_key:uuid
         :return: Lock
         """
-        with self.lock:
-            if lock_key not in lock_dictionary:
-                lock_dictionary[lock_key] = self._allocate_lock()
-            return lock_dictionary[lock_key]
+        # for performance
+        if lock_key in self.lock_dictionary:
+            return self.lock_dictionary[lock_key]
+
+        with self._lock:
+            if lock_key not in self.lock_dictionary:
+                self.lock_dictionary[lock_key] = self._allocate_lock()
+            return self.lock_dictionary[lock_key]
+
+    def remove_lock_resource(self, lock_key):
+        if lock_key in self.lock_dictionary:
+            with self._lock:
+                if lock_key in self.lock_dictionary:
+                    del self.lock_dictionary[lock_key]

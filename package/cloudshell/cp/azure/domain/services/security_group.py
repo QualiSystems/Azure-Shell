@@ -12,7 +12,6 @@ class SecurityGroupService(object):
     RULE_PRIORITY_INCREASE_STEP = 5
 
     def __init__(self, network_service):
-        self._lock = Lock()
         self.network_service = network_service
 
     def _rule_priority_generator(self, existing_rules, start_from=None):
