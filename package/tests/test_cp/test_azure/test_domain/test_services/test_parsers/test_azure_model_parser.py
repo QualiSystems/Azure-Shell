@@ -49,6 +49,7 @@ class TestAzureModelsParser(TestCase):
         self.assertEqual(result.image_offer, data_holder.ami_params.image_offer)
         self.assertEqual(result.image_publisher, data_holder.ami_params.image_publisher)
         self.assertEqual(result.image_sku, data_holder.ami_params.image_sku)
+        self.assertEqual(result.image_version, data_holder.ami_params.image_version)
 
     @mock.patch("cloudshell.cp.azure.domain.services.parsers.azure_model_parser.jsonpickle")
     @mock.patch("cloudshell.cp.azure.domain.services.parsers.azure_model_parser.DeployDataHolder")

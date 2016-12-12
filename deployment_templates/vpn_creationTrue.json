@@ -16,6 +16,9 @@
 		},
 		"on_premise_CIDR": {			
 			"type": "String"
+		},
+		"vpn_address": {			
+			"type": "String"
 		}
 	},
 	"resources":[
