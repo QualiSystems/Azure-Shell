@@ -97,8 +97,9 @@ class DeleteAzureVMOperation(object):
                                                subnet.name, subnet)
 
     def delete_resource_group(self, resource_client, group_name, logger):
-        logger.info("Deleting resource group...")
+        logger.info("Deleting resource group {0}.".format(group_name))
         self.vm_service.delete_resource_group(resource_management_client=resource_client, group_name=group_name)
+        logger.info("Deleted resource group {0}.".format(group_name))
 
     def delete_sandbox_subnet(self, network_client, cloud_provider_model, resource_group_name, logger):
         logger.info("Deleting sandbox subnet...")
@@ -120,6 +121,7 @@ class DeleteAzureVMOperation(object):
             logger.info("Deleting subnet {}".format(subnet.name))
             network_client.subnets.delete(cloud_provider_model.management_group_name, sandbox_virtual_network.name,
                                           subnet.name)
+            logger.info("Deleted subnet {}".format(subnet.name))
 
     def _delete_security_rules(self, network_client, group_name, vm_name, logger):
         """Delete NSG rules for given VM
