@@ -1,8 +1,20 @@
 from azure.mgmt.compute.models import OperatingSystemTypes
 from azure.mgmt.compute.models import VirtualMachineExtension
+from retrying import retry
+
+from cloudshell.cp.azure.common.helpers.retrying_helpers import retry_if_connection_error
 
 
 class VMExtensionService(object):
+
+    WINDOWS_PUBLISHER = "Microsoft.Compute"
+    WINDOWS_EXTENSION_TYPE = "CustomScriptExtension"
+    WINDOWS_HANDLER_VERSION = "1.7"
+
+    LINUX_PUBLISHER = "Microsoft.OSTCExtensions"
+    LINUX_EXTENSION_TYPE = "CustomScriptForLinux"
+    LINUX_HANDLER_VERSION = "1.5"
+
     def validate_script_extension(self, image_os_type, script_file, script_configurations):
         """Validate that script extension name and configuration are valid
 
@@ -15,8 +27,7 @@ class VMExtensionService(object):
             script_url = script_file.rstrip("/")
 
             if not script_url.endswith("ps1"):
-                # todo: check error here from azure
-                raise Exception("Not valid")
+                raise Exception("Invalid format for the PowerShell script. It must have a 'ps1' extension")
         else:
             if not script_configurations:
                 raise Exception("Linux Custom Script must have a command to execute in "
@@ -31,12 +42,12 @@ class VMExtensionService(object):
         :param tags: (dict) Azure tags
         :return: azure.mgmt.compute.models.VirtualMachineExtension instance
         """
-        # TODO: ADD RETRIES !!!
         file_uris = [file_uri.strip() for file_uri in script_file.split(",")]
+
         return VirtualMachineExtension(location=location,
-                                       publisher="Microsoft.OSTCExtensions",
-                                       type_handler_version="1.5",
-                                       virtual_machine_extension_type="CustomScriptForLinux",
+                                       publisher=self.LINUX_PUBLISHER,
+                                       type_handler_version=self.LINUX_HANDLER_VERSION,
+                                       virtual_machine_extension_type=self.LINUX_EXTENSION_TYPE,
                                        tags=tags,
                                        settings={
                                            "fileUris": file_uris,
@@ -57,15 +68,16 @@ class VMExtensionService(object):
             file_name, script_configurations)
 
         return VirtualMachineExtension(location=location,
-                                       publisher="Microsoft.Compute",
-                                       type_handler_version="1.7",
-                                       virtual_machine_extension_type="CustomScriptExtension",
+                                       publisher=self.WINDOWS_PUBLISHER,
+                                       type_handler_version=self.WINDOWS_HANDLER_VERSION,
+                                       virtual_machine_extension_type=self.WINDOWS_EXTENSION_TYPE,
                                        tags=tags,
                                        settings={
                                            "fileUris": [script_file],
                                            "commandToExecute": exec_command,
                                        })
 
+    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def create_script_extension(self, compute_client, location, group_name, vm_name, image_os_type, script_file,
                                 script_configurations, tags=None):
         """Create VM Script extension on the Azure

@@ -24,6 +24,7 @@ class TestDeployAzureVMOperation(TestCase):
         self.security_group_service = MagicMock()
         self.tags_service = TagService()
         self.name_provider_service = MagicMock()
+        self.vm_extension_service = MagicMock()
 
         self.deploy_operation = DeployAzureVMOperation(vm_service=self.vm_service,
                                                        network_service=self.network_service,
@@ -32,7 +33,8 @@ class TestDeployAzureVMOperation(TestCase):
                                                        key_pair_service=self.key_pair_service,
                                                        tags_service=self.tags_service,
                                                        security_group_service=self.security_group_service,
-                                                       name_provider_service=self.name_provider_service)
+                                                       name_provider_service=self.name_provider_service,
+                                                       vm_extension_service=self.vm_extension_service)
 
     def test_get_sandbox_subnet(self):
         """Check that method will call network service to get sandbox vNet and will return it's subnet by given name"""

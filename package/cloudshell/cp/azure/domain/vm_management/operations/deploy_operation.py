@@ -120,21 +120,20 @@ class DeployAzureVMOperation(object):
         :param logger: logging.Logger instance
         :return:
         """
-        pass
-        # logger.info("Delete VM {} ".format(vm_name))
-        # self.vm_service.delete_vm(compute_management_client=compute_client,
-        #                           group_name=group_name,
-        #                           vm_name=vm_name)
-        #
-        # logger.info("Delete NIC {} ".format(interface_name))
-        # self.network_service.delete_nic(network_client=network_client,
-        #                                 group_name=group_name,
-        #                                 interface_name=interface_name)
-        #
-        # logger.info("Delete IP {} ".format(ip_name))
-        # self.network_service.delete_ip(network_client=network_client,
-        #                                group_name=group_name,
-        #                                ip_name=ip_name)
+        logger.info("Delete VM {} ".format(vm_name))
+        self.vm_service.delete_vm(compute_management_client=compute_client,
+                                  group_name=group_name,
+                                  vm_name=vm_name)
+
+        logger.info("Delete NIC {} ".format(interface_name))
+        self.network_service.delete_nic(network_client=network_client,
+                                        group_name=group_name,
+                                        interface_name=interface_name)
+
+        logger.info("Delete IP {} ".format(ip_name))
+        self.network_service.delete_ip(network_client=network_client,
+                                       group_name=group_name,
+                                       ip_name=ip_name)
 
     def _get_public_ip_address(self, network_client, azure_vm_deployment_model, group_name, ip_name, logger):
         """Get Public IP address by Azure IP resource name
@@ -214,8 +213,6 @@ class DeployAzureVMOperation(object):
 
         tags = self.tags_service.get_tags(vm_name, resource_name, subnet.name, reservation)
         logger.info("Tags for the VM {}".format(tags))
-
-        image_os_type = self.vm_service.prepare_image_os_type(azure_vm_deployment_model.image_os_type)
 
         blob_url_model = self.storage_service.parse_blob_url(azure_vm_deployment_model.image_urn)
 
