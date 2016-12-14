@@ -1,43 +1,37 @@
 <?xml version="1.0" encoding="utf-8"?>
 <DataModelInfo xmlns="http://schemas.qualisystems.com/ResourceManagement/DataModelSchema.xsd">
   <Attributes>
-    <AttributeInfo Name="Cloud Provider" DefaultValue="" Description="The cloud provider resource name in CloudShell." IsReadOnly="false" Type="String">
+    <AttributeInfo Name="Cloud Provider" DefaultValue="" Description="The name of the cloud provider resource in CloudShell." IsReadOnly="false" Type="String">
       <Rules>
         <Rule Name="Configuration" />
         <Rule Name="Setting" />
       </Rules>
     </AttributeInfo>
-    <AttributeInfo Name="Wait for IP" DefaultValue="false" Description="If set to False the deployment will not wait for the VM to get an IP" IsReadOnly="false" Type="Boolean">
+    <AttributeInfo Name="Wait for IP" DefaultValue="false" Description="Determines if the App deployment process waits for the VM to get an IP. Default is True." IsReadOnly="false" Type="Boolean">
       <Rules>
         <Rule Name="Configuration" />
         <Rule Name="Setting" />
       </Rules>
     </AttributeInfo>
-    <AttributeInfo Name="Autoload" DefaultValue="true" Description="Enables the automatic execution of the Autoload command during sandbox Setup." IsReadOnly="false" Type="Boolean">
+    <AttributeInfo Name="Autoload" DefaultValue="true" Description="Determines if the Autoload process runs for Apps deployed manually or during the reservation's setup." IsReadOnly="false" Type="Boolean">
       <Rules>
         <Rule Name="Configuration" />
         <Rule Name="Setting" />
       </Rules>
     </AttributeInfo>
-    <AttributeInfo Name="Add Public IP" DefaultValue="False" Description="Use a public IP address to communicate with the virtual machine from outside the virtual network. In most cases the public IP address is associated with the instance until it's stopped or terminated, after which it's no longer available for you to use. It's possible to reserve a public IP in Azure to ensure that the IP will be available to your subscription at any time." IsReadOnly="false" Type="Boolean">
+    <AttributeInfo Name="Add Public IP" DefaultValue="False" Description="Use a public IP address to communicate with the virtual machine from outside the virtual network. In most cases the public IP address is associated with the VM until it's stopped or terminated, after which it's no longer available for you to use. It's possible to reserve a public IP in Azure to ensure that the IP is available to your subscription at any time." IsReadOnly="false" Type="Boolean">
       <Rules>
         <Rule Name="Configuration" />
         <Rule Name="Setting" />
       </Rules>
     </AttributeInfo>
-    <AttributeInfo Name="Inbound Ports" Description="Ports and protocol to open inbound traffic from outside of the sandbox. The syntax is port[single/range]:protocol [tcp(default)/udp] with semi-colon separation, for example: 80;443:tcp;200-220:udp." IsReadOnly="false" Type="String">
+    <AttributeInfo Name="Inbound Ports" Description="Semi-colon separated list of ports and protocols to open inbound traffic from outside of the sandbox. The syntax is port[single/range]:protocol [tcp(default)/udp ].For example: “80;443:tcp;200-220:udp”" IsReadOnly="false" Type="String">
       <Rules>
         <Rule Name="Configuration" />
         <Rule Name="Setting" />
       </Rules>
     </AttributeInfo>
-    <AttributeInfo Name="Outbound Ports" Description="Ports and protocol to open outbound traffic from inside of the sandbox. The syntax is port[single/range]:protocol [tcp(default)/udp] with semi-colon separation, for example: 80;443:tcp;200-220:udp." IsReadOnly="false" Type="String">
-      <Rules>
-        <Rule Name="Configuration" />
-        <Rule Name="Setting" />
-      </Rules>
-    </AttributeInfo>
-    <AttributeInfo Name="Public IP" DefaultValue="" Description="" IsReadOnly="false" Type="String">
+    <AttributeInfo Name="Public IP" DefaultValue="" Description="Static Public IP Type ensures that the VM always uses the same public IP. By default, Public IPs are dynamic and the address associated to them may change when the VM is deleted from Azure" IsReadOnly="false" Type="String">
         <Rules>
             <Rule Name="Configuration" />
             <Rule Name="Setting" />
@@ -58,37 +52,19 @@
     <AttributeInfo Name="Generic Input" DefaultValue="" Description="" IsReadOnly="false" Type="String">
       <Rules/>
     </AttributeInfo>
-    <AttributeInfo Name="Region" DefaultValue="" Description="The public cloud region to be used by this cloud provider resource." IsReadOnly="false" Type="String">
+    <AttributeInfo Name="Region" DefaultValue="" Description="The Azure region to be used by this cloud provider resource." IsReadOnly="false" Type="String">
       <Rules>
         <Rule Name="Configuration" />
         <Rule Name="Setting" />
       </Rules>
     </AttributeInfo>
-    <AttributeInfo Name="Azure Mgmt NSG ID" DefaultValue="" Description="The Management Network security group ID. Will be used to configure the communication between the Management network instances and the Sandbox instances. For example *******." IsReadOnly="false" Type="String">
+    <AttributeInfo Name="Instance Type"  DefaultValue="" Description="The Microsoft Azure instance type. The instance type determines the CPU, memory and networking capacity of the VM. For example: “Standard_A1-8v2”." IsReadOnly="false" Type="String">
       <Rules>
         <Rule Name="Configuration" />
         <Rule Name="Setting" />
       </Rules>
     </AttributeInfo>
-    <AttributeInfo Name="Azure Mgmt Network ID" DefaultValue="" Description="The Management Network ID. Will be used to configure the communication between the Management Network and the Sandbox Network. For example ********." IsReadOnly="false" Type="String">
-      <Rules>
-        <Rule Name="Configuration" />
-        <Rule Name="Setting" />
-      </Rules>
-    </AttributeInfo>
-    <AttributeInfo Name="Keypairs Location" DefaultValue="" Description="The name of an ****** in which PEM files will be located. Each active Sandbox will have a PEM file under a designated folder. For example: sandbox-management." IsReadOnly="false" Type="String">
-      <Rules>
-        <Rule Name="Configuration" />
-        <Rule Name="Setting" />
-      </Rules>
-    </AttributeInfo>
-    <AttributeInfo Name="Instance Type"  DefaultValue="" Description="The Microsoft Azure instance type. The instance type determines the CPU, memory and networking capacity of the instance. For example: Standard_A1-8v2." IsReadOnly="false" Type="String">
-      <Rules>
-        <Rule Name="Configuration" />
-        <Rule Name="Setting" />
-      </Rules>
-    </AttributeInfo>
-    <AttributeInfo Name="Networks In Use"  DefaultValue="" Description="Reserved networks that will be excluded when allocating Sandbox networks. Should include at least the management network. The syntax is comma separated CIDRs. For example: 10.0.0.0/24, 10.1.0.0/16, 172.31.0.0/24." IsReadOnly="false" Type="String">
+    <AttributeInfo Name="Networks In Use"  DefaultValue="" Description="Reserved networks to be excluded when allocating Sandbox networks. The value should include at least the Management Network. The syntax is comma-separated CIDRs. For example: “10.0.0.0/24, 10.1.0.0/16, 172.31.0.0/24”." IsReadOnly="false" Type="String">
       <Rules>
         <Rule Name="Configuration" />
         <Rule Name="Setting" />
@@ -96,19 +72,19 @@
     </AttributeInfo>
 
     <!--Cloud Provider new Attributes-->
-    <AttributeInfo Name="Azure Subscription ID"  DefaultValue="" Description="" IsReadOnly="false" Type="String">
+    <AttributeInfo Name="Azure Subscription ID"  DefaultValue="" Description="The Subscription ID of the Azure user." IsReadOnly="false" Type="String">
       <Rules>
         <Rule Name="Configuration" />
         <Rule Name="Setting" />
       </Rules>
     </AttributeInfo>
-    <AttributeInfo Name="Azure Tenant"  DefaultValue="" Description="Typically a name of an organization, that uses the cloud services created and provisioned by a hosting service provider" IsReadOnly="false" Type="String">
+    <AttributeInfo Name="Azure Tenant"  DefaultValue="" Description="Typically a name of an organization, which uses the cloud services created and provisioned by a hosting service provider." IsReadOnly="false" Type="String">
       <Rules>
         <Rule Name="Configuration" />
         <Rule Name="Setting" />
       </Rules>
     </AttributeInfo>
-    <AttributeInfo Name="Azure Secret"  DefaultValue="" Description="Secret key associated with the Azure API web application. The secret key allows CloudShell to access the Azure API and is generated as part of the web application’s configuration process. For more information, see Configure Azure API to work with CloudShell." IsReadOnly="false" Type="String">
+    <AttributeInfo Name="Azure Secret"  DefaultValue="" Description="Secret key associated with the Azure API web application. The secret key allows CloudShell to access the Azure API and is generated as part of the web application’s configuration process. For more information, see the “Configure Azure API to work with CloudShell” article in the CloudShell online help." IsReadOnly="false" Type="Password">
       <Rules>
         <Rule Name="Configuration" />
         <Rule Name="Setting" />
@@ -120,19 +96,7 @@
         <Rule Name="Setting" />
       </Rules>
     </AttributeInfo>
-    <AttributeInfo Name="Azure Mgmt VNET"  DefaultValue="" Description="The Management Virtual Network name. Will be used to configure the communication between the Management Network and the Sandbox Network. For example ********." IsReadOnly="false" Type="String">
-      <Rules>
-        <Rule Name="Configuration" />
-        <Rule Name="Setting" />
-      </Rules>
-    </AttributeInfo>
-    <AttributeInfo Name="Storage Type"  DefaultValue="" Description="The Azure Storage type to use. for example: standard" IsReadOnly="false" Type="String">
-      <Rules>
-        <Rule Name="Configuration" />
-        <Rule Name="Setting" />
-      </Rules>
-    </AttributeInfo>
-    <AttributeInfo Name="Management Group Name"  DefaultValue="" Description="The Management Resource Group name." IsReadOnly="false" Type="String">
+    <AttributeInfo Name="Management Group Name"  DefaultValue="" Description="The name of the Management Resource Group." IsReadOnly="false" Type="String">
       <Rules>
         <Rule Name="Configuration" />
         <Rule Name="Setting" />
@@ -146,31 +110,37 @@
         <Rule Name="Setting" />
       </Rules>
     </AttributeInfo>
-    <AttributeInfo Name="Image Publisher"  DefaultValue="" Description="Name of the Azure Image publisher. Example: canonical." IsReadOnly="false" Type="String">
+    <AttributeInfo Name="Image Publisher"  DefaultValue="" Description="The name of the Azure Image publisher. For example: “canonical”." IsReadOnly="false" Type="String">
       <Rules>
         <Rule Name="Configuration" />
         <Rule Name="Setting" />
       </Rules>
     </AttributeInfo>
-    <AttributeInfo Name="Image Offer"  DefaultValue="" Description="Name of the Azure Image offer. example: UbuntuServer." IsReadOnly="false" Type="String">
+    <AttributeInfo Name="Image Offer"  DefaultValue="" Description="The name of the Azure Image offer. For example: “UbuntuServer”." IsReadOnly="false" Type="String">
       <Rules>
         <Rule Name="Configuration" />
         <Rule Name="Setting" />
       </Rules>
     </AttributeInfo>
-    <AttributeInfo Name="Image SKU"  DefaultValue="" Description="Version of the Azure SKU. SKU: 14.04.3-LTS." IsReadOnly="false" Type="String">
+    <AttributeInfo Name="Image SKU"  DefaultValue="" Description="The version of the Azure SKU (unique system identifier of the VM created by the image). For example: “SKU: 14.04.3-LTS”." IsReadOnly="false" Type="String">
       <Rules>
         <Rule Name="Configuration" />
         <Rule Name="Setting" />
       </Rules>
     </AttributeInfo>
-    <AttributeInfo Name="Image URN"  DefaultValue="" Description="" IsReadOnly="false" Type="String">
+    <AttributeInfo Name="Image URN"  DefaultValue="" Description="Path to the image disk file. Example: https://xxxxxxxxxxxxxx.blob.core.windows.net/system/Microsoft.Compute/Images/vhds/MyVHDNamePrefix-osDisk.vhd" IsReadOnly="false" Type="String">
       <Rules>
         <Rule Name="Configuration" />
         <Rule Name="Setting" />
       </Rules>
     </AttributeInfo>
     <AttributeInfo Name="Image OS Type"  DefaultValue="" Description="" IsReadOnly="false" Type="String">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo Name="Image Version" DefaultValue="latest" Description="" IsReadOnly="false" Type="String">
       <Rules>
         <Rule Name="Configuration" />
         <Rule Name="Setting" />
@@ -190,15 +160,6 @@
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Instance Type">
               <AllowedValues />
             </AttachedAttribute>
-            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Azure Mgmt NSG ID">
-              <AllowedValues />
-            </AttachedAttribute>
-            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Azure Mgmt Network ID">
-              <AllowedValues />
-            </AttachedAttribute>
-            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Keypairs Location">
-              <AllowedValues />
-            </AttachedAttribute>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Networks In Use">
               <AllowedValues />
             </AttachedAttribute>
@@ -212,12 +173,6 @@
               <AllowedValues />
             </AttachedAttribute>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Azure Client ID">
-              <AllowedValues />
-            </AttachedAttribute>
-            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Azure Mgmt VNET">
-              <AllowedValues />
-            </AttachedAttribute>
-            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Storage Type">
               <AllowedValues />
             </AttachedAttribute>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Management Group Name">
@@ -310,9 +265,6 @@
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Inbound Ports" UserInput="true">
               <AllowedValues />
             </AttachedAttribute>
-            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Outbound Ports" UserInput="true">
-              <AllowedValues />
-            </AttachedAttribute>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Image Publisher" UserInput="true">
               <AllowedValues />
             </AttachedAttribute>
@@ -320,6 +272,9 @@
               <AllowedValues />
             </AttachedAttribute>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Image SKU" UserInput="true">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Image Version" UserInput="false">
               <AllowedValues />
             </AttachedAttribute>
           </AttachedAttributes>
@@ -355,9 +310,6 @@
               </AllowedValues>
             </AttachedAttribute>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Inbound Ports" UserInput="true">
-              <AllowedValues />
-            </AttachedAttribute>
-            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Outbound Ports" UserInput="true">
               <AllowedValues />
             </AttachedAttribute>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Image URN" UserInput="true">

@@ -30,7 +30,6 @@ class ResourceContextConverter(object):
         deployed_resource.autoload = self._convert_to_bool(resource.attributes['Autoload'])
         deployed_resource.add_public_ip = self._convert_to_bool(resource.attributes['Add Public IP'])
         deployed_resource.inbound_ports = resource.attributes['Inbound Ports']
-        deployed_resource.outbound_ports = resource.attributes['Outbound Ports']
         deployed_resource.public_ip_type = resource.attributes['Public IP Type']
 
         app_request = jsonpickle.decode(resource.app_context.app_request_json)
@@ -65,6 +64,7 @@ class ResourceContextConverter(object):
         deployed_resource.image_publisher = resource.attributes['Image Publisher']
         deployed_resource.image_offer = resource.attributes['Image Offer']
         deployed_resource.image_sku = resource.attributes['Image SKU']
+        deployed_resource.image_version = resource.attributes['Image Version']
 
         return deployed_resource
 

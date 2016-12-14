@@ -17,7 +17,4 @@ class TestValidators(TestCase):
         self.assertRaises(Exception,
                           validator_factory.try_validate,
                           StorageAccount,
-                          None
-                          )
-
-
+                          None)
