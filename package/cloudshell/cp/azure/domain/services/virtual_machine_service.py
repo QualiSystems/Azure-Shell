@@ -111,7 +111,7 @@ class VirtualMachineService(object):
         vhd_format = 'https://{}.blob.core.windows.net/vhds/{}.vhd'.format(storage_name, vm_name)
         return VirtualHardDisk(uri=vhd_format)
 
-    def _prepare_image_os_type(self, image_os_type):
+    def prepare_image_os_type(self, image_os_type):
         """Prepare Image OS Type object for the VM
 
         :param image_os_type: (str) Image OS Type attribute ("Windows" or "Linux")
@@ -140,7 +140,7 @@ class VirtualMachineService(object):
         :param instance_type: (str) Azure instance type
         :param compute_management_client: azure.mgmt.compute.ComputeManagementClient instance
         :param image_urn: Azure custom image URL
-        :param image_os_type: Operation system type for deployed image
+        :param image_os_type: azure.mgmt.compute.models.OperatingSystemTypes OS type (linux/windows)
         :param vm_credentials: cloudshell.cp.azure.models.vm_credentials.VMCredentials instance
         :param computer_name: computer name
         :param group_name: Azure resource group name (reservation id)
@@ -160,9 +160,7 @@ class VirtualMachineService(object):
         vhd = self._prepare_vhd(storage_name, vm_name)
         image = VirtualHardDisk(uri=image_urn)
 
-        os_type = self._prepare_image_os_type(image_os_type)
-
-        os_disk = OSDisk(os_type=os_type,
+        os_disk = OSDisk(os_type=image_os_type,
                          caching=CachingTypes.none,
                          create_option=DiskCreateOptionTypes.from_image,
                          name=storage_name,
