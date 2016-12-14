@@ -390,3 +390,19 @@ class StorageService(object):
         logger.info("Copyied Image URL: {}".format(copied_image_url))
 
         return copied_image_url
+
+    def delete_blob(self, storage_client, group_name, storage_name, container_name, blob_name):
+        """Delete Blob file from the Azure
+
+        :param storage_client: azure.mgmt.storage.StorageManagementClient instance
+        :param group_name: (str) the name of the resource group on Azure
+        :param storage_name: (str) the name of the storage on Azure
+        :param container_name: (str) the name of the container on Azure
+        :param blob_name: (ste) the name of the Blob file
+        :return:
+        """
+        blob_service = self._get_blob_service(storage_client=storage_client,
+                                              group_name=group_name,
+                                              storage_name=storage_name)
+
+        blob_service.delete_blob(container_name=container_name, blob_name=blob_name)
