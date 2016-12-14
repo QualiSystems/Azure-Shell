@@ -1,4 +1,3 @@
-from azure.mgmt.storage.models import StorageAccount
 import jsonpickle
 
 from cloudshell.core.context.error_handling_context import ErrorHandlingContext
@@ -218,7 +217,7 @@ class AzureShell(object):
                 azure_clients = AzureClientsManager(cloud_provider_model)
                 resource_group_name = command_context.reservation.reservation_id
 
-                self.lock_service.remove_lock_resource(resource_group_name)
+                self.lock_service.remove_lock_resource(resource_group_name,logger=logger)
 
                 result = self.delete_azure_vm_operation.cleanup_connectivity(
                     network_client=azure_clients.network_client,
