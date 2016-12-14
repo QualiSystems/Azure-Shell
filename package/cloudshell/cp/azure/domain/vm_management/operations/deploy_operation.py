@@ -1,5 +1,4 @@
 from azure.mgmt.storage.models import StorageAccount
-from azure.mgmt.compute.models import OperatingSystemTypes
 
 from cloudshell.cp.azure.models.deploy_result_model import DeployResult
 from cloudshell.cp.azure.domain.services.parsers.rules_attribute_parser import RulesAttributeParser
@@ -204,6 +203,8 @@ class DeployAzureVMOperation(object):
         tags = self.tags_service.get_tags(vm_name, resource_name, subnet.name, reservation)
         logger.info("Tags for the VM {}".format(tags))
 
+        image_os_type = self.vm_service.prepare_image_os_type(azure_vm_deployment_model.image_os_type)
+
         blob_url_model = self.storage_service.parse_blob_url(azure_vm_deployment_model.image_urn)
 
         container_name_copy_to = "{}{}".format(self.CUSTOM_IMAGES_CONTAINER_PREFIX, blob_url_model.container_name)
@@ -238,7 +239,7 @@ class DeployAzureVMOperation(object):
             # 2. Prepare credentials for VM
             logger.info("Prepare credentials for the VM {}".format(vm_name))
             vm_credentials = self.vm_credentials_service.prepare_credentials(
-                os_type=OperatingSystemTypes.windows,  # TODO: what OS type should be here? only Linux/Windows available
+                os_type=image_os_type,
                 username=azure_vm_deployment_model.username,
                 password=azure_vm_deployment_model.password,
                 storage_service=self.storage_service,
@@ -260,7 +261,7 @@ class DeployAzureVMOperation(object):
             result_create = self.vm_service.create_vm_from_custom_image(
                 compute_management_client=compute_client,
                 image_urn=image_urn,
-                image_os_type=azure_vm_deployment_model.image_os_type,
+                image_os_type=image_os_type,
                 vm_credentials=vm_credentials,
                 computer_name=computer_name,
                 group_name=group_name,
