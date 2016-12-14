@@ -280,7 +280,7 @@ class TestVirtualMachineService(TestCase):
         image_os_type = "Linux"
 
         # Act
-        res = self.vm_service._prepare_image_os_type(image_os_type=image_os_type)
+        res = self.vm_service.prepare_image_os_type(image_os_type=image_os_type)
 
         # Verify
         self.assertEqual(res, operating_system_types.linux)
@@ -291,7 +291,7 @@ class TestVirtualMachineService(TestCase):
         image_os_type = "Windows"
 
         # Act
-        res = self.vm_service._prepare_image_os_type(image_os_type=image_os_type)
+        res = self.vm_service.prepare_image_os_type(image_os_type=image_os_type)
 
         # Verify
         self.assertEqual(res, operating_system_types.windows)
