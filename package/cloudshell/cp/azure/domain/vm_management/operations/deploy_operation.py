@@ -15,7 +15,8 @@ class DeployAzureVMOperation(object):
                  key_pair_service,
                  tags_service,
                  security_group_service,
-                 name_provider_service):
+                 name_provider_service,
+                 generic_lock_provider):
         """
 
         :param cloudshell.cp.azure.domain.services.virtual_machine_service.VirtualMachineService vm_service:
@@ -26,8 +27,10 @@ class DeployAzureVMOperation(object):
         :param cloudshell.cp.azure.domain.services.tags.TagService tags_service:
         :param cloudshell.cp.azure.domain.services.security_group.SecurityGroupService security_group_service:
         :param cloudshell.cp.azure.domain.services.name_provider.NameProviderService name_provider_service:
+        :param cloudshell.cp.azure.domain.services.lock_service.GenericLockProvider generic_lock_provider:
         :return:
         """
+        self.generic_lock_provider = generic_lock_provider
         self.vm_service = vm_service
         self.network_service = network_service
         self.storage_service = storage_service
@@ -61,12 +64,14 @@ class DeployAzureVMOperation(object):
                 group_name=group_name)
 
             logger.info("Create rules for the NSG {}".format(network_security_group.name))
+            lock = self.generic_lock_provider.get_resource_lock(lock_key=group_name,logger=logger)
             self.security_group_service.create_network_security_group_rules(
                 network_client=network_client,
                 group_name=group_name,
                 security_group_name=network_security_group.name,
                 inbound_rules=inbound_rules,
-                destination_addr=nic.ip_configurations[0].private_ip_address)
+                destination_addr=nic.ip_configurations[0].private_ip_address,
+                lock=lock)
 
             logger.info("NSG rules were successfully created for NSG {}".format(network_security_group.name))
 
@@ -321,6 +326,7 @@ class DeployAzureVMOperation(object):
                validator_factory,
                logger):
         """
+        :param lock_object:
         :param cloudshell.cp.azure.common.validtors.validator_factory.ValidatorFactory validator_factory:
         :param azure.mgmt.storage.storage_management_client.StorageManagementClient storage_client:
         :param azure.mgmt.compute.compute_management_client.ComputeManagementClient compute_client:
@@ -410,7 +416,6 @@ class DeployAzureVMOperation(object):
                                     azure_vm_deployment_model=azure_vm_deployment_model,
                                     nic=nic,
                                     logger=logger)
-
             # 4. create Vm
             logger.info("Start Deploying VM {}".format(vm_name))
             result_create = self.vm_service.create_vm(compute_management_client=compute_client,

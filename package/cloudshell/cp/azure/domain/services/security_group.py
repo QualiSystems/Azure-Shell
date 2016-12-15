@@ -12,7 +12,6 @@ class SecurityGroupService(object):
     RULE_PRIORITY_INCREASE_STEP = 5
 
     def __init__(self, network_service):
-        self._lock = Lock()
         self.network_service = network_service
 
     def _rule_priority_generator(self, existing_rules, start_from=None):
@@ -158,7 +157,7 @@ class SecurityGroupService(object):
 
     @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def create_network_security_group_rules(self, network_client, group_name, security_group_name,
-                                            inbound_rules, destination_addr, start_from=None):
+                                            inbound_rules, destination_addr,lock, start_from=None):
         """Create NSG inbound rules on the Azure
 
         :param network_client: azure.mgmt.network.NetworkManagementClient instance
@@ -169,7 +168,7 @@ class SecurityGroupService(object):
         :param start_from: (int) rule priority number to start from
         :return: None
         """
-        with self._lock:
+        with lock:
             security_rules = network_client.security_rules.list(resource_group_name=group_name,
                                                                 network_security_group_name=security_group_name)
             security_rules = list(security_rules)
@@ -218,7 +217,6 @@ class SecurityGroupService(object):
             result = network_client.security_rules.delete(
                 resource_group_name=resource_group_name,
                 network_security_group_name=security_group.name,
-                security_rule_name=vm_rule.name
-            )
+                security_rule_name=vm_rule.name)
             result.wait()
             logger.info("Security group rule '{}' deleted.".format(vm_rule.name))
