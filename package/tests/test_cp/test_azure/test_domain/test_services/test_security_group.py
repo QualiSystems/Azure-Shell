@@ -100,7 +100,8 @@ class TestSecurityGroupService(TestCase):
                 group_name=self.group_name,
                 security_group_name=self.security_group_name,
                 inbound_rules=inbound_rules,
-                destination_addr=private_vm_ip)
+                destination_addr=private_vm_ip,
+                lock=MagicMock())
 
         # Verify
         self.security_group_service._prepare_security_group_rule.assert_called_once_with(
@@ -134,7 +135,8 @@ class TestSecurityGroupService(TestCase):
                 group_name=self.group_name,
                 security_group_name=self.security_group_name,
                 inbound_rules=inbound_rules,
-                destination_addr=private_vm_ip)
+                destination_addr=private_vm_ip,
+                lock=MagicMock())
 
         # Verify
         self.security_group_service._prepare_security_group_rule.assert_called_once_with(
