@@ -21,6 +21,17 @@ class TestGenericLockProvider(TestCase):
         self.assertEquals(len(locks), 12)
         self.assertEquals(len(list(set(locks))), 6)
 
+    def test_lock_remove_for_each_key(self):
+        locks = []
+
+        for i in range(0, 6):
+            locks.append(self.generic_lock_provider.get_resource_lock("key" + str(i), Mock()))
+
+        self.generic_lock_provider.remove_lock_resource("key1", Mock())
+        locks.append(self.generic_lock_provider.get_resource_lock("key1", Mock()))
+
+        self.assertEquals(len(list(set(locks))), 7)
+
 
 class LockCreatorThread(threading.Thread):
     def __init__(self, generic_lock_provider, locks):
