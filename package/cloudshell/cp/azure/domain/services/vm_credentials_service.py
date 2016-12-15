@@ -14,14 +14,21 @@ class VMCredentialsService(object):
     LINUX_PATH_TO_SSH_KEY = "/home/{username}/.ssh/authorized_keys"
 
     def _generate_password(self, length=10):
-        """Generates password of the given length from digits, uppercase and lowercase letters
+        """Generate password of the given length with digit and uppercase letter
 
         :param length: (int) password length
         :return: (str) generated password
         """
-        chars = string.ascii_letters + string.digits
+        # generate password with given length from the lowercase letters
+        password = [random.choice(string.ascii_lowercase) for _ in xrange(length)]
 
-        return ''.join(random.choice(chars) for _ in xrange(length))
+        # add uppercase and digit symbol to the password
+        rand_idxs = random.sample(xrange(length), 2)
+
+        for idx, symbols_range in zip(rand_idxs, [string.ascii_uppercase, string.digits]):
+            password[idx] = random.choice(symbols_range)
+
+        return "".join(password)
 
     def prepare_credentials(self, os_type, username, password, storage_service, key_pair_service,
                             storage_client, group_name, storage_name):
