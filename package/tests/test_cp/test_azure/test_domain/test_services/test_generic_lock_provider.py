@@ -17,7 +17,7 @@ class TestGenericLockProvider(TestCase):
         thread1.start()
         thread2.start()
         while len(locks) < 12:
-            threading._sleep(1)
+            threading._sleep(0.001)
         self.assertEquals(len(locks), 12)
         self.assertEquals(len(list(set(locks))), 6)
 
