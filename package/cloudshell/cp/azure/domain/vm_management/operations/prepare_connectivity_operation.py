@@ -120,7 +120,7 @@ class PrepareConnectivityOperation(object):
             tags=tags)
 
         logger.info("Creating NSG management rules...")
-        # 5. Set rules on NSG ti create a sandbox
+        # 5. Set rules on NSG to create a sandbox
         self._create_management_rules(
             group_name=group_name,
             management_vnet=management_vnet,

@@ -25,6 +25,7 @@ class TestDeployAzureVMOperation(TestCase):
         self.tags_service = TagService()
         self.name_provider_service = MagicMock()
         self.vm_extension_service = MagicMock()
+        self.generic_lock_provider = MagicMock()
 
         self.deploy_operation = DeployAzureVMOperation(vm_service=self.vm_service,
                                                        network_service=self.network_service,
@@ -34,7 +35,8 @@ class TestDeployAzureVMOperation(TestCase):
                                                        tags_service=self.tags_service,
                                                        security_group_service=self.security_group_service,
                                                        name_provider_service=self.name_provider_service,
-                                                       vm_extension_service=self.vm_extension_service)
+                                                       vm_extension_service=self.vm_extension_service,
+                                                       generic_lock_provider=self.generic_lock_provider)
 
     def test_get_sandbox_subnet(self):
         """Check that method will call network service to get sandbox vNet and will return it's subnet by given name"""
@@ -379,6 +381,8 @@ class TestDeployAzureVMOperation(TestCase):
         self.deploy_operation.security_group_service.list_network_security_group.return_value = security_groups_list
         self.deploy_operation._validate_resource_is_single_per_group = MagicMock()
         self.deploy_operation.security_group_service.get_network_security_group.return_value = security_groups_list[0]
+        lock = Mock()
+        self.generic_lock_provider.get_resource_lock=Mock(return_value=lock)
 
         # Act
         self.deploy_operation._process_nsg_rules(
@@ -398,7 +402,8 @@ class TestDeployAzureVMOperation(TestCase):
             group_name=group_name,
             inbound_rules=[],
             network_client=network_client,
-            security_group_name=security_groups_list[0].name)
+            security_group_name=security_groups_list[0].name,
+            lock=lock)
 
     def test_process_nsg_rules_inbound_ports_attribute_is_empty(self):
         """Check that method will not call security group service for NSG rules creation if there are no rules"""
