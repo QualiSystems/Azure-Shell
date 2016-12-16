@@ -1,0 +1,2 @@
+class AutoloadException(Exception):
+    pass

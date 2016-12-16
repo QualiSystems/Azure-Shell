@@ -256,6 +256,16 @@ class VirtualMachineService(object):
                                                                            ResourceGroup(location=region, tags=tags))
 
     @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
+    def get_resource_group(self, resource_management_client, group_name):
+        """
+
+        :param resource_management_client: cloudshell.cp.azure.common.azure_clients.ResourceManagementClient instance
+        :param group_name: (str) the name of the resource group on Azure
+        :return: azure.mgmt.resource.resources.models.ResourceGroup instance
+        """
+        return resource_management_client.resource_groups.get(resource_group_name=group_name)
+
+    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def delete_resource_group(self, resource_management_client, group_name):
         result = resource_management_client.resource_groups.delete(group_name)
         result.wait()
@@ -331,3 +341,13 @@ class VirtualMachineService(object):
             version=version)
 
         return deployed_image
+
+    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
+    def list_virtual_machine_sizes(self, compute_management_client, location):
+        """List available virtual machine sizes within given location
+
+        :param compute_management_client: azure.mgmt.compute.compute_management_client.ComputeManagementClient
+        :param location: (str) Azure region
+        :return:
+        """
+        return compute_management_client.virtual_machine_sizes.list(location=location)

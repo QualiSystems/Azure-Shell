@@ -31,6 +31,8 @@ from cloudshell.cp.azure.common.azure_clients import AzureClientsManager
 from cloudshell.cp.azure.domain.services.parsers.custom_param_extractor import VmCustomParamsExtractor
 from cloudshell.cp.azure.domain.vm_management.operations.app_ports_operation import DeployedAppPortsOperation
 
+from cloudshell.cp.azure.domain.vm_management.operations.autoload_operation import AutoloadOperation
+
 
 class AzureShell(object):
     def __init__(self):
@@ -51,6 +53,10 @@ class AzureShell(object):
         self.access_key_operation = AccessKeyOperation(self.key_pair_service, self.storage_service)
         self.generic_lock_provider = GenericLockProvider()
         self.subnet_locker = Lock()
+
+        self.autoload_operation = AutoloadOperation(vm_service=self.vm_service,
+                                                    network_service=self.network_service,
+                                                    tags_service=self.tags_service)
 
         self.prepare_connectivity_operation = PrepareConnectivityOperation(
             vm_service=self.vm_service,
@@ -91,6 +97,26 @@ class AzureShell(object):
 
         self.deployed_app_ports_operation = DeployedAppPortsOperation(
             vm_custom_params_extractor=self.vm_custom_params_extractor)
+
+    def get_inventory(self, command_context):
+        """Validate Cloud Provider
+
+        :param command_context: ResourceCommandContext
+        """
+        with LoggingSessionContext(command_context) as logger:
+            with ErrorHandlingContext(logger):
+                logger.info("Starting Autoload Operation...")
+
+                with CloudShellSessionContext(command_context) as cloudshell_session:
+                    cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(
+                        resource=command_context.resource,
+                        cloudshell_session=cloudshell_session)
+
+                    result = self.autoload_operation.get_inventory(cloud_provider_model=cloud_provider_model,
+                                                                   logger=logger)
+
+                    logger.info("End Autoload Operation...")
+                    return result
 
     def deploy_azure_vm(self, command_context, deployment_request):
         """Will deploy Azure Image on the cloud provider
