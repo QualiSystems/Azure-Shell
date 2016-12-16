@@ -112,7 +112,7 @@ class TestAzureModelsParser(TestCase):
         test_resource.attributes["Azure Tenant"] = test_azure_tenant = mock.MagicMock()
         test_resource.attributes["Instance Type"] = test_instance_type = mock.MagicMock()
         test_resource.attributes["Networks In Use"] = test_networks_in_use = mock.MagicMock()
-        test_resource.attributes["Region"] = test_region = mock.MagicMock()
+        test_resource.attributes["Region"] = "East Canada"
         test_resource.attributes["Management Group Name"] = test_mgmt_group_name = mock.MagicMock()
         cloudshell_session = mock.MagicMock()
         decrypted_azure_secret = mock.MagicMock()
@@ -129,7 +129,7 @@ class TestAzureModelsParser(TestCase):
         self.assertEqual(result.azure_tenant, test_azure_tenant)
         self.assertEqual(result.instance_type, test_instance_type)
         self.assertEqual(result.networks_in_use, test_networks_in_use)
-        self.assertEqual(result.region, test_region)
+        self.assertEqual(result.region, "eastcanada")
         self.assertEqual(result.management_group_name, test_mgmt_group_name)
         self.assertEqual(result.azure_secret, decrypted_azure_secret.Value)
 
