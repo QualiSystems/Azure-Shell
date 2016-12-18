@@ -146,7 +146,7 @@
         <Rule Name="Setting" />
       </Rules>
     </AttributeInfo>
-    <AttributeInfo Name="Image OS Type"  DefaultValue="" Description="" IsReadOnly="false" Type="String">
+    <AttributeInfo Name="Image OS Type"  DefaultValue="" Description="The Virtual Machine operation system type." IsReadOnly="false" Type="String">
       <Rules>
         <Rule Name="Configuration" />
         <Rule Name="Setting" />
