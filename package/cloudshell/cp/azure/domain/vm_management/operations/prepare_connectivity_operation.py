@@ -119,17 +119,21 @@ class PrepareConnectivityOperation(object):
             region=cloud_provider_model.region,
             tags=tags)
 
+
+        cidr = self._extract_cidr(request)
+        logger.info("Received CIDR {0} from server".format(cidr))
+
         logger.info("Creating NSG management rules...")
         # 5. Set rules on NSG to create a sandbox
         self._create_management_rules(
             group_name=group_name,
             management_vnet=management_vnet,
             network_client=network_client,
+            sandbox_vnet_cidr=cidr,
             security_group_name=security_group_name,
             logger=logger)
 
-        cidr = self._extract_cidr(request)
-        logger.info("Received CIDR {0} from server".format(cidr))
+
 
         # 6. Create a subnet with NSG
         self._create_subnet(cidr=cidr,
@@ -210,7 +214,14 @@ class PrepareConnectivityOperation(object):
                                                network_security_group=network_security_group,
                                                wait_for_result=True)
 
-    def _create_management_rules(self, group_name, management_vnet, network_client, security_group_name, logger):
+    @staticmethod
+    def _validate_management_vnet(management_vnet):
+        if management_vnet is None:
+            raise VirtualNetworkNotFoundException("Could not find Management Virtual Network in Azure.")
+
+    def _create_management_rules(self, group_name, management_vnet, sandbox_vnet_cidr, network_client,
+                                 security_group_name,
+                                 logger):
         """Creates NSG management rules
 
         NOTE: NSG rules must be created only one by one, without concurrency
@@ -222,6 +233,32 @@ class PrepareConnectivityOperation(object):
         :return: msrestazure.azure_operation.AzureOperationPoller instance for the last NSG rule
         """
         all_symbol = SecurityRuleProtocol.asterisk
+
+        # rule 0
+        priority = 3950
+        logger.info("Creating NSG rule to deny inbound traffic from other subnets with priority {}..."
+                    .format(priority))
+
+        operation_poller = self.security_group_service.create_network_security_group_custom_rule(
+            network_client=network_client,
+            group_name=group_name,
+            security_group_name=security_group_name,
+            rule=SecurityRule(
+                access=SecurityRuleAccess.allow,
+                direction="Inbound",
+                source_address_prefix=sandbox_vnet_cidr,
+                source_port_range=all_symbol,
+                name="rule_{}".format(priority),
+                destination_address_prefix=sandbox_vnet_cidr,
+                destination_port_range=all_symbol,
+                priority=priority,
+                protocol=all_symbol),
+            async=True)
+
+        # can't create next rule while previous is in the deploying state
+        operation_poller.wait()
+
+        # Rule 1
         priority = 4000
         logger.info("Creating NSG rule to deny inbound traffic from other subnets with priority {}..."
                     .format(priority))
@@ -266,11 +303,6 @@ class PrepareConnectivityOperation(object):
                 protocol=all_symbol),
             async=True)
         operation_poller.wait()
-
-    @staticmethod
-    def _validate_management_vnet(management_vnet):
-        if management_vnet is None:
-            raise VirtualNetworkNotFoundException("Could not find Management Virtual Network in Azure.")
 
     @staticmethod
     def _validate_sandbox_vnet(sandbox_vnet):
