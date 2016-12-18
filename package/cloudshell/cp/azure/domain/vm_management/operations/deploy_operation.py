@@ -67,7 +67,7 @@ class DeployAzureVMOperation(object):
                 group_name=group_name)
 
             logger.info("Create rules for the NSG {}".format(network_security_group.name))
-            lock = self.generic_lock_provider.get_resource_lock(lock_key=group_name,logger=logger)
+            lock = self.generic_lock_provider.get_resource_lock(lock_key=group_name, logger=logger)
             self.security_group_service.create_network_security_group_rules(
                 network_client=network_client,
                 group_name=group_name,
@@ -350,7 +350,6 @@ class DeployAzureVMOperation(object):
                validator_factory,
                logger):
         """
-        :param lock_object:
         :param cloudshell.cp.azure.common.validtors.validator_factory.ValidatorFactory validator_factory:
         :param azure.mgmt.storage.storage_management_client.StorageManagementClient storage_client:
         :param azure.mgmt.compute.compute_management_client.ComputeManagementClient compute_client:

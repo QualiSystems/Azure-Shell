@@ -20,7 +20,8 @@ class PrepareConnectivityOperation(object):
                  key_pair_service,
                  security_group_service,
                  cryptography_service,
-                 name_provider_service):
+                 name_provider_service,
+                 subnet_locker):
         """
 
         :param cloudshell.cp.azure.domain.services.virtual_machine_service.VirtualMachineService vm_service:
@@ -31,6 +32,7 @@ class PrepareConnectivityOperation(object):
         :param cloudshell.cp.azure.domain.services.security_group.SecurityGroupService security_group_service:
         :param cloudshell.cp.azure.domain.services.cryptography_service.CryptographyService cryptography_service:
         :param cloudshell.cp.azure.domain.services.name_provider.NameProviderService name_provider_service:
+        :param threading.Lock subnet_locker:
         :return:
         """
 
@@ -42,7 +44,7 @@ class PrepareConnectivityOperation(object):
         self.key_pair_service = key_pair_service
         self.security_group_service = security_group_service
         self.name_provider_service = name_provider_service
-        self.subnet_locker = Lock()
+        self.subnet_locker = subnet_locker
 
     def prepare_connectivity(self,
                              reservation,

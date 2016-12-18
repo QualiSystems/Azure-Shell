@@ -1,4 +1,5 @@
 import jsonpickle
+from threading import Lock
 
 from cloudshell.core.context.error_handling_context import ErrorHandlingContext
 from cloudshell.shell.core.session.cloudshell_session import CloudShellSessionContext
@@ -48,7 +49,8 @@ class AzureShell(object):
         self.name_provider_service = NameProviderService()
         self.vm_extension_service = VMExtensionService()
         self.access_key_operation = AccessKeyOperation(self.key_pair_service, self.storage_service)
-        self.lock_service = GenericLockProvider()
+        self.generic_lock_provider = GenericLockProvider()
+        self.subnet_locker = Lock()
 
         self.prepare_connectivity_operation = PrepareConnectivityOperation(
             vm_service=self.vm_service,
@@ -58,7 +60,8 @@ class AzureShell(object):
             key_pair_service=self.key_pair_service,
             security_group_service=self.security_group_service,
             cryptography_service=self.cryptography_service,
-            name_provider_service=self.name_provider_service)
+            name_provider_service=self.name_provider_service,
+            subnet_locker=self.subnet_locker)
 
         self.deploy_azure_vm_operation = DeployAzureVMOperation(
             vm_service=self.vm_service,
@@ -70,7 +73,7 @@ class AzureShell(object):
             security_group_service=self.security_group_service,
             name_provider_service=self.name_provider_service,
             vm_extension_service=self.vm_extension_service,
-            generic_lock_provider=self.lock_service)
+            generic_lock_provider=self.generic_lock_provider)
 
         self.power_vm_operation = PowerAzureVMOperation(vm_service=self.vm_service)
 
@@ -82,7 +85,9 @@ class AzureShell(object):
             network_service=self.network_service,
             tags_service=self.tags_service,
             security_group_service=self.security_group_service,
-            storage_service=self.storage_service)
+            storage_service=self.storage_service,
+            generic_lock_provider=self.generic_lock_provider,
+            subnet_locker=self.subnet_locker)
 
         self.deployed_app_ports_operation = DeployedAppPortsOperation(
             vm_custom_params_extractor=self.vm_custom_params_extractor)
@@ -220,7 +225,7 @@ class AzureShell(object):
                 azure_clients = AzureClientsManager(cloud_provider_model)
                 resource_group_name = command_context.reservation.reservation_id
 
-                self.lock_service.remove_lock_resource(resource_group_name,logger=logger)
+                self.generic_lock_provider.remove_lock_resource(resource_group_name, logger=logger)
 
                 result = self.delete_azure_vm_operation.cleanup_connectivity(
                     network_client=azure_clients.network_client,

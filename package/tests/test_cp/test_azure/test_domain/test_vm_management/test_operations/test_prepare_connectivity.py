@@ -1,4 +1,5 @@
 import uuid
+from threading import Lock
 from unittest import TestCase
 
 import mock
@@ -37,7 +38,8 @@ class TestPrepareConnectivity(TestCase):
             key_pair_service=self.key_pair_service,
             security_group_service=self.security_group_service,
             cryptography_service=self.cryptography_service,
-            name_provider_service=self.name_provider_service)
+            name_provider_service=self.name_provider_service,
+            subnet_locker=Lock())
 
     def test_prepare_connectivity(self):
         # Arrange
