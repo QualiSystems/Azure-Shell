@@ -1,3 +1,4 @@
+from threading import Lock
 from unittest import TestCase
 
 from azure.mgmt.network.models import NetworkSecurityGroup
@@ -186,11 +187,17 @@ class TestSecurityGroupService(TestCase):
         self.security_group_service.get_network_security_group.return_value = security_group
         self.network_service.get_private_ip = Mock(return_value=private_ip_address)
 
+        contex_enter_mock = Mock()
+        locker = Mock()
+        locker.__enter__ = contex_enter_mock
+        locker.__exit__ = Mock()
+
         # Act
-        self.security_group_service.delete_security_rules(network_client, resource_group_name, vm_name, Mock())
+        self.security_group_service.delete_security_rules(network_client, resource_group_name, vm_name, locker, Mock())
 
         # Verify
         network_client.security_rules.delete.assert_called_once_with(
                 resource_group_name=resource_group_name,
                 network_security_group_name=security_group.name,
                 security_rule_name=security_rule.name)
+        contex_enter_mock.assert_called_once()

@@ -1,8 +1,10 @@
+from threading import Lock
 from unittest import TestCase
 from mock import Mock, MagicMock
 from msrestazure.azure_exceptions import CloudError
 from requests import Response
 
+from cloudshell.cp.azure.domain.services.lock_service import GenericLockProvider
 from cloudshell.cp.azure.domain.services.network_service import NetworkService
 from cloudshell.cp.azure.domain.services.security_group import SecurityGroupService
 from cloudshell.cp.azure.domain.services.tags import TagService
@@ -20,11 +22,15 @@ class TestDeleteOperation(TestCase):
         self.tags_service = TagService()
         self.storage_service = MagicMock()
         self.security_group_service = SecurityGroupService(self.network_service)
+        self.generic_lock_provider = Mock()
+        self.generic_lock_provider.get_resource_lock = Mock(return_value=Mock())
         self.delete_operation = DeleteAzureVMOperation(vm_service=self.vm_service,
                                                        network_service=self.network_service,
                                                        tags_service=self.tags_service,
                                                        security_group_service=self.security_group_service,
-                                                       storage_service=self.storage_service)
+                                                       storage_service=self.storage_service,
+                                                       generic_lock_provider=self.generic_lock_provider,
+                                                       subnet_locker=Lock())
 
     def test_cleanup_on_error(self):
         # Arrange
@@ -183,6 +189,8 @@ class TestDeleteOperation(TestCase):
         self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.vm_service.delete_vm))
         self.assertTrue(TestHelper.CheckMethodCalledXTimes(network_client.public_ip_addresses.delete))
         self.assertTrue(TestHelper.CheckMethodCalledXTimes(network_client.network_interfaces.delete))
+        self.delete_operation.generic_lock_provider.get_resource_lock.assert_called_with(lock_key="AzureTestGroup",
+                                                                                         logger=self.logger)
 
     def test_delete_operation_on_error(self):
         # Arrange

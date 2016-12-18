@@ -157,7 +157,7 @@ class SecurityGroupService(object):
 
     @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def create_network_security_group_rules(self, network_client, group_name, security_group_name,
-                                            inbound_rules, destination_addr,lock, start_from=None):
+                                            inbound_rules, destination_addr, lock, start_from=None):
         """Create NSG inbound rules on the Azure
 
         :param network_client: azure.mgmt.network.NetworkManagementClient instance
@@ -165,6 +165,7 @@ class SecurityGroupService(object):
         :param security_group_name: NSG name from the Azure
         :param inbound_rules: list[cloudshell.cp.azure.models.rule_data.RuleData]
         :param destination_addr: Destination IP address/CIDR
+        :param threading.Lock lock: The locker object to use to sync between concurrent operations on the NSG
         :param start_from: (int) rule priority number to start from
         :return: None
         """
@@ -184,7 +185,7 @@ class SecurityGroupService(object):
                     priority=next(priority_generator))
 
     @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
-    def delete_security_rules(self, network_client, resource_group_name, vm_name, logger):
+    def delete_security_rules(self, network_client, resource_group_name, vm_name, lock, logger):
         """
         removes NSG inbound rules for virtual machine (based on private ip address)
 
@@ -192,6 +193,7 @@ class SecurityGroupService(object):
         :param vm_name:
         :param network_client: azure.mgmt.network.NetworkManagementClient instance
         :param resource_group_name: resource group name (reservation id)
+        :param threading.Lock lock: The locker object to use to sync between concurrent operations on the NSG
 
         :return: None
         """
@@ -212,11 +214,12 @@ class SecurityGroupService(object):
         if vm_rules is None or len(vm_rules) == 0:
             return
 
-        for vm_rule in vm_rules:
-            logger.info("Deleting security group rule '{}'.".format(vm_rule.name))
-            result = network_client.security_rules.delete(
-                resource_group_name=resource_group_name,
-                network_security_group_name=security_group.name,
-                security_rule_name=vm_rule.name)
-            result.wait()
-            logger.info("Security group rule '{}' deleted.".format(vm_rule.name))
+        with lock:
+            for vm_rule in vm_rules:
+                logger.info("Deleting security group rule '{}'.".format(vm_rule.name))
+                result = network_client.security_rules.delete(
+                    resource_group_name=resource_group_name,
+                    network_security_group_name=security_group.name,
+                    security_rule_name=vm_rule.name)
+                result.wait()
+                logger.info("Security group rule '{}' deleted.".format(vm_rule.name))
