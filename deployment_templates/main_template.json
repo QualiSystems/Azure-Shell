@@ -79,13 +79,13 @@
         "SubnetRef": "[concat(variables('vnetID'),'/subnets/','default')]",
 		"location": "[resourceGroup().location]",
 		"es_nic_name":"ExecutionServer-VM-NIC",
-		"virtualMachineEsName": "ExecutionServer-VM",		
+		"virtualMachineEsName": "ExecutionServer-VM",		giol
 		"virtualMachineEsNameInVM": "[concat('azure',variables('location'))]",
-		"qx_template_location":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/feature/gil_create_json_deploy/deployment_templates/",
-		"vpn_template_location":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/feature/gil_create_json_deploy/deployment_templates/",
-		"scriptUrl":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/feature/gil_create_json_deploy/deployment_templates/guacamole-quali-install.sh",
+		"qx_template_location":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/develop/deployment_templates/",
+		"vpn_template_location":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/develop/deployment_templates/",
+		"scriptUrl":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/develop/deployment_templates/guacamole-quali-install.sh",
 		"commandToExe":"sh guacamole-quali-install.sh",
-		"scriptUrlES":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/feature/gil_create_json_deploy/deployment_templates/cloudshell_install_script.sh",
+		"scriptUrlES":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/develop/deployment_templates/cloudshell_install_script.sh",
 		"commandToExeES":"[concat('sh cloudshell_install_script.sh ', parameters('CloudshellServerIP'),' ',parameters('CloudshellAdmin'),' ', parameters('CloudshellAdminPassword'),' ',variables('virtualMachineEsNameInVM') )]",
 		"vmSize":"Standard_A3"
 	},
