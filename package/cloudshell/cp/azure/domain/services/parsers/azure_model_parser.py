@@ -83,7 +83,7 @@ class AzureModelsParser(object):
         azure_resource_model.azure_tenant = resource_context['Azure Tenant']
         azure_resource_model.instance_type = resource_context['Instance Type']
         azure_resource_model.networks_in_use = resource_context['Networks In Use']
-        azure_resource_model.region = resource_context['Region']
+        azure_resource_model.region = resource_context['Region'].replace(" ", "").lower()
         azure_resource_model.management_group_name = resource_context['Management Group Name']
 
         encrypted_azure_secret = resource_context['Azure Secret']
