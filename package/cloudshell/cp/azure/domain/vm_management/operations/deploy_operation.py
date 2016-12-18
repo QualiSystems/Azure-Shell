@@ -16,6 +16,7 @@ class DeployAzureVMOperation(object):
                  tags_service,
                  security_group_service,
                  name_provider_service,
+                 vm_extension_service,
                  generic_lock_provider):
         """
 
@@ -27,6 +28,7 @@ class DeployAzureVMOperation(object):
         :param cloudshell.cp.azure.domain.services.tags.TagService tags_service:
         :param cloudshell.cp.azure.domain.services.security_group.SecurityGroupService security_group_service:
         :param cloudshell.cp.azure.domain.services.name_provider.NameProviderService name_provider_service:
+        :param cloudshell.cp.azure.domain.services.vm_extension.VMExtensionService vm_extension_service:
         :param cloudshell.cp.azure.domain.services.lock_service.GenericLockProvider generic_lock_provider:
         :return:
         """
@@ -39,6 +41,7 @@ class DeployAzureVMOperation(object):
         self.tags_service = tags_service
         self.security_group_service = security_group_service
         self.name_provider_service = name_provider_service
+        self.vm_extension_service = vm_extension_service
 
     def _process_nsg_rules(self, network_client, group_name, azure_vm_deployment_model, nic, logger):
         """Create Network Security Group rules if needed
@@ -205,10 +208,16 @@ class DeployAzureVMOperation(object):
                                                                       group_name=group_name,
                                                                       validator_factory=validator_factory)
 
+        image_os_type = self.vm_service.prepare_image_os_type(azure_vm_deployment_model.image_os_type)
+
+        if azure_vm_deployment_model.extension_script_file:
+            self.vm_extension_service.validate_script_extension(
+                image_os_type=image_os_type,
+                script_file=azure_vm_deployment_model.extension_script_file,
+                script_configurations=azure_vm_deployment_model.extension_script_configurations)
+
         tags = self.tags_service.get_tags(vm_name, resource_name, subnet.name, reservation)
         logger.info("Tags for the VM {}".format(tags))
-
-        image_os_type = self.vm_service.prepare_image_os_type(azure_vm_deployment_model.image_os_type)
 
         blob_url_model = self.storage_service.parse_blob_url(azure_vm_deployment_model.image_urn)
 
@@ -278,6 +287,21 @@ class DeployAzureVMOperation(object):
                 instance_type=azure_vm_deployment_model.instance_type)
 
             logger.info("VM {} was successfully deployed".format(vm_name))
+
+            # 5. Create VM Extension
+            logger.info("Processing VM Custom Script Extension for VM {}".format(vm_name))
+            if azure_vm_deployment_model.extension_script_file:
+                self.vm_extension_service.create_script_extension(
+                    compute_client=compute_client,
+                    location=cloud_provider_model.region,
+                    group_name=group_name,
+                    vm_name=vm_name,
+                    image_os_type=image_os_type,
+                    script_file=azure_vm_deployment_model.extension_script_file,
+                    script_configurations=azure_vm_deployment_model.extension_script_configurations,
+                    tags=tags)
+
+            logger.info("VM Custom Script Extension for VM {} was successfully deployed".format(vm_name))
 
         except Exception:
             logger.exception("Failed to deploy VM From custom Image. Error:")
@@ -381,6 +405,12 @@ class DeployAzureVMOperation(object):
 
         logger.info("Operation system type for the VM is {}".format(os_type))
 
+        if azure_vm_deployment_model.extension_script_file:
+            self.vm_extension_service.validate_script_extension(
+                image_os_type=os_type,
+                script_file=azure_vm_deployment_model.extension_script_file,
+                script_configurations=azure_vm_deployment_model.extension_script_configurations)
+
         try:
             # 1. Create network for vm
             logger.info("Creating NIC '{}'".format(interface_name))
@@ -435,6 +465,21 @@ class DeployAzureVMOperation(object):
                                                       purchase_plan=virtual_machine_image.plan)
 
             logger.info("VM {} was successfully deployed".format(vm_name))
+
+            # 5. Create VM Extension
+            logger.info("Processing VM Custom Script Extension for VM {}".format(vm_name))
+            if azure_vm_deployment_model.extension_script_file:
+                self.vm_extension_service.create_script_extension(
+                    compute_client=compute_client,
+                    location=cloud_provider_model.region,
+                    group_name=group_name,
+                    vm_name=vm_name,
+                    image_os_type=os_type,
+                    script_file=azure_vm_deployment_model.extension_script_file,
+                    script_configurations=azure_vm_deployment_model.extension_script_configurations,
+                    tags=tags)
+
+            logger.info("VM Custom Script Extension for VM {} was successfully deployed".format(vm_name))
 
         except Exception:
             logger.exception("Failed to deploy VM. Error:")

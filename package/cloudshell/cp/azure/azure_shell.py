@@ -20,6 +20,7 @@ from cloudshell.cp.azure.domain.services.vm_credentials_service import VMCredent
 from cloudshell.cp.azure.domain.services.key_pair import KeyPairService
 from cloudshell.cp.azure.domain.services.security_group import SecurityGroupService
 from cloudshell.cp.azure.domain.services.name_provider import NameProviderService
+from cloudshell.cp.azure.domain.services.vm_extension import VMExtensionService
 from cloudshell.cp.azure.domain.vm_management.operations.deploy_operation import DeployAzureVMOperation
 from cloudshell.cp.azure.domain.vm_management.operations.power_operation import PowerAzureVMOperation
 from cloudshell.cp.azure.domain.vm_management.operations.refresh_ip_operation import RefreshIPOperation
@@ -45,6 +46,7 @@ class AzureShell(object):
         self.vm_custom_params_extractor = VmCustomParamsExtractor()
         self.cryptography_service = CryptographyService()
         self.name_provider_service = NameProviderService()
+        self.vm_extension_service = VMExtensionService()
         self.access_key_operation = AccessKeyOperation(self.key_pair_service, self.storage_service)
         self.lock_service = GenericLockProvider()
 
@@ -67,6 +69,7 @@ class AzureShell(object):
             vm_credentials_service=self.vm_credentials_service,
             security_group_service=self.security_group_service,
             name_provider_service=self.name_provider_service,
+            vm_extension_service=self.vm_extension_service,
             generic_lock_provider=self.lock_service)
 
         self.power_vm_operation = PowerAzureVMOperation(vm_service=self.vm_service)
