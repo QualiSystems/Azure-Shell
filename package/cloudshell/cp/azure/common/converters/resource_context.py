@@ -31,6 +31,8 @@ class ResourceContextConverter(object):
         deployed_resource.add_public_ip = self._convert_to_bool(resource.attributes['Add Public IP'])
         deployed_resource.inbound_ports = resource.attributes['Inbound Ports']
         deployed_resource.public_ip_type = resource.attributes['Public IP Type']
+        deployed_resource.extension_script_file = resource.attributes['Extension Script file']
+        deployed_resource.extension_script_configurations = resource.attributes['Extension Script Configurations']
 
         app_request = jsonpickle.decode(resource.app_context.app_request_json)
         attrs = app_request["logicalResource"]["attributes"]
