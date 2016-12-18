@@ -24,6 +24,7 @@ class TestDeployAzureVMOperation(TestCase):
         self.security_group_service = MagicMock()
         self.tags_service = TagService()
         self.name_provider_service = MagicMock()
+        self.vm_extension_service = MagicMock()
         self.generic_lock_provider = MagicMock()
 
         self.deploy_operation = DeployAzureVMOperation(vm_service=self.vm_service,
@@ -34,6 +35,7 @@ class TestDeployAzureVMOperation(TestCase):
                                                        tags_service=self.tags_service,
                                                        security_group_service=self.security_group_service,
                                                        name_provider_service=self.name_provider_service,
+                                                       vm_extension_service=self.vm_extension_service,
                                                        generic_lock_provider=self.generic_lock_provider)
 
     def test_get_sandbox_subnet(self):
