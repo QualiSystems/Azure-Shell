@@ -325,11 +325,27 @@ class NetworkService(object):
         """
 
         :param azure.mgmt.network.network_management_client.NetworkManagementClient network_client:
-        :param group_name:
-        :param ip_name:
+        :param group_name: (str) resource group name (reservation id)
+        :param ip_name: (str) name for Azure Public IP resource
         :return:
         """
         result = network_client.public_ip_addresses.delete(group_name, ip_name)
+        result.wait()
+
+    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
+    def delete_subnet(self, network_client, group_name, vnet_name, subnet_name):
+        """
+
+        :param network_client: azure.mgmt.network.network_management_client.NetworkManagementClient instance
+        :param group_name: (str) resource group name (reservation id)
+        :param vnet_name: (str) virtual network name
+        :param subnet_name: (str) subnet name
+        :return:
+        """
+        result = network_client.subnets.delete(resource_group_name=group_name,
+                                               virtual_network_name=vnet_name,
+                                               subnet_name=subnet_name)
+        result.wait()
 
     @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def get_virtual_networks(self, network_client, group_name):

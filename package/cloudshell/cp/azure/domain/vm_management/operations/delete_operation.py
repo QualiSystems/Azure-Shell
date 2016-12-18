@@ -119,8 +119,11 @@ class DeleteAzureVMOperation(object):
 
         with self.subnet_locker:
             logger.info("Deleting subnet {}".format(subnet.name))
-            network_client.subnets.delete(cloud_provider_model.management_group_name, sandbox_virtual_network.name,
-                                          subnet.name)
+            self.network_service.delete_subnet(network_client=network_client,
+                                               group_name=cloud_provider_model.management_group_name,
+                                               vnet_name=sandbox_virtual_network.name,
+                                               subnet_name=subnet.name)
+
             logger.info("Deleted subnet {}".format(subnet.name))
 
     def _delete_security_rules(self, network_client, group_name, vm_name, logger):
