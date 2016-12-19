@@ -4,6 +4,7 @@ from threading import Lock
 from cloudshell.core.context.error_handling_context import ErrorHandlingContext
 from cloudshell.shell.core.session.cloudshell_session import CloudShellSessionContext
 from cloudshell.cp.azure.common.deploy_data_holder import DeployDataHolder
+from cloudshell.cp.azure.common.profiler.profiler import profileit
 from cloudshell.cp.azure.domain.context.validators_factory_context import ValidatorsFactoryContext
 from cloudshell.cp.azure.domain.services.cryptography_service import CryptographyService
 from cloudshell.cp.azure.domain.services.lock_service import GenericLockProvider
@@ -92,6 +93,7 @@ class AzureShell(object):
         self.deployed_app_ports_operation = DeployedAppPortsOperation(
             vm_custom_params_extractor=self.vm_custom_params_extractor)
 
+    @profileit("deploy_azure_vm")
     def deploy_azure_vm(self, command_context, deployment_request):
         """Will deploy Azure Image on the cloud provider
 
@@ -173,6 +175,7 @@ class AzureShell(object):
                     logger.info('End deploying Azure VM From Custom Image')
                     return self.command_result_parser.set_command_result(deploy_data)
 
+    @profileit("prepare_connectivity")
     def prepare_connectivity(self, context, request):
         """
         Creates a connectivity for the Sandbox:
@@ -212,6 +215,7 @@ class AzureShell(object):
                 logger.info('End Preparing Connectivity for Azure VM')
                 return self.command_result_parser.set_command_result({'driverResponse': {'actionResults': result}})
 
+    @profileit("cleanup_connectivity")
     def cleanup_connectivity(self, command_context):
         with LoggingSessionContext(command_context) as logger:
             with ErrorHandlingContext(logger):
@@ -237,6 +241,7 @@ class AzureShell(object):
                 logger.info('End Teardown')
                 return self.command_result_parser.set_command_result({'driverResponse': {'actionResults': [result]}})
 
+    @profileit("delete_azure_vm")
     def delete_azure_vm(self, command_context):
         with LoggingSessionContext(command_context) as logger:
             with ErrorHandlingContext(logger):

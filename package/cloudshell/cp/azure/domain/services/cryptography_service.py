@@ -1,8 +1,8 @@
 import base64
 import os
 
-from cloudshell.core.cryptography.aes_service import AESCipher
-from cloudshell.core.cryptography.rsa_service import RsaService
+from cloudshell.shell.core.cryptography.aes_service import AESCipher
+from cloudshell.shell.core.cryptography.rsa_service import RsaService
 
 
 class CryptographyDto(object):
