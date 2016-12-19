@@ -1,31 +1,51 @@
 import cProfile, pstats, os
 
-
-### http://stackoverflow.com/questions/5375624/a-decorator-that-profiles-a-method-call-and-logs-the-profiling-result ###
-from cloudshell.cp.azure.domain.services.parsers.azure_model_parser import AzureModelsParser
+import random
 
 
 def profileit(scriptName):
     def inner(func):
-        profiling = r'C:\TFS\QualiSystems\Trunk\Drop\TestShell\ExecutionServer\python\2.7.10\Scripts'
+        profiling = r'TBD'
 
         def wrapper(*args, **kwargs):
             if not profiling:
                 return func(*args, **kwargs)
-            reservation = args[1].reservation
-            reservation_id = reservation.reservation_id
-            environment_name = reservation.environment_name
-            prof = cProfile.Profile()
-            retval = prof.runcall(func, *args, **kwargs)
-            # prof.snapshot_stats()
-            file_name = os.path.join(profiling, scriptName + "_" + environment_name + "_" + reservation_id + ".text")
-            dump_name = os.path.join(profiling, scriptName + "_" + environment_name + "_" + reservation_id + ".prof")
-            prof.dump_stats(dump_name)
-            s = open(file_name, 'w')
-            stats = pstats.Stats(prof, stream=s)
-            stats.dump_stats(dump_name)
-            stats.strip_dirs().sort_stats('cumtime').print_stats()
-            return retval
+            type_args = type(args)
+            type_kwargs = type(kwargs)
+
+            len_args = len(args)
+            len_kwargs = len(kwargs)
+
+            if len_args >= 2:
+                try:
+                    reservation = args[1].reservation
+                except:
+                    reservation = args[1].remote_reservation
+            else:
+                try:
+                    reservation = kwargs["command_context"].reservation
+                except:
+                    kwargs["command_context"].remote_reservation
+
+            if reservation:
+                reservation_id = reservation.reservation_id
+                environment_name = reservation.environment_name
+                prof = cProfile.Profile()
+                retval = prof.runcall(func, *args, **kwargs)
+                # prof.snapshot_stats()
+                random_var = str(random.randrange(1, 100))
+                file_name = os.path.join(profiling,
+                                         scriptName + "_" + environment_name + "_" + reservation_id + "_" + random_var + ".text")
+                dump_name = os.path.join(profiling,
+                                         scriptName + "_" + environment_name + "_" + reservation_id + ".prof")
+                # prof.dump_stats(dump_name)
+                s = open(file_name, 'w')
+                stats = pstats.Stats(prof, stream=s)
+                # stats.dump_stats(dump_name)
+                stats.strip_dirs().sort_stats('cumtime').print_stats()
+                return retval
+            else:
+                return func(*args, **kwargs)
 
         return wrapper
 
