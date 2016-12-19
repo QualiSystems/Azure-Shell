@@ -214,11 +214,6 @@ class PrepareConnectivityOperation(object):
                                                network_security_group=network_security_group,
                                                wait_for_result=True)
 
-    @staticmethod
-    def _validate_management_vnet(management_vnet):
-        if management_vnet is None:
-            raise VirtualNetworkNotFoundException("Could not find Management Virtual Network in Azure.")
-
     def _create_management_rules(self, group_name, management_vnet, sandbox_vnet_cidr, network_client,
                                  security_group_name,
                                  logger):
@@ -303,6 +298,11 @@ class PrepareConnectivityOperation(object):
                 protocol=all_symbol),
             async=True)
         operation_poller.wait()
+
+    @staticmethod
+    def _validate_management_vnet(management_vnet):
+        if management_vnet is None:
+            raise VirtualNetworkNotFoundException("Could not find Management Virtual Network in Azure.")
 
     @staticmethod
     def _validate_sandbox_vnet(sandbox_vnet):
