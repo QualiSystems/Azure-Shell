@@ -1,6 +1,6 @@
 from threading import Lock
 
-from azure.mgmt.network.models import NetworkSecurityGroup
+from azure.mgmt.network.models import NetworkSecurityGroup, RouteNextHopType, SecurityRuleProtocol
 from azure.mgmt.network.models import SecurityRule
 from retrying import retry
 
@@ -83,8 +83,8 @@ class SecurityGroupService(object):
         return SecurityRule(
             access=access,
             direction="Inbound",
-            source_address_prefix="*",
-            source_port_range="*",
+            source_address_prefix=RouteNextHopType.internet,
+            source_port_range=SecurityRuleProtocol.asterisk,
             name="rule_{}".format(priority),
             destination_address_prefix=destination_addr,
             destination_port_range=port_range,
