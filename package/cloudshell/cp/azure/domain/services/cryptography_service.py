@@ -14,6 +14,7 @@ class CryptographyDto(object):
 
 
 class CryptographyService(object):
+    """Encrypt using RSA and AES together"""
     def __init__(self):
         """
         """
