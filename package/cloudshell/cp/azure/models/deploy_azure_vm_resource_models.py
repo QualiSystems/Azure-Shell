@@ -12,6 +12,8 @@ class BaseDeployAzureVMResourceModel(object):
         self.app_name = ''  # type: str
         self.username = ''  # type: str
         self.password = ''  # type: str
+        self.extension_script_file = ''
+        self.extension_script_configurations = ''
 
 
 class DeployAzureVMResourceModel(BaseDeployAzureVMResourceModel):

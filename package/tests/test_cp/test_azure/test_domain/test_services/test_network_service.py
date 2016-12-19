@@ -11,11 +11,11 @@ from cloudshell.cp.azure.domain.services.network_service import NetworkService
 class TestNetworkService(TestCase):
     def setUp(self):
         self.network_service = NetworkService()
+        self.network_client = Mock(return_value=Mock())
 
     def test_create_virtual_network(self):
-        network_client = Mock(return_value=Mock())
-        network_client.subnets.get = Mock(return_value="subnet")
-        network_client.virtual_networks.create_or_update = Mock(return_value=Mock())
+        self.network_client.subnets.get = Mock(return_value="subnet")
+        self.network_client.virtual_networks.create_or_update = Mock(return_value=Mock())
         management_group_name = Mock()
         region = Mock()
         network_name = Mock()
@@ -25,7 +25,7 @@ class TestNetworkService(TestCase):
         network_security_group = Mock()
         tags = Mock()
         self.network_service.create_virtual_network(management_group_name=management_group_name,
-                                                    network_client=network_client,
+                                                    network_client=self.network_client,
                                                     network_name=network_name,
                                                     region=region,
                                                     subnet_name=subnet_name,
@@ -34,8 +34,8 @@ class TestNetworkService(TestCase):
                                                     subnet_cidr=subnet_cidr,
                                                     network_security_group=network_security_group)
 
-        network_client.subnets.get.assert_called()
-        network_client.virtual_networks.create_or_update.assert_called_with(management_group_name,
+        self.network_client.subnets.get.assert_called()
+        self.network_client.virtual_networks.create_or_update.assert_called_with(management_group_name,
                                                                             network_name,
                                                                             azure.mgmt.network.models.VirtualNetwork(
                                                                                     location=region,
@@ -113,3 +113,23 @@ class TestNetworkService(TestCase):
         self.assertEqual(network_client.network_interfaces.create_or_update.call_args_list[1][0][2].ip_configurations[
                              0].private_ip_allocation_method,
                          IPAllocationMethod.static)
+
+    def test_delete_subnet(self):
+        """Check that method will use network_client to delete subnet and will wait until deletion will be done"""
+        group_name = "test_group_name"
+        vnet_name = "test_vnet_name"
+        subnet_name = "test_subnet_name"
+        operation_poller = MagicMock()
+        self.network_client.subnets.delete.return_value = operation_poller
+
+        # Act
+        self.network_service.delete_subnet(network_client=self.network_client,
+                                           group_name=group_name,
+                                           vnet_name=vnet_name,
+                                           subnet_name=subnet_name)
+
+        # Verify
+        self.network_client.subnets.delete.assert_called_once_with(resource_group_name=group_name,
+                                                                   virtual_network_name=vnet_name,
+                                                                   subnet_name=subnet_name)
+        operation_poller.wait.assert_called_once_with()

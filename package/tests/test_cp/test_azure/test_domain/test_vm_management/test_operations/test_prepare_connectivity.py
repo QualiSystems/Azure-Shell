@@ -1,4 +1,5 @@
 import uuid
+from threading import Lock
 from unittest import TestCase
 
 import mock
@@ -37,7 +38,8 @@ class TestPrepareConnectivity(TestCase):
             key_pair_service=self.key_pair_service,
             security_group_service=self.security_group_service,
             cryptography_service=self.cryptography_service,
-            name_provider_service=self.name_provider_service)
+            name_provider_service=self.name_provider_service,
+            subnet_locker=Lock())
 
     def test_prepare_connectivity(self):
         # Arrange
@@ -90,7 +92,7 @@ class TestPrepareConnectivity(TestCase):
         self.assertTrue(TestHelper.CheckMethodCalledXTimes(network_client.virtual_networks.list))
         self.assertTrue(TestHelper.CheckMethodCalledXTimes(network_client.subnets.create_or_update))
 
-        self.assertTrue(TestHelper.CheckMethodCalledXTimes(network_client.security_rules.create_or_update, 2))
+        self.assertTrue(TestHelper.CheckMethodCalledXTimes(network_client.security_rules.create_or_update, 3))
         network_client.network_security_groups.create_or_update.assert_called_once()
 
     def test_extract_cidr_throws_error(self):

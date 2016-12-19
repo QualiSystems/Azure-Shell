@@ -31,6 +31,18 @@
         <Rule Name="Setting" />
       </Rules>
     </AttributeInfo>
+    <AttributeInfo Name="Extension Script file" Description="The path to the script files that will be downloaded to the virtual machine. For Linux machines, it’s possible to use more than one script file. Example: https://gist.github.com/ahmetalpbalkan/b5d4a856fe15464015ae87d5587a4439/raw/466f5c30507c990a4d5a2f5c79f901fa89a80841/hello.sh" IsReadOnly="false" Type="String">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo Name="Extension Script Configurations" Description="Additional information for the extension execution. For Linux machines, The command to execute, for example: python MyPythonScript.py input1 input2. For Windows machines, The PowerShell script arguments(Optional), for example: --input1 value2 –input2 value2." IsReadOnly="false" Type="String">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
     <AttributeInfo Name="Public IP" DefaultValue="" Description="Static Public IP Type ensures that the VM always uses the same public IP. By default, Public IPs are dynamic and the address associated to them may change when the VM is deleted from Azure" IsReadOnly="false" Type="String">
         <Rules>
             <Rule Name="Configuration" />
@@ -134,7 +146,7 @@
         <Rule Name="Setting" />
       </Rules>
     </AttributeInfo>
-    <AttributeInfo Name="Image OS Type"  DefaultValue="" Description="" IsReadOnly="false" Type="String">
+    <AttributeInfo Name="Image OS Type"  DefaultValue="" Description="The Virtual Machine operation system type." IsReadOnly="false" Type="String">
       <Rules>
         <Rule Name="Configuration" />
         <Rule Name="Setting" />
@@ -256,6 +268,12 @@
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Add Public IP" UserInput="true">
               <AllowedValues />
             </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Extension Script file" UserInput="true">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Extension Script Configurations" UserInput="true">
+              <AllowedValues />
+            </AttachedAttribute>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Public IP Type" UserInput="true">
               <AllowedValues>
                 <AllowedValue>Static</AllowedValue>
@@ -301,6 +319,12 @@
               <AllowedValues />
             </AttachedAttribute>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Add Public IP" UserInput="true">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Extension Script file" UserInput="true">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Extension Script Configurations" UserInput="true">
               <AllowedValues />
             </AttachedAttribute>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Public IP Type" UserInput="true">

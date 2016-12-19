@@ -18,9 +18,17 @@ class TestVMCredentialsService(TestCase):
         self.vm_credentials = VMCredentialsService()
 
     def test_generate_password(self):
-        """Check that method will generate password with given length"""
+        """Check that method will generate password with given length and with digit and uppercase letter"""
+        # Act
         password = self.vm_credentials._generate_password(19)
+
+        # Verify
         self.assertEqual(len(password), 19)
+        self.assertTrue(any(char.isdigit() for char in password),
+                        msg="Generated password must contain at least one digit character")
+
+        self.assertTrue(any(char.isupper() for char in password),
+                        msg="Generated password must contain at least one uppercase character")
 
     @mock.patch("cloudshell.cp.azure.domain.services.vm_credentials_service.AuthorizedKey")
     def test_get_ssh_key(self, authorized_key_class):
