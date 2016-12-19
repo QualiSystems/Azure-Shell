@@ -12,6 +12,6 @@ class NameProviderService(object):
         :return: (str) generated name
         """
         name = re.sub("[^a-zA-Z0-9]", "", name)
-        generated_name = "{}{:.8}".format(name, uuid.uuid4().hex)
+        generated_name = "{:.8}{}".format(name, uuid.uuid4().hex)
 
         return generated_name[:length]
