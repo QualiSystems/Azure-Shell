@@ -10,22 +10,26 @@ class DeleteAzureVMOperation(object):
                  network_service,
                  tags_service,
                  security_group_service,
-                 storage_service):
+                 storage_service,
+                 generic_lock_provider,
+                 subnet_locker):
         """
         :param cloudshell.cp.azure.domain.services.virtual_machine_service.VirtualMachineService vm_service:
         :param cloudshell.cp.azure.domain.services.network_service.NetworkService network_service:
         :param cloudshell.cp.azure.domain.services.tags.TagService tags_service:
         :param cloudshell.cp.azure.domain.services.security_group.SecurityGroupService security_group_service:
         :param cloudshell.cp.azure.domain.services.storage_service.StorageService storage_service:
+        :param cloudshell.cp.azure.domain.services.lock_service.GenericLockProvider generic_lock_provider:
+        :param threading.Lock subnet_locker:
         :return:
         """
-
         self.vm_service = vm_service
         self.network_service = network_service
         self.tags_service = tags_service
         self.security_group_service = security_group_service
         self.storage_service = storage_service
-        self.subnet_locker = Lock()
+        self.subnet_locker = subnet_locker
+        self.generic_lock_provider = generic_lock_provider
 
     def cleanup_connectivity(self, network_client, resource_client, cloud_provider_model, resource_group_name, logger):
         """
@@ -127,7 +131,8 @@ class DeleteAzureVMOperation(object):
             logger.info("Deleted subnet {}".format(subnet.name))
 
     def _delete_security_rules(self, network_client, group_name, vm_name, logger):
-        """Delete NSG rules for given VM
+        """
+        Delete NSG rules for given VM
 
         :param network_client: azure.mgmt.network.NetworkManagementClient instance
         :param group_name: (str) The name of the resource group
@@ -136,9 +141,11 @@ class DeleteAzureVMOperation(object):
         :return:
         """
         logger.info("Deleting security group rules...")
+        lock = self.generic_lock_provider.get_resource_lock(lock_key=group_name, logger=logger)
         self.security_group_service.delete_security_rules(network_client=network_client,
                                                           resource_group_name=group_name,
                                                           vm_name=vm_name,
+                                                          lock=lock,
                                                           logger=logger)
 
     def _delete_vhd_disk(self, compute_client, storage_client, group_name, vm_name, logger):
@@ -215,6 +222,7 @@ class DeleteAzureVMOperation(object):
         :param logger: logging.Logger instance
         :return:
         """
+
         delete_security_rules_command = partial(self._delete_security_rules,
                                                 network_client=network_client,
                                                 group_name=group_name,
