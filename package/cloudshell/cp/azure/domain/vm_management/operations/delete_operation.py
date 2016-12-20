@@ -148,21 +148,17 @@ class DeleteAzureVMOperation(object):
                                                           lock=lock,
                                                           logger=logger)
 
-    def _delete_vhd_disk(self, compute_client, storage_client, group_name, vm_name, logger):
+    def _delete_vhd_disk(self, storage_client, group_name, vhd_url, logger):
         """Delete VHD Disk Blob resource on the azure for given VM
 
-        :param compute_client: azure.mgmt.compute.ComputeManagementClient instance
         :param group_name: (str) The name of the resource group
-        :param vm_name: (str) the same as ip_name and interface_name
+        :param vhd_url: (str) Blob VHD Disk URL
         :param logger: logging.Logger instance
         :return:
         """
-        logger.info("Deleting VHD Disk {}...".format(vm_name))
-        vm = self.vm_service.get_vm(compute_management_client=compute_client,
-                                    group_name=group_name,
-                                    vm_name=vm_name)
+        logger.info("Deleting VHD Disk {}...".format(vhd_url))
+        url_model = self.storage_service.parse_blob_url(blob_url=vhd_url)
 
-        url_model = self.storage_service.parse_blob_url(blob_url=vm.storage_profile.os_disk.vhd.uri)
         self.storage_service.delete_blob(storage_client=storage_client,
                                          group_name=group_name,
                                          storage_name=url_model.storage_name,
@@ -222,7 +218,6 @@ class DeleteAzureVMOperation(object):
         :param logger: logging.Logger instance
         :return:
         """
-
         delete_security_rules_command = partial(self._delete_security_rules,
                                                 network_client=network_client,
                                                 group_name=group_name,
@@ -234,13 +229,6 @@ class DeleteAzureVMOperation(object):
                                     group_name=group_name,
                                     vm_name=vm_name,
                                     logger=logger)
-
-        delete_vhd_disk_command = partial(self._delete_vhd_disk,
-                                          compute_client=compute_client,
-                                          storage_client=storage_client,
-                                          group_name=group_name,
-                                          vm_name=vm_name,
-                                          logger=logger)
 
         delete_nic_command = partial(self._delete_nic,
                                      network_client=network_client,
@@ -254,8 +242,24 @@ class DeleteAzureVMOperation(object):
                                            vm_name=vm_name,
                                            logger=logger)
 
-        for command in (delete_security_rules_command, delete_vm_command, delete_vhd_disk_command, delete_nic_command,
-                        delete_public_ip_command):
+        commands = [delete_security_rules_command, delete_vm_command, delete_nic_command, delete_public_ip_command]
+
+        try:
+            vm = self.vm_service.get_vm(compute_management_client=compute_client,
+                                        group_name=group_name,
+                                        vm_name=vm_name)
+        except CloudError:
+            logger.warning("Can't get VM to retrieve its VHD URL", exc_info=1)
+        else:
+            delete_vhd_disk_command = partial(self._delete_vhd_disk,
+                                              storage_client=storage_client,
+                                              group_name=group_name,
+                                              vhd_url=vm.storage_profile.os_disk.vhd.uri,
+                                              logger=logger)
+
+            commands.append(delete_vhd_disk_command)
+
+        for command in commands:
             try:
                 command()
             except CloudError as e:
