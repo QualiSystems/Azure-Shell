@@ -83,7 +83,7 @@ class AzureModelsParser(object):
         azure_resource_model = AzureCloudProviderResourceModel()
         azure_resource_model.azure_client_id = resource_context['Azure Client ID']
         azure_resource_model.azure_subscription_id = resource_context['Azure Subscription ID']
-        azure_resource_model.azure_tenant = resource_context['Azure Tenant']
+        azure_resource_model.azure_tenant = resource_context['Azure Tenant ID']
         azure_resource_model.instance_type = resource_context['Instance Type']
         azure_resource_model.networks_in_use = resource_context['Networks In Use']
         azure_resource_model.region = resource_context['Region'].replace(" ", "").lower()

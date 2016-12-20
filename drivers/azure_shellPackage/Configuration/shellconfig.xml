@@ -4,7 +4,7 @@
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xmlns="http://schemas.qualisystems.com/ResourceManagement/ShellsConfigurationSchema.xsd">
     <ResourceTemplates>
-        <ResourceTemplate Name="Azure" Model="Azure" Driver="Azure Shell Driver" AddressRequired="false">
+        <ResourceTemplate Name="Microsoft Azure" Model="Azure" Driver="Azure Shell Driver" AddressRequired="false">
             <Description>Azure template will create a Azure resource in CloudShell. Once the Azure is modeled correctly in CloudShell it will be possible to deploy Apps on Microsoft Azure.</Description>
             <AutoLoad Enable="true">
                 <Description>After filling in all the inputs click Start Discovery to complete the cloud provider creation process</Description>
@@ -14,7 +14,7 @@
                 <Attribute Value="" Name="Instance Type"/>
                 <Attribute Value="" Name="Networks In Use"/>
                 <Attribute Value="" Name="Azure Subscription ID"/>
-                <Attribute Value="" Name="Azure Tenant"/>
+                <Attribute Value="" Name="Azure Tenant ID"/>
                 <Attribute Value="" Name="Azure Secret"/>
                 <Attribute Value="" Name="Azure Client ID"/>
                 <Attribute Value="" Name="Management Group Name"/>
