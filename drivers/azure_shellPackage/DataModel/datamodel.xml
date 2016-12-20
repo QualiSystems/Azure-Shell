@@ -140,7 +140,7 @@
         <Rule Name="Setting" />
       </Rules>
     </AttributeInfo>
-    <AttributeInfo Name="Image URN"  DefaultValue="" Description="Path to the image disk file. Example: https://xxxxxxxxxxxxxx.blob.core.windows.net/system/Microsoft.Compute/Images/vhds/MyVHDNamePrefix-osDisk.vhd" IsReadOnly="false" Type="String">
+    <AttributeInfo Name="Image URN"  DefaultValue="" Description="URL of the image disk file in the storage container blob. For example: https://xxxxxxxxxxxxxx.blob.core.windows.net/system/Microsoft.Compute/Images/vhds/MyVHDNamePrefix-osDisk.vhd Note: The image file must reside in a blob of type Page blob." IsReadOnly="false" Type="String">
       <Rules>
         <Rule Name="Configuration" />
         <Rule Name="Setting" />
