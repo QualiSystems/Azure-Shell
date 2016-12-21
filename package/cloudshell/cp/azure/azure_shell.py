@@ -30,7 +30,6 @@ from cloudshell.cp.azure.domain.vm_management.operations.prepare_connectivity_op
 from cloudshell.cp.azure.common.azure_clients import AzureClientsManager
 from cloudshell.cp.azure.domain.services.parsers.custom_param_extractor import VmCustomParamsExtractor
 from cloudshell.cp.azure.domain.vm_management.operations.app_ports_operation import DeployedAppPortsOperation
-
 from cloudshell.cp.azure.domain.vm_management.operations.autoload_operation import AutoloadOperation
 
 

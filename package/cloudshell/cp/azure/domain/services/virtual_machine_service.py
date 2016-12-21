@@ -348,6 +348,6 @@ class VirtualMachineService(object):
 
         :param compute_management_client: azure.mgmt.compute.compute_management_client.ComputeManagementClient
         :param location: (str) Azure region
-        :return:
+        :return: azure.mgmt.compute.models.VirtualMachineSizePaged instance
         """
         return compute_management_client.virtual_machine_sizes.list(location=location)
