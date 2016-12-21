@@ -109,7 +109,7 @@ class TestAzureModelsParser(TestCase):
         test_resource.attributes["Azure Client ID"] = test_azure_client_id = mock.MagicMock()
         test_resource.attributes["Azure Secret"] = test_azure_secret = mock.MagicMock()
         test_resource.attributes["Azure Subscription ID"] = test_azure_subscription_id = mock.MagicMock()
-        test_resource.attributes["Azure Tenant"] = test_azure_tenant = mock.MagicMock()
+        test_resource.attributes["Azure Tenant ID"] = test_azure_tenant = mock.MagicMock()
         test_resource.attributes["Instance Type"] = test_instance_type = mock.MagicMock()
         test_resource.attributes["Networks In Use"] = test_networks_in_use = mock.MagicMock()
         test_resource.attributes["Region"] = "East Canada"
