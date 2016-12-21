@@ -90,7 +90,7 @@
         <Rule Name="Setting" />
       </Rules>
     </AttributeInfo>
-    <AttributeInfo Name="Azure Tenant ID"  DefaultValue="" Description="Typically a name of an organization, which uses the cloud services created and provisioned by a hosting service provider." IsReadOnly="false" Type="String">
+    <AttributeInfo Name="Azure Tenant ID"  DefaultValue="" Description="The Azure tenant Id that is associated with your Azure Active Directory (AAD) instance. For example: ccd13026-98e3-4e90-01f4-28e2afdf3213. This GUID can be retrieved using Azure CLI." IsReadOnly="false" Type="String">
       <Rules>
         <Rule Name="Configuration" />
         <Rule Name="Setting" />
