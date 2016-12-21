@@ -164,7 +164,7 @@
       <AttachedAttributes />
       <AttributeValues />
       <Models>
-        <ResourceModel Description="" ImagePath="Azure.png" Name="Azure" SupportsConcurrentCommands="true">
+        <ResourceModel Description="" ImagePath="Azure.png" Name="Microsoft Azure" SupportsConcurrentCommands="true">
           <AttachedAttributes>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Region">
               <AllowedValues/>
@@ -251,8 +251,7 @@
       <AttachedAttributes />
       <AttributeValues />
       <Models>
-        <ResourceModel Description="" Name="Azure VM from Marketplace" ImagePath="" SupportsConcurrentCommands="false">
-          <AttachedAttributes>
+        <ResourceModel Description="" Name="Azure VM From Marketplace" ImagePath="AzureMarketplaceImage.png" SupportsConcurrentCommands="false">          <AttachedAttributes>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Cloud Provider" UserInput="true">
               <AllowedValues />
             </AttachedAttribute>
@@ -304,7 +303,7 @@
             <DriverName>Azure Deploy VM Driver</DriverName>
           </Drivers>
         </ResourceModel>
-        <ResourceModel Description="" Name="Azure VM From Custom Image" ImagePath="" SupportsConcurrentCommands="false">
+        <ResourceModel Description="" Name="Azure VM From Custom Image" ImagePath="AzureCustomImage.png" SupportsConcurrentCommands="false">
           <AttachedAttributes>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Cloud Provider" UserInput="true">
               <AllowedValues />
