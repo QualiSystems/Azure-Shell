@@ -459,9 +459,10 @@ class TestAzureShell(TestCase):
                                                     group_name=group_name,
                                                     storage_name=storage_name)
 
+    @mock.patch("cloudshell.cp.azure.azure_shell.CloudShellSessionContext")
     @mock.patch("cloudshell.cp.azure.azure_shell.LoggingSessionContext")
     @mock.patch("cloudshell.cp.azure.azure_shell.ErrorHandlingContext")
-    def test_get_inventory(self, error_handling_class, logging_context_class):
+    def test_get_inventory(self, error_handling_class, logging_context_class, cloudshell_session_context_class):
         """Check that method uses ErrorHandlingContext and Autoload operation"""
         # mock LoggingSessionContext and ErrorHandlingContext
         logging_context = mock.MagicMock(__enter__=mock.MagicMock(return_value=self.logger))
