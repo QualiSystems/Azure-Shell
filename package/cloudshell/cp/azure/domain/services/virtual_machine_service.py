@@ -134,10 +134,10 @@ class VirtualMachineService(object):
                                     storage_name,
                                     vm_name,
                                     tags,
-                                    instance_type):
+                                    vm_size):
         """Create VM from custom image URN
 
-        :param instance_type: (str) Azure instance type
+        :param vm_size: (str) Azure instance type
         :param compute_management_client: azure.mgmt.compute.ComputeManagementClient instance
         :param image_urn: Azure custom image URL
         :param image_os_type: azure.mgmt.compute.models.OperatingSystemTypes OS type (linux/windows)
@@ -154,7 +154,7 @@ class VirtualMachineService(object):
         os_profile = self._prepare_os_profile(vm_credentials=vm_credentials,
                                               computer_name=computer_name)
 
-        hardware_profile = HardwareProfile(vm_size=instance_type)
+        hardware_profile = HardwareProfile(vm_size=vm_size)
         network_profile = NetworkProfile(network_interfaces=[NetworkInterfaceReference(id=nic_id)])
 
         vhd = self._prepare_vhd(storage_name, vm_name)
@@ -194,11 +194,11 @@ class VirtualMachineService(object):
                   storage_name,
                   vm_name,
                   tags,
-                  instance_type,
+                  vm_size,
                   purchase_plan):
         """
 
-        :param instance_type: (str) Azure instance type
+        :param vm_size: (str) Azure instance type
         :param compute_management_client: azure.mgmt.compute.ComputeManagementClient instance
         :param image_offer: (str) image offer
         :param image_publisher: (str) image publisher
@@ -218,7 +218,7 @@ class VirtualMachineService(object):
         os_profile = self._prepare_os_profile(vm_credentials=vm_credentials,
                                               computer_name=computer_name)
 
-        hardware_profile = HardwareProfile(vm_size=instance_type)
+        hardware_profile = HardwareProfile(vm_size=vm_size)
 
         network_profile = NetworkProfile(network_interfaces=[NetworkInterfaceReference(id=nic_id)])
 

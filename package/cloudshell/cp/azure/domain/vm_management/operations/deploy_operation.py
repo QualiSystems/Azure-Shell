@@ -284,7 +284,7 @@ class DeployAzureVMOperation(object):
                 storage_name=storage_account_name,
                 vm_name=vm_name,
                 tags=tags,
-                instance_type=azure_vm_deployment_model.instance_type)
+                vm_size=azure_vm_deployment_model.vm_size)
 
             logger.info("VM {} was successfully deployed".format(vm_name))
 
@@ -460,7 +460,7 @@ class DeployAzureVMOperation(object):
                                                       storage_name=storage_account_name,
                                                       vm_name=vm_name,
                                                       tags=tags,
-                                                      instance_type=azure_vm_deployment_model.instance_type,
+                                                      vm_size=azure_vm_deployment_model.vm_size,
                                                       purchase_plan=virtual_machine_image.plan)
 
             logger.info("VM {} was successfully deployed".format(vm_name))
