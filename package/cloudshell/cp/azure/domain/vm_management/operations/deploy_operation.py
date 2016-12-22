@@ -179,7 +179,8 @@ class DeployAzureVMOperation(object):
         vm_size = azure_vm_deployment_model.vm_size or cloud_provider_model.vm_size
 
         if not vm_size:
-            raise Exception('"VM Size" attribute can\'t be empty')
+            raise Exception('There is no value for "VM Size" attribute neither on the '
+                            'Deployment model nor on the Cloud Provider one')
 
         return vm_size
 
