@@ -21,6 +21,7 @@ class PrepareConnectivityOperation(object):
                  security_group_service,
                  cryptography_service,
                  name_provider_service,
+                 cancellation_service,
                  subnet_locker):
         """
 
@@ -32,6 +33,7 @@ class PrepareConnectivityOperation(object):
         :param cloudshell.cp.azure.domain.services.security_group.SecurityGroupService security_group_service:
         :param cloudshell.cp.azure.domain.services.cryptography_service.CryptographyService cryptography_service:
         :param cloudshell.cp.azure.domain.services.name_provider.NameProviderService name_provider_service:
+        :param cloudshell.cp.azure.domain.services.command_cancellation.CommandCancellationService cancellation_service:
         :param threading.Lock subnet_locker:
         :return:
         """
@@ -44,6 +46,7 @@ class PrepareConnectivityOperation(object):
         self.key_pair_service = key_pair_service
         self.security_group_service = security_group_service
         self.name_provider_service = name_provider_service
+        self.cancellation_service = cancellation_service
         self.subnet_locker = subnet_locker
 
     def prepare_connectivity(self,
@@ -53,7 +56,8 @@ class PrepareConnectivityOperation(object):
                              resource_client,
                              network_client,
                              logger,
-                             request):
+                             request,
+                             cancellation_context):
         """
         :param logging.Logger logger:
         :param request:
@@ -76,13 +80,14 @@ class PrepareConnectivityOperation(object):
         self.vm_service.create_resource_group(resource_management_client=resource_client, group_name=group_name,
                                               region=cloud_provider_model.region, tags=tags)
 
+        self.cancellation_service.check_if_cancelled(cancellation_context)
         storage_account_name = self.name_provider_service.generate_name(reservation_id)
 
         # 2+3. create storage account and keypairs (async)
         pool = ThreadPool()
         storage_res = pool.apply_async(self._create_storage_and_keypairs,
                                        (logger, storage_client, storage_account_name, group_name, cloud_provider_model,
-                                        tags, action_result))
+                                        tags, cancellation_context, action_result))
 
         logger.info("Retrieving MGMT vNet from resource group {} by tag {}={}".format(
             cloud_provider_model.management_group_name,
@@ -91,6 +96,8 @@ class PrepareConnectivityOperation(object):
 
         virtual_networks = self.network_service.get_virtual_networks(network_client=network_client,
                                                                      group_name=cloud_provider_model.management_group_name)
+
+        self.cancellation_service.check_if_cancelled(cancellation_context)
 
         management_vnet = self.network_service.get_virtual_network_by_tag(virtual_networks=virtual_networks,
                                                                           tag_key=NetworkService.NETWORK_TYPE_TAG_NAME,
@@ -121,6 +128,7 @@ class PrepareConnectivityOperation(object):
             region=cloud_provider_model.region,
             tags=tags)
 
+        self.cancellation_service.check_if_cancelled(cancellation_context)
 
         cidr = self._extract_cidr(request)
         logger.info("Received CIDR {0} from server".format(cidr))
@@ -135,7 +143,7 @@ class PrepareConnectivityOperation(object):
             security_group_name=security_group_name,
             logger=logger)
 
-
+        self.cancellation_service.check_if_cancelled(cancellation_context)
 
         # 6. Create a subnet with NSG
         self._create_subnet(cidr=cidr,
@@ -145,6 +153,8 @@ class PrepareConnectivityOperation(object):
                             network_security_group=network_security_group,
                             sandbox_vnet=sandbox_vnet,
                             subnet_name=subnet_name)
+
+        self.cancellation_service.check_if_cancelled(cancellation_context)
 
         # wait for all async operations
         pool.close()
@@ -157,7 +167,7 @@ class PrepareConnectivityOperation(object):
         return result
 
     def _create_storage_and_keypairs(self, logger, storage_client, storage_account_name, group_name,
-                                     cloud_provider_model, tags, action_result):
+                                     cloud_provider_model, tags, cancellation_context, action_result):
 
         try:
             # 2. Create a storage account
@@ -168,11 +178,16 @@ class PrepareConnectivityOperation(object):
                                                         storage_account_name=storage_account_name,
                                                         tags=tags,
                                                         wait_until_created=True)
+
+            self.cancellation_service.check_if_cancelled(cancellation_context)
+
             # 3 Create a Key pair for the sandbox
             logger.info("Creating an SSH key pair in the storage account {}".format(storage_account_name))
             key_pair = self._create_key_pair(group_name=group_name,
                                              storage_account_name=storage_account_name,
                                              storage_client=storage_client)
+
+            self.cancellation_service.check_if_cancelled(cancellation_context)
 
             cryptography_dto = self.cryptography_service.encrypt(key_pair.private_key)
 

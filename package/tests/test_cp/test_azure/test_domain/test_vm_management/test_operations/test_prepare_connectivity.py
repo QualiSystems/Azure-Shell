@@ -20,7 +20,9 @@ from tests.helpers.test_helper import TestHelper
 class TestPrepareConnectivity(TestCase):
     def setUp(self):
         self.storage_service = StorageService()
-        self.vm_service = VirtualMachineService()
+        self.cancellation_service = MagicMock()
+        self.task_waiter_service = MagicMock()
+        self.vm_service = MagicMock()
         self.network_service = NetworkService(MagicMock(), MagicMock())
         self.tag_service = TagService()
         self.key_pair_service = KeyPairService(storage_service=self.storage_service)
@@ -28,6 +30,7 @@ class TestPrepareConnectivity(TestCase):
         self.logger = MagicMock()
         self.cryptography_service = CryptographyService()
         self.name_provider_service = MagicMock()
+        self.cancellation_service = MagicMock()
 
         self.prepare_connectivity_operation = PrepareConnectivityOperation(
             vm_service=self.vm_service,
@@ -38,7 +41,8 @@ class TestPrepareConnectivity(TestCase):
             security_group_service=self.security_group_service,
             cryptography_service=self.cryptography_service,
             name_provider_service=self.name_provider_service,
-            subnet_locker=Lock())
+            subnet_locker=Lock(),
+            cancellation_service=self.cancellation_service)
 
     def test_prepare_connectivity(self):
         # Arrange
@@ -68,6 +72,7 @@ class TestPrepareConnectivity(TestCase):
         network_client._rule_priority_generator = Mock(return_value=[1111, 2222, 3333, 4444])
         network_client.security_rules.create_or_update = Mock()
         network_client.network_security_groups.create_or_update = Mock()
+        cancellation_context = MagicMock()
 
         self.prepare_connectivity_operation.prepare_connectivity(
             reservation=MagicMock(),
@@ -76,7 +81,8 @@ class TestPrepareConnectivity(TestCase):
             resource_client=MagicMock(),
             network_client=network_client,
             logger=self.logger,
-            request=prepare_connectivity_request)
+            request=prepare_connectivity_request,
+            cancellation_context=cancellation_context)
 
         # Verify
         # Created resource Group
@@ -130,6 +136,7 @@ class TestPrepareConnectivity(TestCase):
         prepare_connectivity_request = req
         reservation = MagicMock()
         reservation.reservation_id = str(uuid.uuid4())
+        cancellation_context = MagicMock()
         # Act
 
         self.assertRaises(VirtualNetworkNotFoundException,
@@ -140,7 +147,8 @@ class TestPrepareConnectivity(TestCase):
                           resource_client=MagicMock(),
                           network_client=MagicMock(),
                           logger=self.logger,
-                          request=prepare_connectivity_request)
+                          request=prepare_connectivity_request,
+                          cancellation_context=cancellation_context)
 
         self.network_service.get_virtual_network_by_tag = Mock(return_value=None)
         self.network_service.get_virtual_network_by_tag.side_effect = [Mock(), None]
@@ -153,4 +161,5 @@ class TestPrepareConnectivity(TestCase):
                           resource_client=MagicMock(),
                           network_client=MagicMock(),
                           logger=self.logger,
-                          request=prepare_connectivity_request)
+                          request=prepare_connectivity_request,
+                          cancellation_context=cancellation_context)

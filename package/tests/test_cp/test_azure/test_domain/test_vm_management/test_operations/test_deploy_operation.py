@@ -16,7 +16,7 @@ class TestDeployAzureVMOperation(TestCase):
     def setUp(self):
         self.logger = Mock()
         self.storage_service = StorageService()
-        self.vm_service = VirtualMachineService()
+        self.vm_service = VirtualMachineService(MagicMock())
         self.network_service = NetworkService(MagicMock(), MagicMock())
         self.vm_credentials_service = Mock()
         self.key_pair_service = Mock()
@@ -25,6 +25,7 @@ class TestDeployAzureVMOperation(TestCase):
         self.name_provider_service = MagicMock()
         self.vm_extension_service = MagicMock()
         self.generic_lock_provider = MagicMock()
+        self.cancellation_service = MagicMock()
 
         self.deploy_operation = DeployAzureVMOperation(vm_service=self.vm_service,
                                                        network_service=self.network_service,
@@ -35,7 +36,8 @@ class TestDeployAzureVMOperation(TestCase):
                                                        security_group_service=self.security_group_service,
                                                        name_provider_service=self.name_provider_service,
                                                        vm_extension_service=self.vm_extension_service,
-                                                       generic_lock_provider=self.generic_lock_provider)
+                                                       generic_lock_provider=self.generic_lock_provider,
+                                                       cancellation_service=self.cancellation_service)
 
     def test_get_sandbox_subnet(self):
         """Check that method will call network service to get sandbox vNet and will return it's subnet by given name"""
@@ -103,6 +105,7 @@ class TestDeployAzureVMOperation(TestCase):
         ip_name = "testipname"
         expected_ip_addr = "10.10.10.10"
         public_ip = MagicMock(ip_address=expected_ip_addr)
+        cancellation_context = MagicMock()
         self.network_service.get_public_ip = MagicMock(return_value=public_ip)
 
         # Act
@@ -111,6 +114,7 @@ class TestDeployAzureVMOperation(TestCase):
             azure_vm_deployment_model=azure_vm_deployment_model,
             group_name=group_name,
             ip_name=ip_name,
+            cancellation_context=cancellation_context,
             logger=self.logger)
 
         # Verify
@@ -122,6 +126,7 @@ class TestDeployAzureVMOperation(TestCase):
         azure_vm_deployment_model = MagicMock(add_public_ip=False)
         group_name = "testgroupname"
         ip_name = "testipname"
+        cancellation_context = MagicMock()
         self.network_service.get_public_ip = MagicMock()
 
         # Act
@@ -130,6 +135,7 @@ class TestDeployAzureVMOperation(TestCase):
             azure_vm_deployment_model=azure_vm_deployment_model,
             group_name=group_name,
             ip_name=ip_name,
+            cancellation_context=cancellation_context,
             logger=self.logger)
 
         # Verify
@@ -175,6 +181,7 @@ class TestDeployAzureVMOperation(TestCase):
                                      Mock(),
                                      Mock(),
                                      Mock(),
+                                     Mock(),
                                      Mock())
 
         # Verify
@@ -196,6 +203,8 @@ class TestDeployAzureVMOperation(TestCase):
         storage_client = MagicMock()
         validator_factory = MagicMock()
         logger = MagicMock()
+        cancellation_context = MagicMock()
+
         self.deploy_operation._get_sandbox_subnet = MagicMock()
         self.deploy_operation._get_sandbox_storage_account_name = MagicMock()
         self.deploy_operation._process_nsg_rules = MagicMock()
@@ -215,6 +224,7 @@ class TestDeployAzureVMOperation(TestCase):
             compute_client=compute_client,
             storage_client=storage_client,
             validator_factory=validator_factory,
+            cancellation_context=cancellation_context,
             logger=logger)
 
         # Verify
@@ -238,6 +248,7 @@ class TestDeployAzureVMOperation(TestCase):
         validator_factory = MagicMock()
         test_name = "test_generated_name"
         logger = MagicMock()
+        cancellation_context = MagicMock()
         self.name_provider_service.generate_name.return_value = test_name
         self.deploy_operation._rollback_deployed_resources = MagicMock()
         self.deploy_operation._get_sandbox_subnet = MagicMock()
@@ -256,6 +267,7 @@ class TestDeployAzureVMOperation(TestCase):
                 compute_client=compute_client,
                 storage_client=storage_client,
                 validator_factory=validator_factory,
+                cancellation_context=cancellation_context,
                 logger=logger)
 
         # Verify
@@ -333,6 +345,7 @@ class TestDeployAzureVMOperation(TestCase):
         self.deploy_operation._process_nsg_rules = Mock()
         self.deploy_operation._rollback_deployed_resources = MagicMock()
         self.deploy_operation._prepare_vm_size = MagicMock()
+        self.deploy_operation.cancellation_service.check_if_cancelled.return_value = False
 
         # Act
         self.assertRaises(Exception,
@@ -340,6 +353,7 @@ class TestDeployAzureVMOperation(TestCase):
                           DeployAzureVMResourceModel(),
                           AzureCloudProviderResourceModel(),
                           reservation,
+                          Mock(),
                           Mock(),
                           Mock(),
                           Mock(),
@@ -364,6 +378,7 @@ class TestDeployAzureVMOperation(TestCase):
                                                            interface_name=MagicMock(),
                                                            vm_name=MagicMock(),
                                                            ip_name=MagicMock(),
+                                                           cancellation_context=MagicMock(),
                                                            logger=MagicMock())
 
         # Verify
@@ -377,6 +392,7 @@ class TestDeployAzureVMOperation(TestCase):
         network_client = MagicMock()
         azure_vm_deployment_model = MagicMock()
         nic = MagicMock()
+        cancellation_context = MagicMock()
         logger = MagicMock()
         security_groups_list = MagicMock()
         self.deploy_operation.security_group_service.list_network_security_group.return_value = security_groups_list
@@ -391,6 +407,7 @@ class TestDeployAzureVMOperation(TestCase):
             group_name=group_name,
             azure_vm_deployment_model=azure_vm_deployment_model,
             nic=nic,
+            cancellation_context=cancellation_context,
             logger=logger)
 
         # Verify
@@ -412,6 +429,7 @@ class TestDeployAzureVMOperation(TestCase):
         network_client = MagicMock()
         azure_vm_deployment_model = MagicMock()
         nic = MagicMock()
+        cancellation_context = MagicMock()
         logger = MagicMock()
         self.deploy_operation._validate_resource_is_single_per_group = MagicMock()
         azure_vm_deployment_model.inbound_ports = ""
@@ -422,6 +440,7 @@ class TestDeployAzureVMOperation(TestCase):
             group_name=group_name,
             azure_vm_deployment_model=azure_vm_deployment_model,
             nic=nic,
+            cancellation_context=cancellation_context,
             logger=logger)
 
         # Verify

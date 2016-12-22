@@ -58,6 +58,7 @@ class TestAzureShell(TestCase):
         validators_factory_context_class.return_value = validator_factory_context
 
         command_context = mock.MagicMock()
+        cancellation_context = mock.MagicMock()
         deployment_request = mock.MagicMock()
         azure_vm_deployment_model = mock.MagicMock()
         cloud_provider_model = mock.MagicMock()
@@ -68,7 +69,8 @@ class TestAzureShell(TestCase):
 
         # Act
         self.azure_shell.deploy_azure_vm(command_context=command_context,
-                                         deployment_request=deployment_request)
+                                         deployment_request=deployment_request,
+                                         cancellation_context=cancellation_context)
 
         # Verify
         error_handling.__enter__.assert_called_once_with()
@@ -81,6 +83,7 @@ class TestAzureShell(TestCase):
             compute_client=azure_clients_manager.compute_client,
             storage_client=azure_clients_manager.storage_client,
             validator_factory=validator_factory,
+            cancellation_context=cancellation_context,
             logger=self.logger)
 
     @mock.patch("cloudshell.cp.azure.azure_shell.ValidatorsFactoryContext")
@@ -109,6 +112,7 @@ class TestAzureShell(TestCase):
         validators_factory_context_class.return_value = validator_factory_context
 
         command_context = mock.MagicMock()
+        cancellation_context = mock.MagicMock()
         deployment_request = mock.MagicMock()
         azure_vm_deployment_model = mock.MagicMock()
         cloud_provider_model = mock.MagicMock()
@@ -119,7 +123,8 @@ class TestAzureShell(TestCase):
 
         # Act
         self.azure_shell.deploy_vm_from_custom_image(command_context=command_context,
-                                                     deployment_request=deployment_request)
+                                                     deployment_request=deployment_request,
+                                                     cancellation_context=cancellation_context)
 
         # Verify
         error_handling.__enter__.assert_called_once_with()
@@ -132,6 +137,7 @@ class TestAzureShell(TestCase):
             compute_client=azure_clients_manager.compute_client,
             storage_client=azure_clients_manager.storage_client,
             validator_factory=validator_factory,
+            cancellation_context=cancellation_context,
             logger=self.logger)
 
     @mock.patch("cloudshell.cp.azure.azure_shell.CloudShellSessionContext")
@@ -162,11 +168,14 @@ class TestAzureShell(TestCase):
         deploy_data_holder_class.return_value = deploy_data_holder
         context = mock.MagicMock()
         request = mock.MagicMock()
+        cancellation_context = mock.MagicMock()
         prepare_connectivity_result = mock.MagicMock()
         self.azure_shell.prepare_connectivity_operation.prepare_connectivity.return_value = prepare_connectivity_result
 
         # Act
-        self.azure_shell.prepare_connectivity(context=context, request=request)
+        self.azure_shell.prepare_connectivity(context=context,
+                                              request=request,
+                                              cancellation_context=cancellation_context)
 
         # Verify
         error_handling.__enter__.assert_called_once_with()
@@ -178,7 +187,8 @@ class TestAzureShell(TestCase):
             resource_client=azure_clients_manager.resource_client,
             network_client=azure_clients_manager.network_client,
             logger=self.logger,
-            request=deploy_data_holder.driverRequest)
+            request=deploy_data_holder.driverRequest,
+            cancellation_context=cancellation_context)
 
         self.azure_shell.command_result_parser.set_command_result.assert_called_once_with(
             {'driverResponse': {'actionResults': prepare_connectivity_result}})
