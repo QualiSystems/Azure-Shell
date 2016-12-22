@@ -176,10 +176,10 @@ class DeployAzureVMOperation(object):
         :param cloud_provider_model: cloudshell.cp.azure.models.azure_cloud_provider_resource_model.AzureCloudProviderResourceModel
         :return: (str) Azure VM Size
         """
-        vm_size = azure_vm_deployment_model.instance_type or cloud_provider_model.instance_type
+        vm_size = azure_vm_deployment_model.vm_size or cloud_provider_model.vm_size
 
         if not vm_size:
-            raise Exception('"Instance Type" attribute can\'t be empty')
+            raise Exception('"VM Size" attribute can\'t be empty')
 
         return vm_size
 
@@ -301,7 +301,7 @@ class DeployAzureVMOperation(object):
                 storage_name=storage_account_name,
                 vm_name=vm_name,
                 tags=tags,
-                instance_type=vm_size)
+                vm_size=vm_size)
 
             logger.info("VM {} was successfully deployed".format(vm_name))
 
@@ -480,7 +480,7 @@ class DeployAzureVMOperation(object):
                                                       storage_name=storage_account_name,
                                                       vm_name=vm_name,
                                                       tags=tags,
-                                                      instance_type=vm_size,
+                                                      vm_size=vm_size,
                                                       purchase_plan=virtual_machine_image.plan)
 
             logger.info("VM {} was successfully deployed".format(vm_name))
