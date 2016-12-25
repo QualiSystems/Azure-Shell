@@ -76,7 +76,8 @@ class NetworkService(object):
                    private_ip_allocation_method, tags, virtual_network_name,
                    logger):
         """
-
+        The method creates or updates network interface.
+        Parameter
         :param logger:
         :param virtual_network_name:
         :param group_name:
@@ -91,10 +92,14 @@ class NetworkService(object):
         :return:
         """
 
-        private_ip_address = self.ip_service.get_available_private_ip(network_client, management_group_name,
-                                                                      virtual_network_name,
-                                                                      subnet.address_prefix[:-3],
-                                                                      logger)
+        # private_ip_address in required only in the case of static allocation method
+        # in the case of dynamic allocation method is ignored
+        private_ip_address = ""
+        if private_ip_allocation_method.static:
+            private_ip_address = self.ip_service.get_available_private_ip(network_client, management_group_name,
+                                                                          virtual_network_name,
+                                                                          subnet.address_prefix[:-3],
+                                                                          logger)
 
         operation_poller = network_client.network_interfaces.create_or_update(
             group_name,
