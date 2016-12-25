@@ -241,11 +241,12 @@ class DeployAzureVMOperation(object):
                                                              group_name=group_name,
                                                              interface_name=interface_name,
                                                              ip_name=ip_name,
-                                                             region=cloud_provider_model.region,
+                                                             cloud_provider_model=cloud_provider_model,
                                                              subnet=subnet,
                                                              add_public_ip=azure_vm_deployment_model.add_public_ip,
                                                              public_ip_type=azure_vm_deployment_model.public_ip_type,
-                                                             tags=tags)
+                                                             tags=tags,
+                                                             logger=logger)
 
             private_ip_address = nic.ip_configurations[0].private_ip_address
             logger.info("NIC private IP is {}".format(private_ip_address))
@@ -417,11 +418,12 @@ class DeployAzureVMOperation(object):
                                                              group_name=group_name,
                                                              interface_name=interface_name,
                                                              ip_name=ip_name,
-                                                             region=cloud_provider_model.region,
+                                                             cloud_provider_model=cloud_provider_model,
                                                              subnet=subnet,
                                                              add_public_ip=azure_vm_deployment_model.add_public_ip,
                                                              public_ip_type=azure_vm_deployment_model.public_ip_type,
-                                                             tags=tags)
+                                                             tags=tags,
+                                                             logger=logger)
 
             private_ip_address = nic.ip_configurations[0].private_ip_address
             logger.info("NIC private IP is {}".format(private_ip_address))

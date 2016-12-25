@@ -1,4 +1,7 @@
 jsonpickle==0.9.3
 enum==0.4.6
-azure==2.0.0rc6
+azure-mgmt-resource~=0.31.0
+azure-mgmt-compute~=0.32.0
+azure-mgmt-network~=0.30.0
+azure-mgmt-storage~=0.30.0
 pycrypto==2.6.1

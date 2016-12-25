@@ -1,15 +1,14 @@
 from threading import Lock
 from unittest import TestCase
+
 from mock import Mock, MagicMock
 from msrestazure.azure_exceptions import CloudError
 from requests import Response
 
-from cloudshell.cp.azure.domain.services.lock_service import GenericLockProvider
 from cloudshell.cp.azure.domain.services.network_service import NetworkService
 from cloudshell.cp.azure.domain.services.security_group import SecurityGroupService
 from cloudshell.cp.azure.domain.services.tags import TagService
 from cloudshell.cp.azure.domain.services.virtual_machine_service import VirtualMachineService
-from cloudshell.cp.azure.domain.services.storage_service import StorageService
 from cloudshell.cp.azure.domain.vm_management.operations.delete_operation import DeleteAzureVMOperation
 from tests.helpers.test_helper import TestHelper
 
@@ -18,7 +17,7 @@ class TestDeleteOperation(TestCase):
     def setUp(self):
         self.logger = Mock()
         self.vm_service = VirtualMachineService()
-        self.network_service = NetworkService()
+        self.network_service = NetworkService(MagicMock(), MagicMock())
         self.tags_service = TagService()
         self.storage_service = MagicMock()
         self.security_group_service = SecurityGroupService(self.network_service)

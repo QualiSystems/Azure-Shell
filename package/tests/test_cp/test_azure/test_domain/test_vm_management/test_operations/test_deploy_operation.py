@@ -1,8 +1,7 @@
 from unittest import TestCase
 
-import mock
-from mock import Mock
 from mock import MagicMock
+from mock import Mock
 
 from cloudshell.cp.azure.domain.services.network_service import NetworkService
 from cloudshell.cp.azure.domain.services.storage_service import StorageService
@@ -18,7 +17,7 @@ class TestDeployAzureVMOperation(TestCase):
         self.logger = Mock()
         self.storage_service = StorageService()
         self.vm_service = VirtualMachineService()
-        self.network_service = NetworkService()
+        self.network_service = NetworkService(MagicMock(), MagicMock())
         self.vm_credentials_service = Mock()
         self.key_pair_service = Mock()
         self.security_group_service = MagicMock()
