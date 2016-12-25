@@ -155,6 +155,7 @@ class TestDeployAzureVMOperation(TestCase):
         resource_model.add_public_ip = True
         self.network_client = MagicMock()
         self.network_client.public_ip_addresses.get = Mock()
+        self.deploy_operation._prepare_vm_size = MagicMock()
 
         vnet = Mock()
         subnet = MagicMock()
@@ -331,6 +332,7 @@ class TestDeployAzureVMOperation(TestCase):
         self.vm_service.get_virtual_machine_image = MagicMock()
         self.deploy_operation._process_nsg_rules = Mock()
         self.deploy_operation._rollback_deployed_resources = MagicMock()
+        self.deploy_operation._prepare_vm_size = MagicMock()
 
         # Act
         self.assertRaises(Exception,
@@ -474,3 +476,34 @@ class TestDeployAzureVMOperation(TestCase):
         # Verify
         self.name_provider_service.generate_name.assert_called_once_with(name, length=15)
         self.assertEqual(res, computer_name)
+
+    def test_prepare_vm_size_retrieve_attr_from_deployment_model(self):
+        """Check that method will retrieve "vm_size" attribute from deployment model if attr is not empty"""
+        expected_vm_size = MagicMock()
+        cloud_provider_model = MagicMock(vm_size="")
+        azure_vm_deployment_model = MagicMock(vm_size=expected_vm_size)
+        # Act
+        res = self.deploy_operation._prepare_vm_size(azure_vm_deployment_model=azure_vm_deployment_model,
+                                                     cloud_provider_model=cloud_provider_model)
+        # Verify
+        self.assertEqual(res, expected_vm_size)
+
+    def test_prepare_vm_size_retrieve_default_attr_from_cp_model(self):
+        """Check that method will retrieve "vm_size" attr from cp model if no such one in the deployment model"""
+        expected_vm_size = MagicMock()
+        cloud_provider_model = MagicMock(vm_size=expected_vm_size)
+        azure_vm_deployment_model = MagicMock(vm_size="")
+        # Act
+        res = self.deploy_operation._prepare_vm_size(azure_vm_deployment_model=azure_vm_deployment_model,
+                                                     cloud_provider_model=cloud_provider_model)
+        # Verify
+        self.assertEqual(res, expected_vm_size)
+
+    def test_prepare_vm_size_attr_is_empty(self):
+        """Check that method will raise exception if "vm_size" attr is empty in both cp and deployment models"""
+        cloud_provider_model = MagicMock(vm_size="")
+        azure_vm_deployment_model = MagicMock(vm_size="")
+
+        with self.assertRaises(Exception):
+            self.deploy_operation._prepare_vm_size(azure_vm_deployment_model=azure_vm_deployment_model,
+                                                   cloud_provider_model=cloud_provider_model)
