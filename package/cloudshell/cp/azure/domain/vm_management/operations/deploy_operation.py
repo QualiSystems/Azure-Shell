@@ -169,6 +169,21 @@ class DeployAzureVMOperation(object):
         # max length for the Windows computer name must 15
         return self.name_provider_service.generate_name(name, length=15)
 
+    def _prepare_vm_size(self, azure_vm_deployment_model, cloud_provider_model):
+        """Prepare Azure VM Size
+
+        :param azure_vm_deployment_model: deploy_azure_vm_resource_models.BaseDeployAzureVMResourceModel
+        :param cloud_provider_model: cloudshell.cp.azure.models.azure_cloud_provider_resource_model.AzureCloudProviderResourceModel
+        :return: (str) Azure VM Size
+        """
+        vm_size = azure_vm_deployment_model.vm_size or cloud_provider_model.vm_size
+
+        if not vm_size:
+            raise Exception('There is no value for "VM Size" attribute neither on the '
+                            'Deployment model nor on the Cloud Provider one')
+
+        return vm_size
+
     def deploy_from_custom_image(self, azure_vm_deployment_model, cloud_provider_model, reservation, network_client,
                                  compute_client, storage_client, validator_factory, logger):
         """Deploy Azure VM from custom image URN
@@ -196,6 +211,9 @@ class DeployAzureVMOperation(object):
         group_name = str(reservation_id)
 
         self._validate_deployment_model(azure_vm_deployment_model)
+
+        vm_size = self._prepare_vm_size(azure_vm_deployment_model=azure_vm_deployment_model,
+                                        cloud_provider_model=cloud_provider_model)
 
         logger.info("Retrieve sandbox subnet {}".format(group_name))
         subnet = self._get_sandbox_subnet(network_client=network_client,
@@ -285,7 +303,7 @@ class DeployAzureVMOperation(object):
                 storage_name=storage_account_name,
                 vm_name=vm_name,
                 tags=tags,
-                instance_type=azure_vm_deployment_model.instance_type)
+                vm_size=vm_size)
 
             logger.info("VM {} was successfully deployed".format(vm_name))
 
@@ -375,6 +393,9 @@ class DeployAzureVMOperation(object):
 
         self._validate_deployment_model(azure_vm_deployment_model)
 
+        vm_size = self._prepare_vm_size(azure_vm_deployment_model=azure_vm_deployment_model,
+                                        cloud_provider_model=cloud_provider_model)
+
         logger.info("Retrieve sandbox subnet {}".format(group_name))
         subnet = self._get_sandbox_subnet(network_client=network_client,
                                           cloud_provider_model=cloud_provider_model,
@@ -462,7 +483,7 @@ class DeployAzureVMOperation(object):
                                                       storage_name=storage_account_name,
                                                       vm_name=vm_name,
                                                       tags=tags,
-                                                      instance_type=azure_vm_deployment_model.instance_type,
+                                                      vm_size=vm_size,
                                                       purchase_plan=virtual_machine_image.plan)
 
             logger.info("VM {} was successfully deployed".format(vm_name))
