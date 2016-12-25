@@ -19,23 +19,23 @@ class IpService(object):
 
         cached_key = (group_name, virtual_network_name, ip_address)
 
-        available_private_ips = self._cached_available_private_ips.get(cached_key)
-        if not available_private_ips:
+        if not self._cached_available_private_ips.get(cached_key):
             with self._available_private_ips_lock:
-                availability = network_client.virtual_networks.check_ip_address_availability(
-                    group_name,
-                    virtual_network_name,
-                    ip_address
-                )
+                if not self._cached_available_private_ips.get(cached_key):
+                    availability = network_client.virtual_networks.check_ip_address_availability(
+                        group_name,
+                        virtual_network_name,
+                        ip_address
+                    )
 
-                logger.info(
-                    "Retrieving available IP for {} in {}, checking {}".format(virtual_network_name,
-                                                                               group_name, ip_address))
+                    logger.info(
+                        "Retrieving available IP for {} in {}, checking {}".format(virtual_network_name,
+                                                                                   group_name, ip_address))
 
-                if availability.available:
-                    return ip_address
-                else:
-                    self._cached_available_private_ips[cached_key] = availability.available_ip_addresses
+                    if availability.available:
+                        return ip_address
+                    else:
+                        self._cached_available_private_ips[cached_key] = availability.available_ip_addresses
 
         if ip_address in self._cached_available_private_ips[cached_key]:
             self._cached_available_private_ips[cached_key].remove(ip_address)
