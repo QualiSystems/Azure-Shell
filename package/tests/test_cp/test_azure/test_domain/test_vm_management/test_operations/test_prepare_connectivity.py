@@ -2,7 +2,6 @@ import uuid
 from threading import Lock
 from unittest import TestCase
 
-import mock
 from mock import MagicMock, Mock
 
 from cloudshell.cp.azure.common.exceptions.virtual_network_not_found_exception import VirtualNetworkNotFoundException
@@ -22,7 +21,7 @@ class TestPrepareConnectivity(TestCase):
     def setUp(self):
         self.storage_service = StorageService()
         self.vm_service = VirtualMachineService()
-        self.network_service = NetworkService()
+        self.network_service = NetworkService(MagicMock(), MagicMock())
         self.tag_service = TagService()
         self.key_pair_service = KeyPairService(storage_service=self.storage_service)
         self.security_group_service = SecurityGroupService(self.network_service)

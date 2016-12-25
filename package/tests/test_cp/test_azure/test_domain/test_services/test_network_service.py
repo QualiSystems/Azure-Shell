@@ -10,7 +10,7 @@ from cloudshell.cp.azure.domain.services.network_service import NetworkService
 
 class TestNetworkService(TestCase):
     def setUp(self):
-        self.network_service = NetworkService()
+        self.network_service = NetworkService(MagicMock(), MagicMock())
         self.network_client = Mock(return_value=Mock())
 
     def test_create_virtual_network(self):
@@ -87,6 +87,11 @@ class TestNetworkService(TestCase):
         result = MagicMock()
         result.result().ip_configurations = [MagicMock()]
         network_client.network_interfaces.create_or_update = MagicMock(return_value=result)
+        cloud_provider_model = MagicMock()
+        sandbox_virtual_network = MagicMock()
+        sandbox_virtual_network.name = "sandbox"
+        self.network_service.get_sandbox_virtual_network = MagicMock(sandbox_virtual_network)
+
 
         # Act
         self.network_service.create_network_for_vm(
@@ -94,23 +99,19 @@ class TestNetworkService(TestCase):
                 group_name=management_group_name,
                 interface_name=interface_name,
                 ip_name=ip_name,
-                region=region,
+                cloud_provider_model=cloud_provider_model,
                 subnet=MagicMock(),
                 add_public_ip=True,
                 public_ip_type="Static",
-                tags=tags)
+                tags=tags,
+                logger=MagicMock())
 
         # Verify
 
-        self.assertEqual(network_client.network_interfaces.create_or_update.call_count, 2)
+        self.assertEqual(network_client.network_interfaces.create_or_update.call_count, 1)
 
-        # first time dynamic
+        # one time static
         self.assertEqual(network_client.network_interfaces.create_or_update.call_args_list[0][0][2].ip_configurations[
-                             0].private_ip_allocation_method,
-                         IPAllocationMethod.dynamic)
-
-        # second time static
-        self.assertEqual(network_client.network_interfaces.create_or_update.call_args_list[1][0][2].ip_configurations[
                              0].private_ip_allocation_method,
                          IPAllocationMethod.static)
 

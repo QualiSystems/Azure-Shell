@@ -6,26 +6,28 @@ from cloudshell.cp.azure.common.helpers.retrying_helpers import retry_if_connect
 
 
 class NetworkService(object):
-
     NETWORK_TYPE_TAG_NAME = 'network_type'
     SANDBOX_NETWORK_TAG_VALUE = 'sandbox'
     MGMT_NETWORK_TAG_VALUE = 'mgmt'
 
-    def __init__(self):
-        pass
+    def __init__(self, ip_service, tags_service):
+        self.ip_service = ip_service
+        self.tags_service = tags_service
 
     def create_network_for_vm(self,
                               network_client,
                               group_name,
                               interface_name,
                               ip_name,
-                              region,
+                              cloud_provider_model,
                               subnet,
                               tags,
                               add_public_ip,
-                              public_ip_type):
+                              public_ip_type,
+                              logger):
         """
         This method creates a an ip address and a nic for the vm
+        :param cloud_provider_model:
         :param public_ip_type:
         :param add_public_ip:
         :param network_client:
@@ -37,6 +39,13 @@ class NetworkService(object):
         :param tags:
         :return:
         """
+
+        region = cloud_provider_model.region
+        management_group_name = cloud_provider_model.management_group_name
+        sandbox_virtual_network = self.get_sandbox_virtual_network(network_client=network_client,
+                                                                   group_name=management_group_name,
+                                                                   tags_service=self.tags_service)
+
         # 1. Create ip address
         public_ip_address = None
         if add_public_ip:
@@ -49,68 +58,29 @@ class NetworkService(object):
                 tags=tags)
 
         # 2. Create NIC
-        nic = self.create_nic(interface_name,
-                                 group_name,
-                                 network_client,
-                                 public_ip_address,
-                                 region,
-                                 subnet,
-                                 IPAllocationMethod.dynamic,
-                                 tags)
-
-        # 3. update the type of private ip from dynamic to static (ip itself must be supplied)
-        private_ip_address = nic.ip_configurations[0].private_ip_address
-
-        return self.create_nic_with_static_private_ip(interface_name,
-                                                      group_name,
-                                                      network_client,
-                                                      private_ip_address,
-                                                      public_ip_address,
-                                                      region,
-                                                      subnet,
-                                                      tags)
+        return self.create_nic(interface_name,
+                               group_name,
+                               management_group_name,
+                               network_client,
+                               public_ip_address,
+                               region,
+                               subnet,
+                               IPAllocationMethod.static,
+                               tags,
+                               sandbox_virtual_network.name,
+                               logger)
 
     @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
-    def create_nic_with_static_private_ip(self, interface_name, management_group_name, network_client,
-                                          private_ip_address,
-                                          public_ip_address, region, subnet, tags):
+    def create_nic(self, interface_name, group_name, management_group_name, network_client, public_ip_address, region,
+                   subnet,
+                   private_ip_allocation_method, tags, virtual_network_name,
+                   logger):
         """
-
-        :param interface_name:
-        :param management_group_name:
-        :param network_client:
-        :param private_ip_address:
-        :param public_ip_address:
-        :param region:
-        :param subnet:
-        :param tags:
-        :return:
-        """
-        operation_poller = network_client.network_interfaces.create_or_update(
-            management_group_name,
-            interface_name,
-            NetworkInterface(
-                location=region,
-                ip_configurations=[
-                    NetworkInterfaceIPConfiguration(
-                        name='default',
-                        private_ip_allocation_method=IPAllocationMethod.static,
-                        private_ip_address=private_ip_address,
-                        subnet=subnet,
-                        public_ip_address=public_ip_address,
-                    ),
-                ],
-                tags=tags
-            ),
-        )
-
-        return operation_poller.result()
-
-    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
-    def create_nic(self, interface_name, management_group_name, network_client, public_ip_address, region, subnet,
-                   private_ip_allocation_method, tags):
-        """
-
+        The method creates or updates network interface.
+        Parameter
+        :param logger:
+        :param virtual_network_name:
+        :param group_name:
         :param interface_name:
         :param management_group_name:
         :param network_client:
@@ -121,8 +91,18 @@ class NetworkService(object):
         :param tags:
         :return:
         """
+
+        # private_ip_address in required only in the case of static allocation method
+        # in the case of dynamic allocation method is ignored
+        private_ip_address = ""
+        if private_ip_allocation_method.static:
+            private_ip_address = self.ip_service.get_available_private_ip(network_client, management_group_name,
+                                                                          virtual_network_name,
+                                                                          subnet.address_prefix[:-3],
+                                                                          logger)
+
         operation_poller = network_client.network_interfaces.create_or_update(
-            management_group_name,
+            group_name,
             interface_name,
             NetworkInterface(
                 location=region,
@@ -131,6 +111,7 @@ class NetworkService(object):
                         name='default',
                         private_ip_allocation_method=private_ip_allocation_method,
                         subnet=subnet,
+                        private_ip_address=private_ip_address,
                         public_ip_address=public_ip_address,
                     ),
                 ],
