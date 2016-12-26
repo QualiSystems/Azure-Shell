@@ -88,7 +88,7 @@ class TestVirtualMachineService(TestCase):
                                   storage_name=MagicMock(),
                                   vm_name=vm_name,
                                   tags=tags,
-                                  instance_type=MagicMock(),
+                                  vm_size=MagicMock(),
                                   purchase_plan=plan)
 
         # Verify
@@ -136,7 +136,7 @@ class TestVirtualMachineService(TestCase):
                                                     storage_name=MagicMock(),
                                                     vm_name=vm_name,
                                                     tags=tags,
-                                                    instance_type=MagicMock())
+                                                    vm_size=MagicMock())
 
         # Verify
         self.vm_service._create_vm.assert_called_once_with(compute_management_client=compute_management_client,

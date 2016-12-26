@@ -2,10 +2,12 @@ import jsonpickle
 from threading import Lock
 
 from cloudshell.core.context.error_handling_context import ErrorHandlingContext
+from cloudshell.cp.azure.common.profiler.profiler import profileit
 from cloudshell.shell.core.session.cloudshell_session import CloudShellSessionContext
 from cloudshell.cp.azure.common.deploy_data_holder import DeployDataHolder
 from cloudshell.cp.azure.domain.context.validators_factory_context import ValidatorsFactoryContext
 from cloudshell.cp.azure.domain.services.cryptography_service import CryptographyService
+from cloudshell.cp.azure.domain.services.ip_service import IpService
 from cloudshell.cp.azure.domain.services.lock_service import GenericLockProvider
 from cloudshell.cp.azure.domain.services.tags import TagService
 from cloudshell.cp.azure.domain.vm_management.operations.access_key_operation import AccessKeyOperation
@@ -39,9 +41,10 @@ class AzureShell(object):
         self.model_parser = AzureModelsParser()
         self.resource_id_parser = AzureResourceIdParser()
         self.vm_service = VirtualMachineService()
-        self.network_service = NetworkService()
-        self.storage_service = StorageService()
+        self.ip_service = IpService()
         self.tags_service = TagService()
+        self.network_service = NetworkService(self.ip_service, self.tags_service)
+        self.storage_service = StorageService()
         self.vm_credentials_service = VMCredentialsService()
         self.key_pair_service = KeyPairService(storage_service=self.storage_service)
         self.security_group_service = SecurityGroupService(self.network_service)
