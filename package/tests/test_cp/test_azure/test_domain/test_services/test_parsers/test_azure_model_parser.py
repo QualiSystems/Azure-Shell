@@ -71,7 +71,6 @@ class TestAzureModelsParser(TestCase):
         self.assertEqual(deploy_azure_vm_model.vm_size, data_holder.ami_params.vm_size)
         self.assertEqual(deploy_azure_vm_model.public_ip_type, data_holder.ami_params.public_ip_type)
         self.assertEqual(deploy_azure_vm_model.vm_name, data_holder.ami_params.vm_name)
-        self.assertEqual(deploy_azure_vm_model.wait_for_ip, data_holder.ami_params.wait_for_ip)
         self.assertEqual(deploy_azure_vm_model.app_name, data_holder.app_name)
 
     @mock.patch("cloudshell.cp.azure.domain.services.parsers.azure_model_parser"

@@ -4,7 +4,6 @@ class BaseDeployAzureVMResourceModel(object):
         self.vm_name = ''  # type: str
         self.cloud_provider = ''  # type: str
         self.vm_size = ''  # type: str
-        self.wait_for_ip = False  # type: bool
         self.autoload = False  # type: bool
         self.add_public_ip = False  # type: bool
         self.inbound_ports = ''  # type: str
