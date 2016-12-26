@@ -7,12 +7,6 @@
         <Rule Name="Setting" />
       </Rules>
     </AttributeInfo>
-    <AttributeInfo Name="Wait for IP" DefaultValue="false" Description="Determines if the App deployment process waits for the VM to get an IP. Default is True." IsReadOnly="false" Type="Boolean">
-      <Rules>
-        <Rule Name="Configuration" />
-        <Rule Name="Setting" />
-      </Rules>
-    </AttributeInfo>
     <AttributeInfo Name="Autoload" DefaultValue="true" Description="Determines if the Autoload process runs for Apps deployed manually or during the reservation's setup." IsReadOnly="false" Type="Boolean">
       <Rules>
         <Rule Name="Configuration" />
@@ -258,9 +252,6 @@
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="VM Size" UserInput="true">
               <AllowedValues />
             </AttachedAttribute>
-            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Wait for IP" UserInput="false">
-              <AllowedValues />
-            </AttachedAttribute>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Autoload" UserInput="false">
               <AllowedValues />
             </AttachedAttribute>
@@ -309,9 +300,6 @@
               <AllowedValues />
             </AttachedAttribute>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="VM Size" UserInput="true">
-              <AllowedValues />
-            </AttachedAttribute>
-            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Wait for IP" UserInput="false">
               <AllowedValues />
             </AttachedAttribute>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Autoload" UserInput="false">
