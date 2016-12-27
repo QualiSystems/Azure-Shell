@@ -192,6 +192,7 @@ class TestDeployAzureVMOperation(TestCase):
         self.deploy_operation._process_nsg_rules.assert_called_once()
         self.network_client.public_ip_addresses.get.assert_called_once()
         self.network_service.get_sandbox_virtual_network.assert_called_once()
+        self.cancellation_service.check_if_cancelled.assert_called()
 
     def test_deploy_from_custom_image(self):
         """Check deploy from custom Image operation"""
@@ -236,6 +237,7 @@ class TestDeployAzureVMOperation(TestCase):
         self.deploy_operation._get_public_ip_address.assert_called_once()
         self.deploy_operation._get_sandbox_subnet.assert_called_once()
         self.deploy_operation._get_sandbox_storage_account_name.assert_called_once()
+        self.cancellation_service.check_if_cancelled.assert_called_with(cancellation_context)
 
     def test_deploy_from_custom_image_delete_all_resources_on_error(self):
         """Check that method will delete all created resources in case of any Exception occurs while deploying"""

@@ -7,6 +7,7 @@ from mock import Mock
 from msrestazure.azure_operation import AzureOperationPoller
 
 from cloudshell.cp.azure.domain.services.storage_service import StorageService
+from cloudshell.cp.azure.common.exceptions.cancellation_exception import CancellationException
 from tests.helpers.test_helper import TestHelper
 
 
@@ -232,6 +233,7 @@ class TestStorageService(TestCase):
         blob_name = "testblobname"
         blob_service = MagicMock()
         blob = MagicMock()
+        cancellation_context = MagicMock()
         blob.properties.copy.status = "failed"
         blob_service.get_blob_properties.return_value = blob
 
@@ -240,6 +242,27 @@ class TestStorageService(TestCase):
                 blob_service=blob_service,
                 container_name=container_name,
                 blob_name=blob_name,
+                cancellation_context=cancellation_context,
+                logger=self.logger)
+
+    def test_wait_until_blob_copied_command_was_cancelled(self):
+        """Check that method will abort copying and re-raise CancellationException if command will be cancelled"""
+        container_name = "testcontainer"
+        blob_name = "testblobname"
+        blob_service = MagicMock()
+        blob = MagicMock()
+        cancellation_context = MagicMock()
+        blob.properties.copy.status = "failed"
+        blob_service.get_blob_properties.return_value = blob
+        self.storage_service.cancellation_service = MagicMock()
+        self.storage_service.cancellation_service.check_if_cancelled.side_effect = CancellationException
+
+        with self.assertRaises(CancellationException):
+            self.storage_service._wait_until_blob_copied(
+                blob_service=blob_service,
+                container_name=container_name,
+                blob_name=blob_name,
+                cancellation_context=cancellation_context,
                 logger=self.logger)
 
     def test_wait_until_blob_copied_will_wait_for_operation(self):

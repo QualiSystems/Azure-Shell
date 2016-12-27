@@ -30,7 +30,6 @@ class TestPrepareConnectivity(TestCase):
         self.logger = MagicMock()
         self.cryptography_service = CryptographyService()
         self.name_provider_service = MagicMock()
-        self.cancellation_service = MagicMock()
 
         self.prepare_connectivity_operation = PrepareConnectivityOperation(
             vm_service=self.vm_service,
@@ -99,6 +98,7 @@ class TestPrepareConnectivity(TestCase):
 
         self.assertTrue(TestHelper.CheckMethodCalledXTimes(network_client.security_rules.create_or_update, 3))
         network_client.network_security_groups.create_or_update.assert_called_once()
+        self.cancellation_service.check_if_cancelled.assert_called_with(cancellation_context)
 
     def test_extract_cidr_throws_error(self):
         action = Mock()
