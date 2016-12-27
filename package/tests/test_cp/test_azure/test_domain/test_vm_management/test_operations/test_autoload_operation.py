@@ -29,7 +29,7 @@ class TestAutoloadOperation(TestCase):
         self.autoload_operation._register_azure_providers = mock.MagicMock()
         self.autoload_operation._validate_mgmt_resource_group = mock.MagicMock()
         self.autoload_operation._validate_vnet = mock.MagicMock()
-        self.autoload_operation._validate_instance_type = mock.MagicMock()
+        self.autoload_operation._validate_vm_size = mock.MagicMock()
         self.autoload_operation._validate_networks_in_use = mock.MagicMock()
 
         # Act
@@ -41,7 +41,7 @@ class TestAutoloadOperation(TestCase):
         self.autoload_operation._register_azure_providers.assert_called_once()
         self.autoload_operation._validate_mgmt_resource_group.assert_called_once()
         self.autoload_operation._validate_vnet.assert_called()
-        self.autoload_operation._validate_instance_type.assert_called_once()
+        self.autoload_operation._validate_vm_size.assert_called_once()
         self.autoload_operation._validate_networks_in_use.assert_called_once()
 
     @mock.patch("cloudshell.cp.azure.domain.vm_management.operations.autoload_operation.AzureClientsManager")
@@ -110,20 +110,20 @@ class TestAutoloadOperation(TestCase):
                                                'group {}'.format(network_tag,
                                                                  mgmt_group_name))
 
-    def test_validate_instance_type(self):
+    def test_validate_vm_size(self):
         """Check that method will raise AutoloadException if "Instance Type" attribute is invalid"""
         compute_client = mock.MagicMock()
         region = "southcentralus"
-        instance_type = "Basic_A0_INVALID"
+        vm_size = "Basic_A0_INVALID"
         self.vm_service.list_virtual_machine_sizes.return_value = []
 
         # Act
         with self.assertRaises(AutoloadException) as ex:
-            self.autoload_operation._validate_instance_type(compute_client=compute_client,
-                                                            region=region,
-                                                            instance_type=instance_type)
+            self.autoload_operation._validate_vm_size(compute_client=compute_client,
+                                                      region=region,
+                                                      vm_size=vm_size)
         # Verify
-        self.assertEqual(ex.exception.message, "Instance type {} is not valid".format(instance_type))
+        self.assertEqual(ex.exception.message, "VM Size {} is not valid".format(vm_size))
 
     def test_register_azure_providers(self):
         """Check that method will use resource client to register Azure providers"""

@@ -88,19 +88,19 @@ class AutoloadOperation(object):
 
         return vnet
 
-    def _validate_instance_type(self, compute_client, region, instance_type):
-        """Verify "Instance Type" attribute is valid
+    def _validate_vm_size(self, compute_client, region, vm_size):
+        """Verify "VM Size" attribute is valid
 
         :param compute_client: azure.mgmt.compute.compute_management_client.ComputeManagementClient instance
         :param region: (str) azure region
-        :param instance_type: (str) instance type for the VM
+        :param vm_size: (str) instance type for the VM
         :return:
         """
-        vm_sizes = self.vm_service.list_virtual_machine_sizes(compute_management_client=compute_client,
-                                                              location=region)
+        azure_vm_sizes = self.vm_service.list_virtual_machine_sizes(compute_management_client=compute_client,
+                                                                    location=region)
 
-        if instance_type not in (vm_size.name for vm_size in vm_sizes):
-            raise AutoloadException("Instance type {} is not valid".format(instance_type))
+        if vm_size not in (azure_vm_size.name for azure_vm_size in azure_vm_sizes):
+            raise AutoloadException("VM Size {} is not valid".format(vm_size))
 
     def _register_azure_providers(self, resource_client, logger):
         """Add registration to the azure providers
@@ -171,10 +171,10 @@ class AutoloadOperation(object):
                             network_tag=self.network_service.MGMT_NETWORK_TAG_VALUE,
                             logger=logger)
 
-        if cloud_provider_model.instance_type:
-            self._validate_instance_type(compute_client=azure_clients.compute_client,
-                                         region=cloud_provider_model.region,
-                                         instance_type=cloud_provider_model.instance_type)
+        if cloud_provider_model.vm_size:
+            self._validate_vm_size(compute_client=azure_clients.compute_client,
+                                   region=cloud_provider_model.region,
+                                   vm_size=cloud_provider_model.vm_size)
 
         self._validate_networks_in_use(sandbox_vnet=sandbox_vnet,
                                        networks_in_use=cloud_provider_model.networks_in_use)
