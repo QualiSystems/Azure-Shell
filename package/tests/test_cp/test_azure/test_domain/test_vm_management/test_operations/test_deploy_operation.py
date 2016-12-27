@@ -57,8 +57,7 @@ class TestDeployAzureVMOperation(TestCase):
         # Verify
         self.network_service.get_sandbox_virtual_network.assert_called_once_with(
             network_client=network_client,
-            group_name=cloud_provider_model.management_group_name,
-            tags_service=self.tags_service)
+            group_name=cloud_provider_model.management_group_name)
 
         self.assertEqual(subnet, sandbox_subnet)
 

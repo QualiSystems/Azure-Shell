@@ -77,8 +77,7 @@ class AutoloadOperation(object):
         vnet = self.network_service.get_virtual_network_by_tag(
             virtual_networks=virtual_networks,
             tag_key=self.network_service.NETWORK_TYPE_TAG_NAME,
-            tag_value=network_tag,
-            tags_service=self.tags_service)
+            tag_value=network_tag)
 
         if vnet is None:
             error_msg = 'Failed to find Vnet with network type "{}" tag under Management group {}'.format(
