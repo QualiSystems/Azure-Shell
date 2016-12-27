@@ -14,11 +14,18 @@ HTTP_PORT="80"
 HTTPS_PORT="443"
 KEYSTORE_PASS="123123"
 
-##														CODE 
+##														CODE
+
+#Make sure all yum transaction are complete
+yum-complete-transaction -y
+
 #Update all 
 yum update -y 
 
 #source https://deviantengineer.com/2015/02/guacamole-centos7/
+
+#Make sure all yum transaction are complete
+yum-complete-transaction -y
 
 #Prerequisite
 yum -y install epel-release wget
