@@ -9,7 +9,7 @@ class RulesAttributeParser(object):
         """
         :param ports_attribute:
         :param last_priority:
-        :return: list[PortData]
+        :return: list[RuleData]
         """
         splitted_ports = ports_attribute.strip().split(';')
 

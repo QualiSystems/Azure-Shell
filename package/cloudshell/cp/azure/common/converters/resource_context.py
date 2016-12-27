@@ -26,7 +26,6 @@ class ResourceContextConverter(object):
         deployed_resource.vm_name = ""  # needs to be auto generated
         deployed_resource.cloud_provider = resource.attributes['Cloud Provider']
         deployed_resource.vm_size = resource.attributes['VM Size']
-        deployed_resource.wait_for_ip = self._convert_to_bool(resource.attributes['Wait for IP'])
         deployed_resource.autoload = self._convert_to_bool(resource.attributes['Autoload'])
         deployed_resource.add_public_ip = self._convert_to_bool(resource.attributes['Add Public IP'])
         deployed_resource.inbound_ports = resource.attributes['Inbound Ports']
