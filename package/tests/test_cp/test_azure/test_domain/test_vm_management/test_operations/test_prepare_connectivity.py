@@ -19,7 +19,7 @@ from tests.helpers.test_helper import TestHelper
 
 class TestPrepareConnectivity(TestCase):
     def setUp(self):
-        self.storage_service = StorageService()
+        self.storage_service = MagicMock()
         self.cancellation_service = MagicMock()
         self.task_waiter_service = MagicMock()
         self.vm_service = MagicMock()

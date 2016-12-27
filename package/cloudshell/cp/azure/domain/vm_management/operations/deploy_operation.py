@@ -268,6 +268,7 @@ class DeployAzureVMOperation(object):
             blob_name_copy_to=blob_url_model.blob_name,
             source_copy_from=azure_vm_deployment_model.image_urn,
             group_name_copy_from=cloud_provider_model.management_group_name,
+            cancellation_context=cancellation_context,
             logger=logger)
 
         self.cancellation_service.check_if_cancelled(cancellation_context)  # TODO: create waiter for VM deployer
@@ -360,6 +361,7 @@ class DeployAzureVMOperation(object):
                                               interface_name=interface_name,
                                               vm_name=vm_name,
                                               ip_name=ip_name,
+                                              cancellation_context=cancellation_context,
                                               logger=logger)
 
             raise

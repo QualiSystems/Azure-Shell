@@ -15,7 +15,7 @@ from cloudshell.cp.azure.models.deploy_azure_vm_resource_models import DeployAzu
 class TestDeployAzureVMOperation(TestCase):
     def setUp(self):
         self.logger = Mock()
-        self.storage_service = StorageService()
+        self.storage_service = MagicMock()
         self.vm_service = VirtualMachineService(MagicMock())
         self.network_service = NetworkService(MagicMock(), MagicMock())
         self.vm_credentials_service = Mock()
@@ -278,6 +278,7 @@ class TestDeployAzureVMOperation(TestCase):
             ip_name=test_name,
             network_client=network_client,
             vm_name=test_name,
+            cancellation_context=cancellation_context,
             logger=logger)
 
     def test_deploy_operation_virtual_networks_validation(self):

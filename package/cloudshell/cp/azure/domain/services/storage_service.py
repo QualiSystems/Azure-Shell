@@ -14,12 +14,18 @@ from retrying import retry
 from cloudshell.cp.azure.common.helpers.retrying_helpers import retry_if_connection_error
 from cloudshell.cp.azure.models.azure_blob_url import AzureBlobUrlModel
 from cloudshell.cp.azure.models.blob_copy_operation import BlobCopyOperationState
+from cloudshell.cp.azure.common.exceptions.cancellation_exception import CancellationException
 
 
 class StorageService(object):
     SAS_TOKEN_EXPIRATION_DAYS = 365
 
-    def __init__(self):
+    def __init__(self, cancellation_service):
+        """
+
+        :param cancellation_service: cloudshell.cp.azure.domain.services.command_cancellation.CommandCancellationService
+        """
+        self.cancellation_service = cancellation_service
         self._account_keys_lock = Lock()
         self._file_services_lock = Lock()
         self._blob_services_lock = Lock()
@@ -207,7 +213,8 @@ class StorageService(object):
                                  blob_name=blob_name)
 
     @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
-    def _wait_until_blob_copied(self, blob_service, container_name, blob_name, logger, sleep_time=10):
+    def _wait_until_blob_copied(self, blob_service, container_name, blob_name, cancellation_context,
+                                logger, sleep_time=10):
         """Wait until Blob file is copied from one storage to another
 
         :param blob_service: azure.storage.blob.BlockBlobService instance
@@ -219,6 +226,12 @@ class StorageService(object):
         """
         while True:
             blob = blob_service.get_blob_properties(container_name, blob_name)
+
+            try:
+                self.cancellation_service.check_if_cancelled(cancellation_context)
+            except CancellationException:
+                blob_service.abort_copy_blob(container_name, blob_name, copy_id=blob.properties.copy.id)
+                raise
 
             if blob.properties.copy.status == "success":
                 logger.info("Image was successfully copied to {}/{}".format(container_name, blob_name))
@@ -238,7 +251,7 @@ class StorageService(object):
 
     @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def _copy_blob(self, storage_client, group_name_copy_from, group_name_copy_to,
-                   ulr_model_copy_from, url_model_copy_to, logger):
+                   ulr_model_copy_from, url_model_copy_to, cancellation_context, logger):
         """Copy Blob from one storage account to another
 
         :param storage_client: azure.mgmt.storage.StorageManagementClient instance
@@ -297,12 +310,13 @@ class StorageService(object):
             self._wait_until_blob_copied(blob_service=blob_service_copy_to,
                                          container_name=url_model_copy_to.container_name,
                                          blob_name=url_model_copy_to.blob_name,
+                                         cancellation_context=cancellation_context,
                                          logger=logger)
 
         return blob_service_copy_to.make_blob_url(url_model_copy_to.container_name, url_model_copy_to.blob_name)
 
     def copy_blob(self, storage_client, group_name_copy_to, storage_name_copy_to, container_name_copy_to,
-                  blob_name_copy_to, source_copy_from, group_name_copy_from, logger):
+                  blob_name_copy_to, source_copy_from, group_name_copy_from, cancellation_context, logger):
         """Copy Blob from the given source_copy_from URL
 
         :param storage_client: azure.mgmt.storage.StorageManagementClient instance
@@ -344,6 +358,7 @@ class StorageService(object):
 
             if need_to_wait:
                 while True:
+                    self.cancellation_service.check_if_cancelled(cancellation_context)
                     copied_blob_state = self._cached_copied_blob_urls[copied_blob_key]["state"]
 
                     if copied_blob_state is BlobCopyOperationState.success:
@@ -372,6 +387,7 @@ class StorageService(object):
                                                       group_name_copy_to=group_name_copy_to,
                                                       ulr_model_copy_from=ulr_model_copy_from,
                                                       url_model_copy_to=url_model_copy_to,
+                                                      cancellation_context=cancellation_context,
                                                       logger=logger)
                 except Exception:
                     with self._copied_blob_urls_lock:

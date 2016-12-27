@@ -12,7 +12,8 @@ from tests.helpers.test_helper import TestHelper
 
 class TestStorageService(TestCase):
     def setUp(self):
-        self.storage_service = StorageService()
+        self.cancellation_service = MagicMock()
+        self.storage_service = StorageService(cancellation_service=self.cancellation_service)
         self.group_name = "test_group_name"
         self.storage_name = "teststoragename"
         self.storage_client = mock.MagicMock()
@@ -210,6 +211,7 @@ class TestStorageService(TestCase):
         blob_name = "testblobname"
         blob_service = MagicMock()
         blob = MagicMock()
+        cancellation_context = MagicMock()
         blob.properties.copy.status = "success"
         blob_service.get_blob_properties.return_value = blob
 
@@ -218,6 +220,7 @@ class TestStorageService(TestCase):
             blob_service=blob_service,
             container_name=container_name,
             blob_name=blob_name,
+            cancellation_context=cancellation_context,
             logger=self.logger)
 
         # Verify
@@ -245,6 +248,7 @@ class TestStorageService(TestCase):
         blob_name = "testblobname"
         blob_service = MagicMock()
         blob = MagicMock()
+        cancellation_context = MagicMock(is_cancelled=False)
         blob.properties.copy.status = "copying"
         blob_service.get_blob_properties.return_value = blob
         sleep_time = 5
@@ -261,6 +265,7 @@ class TestStorageService(TestCase):
                     container_name=container_name,
                     blob_name=blob_name,
                     logger=self.logger,
+                    cancellation_context=cancellation_context,
                     sleep_time=sleep_time)
 
             # Verify
@@ -271,6 +276,7 @@ class TestStorageService(TestCase):
         group_name_copy_from = "testgroupcopyfrom"
         group_name_copy_to = "testgroupcopyto"
         storage_client = MagicMock()
+        cancellation_context = MagicMock()
         ulr_model_copy_from = MagicMock()
         url_model_copy_to = MagicMock()
         expected_url = "https://teststorage.blob.core.windows.net/testcontainer/testblob"
@@ -286,6 +292,7 @@ class TestStorageService(TestCase):
                                                    group_name_copy_to=group_name_copy_to,
                                                    ulr_model_copy_from=ulr_model_copy_from,
                                                    url_model_copy_to=url_model_copy_to,
+                                                   cancellation_context=cancellation_context,
                                                    logger=self.logger)
 
         # Verify
@@ -302,6 +309,7 @@ class TestStorageService(TestCase):
         group_name_copy_from = "testgroupcopyfrom"
         group_name_copy_to = "testgroupcopyto"
         storage_client = MagicMock()
+        cancellation_context = MagicMock()
         ulr_model_copy_from = MagicMock()
         url_model_copy_to = MagicMock()
         expected_url = "https://teststorage.blob.core.windows.net/testcontainer/testblob"
@@ -317,6 +325,7 @@ class TestStorageService(TestCase):
                                                    group_name_copy_to=group_name_copy_to,
                                                    ulr_model_copy_from=ulr_model_copy_from,
                                                    url_model_copy_to=url_model_copy_to,
+                                                   cancellation_context=cancellation_context,
                                                    logger=self.logger)
 
         # Verify
@@ -334,6 +343,7 @@ class TestStorageService(TestCase):
             blob_name=url_model_copy_to.blob_name,
             container_name=url_model_copy_to.container_name,
             blob_service=blob_service,
+            cancellation_context=cancellation_context,
             logger=self.logger)
 
         self.assertEqual(blob_url, expected_url)
@@ -349,6 +359,7 @@ class TestStorageService(TestCase):
         source_copy_from = "https://teststoragesourse.blob.core.windows.net/testsourcecontainer/testsourceblob"
         expected_blob_url = "https://teststorage.blob.core.windows.net/testcontainer/testblob"
         storage_client = MagicMock()
+        cancellation_context = MagicMock()
         self.storage_service._copy_blob = MagicMock()
 
         cache_key = (storage_name_copy_to, container_name_copy_to, blob_name_copy_to)
@@ -367,6 +378,7 @@ class TestStorageService(TestCase):
                                                   blob_name_copy_to=blob_name_copy_to,
                                                   source_copy_from=source_copy_from,
                                                   group_name_copy_to=group_name_copy_to,
+                                                  cancellation_context=cancellation_context,
                                                   logger=self.logger)
 
         # Verify
@@ -384,6 +396,7 @@ class TestStorageService(TestCase):
         source_copy_from = "https://teststoragesourse.blob.core.windows.net/testsourcecontainer/testsourceblob"
         expected_blob_url = "https://teststorage.blob.core.windows.net/testcontainer/testblob"
         storage_client = MagicMock()
+        cancellation_context = MagicMock()
         self.storage_service._copy_blob = MagicMock(return_value=expected_blob_url)
         blob_model_copy_to = MagicMock()
         blob_model_class.return_value = blob_model_copy_to
@@ -398,6 +411,7 @@ class TestStorageService(TestCase):
                                                   blob_name_copy_to=blob_name_copy_to,
                                                   source_copy_from=source_copy_from,
                                                   group_name_copy_to=group_name_copy_to,
+                                                  cancellation_context=cancellation_context,
                                                   logger=self.logger)
 
         # Verify
@@ -407,6 +421,7 @@ class TestStorageService(TestCase):
                                                                 storage_client=storage_client,
                                                                 ulr_model_copy_from=blob_model_copy_from,
                                                                 url_model_copy_to=blob_model_copy_to,
+                                                                cancellation_context=cancellation_context,
                                                                 logger=self.logger)
         self.assertEqual(blob_url, expected_blob_url)
 
@@ -421,6 +436,7 @@ class TestStorageService(TestCase):
         blob_name_copy_to = "test_blob_name_copy_to"
         source_copy_from = "https://teststoragesourse.blob.core.windows.net/testsourcecontainer/testsourceblob"
         storage_client = MagicMock()
+        cancellation_context = MagicMock()
 
         cache_key = (storage_name_copy_to, container_name_copy_to, blob_name_copy_to)
         self.storage_service._cached_copied_blob_urls = {
@@ -444,6 +460,7 @@ class TestStorageService(TestCase):
                                                blob_name_copy_to=blob_name_copy_to,
                                                source_copy_from=source_copy_from,
                                                group_name_copy_to=group_name_copy_to,
+                                               cancellation_context=cancellation_context,
                                                logger=self.logger)
 
             sleep.assert_called_once()
