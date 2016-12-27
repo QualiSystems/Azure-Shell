@@ -220,6 +220,7 @@ class StorageService(object):
         :param blob_service: azure.storage.blob.BlockBlobService instance
         :param container_name: (str) container name where Blob was copied
         :param blob_name: (str) Blob name where Blob was copied
+        :param cancellation_context cloudshell.shell.core.driver_context.CancellationContext instance
         :param logger: logging.Logger instance
         :param sleep_time: (int) seconds to wait before check requests
         :return:
@@ -230,7 +231,7 @@ class StorageService(object):
             try:
                 self.cancellation_service.check_if_cancelled(cancellation_context)
             except CancellationException:
-                blob_service.abort_copy_blob(container_name, blob_name, copy_id=blob.properties.copy.id)
+                blob_service.abort_copy_blob(container_name, blob_name, blob.properties.copy.id)
                 raise
 
             if blob.properties.copy.status == "success":
@@ -259,6 +260,7 @@ class StorageService(object):
         :param group_name_copy_to: (str) resource group where Blob will be copied
         :param ulr_model_copy_from: cloudshell.cp.azure.models.azure_blob_url.AzureBlobUrlModel instance copy from
         :param url_model_copy_to: cloudshell.cp.azure.models.azure_blob_url.AzureBlobUrlModel instance copy to
+        :param cancellation_context cloudshell.shell.core.driver_context.CancellationContext instance
         :param logger: logging.Logger instance
         :return: copied image URL (str) Azure Blob URL
         """
@@ -326,6 +328,7 @@ class StorageService(object):
         :param blob_name_copy_to: (str) name for copied Blob file
         :param source_copy_from: (str) Azure Blob URL ("https://someaccount.blob.core.windows.net/container/blobname")
         :param group_name_copy_from: (str) resource group of the copied Blob
+        :param cancellation_context cloudshell.shell.core.driver_context.CancellationContext instance
         :param logging.Logger logger:
         :return: copied image URL (str) Azure Blob URL
         """

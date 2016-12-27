@@ -104,8 +104,9 @@ class AzureShell(object):
     def deploy_azure_vm(self, command_context, deployment_request, cancellation_context):
         """Will deploy Azure Image on the cloud provider
 
-        :param ResourceCommandContext command_context:
-        :param JSON Obj deployment_request:
+        :param command_context: ResourceCommandContext instance
+        :param deployment_request: (str) JSON string
+        :param cancellation_context cloudshell.shell.core.driver_context.CancellationContext instance
         """
         with LoggingSessionContext(command_context) as logger:
             with ErrorHandlingContext(logger):
@@ -147,6 +148,7 @@ class AzureShell(object):
 
         :param command_context: ResourceCommandContext instance
         :param deployment_request: (str) JSON string
+        :param cancellation_context cloudshell.shell.core.driver_context.CancellationContext instance
         :return:
         """
         with LoggingSessionContext(command_context) as logger:
@@ -195,6 +197,7 @@ class AzureShell(object):
 
         :param context:
         :param request:
+        :param cancellation_context cloudshell.shell.core.driver_context.CancellationContext instance
         :return:
         """
         with LoggingSessionContext(context) as logger:

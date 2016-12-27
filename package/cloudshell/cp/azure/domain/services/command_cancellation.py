@@ -6,7 +6,7 @@ class CommandCancellationService(object):
     def check_if_cancelled(self, cancellation_context):
         """Check if command was cancelled from the CloudShell
 
-        :param cancellation_context:
+        :param cancellation_context cloudshell.shell.core.driver_context.CancellationContext instance
         :raises cloudshell.cp.azure.common.exceptions.cancellation_exception.CancellationException
         :return:
         """

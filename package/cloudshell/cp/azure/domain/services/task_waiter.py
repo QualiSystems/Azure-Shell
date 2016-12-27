@@ -14,9 +14,9 @@ class TaskWaiterService(object):
         """Wait for Azure operation end
 
         :param operation_poller: msrestazure.azure_operation.AzureOperationPoller instance
-        :param cancellation_context:
+        :param cancellation_context cloudshell.shell.core.driver_context.CancellationContext instance
         :param wait_time: (int) seconds to wait before polling request
-        :return:
+        :return: Azure Operation Poller result
         """
         while not operation_poller.done():
             self.cancellation_service.check_if_cancelled(cancellation_context)

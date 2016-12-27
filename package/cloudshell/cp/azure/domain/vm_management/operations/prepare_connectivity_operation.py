@@ -66,6 +66,7 @@ class PrepareConnectivityOperation(object):
         :param resource_client:
         :param cloudshell.cp.azure.models.reservation_model.ReservationModel reservation:
         :param cloudshell.cp.azure.models.azure_cloud_provider_resource_model.AzureCloudProviderResourceModel cloud_provider_model:cloud provider
+        :param cancellation_context cloudshell.shell.core.driver_context.CancellationContext instance
         :return:
         """
         reservation_id = reservation.reservation_id

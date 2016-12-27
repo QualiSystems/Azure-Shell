@@ -74,6 +74,7 @@ class VirtualMachineService(object):
         :param network_profile: azure.mgmt.compute.models.NetworkProfile instance
         :param os_profile: azure.mgmt.compute.models.OSProfile instance
         :param storage_profile: azure.mgmt.compute.models.StorageProfile instance
+        :param cancellation_context cloudshell.shell.core.driver_context.CancellationContext instance
         :param tags: azure tags
         :return: azure.mgmt.compute.models.VirtualMachine instance
         """
@@ -223,6 +224,7 @@ class VirtualMachineService(object):
         :param vm_name: name for VM
         :param tags: Azure tags
         :param purchase_plan: PurchasePlan
+        :param cancellation_context cloudshell.shell.core.driver_context.CancellationContext instance
         :return:
         """
         os_profile = self._prepare_os_profile(vm_credentials=vm_credentials,
