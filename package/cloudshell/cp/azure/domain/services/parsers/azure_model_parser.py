@@ -84,7 +84,8 @@ class AzureModelsParser(object):
         azure_resource_model.azure_subscription_id = resource_context['Azure Subscription ID']
         azure_resource_model.azure_tenant = resource_context['Azure Tenant ID']
         azure_resource_model.vm_size = resource_context['VM Size']
-        azure_resource_model.networks_in_use = resource_context['Networks In Use']
+        networks_in_use = resource_context['Networks In Use']
+        azure_resource_model.networks_in_use = [cidr.strip() for cidr in networks_in_use.split(",")]
         azure_resource_model.region = resource_context['Region'].replace(" ", "").lower()
         azure_resource_model.management_group_name = resource_context['Management Group Name']
 
