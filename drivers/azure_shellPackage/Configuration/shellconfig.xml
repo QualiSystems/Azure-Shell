@@ -18,6 +18,7 @@
                 <Attribute Value="" Name="Azure Secret"/>
                 <Attribute Value="" Name="Azure Client ID"/>
                 <Attribute Value="" Name="Management Group Name"/>
+                <Attribute Value="" Name="Additional Mgmt Networks"/>
             </Attributes>
         </ResourceTemplate>
     </ResourceTemplates>

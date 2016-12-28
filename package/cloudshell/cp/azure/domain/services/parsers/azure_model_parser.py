@@ -110,6 +110,10 @@ class AzureModelsParser(object):
         azure_resource_model.region = resource_context['Region'].replace(" ", "").lower()
         azure_resource_model.management_group_name = resource_context['Management Group Name']
 
+        additional_mgmt_networks = resource_context['Additional Mgmt Networks']
+        azure_resource_model.additional_mgmt_networks = [
+            network.strip() for network in additional_mgmt_networks.split(",")]
+
         encrypted_azure_secret = resource_context['Azure Secret']
         azure_secret = cloudshell_session.DecryptPassword(encrypted_azure_secret)
         azure_resource_model.azure_secret = azure_secret.Value
