@@ -16,7 +16,7 @@ from tests.helpers.test_helper import TestHelper
 class TestDeleteOperation(TestCase):
     def setUp(self):
         self.logger = Mock()
-        self.vm_service = VirtualMachineService()
+        self.vm_service = VirtualMachineService(MagicMock())
         self.network_service = NetworkService(MagicMock(), MagicMock())
         self.tags_service = TagService()
         self.storage_service = MagicMock()

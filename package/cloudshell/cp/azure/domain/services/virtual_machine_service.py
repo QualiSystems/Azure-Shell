@@ -14,8 +14,12 @@ from cloudshell.cp.azure.common.helpers.retrying_helpers import retry_if_connect
 class VirtualMachineService(object):
     SUCCEEDED_PROVISIONING_STATE = "Succeeded"
 
-    def __init__(self):
-        pass
+    def __init__(self, task_waiter_service):
+        """
+
+        :param task_waiter_service: package.cloudshell.cp.azure.domain.services.task_waiter.TaskWaiterService
+        """
+        self.task_waiter_service = task_waiter_service
 
     def get_active_vm(self, compute_management_client, group_name, vm_name):
         """Get VM from Azure and check if it exists and in "Succeeded" provisioning state
@@ -59,7 +63,7 @@ class VirtualMachineService(object):
 
     @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def _create_vm(self, compute_management_client, region, group_name, vm_name, hardware_profile, network_profile,
-                   os_profile, storage_profile, tags, vm_plan=None):
+                   os_profile, storage_profile, cancellation_context, tags, vm_plan=None):
         """Create and deploy Azure VM from the given parameters
 
         :param compute_management_client: azure.mgmt.compute.compute_management_client.ComputeManagementClient
@@ -70,6 +74,7 @@ class VirtualMachineService(object):
         :param network_profile: azure.mgmt.compute.models.NetworkProfile instance
         :param os_profile: azure.mgmt.compute.models.OSProfile instance
         :param storage_profile: azure.mgmt.compute.models.StorageProfile instance
+        :param cancellation_context cloudshell.shell.core.driver_context.CancellationContext instance
         :param tags: azure tags
         :return: azure.mgmt.compute.models.VirtualMachine instance
         """
@@ -81,8 +86,11 @@ class VirtualMachineService(object):
                                          storage_profile=storage_profile,
                                          plan=vm_plan)
 
-        vm_result = compute_management_client.virtual_machines.create_or_update(group_name, vm_name, virtual_machine)
-        return vm_result.result()
+        operation_poller = compute_management_client.virtual_machines.create_or_update(group_name, vm_name,
+                                                                                       virtual_machine)
+
+        return self.task_waiter_service.wait_for_task(operation_poller=operation_poller,
+                                                      cancellation_context=cancellation_context)
 
     def _prepare_os_profile(self, vm_credentials, computer_name):
         """Prepare OS profile object for the VM
@@ -134,7 +142,8 @@ class VirtualMachineService(object):
                                     storage_name,
                                     vm_name,
                                     tags,
-                                    vm_size):
+                                    vm_size,
+                                    cancellation_context):
         """Create VM from custom image URN
 
         :param vm_size: (str) Azure instance type
@@ -178,6 +187,7 @@ class VirtualMachineService(object):
             network_profile=network_profile,
             os_profile=os_profile,
             storage_profile=storage_profile,
+            cancellation_context=cancellation_context,
             tags=tags)
 
     def create_vm(self,
@@ -195,7 +205,8 @@ class VirtualMachineService(object):
                   vm_name,
                   tags,
                   vm_size,
-                  purchase_plan):
+                  purchase_plan,
+                  cancellation_context):
         """
 
         :param vm_size: (str) Azure instance type
@@ -213,6 +224,7 @@ class VirtualMachineService(object):
         :param vm_name: name for VM
         :param tags: Azure tags
         :param purchase_plan: PurchasePlan
+        :param cancellation_context cloudshell.shell.core.driver_context.CancellationContext instance
         :return:
         """
         os_profile = self._prepare_os_profile(vm_credentials=vm_credentials,
@@ -247,6 +259,7 @@ class VirtualMachineService(object):
             network_profile=network_profile,
             os_profile=os_profile,
             storage_profile=storage_profile,
+            cancellation_context=cancellation_context,
             tags=tags,
             vm_plan=vm_plan)
 

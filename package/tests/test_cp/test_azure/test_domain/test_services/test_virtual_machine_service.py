@@ -9,7 +9,7 @@ from cloudshell.cp.azure.domain.services.virtual_machine_service import VirtualM
 
 class TestVirtualMachineService(TestCase):
     def setUp(self):
-        self.vm_service = VirtualMachineService()
+        self.vm_service = VirtualMachineService(MagicMock())
 
     @mock.patch("cloudshell.cp.azure.domain.services.virtual_machine_service.VirtualMachine")
     def test__create_vm(self, virtual_machine_class):
@@ -26,6 +26,7 @@ class TestVirtualMachineService(TestCase):
         vm = MagicMock()
         virtual_machine_class.return_value = vm
         plan = MagicMock()
+        cancellation_context = MagicMock()
 
         # Act
         self.vm_service._create_vm(compute_management_client=compute_management_client,
@@ -36,6 +37,7 @@ class TestVirtualMachineService(TestCase):
                                    network_profile=network_profile,
                                    os_profile=os_profile,
                                    storage_profile=storage_profile,
+                                   cancellation_context=cancellation_context,
                                    tags=tags,
                                    vm_plan=plan)
 
@@ -59,6 +61,7 @@ class TestVirtualMachineService(TestCase):
         vm_name = "test_vm_name"
         region = "test_region"
         tags = MagicMock()
+        cancellation_context = MagicMock()
         self.vm_service._create_vm = MagicMock()
         os_profile = MagicMock()
         hardware_profile = MagicMock()
@@ -89,7 +92,8 @@ class TestVirtualMachineService(TestCase):
                                   vm_name=vm_name,
                                   tags=tags,
                                   vm_size=MagicMock(),
-                                  purchase_plan=plan)
+                                  purchase_plan=plan,
+                                  cancellation_context=cancellation_context)
 
         # Verify
         self.vm_service._create_vm.assert_called_once_with(compute_management_client=compute_management_client,
@@ -101,7 +105,8 @@ class TestVirtualMachineService(TestCase):
                                                            storage_profile=storage_profile,
                                                            tags=tags,
                                                            vm_name=vm_name,
-                                                           vm_plan=plan)
+                                                           vm_plan=plan,
+                                                           cancellation_context=cancellation_context)
 
     @mock.patch("cloudshell.cp.azure.domain.services.virtual_machine_service.StorageProfile")
     @mock.patch("cloudshell.cp.azure.domain.services.virtual_machine_service.NetworkProfile")
@@ -119,6 +124,7 @@ class TestVirtualMachineService(TestCase):
         hardware_profile = MagicMock()
         network_profile = MagicMock()
         storage_profile = MagicMock()
+        cancellation_context = MagicMock()
         self.vm_service._prepare_os_profile = MagicMock(return_value=os_profile)
         hardware_profile_class.return_value = hardware_profile
         network_profile_class.return_value = network_profile
@@ -135,6 +141,7 @@ class TestVirtualMachineService(TestCase):
                                                     region=region,
                                                     storage_name=MagicMock(),
                                                     vm_name=vm_name,
+                                                    cancellation_context=cancellation_context,
                                                     tags=tags,
                                                     vm_size=MagicMock())
 
@@ -146,6 +153,7 @@ class TestVirtualMachineService(TestCase):
                                                            os_profile=os_profile,
                                                            region=region,
                                                            storage_profile=storage_profile,
+                                                           cancellation_context=cancellation_context,
                                                            tags=tags,
                                                            vm_name=vm_name)
 
