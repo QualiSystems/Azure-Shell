@@ -454,12 +454,12 @@ class TestAzureShell(TestCase):
         storage_accounts = [storage_account]
         self.azure_shell.storage_service.get_storage_per_resource_group = mock.Mock(return_value=storage_accounts)
         self.azure_shell.key_pair_service.get_key_pair = mock.Mock(return_value=ssh_key)
-        self.azure_shell.validator_factory = mock.Mock()
+        self.azure_shell.validator_provider = mock.Mock()
         # self.azure_shell.validator_factory.try_validate = Mock(return_value=True)
 
         # Act
         res = self.azure_shell.access_key_operation.get_access_key(storage_client, group_name,
-                                                                   self.azure_shell.validator_factory)
+                                                                   self.azure_shell.validator_provider)
 
         # Verify
         self.assertTrue(res == "private-key")

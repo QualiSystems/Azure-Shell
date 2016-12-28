@@ -5,7 +5,7 @@ from cloudshell.core.context.error_handling_context import ErrorHandlingContext
 from cloudshell.cp.azure.common.profiler.profiler import profileit
 from cloudshell.shell.core.session.cloudshell_session import CloudShellSessionContext
 from cloudshell.cp.azure.common.deploy_data_holder import DeployDataHolder
-from cloudshell.cp.azure.domain.context.validators_factory_context import ValidatorsFactoryContext
+from cloudshell.cp.azure.common.validtors.factory import ValidatorFactory
 from cloudshell.cp.azure.domain.services.cryptography_service import CryptographyService
 from cloudshell.cp.azure.domain.services.ip_service import IpService
 from cloudshell.cp.azure.domain.services.lock_service import GenericLockProvider
@@ -55,9 +55,13 @@ class AzureShell(object):
         self.vm_extension_service = VMExtensionService()
         self.task_waiter_service = TaskWaiterService(cancellation_service=self.cancellation_service)
         self.vm_service = VirtualMachineService(task_waiter_service=self.task_waiter_service)
-        self.access_key_operation = AccessKeyOperation(self.key_pair_service, self.storage_service)
         self.generic_lock_provider = GenericLockProvider()
         self.subnet_locker = Lock()
+        self.validator_provider = ValidatorFactory.get_validator()
+
+        self.access_key_operation = AccessKeyOperation(key_pair_service=self.key_pair_service,
+                                                       storage_service=self.storage_service,
+                                                       validator_provider=self.validator_provider)
 
         self.prepare_connectivity_operation = PrepareConnectivityOperation(
             vm_service=self.vm_service,
@@ -82,7 +86,8 @@ class AzureShell(object):
             name_provider_service=self.name_provider_service,
             vm_extension_service=self.vm_extension_service,
             cancellation_service=self.cancellation_service,
-            generic_lock_provider=self.generic_lock_provider)
+            generic_lock_provider=self.generic_lock_provider,
+            validator_provider=self.validator_provider)
 
         self.power_vm_operation = PowerAzureVMOperation(vm_service=self.vm_service)
 
@@ -128,20 +133,18 @@ class AzureShell(object):
                 azure_clients = AzureClientsManager(cloud_provider_model)
                 reservation = self.model_parser.convert_to_reservation_model(command_context.reservation)
 
-                with ValidatorsFactoryContext() as validator_factory:
-                    deploy_data = self.deploy_azure_vm_operation.deploy(
-                        azure_vm_deployment_model=azure_vm_deployment_model,
-                        cloud_provider_model=cloud_provider_model,
-                        reservation=reservation,
-                        network_client=azure_clients.network_client,
-                        compute_client=azure_clients.compute_client,
-                        storage_client=azure_clients.storage_client,
-                        validator_factory=validator_factory,
-                        cancellation_context=cancellation_context,
-                        logger=logger)
+                deploy_data = self.deploy_azure_vm_operation.deploy(
+                    azure_vm_deployment_model=azure_vm_deployment_model,
+                    cloud_provider_model=cloud_provider_model,
+                    reservation=reservation,
+                    network_client=azure_clients.network_client,
+                    compute_client=azure_clients.compute_client,
+                    storage_client=azure_clients.storage_client,
+                    cancellation_context=cancellation_context,
+                    logger=logger)
 
-                    logger.info('End deploying Azure VM')
-                    return self.command_result_parser.set_command_result(deploy_data)
+                logger.info('End deploying Azure VM')
+                return self.command_result_parser.set_command_result(deploy_data)
 
     def deploy_vm_from_custom_image(self, command_context, deployment_request, cancellation_context):
         """Deploy Azure Image from given Image URN
@@ -171,20 +174,18 @@ class AzureShell(object):
 
                 azure_clients = AzureClientsManager(cloud_provider_model)
 
-                with ValidatorsFactoryContext() as validator_factory:
-                    deploy_data = self.deploy_azure_vm_operation.deploy_from_custom_image(
-                        azure_vm_deployment_model=azure_vm_deployment_model,
-                        cloud_provider_model=cloud_provider_model,
-                        reservation=reservation,
-                        network_client=azure_clients.network_client,
-                        compute_client=azure_clients.compute_client,
-                        storage_client=azure_clients.storage_client,
-                        validator_factory=validator_factory,
-                        cancellation_context=cancellation_context,
-                        logger=logger)
+                deploy_data = self.deploy_azure_vm_operation.deploy_from_custom_image(
+                    azure_vm_deployment_model=azure_vm_deployment_model,
+                    cloud_provider_model=cloud_provider_model,
+                    reservation=reservation,
+                    network_client=azure_clients.network_client,
+                    compute_client=azure_clients.compute_client,
+                    storage_client=azure_clients.storage_client,
+                    cancellation_context=cancellation_context,
+                    logger=logger)
 
-                    logger.info('End deploying Azure VM From Custom Image')
-                    return self.command_result_parser.set_command_result(deploy_data)
+                logger.info('End deploying Azure VM From Custom Image')
+                return self.command_result_parser.set_command_result(deploy_data)
 
     def prepare_connectivity(self, context, request, cancellation_context):
         """
@@ -239,8 +240,6 @@ class AzureShell(object):
 
                 azure_clients = AzureClientsManager(cloud_provider_model)
                 resource_group_name = command_context.reservation.reservation_id
-
-                self.generic_lock_provider.remove_lock_resource(resource_group_name, logger=logger)
 
                 result = self.delete_azure_vm_operation.cleanup_connectivity(
                     network_client=azure_clients.network_client,
@@ -400,13 +399,10 @@ class AzureShell(object):
                         cloudshell_session=cloudshell_session)
 
                 azure_clients = AzureClientsManager(cloud_provider_model)
+                resource_group_name = command_context.remote_reservation.reservation_id
 
-                with ValidatorsFactoryContext() as validator_factory:
-                    resource_group_name = command_context.remote_reservation.reservation_id
-
-                    return self.access_key_operation.get_access_key(storage_client=azure_clients.storage_client,
-                                                                    group_name=resource_group_name,
-                                                                    validator_factory=validator_factory)
+                return self.access_key_operation.get_access_key(storage_client=azure_clients.storage_client,
+                                                                group_name=resource_group_name)
 
     def get_application_ports(self, command_context):
         """Get application ports in a nicely formatted manner

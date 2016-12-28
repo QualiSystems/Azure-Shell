@@ -2,7 +2,7 @@ from unittest import TestCase
 
 from azure.mgmt.storage.models import StorageAccount
 
-from cloudshell.cp.azure.common.validtors.validator_factory import ValidatorFactory
+from cloudshell.cp.azure.common.validtors.validator_factory import ValidatorProvider
 
 
 class TestValidators(TestCase):
@@ -11,7 +11,7 @@ class TestValidators(TestCase):
 
     def test_validator_not_found_throw_exception(self):
         # Arrange
-        validator_factory = ValidatorFactory()
+        validator_factory = ValidatorProvider()
 
         # Act
         self.assertRaises(Exception,

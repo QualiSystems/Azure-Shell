@@ -1,4 +1,4 @@
-class ValidatorFactory:
+class ValidatorProvider:
     def __init__(self, validators_list=[]):
         """
         :param list validators_list:

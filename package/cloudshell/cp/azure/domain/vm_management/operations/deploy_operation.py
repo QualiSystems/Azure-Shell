@@ -2,7 +2,7 @@ from azure.mgmt.storage.models import StorageAccount
 
 from cloudshell.cp.azure.models.deploy_result_model import DeployResult
 from cloudshell.cp.azure.domain.services.parsers.rules_attribute_parser import RulesAttributeParser
-
+from cloudshell.cp.azure.common.validtors.provider import ValidatorProvider
 
 class DeployAzureVMOperation(object):
     CUSTOM_IMAGES_CONTAINER_PREFIX = "customimages"
@@ -18,7 +18,8 @@ class DeployAzureVMOperation(object):
                  name_provider_service,
                  vm_extension_service,
                  cancellation_service,
-                 generic_lock_provider):
+                 generic_lock_provider,
+                 validator_provider):
         """
 
         :param cloudshell.cp.azure.domain.services.virtual_machine_service.VirtualMachineService vm_service:
@@ -32,6 +33,7 @@ class DeployAzureVMOperation(object):
         :param cloudshell.cp.azure.domain.services.vm_extension.VMExtensionService vm_extension_service:
         :param cloudshell.cp.azure.domain.services.command_cancellation.CommandCancellationService cancellation_service:
         :param cloudshell.cp.azure.domain.services.lock_service.GenericLockProvider generic_lock_provider:
+        :param ValidatorProvider validator_provider:
         :return:
         """
         self.generic_lock_provider = generic_lock_provider
@@ -45,10 +47,12 @@ class DeployAzureVMOperation(object):
         self.name_provider_service = name_provider_service
         self.vm_extension_service = vm_extension_service
         self.cancellation_service = cancellation_service
+        self.validator_provider = validator_provider
 
     def _process_nsg_rules(self, network_client, group_name, azure_vm_deployment_model, nic,
                            cancellation_context, logger):
-        """Create Network Security Group rules if needed
+        """
+        Create Network Security Group rules if needed
 
         :param network_client: azure.mgmt.network.NetworkManagementClient instance
         :param group_name: resource group name (reservation id)
@@ -86,7 +90,8 @@ class DeployAzureVMOperation(object):
             self.cancellation_service.check_if_cancelled(cancellation_context)
 
     def _get_sandbox_subnet(self, network_client, cloud_provider_model, subnet_name, logger):
-        """Get subnet for for given reservation
+        """
+        Get subnet for for given reservation
 
         :param network_client: azure.mgmt.network.network_management_client.NetworkManagementClient
         :param cloud_provider_model: cloudshell.cp.azure.models.azure_cloud_provider_resource_model.AzureCloudProviderResourceModel
@@ -106,22 +111,24 @@ class DeployAzureVMOperation(object):
                 subnet_name, cloud_provider_model.management_group_name))
             raise Exception("Could not find a valid subnet.")
 
-    def _get_sandbox_storage_account_name(self, storage_client, group_name, validator_factory):
-        """Get storage account name for given reservation
+    def _get_sandbox_storage_account_name(self, storage_client, group_name):
+        """
+        Get storage account name for given reservation
 
         :param storage_client: azure.mgmt.storage.storage_management_client.StorageManagementClient
-        :param group_name:
-        :param validator_factory:
-        :return: (str) storage account name
+        :param str group_name:
+        :return: storage account name
+        :rtype: str
         """
         storage_accounts_list = self.storage_service.get_storage_per_resource_group(storage_client, group_name)
-        validator_factory.try_validate(resource_type=StorageAccount, resource=storage_accounts_list)
+        self.validator_provider.try_validate(resource_type=StorageAccount, resource=storage_accounts_list)
 
         return storage_accounts_list[0].name
 
     def _rollback_deployed_resources(self, compute_client, network_client, group_name, interface_name, vm_name,
                                      ip_name, cancellation_context, logger):
-        """Remove all created resources by Deploy VM operation on any Exception
+        """
+        Remove all created resources by Deploy VM operation on any Exception
 
         :param compute_client: azure.mgmt.compute.compute_management_client.ComputeManagementClient
         :param network_client: azure.mgmt.network.network_management_client.NetworkManagementClient instance
@@ -153,7 +160,8 @@ class DeployAzureVMOperation(object):
 
     def _get_public_ip_address(self, network_client, azure_vm_deployment_model, group_name, ip_name,
                                cancellation_context, logger):
-        """Get Public IP address by Azure IP resource name
+        """
+        Get Public IP address by Azure IP resource name
 
         :param network_client: azure.mgmt.network.network_management_client.NetworkManagementClient instance
         :param azure_vm_deployment_model: deploy_azure_vm_resource_models.BaseDeployAzureVMResourceModel
@@ -175,7 +183,8 @@ class DeployAzureVMOperation(object):
             return ip_address
 
     def _prepare_computer_name(self, name):
-        """Prepare computer name for the VM
+        """
+        Prepare computer name for the VM
 
         :param name: (str) app_name name
         :return: (str) computer name
@@ -184,7 +193,8 @@ class DeployAzureVMOperation(object):
         return self.name_provider_service.generate_name(name, length=15)
 
     def _prepare_vm_size(self, azure_vm_deployment_model, cloud_provider_model):
-        """Prepare Azure VM Size
+        """
+        Prepare Azure VM Size
 
         :param azure_vm_deployment_model: deploy_azure_vm_resource_models.BaseDeployAzureVMResourceModel
         :param cloud_provider_model: cloudshell.cp.azure.models.azure_cloud_provider_resource_model.AzureCloudProviderResourceModel
@@ -199,10 +209,10 @@ class DeployAzureVMOperation(object):
         return vm_size
 
     def deploy_from_custom_image(self, azure_vm_deployment_model, cloud_provider_model, reservation, network_client,
-                                 compute_client, storage_client, validator_factory, cancellation_context, logger):
-        """Deploy Azure VM from custom image URN
+                                 compute_client, storage_client, cancellation_context, logger):
+        """
+        Deploy Azure VM from custom image URN
 
-        :param cloudshell.cp.azure.common.validtors.validator_factory.ValidatorFactory validator_factory:
         :param azure.mgmt.storage.storage_management_client.StorageManagementClient storage_client:
         :param azure.mgmt.compute.compute_management_client.ComputeManagementClient compute_client:
         :param azure.mgmt.network.network_management_client.NetworkManagementClient network_client:
@@ -239,8 +249,7 @@ class DeployAzureVMOperation(object):
 
         logger.info("Retrieve sandbox storage account name by resource group {}".format(group_name))
         storage_account_name = self._get_sandbox_storage_account_name(storage_client=storage_client,
-                                                                      group_name=group_name,
-                                                                      validator_factory=validator_factory)
+                                                                      group_name=group_name)
 
         self.cancellation_service.check_if_cancelled(cancellation_context)
 
@@ -398,11 +407,10 @@ class DeployAzureVMOperation(object):
                network_client,
                compute_client,
                storage_client,
-               validator_factory,
                cancellation_context,
                logger):
         """
-        :param cloudshell.cp.azure.common.validtors.validator_factory.ValidatorFactory validator_factory:
+        :param cancellation_context:
         :param azure.mgmt.storage.storage_management_client.StorageManagementClient storage_client:
         :param azure.mgmt.compute.compute_management_client.ComputeManagementClient compute_client:
         :param azure.mgmt.network.network_management_client.NetworkManagementClient network_client:
@@ -439,8 +447,7 @@ class DeployAzureVMOperation(object):
 
         logger.info("Retrieve sandbox storage account name by resource group {}".format(group_name))
         storage_account_name = self._get_sandbox_storage_account_name(storage_client=storage_client,
-                                                                      group_name=group_name,
-                                                                      validator_factory=validator_factory)
+                                                                      group_name=group_name)
 
         self.cancellation_service.check_if_cancelled(cancellation_context)
 
