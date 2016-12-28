@@ -85,8 +85,8 @@
 		"vpn_template_location":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/develop/deployment_templates/",
 		"scriptUrl":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/develop/deployment_templates/guacamole-quali-install.sh",
 		"commandToExe":"sh guacamole-quali-install.sh",
-		"scriptUrlES":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/develop/deployment_templates/cloudshell_install_script.sh",
-		"commandToExeES":"[concat('sh cloudshell_install_script.sh ', parameters('CloudshellServerIP'),' ',parameters('CloudshellAdmin'),' ', parameters('CloudshellAdminPassword'),' ',variables('virtualMachineEsNameInVM') )]",
+		"scriptUrlES":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/develop/deployment_templates/cloudshell_es_install_script.sh",
+		"commandToExeES":"[concat('sh cloudshell_es_install_script.sh ', parameters('CloudshellServerIP'),' ',parameters('CloudshellAdmin'),' ', parameters('CloudshellAdminPassword'),' ',variables('virtualMachineEsNameInVM') )]",
 		"vmSize":"Standard_A3"
 	},
 	"resources": [
