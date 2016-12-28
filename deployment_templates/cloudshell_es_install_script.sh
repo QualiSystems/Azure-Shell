@@ -5,7 +5,7 @@ ES_DOWNLOAD_LINK="https://s3.amazonaws.com/alex-az/ExecutionServer.tar"
 
 cs_server_host=${1}  # "192.168.120.20"
 cs_server_user=${2}  # "user"
-cs_server_pass=${3}  # "userassword"
+cs_server_pass=${3}  # "password"
 es_name=${4}  # "ES_NAME"
 
 
@@ -39,7 +39,6 @@ install_mono () {
 	rpm --import xamarin.gpg
 	# Add Mono repository
 	yum-config-manager --add-repo http://download.mono-project.com/repo/centos/
-	yum -y update
 	# Install Mono
 	yes | yum install mono-devel-4.0.1 --skip-broken
 	yes | yum install mono-complete-4.0.1 --skip-broken
@@ -62,6 +61,7 @@ setup_supervisor() {
 }
 
 # Install Python pip
+yum-complete-transaction -y --cleanup-only
 yes | yum install epel-release
 yes | yum -y install python-pip
 yes | pip install -U pip
