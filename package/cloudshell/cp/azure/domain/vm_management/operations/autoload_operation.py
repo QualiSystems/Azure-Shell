@@ -8,17 +8,15 @@ from cloudshell.cp.azure.common.exceptions.autoload_exception import AutoloadExc
 
 
 class AutoloadOperation(object):
-    def __init__(self, vm_service, network_service, tags_service):
+    def __init__(self, vm_service, network_service):
         """
 
         :param vm_service: cloudshell.cp.azure.domain.services.virtual_machine_service.VirtualMachineService instance
         :param network_service: cloudshell.cp.azure.domain.services.network_service.NetworkService instance
-        :param tags_service: cloudshell.cp.azure.domain.services.tags.TagService instance
         :return:
         """
         self.vm_service = vm_service
         self.network_service = network_service
-        self.tags_service = tags_service
 
     def _validate_api_credentials(self, cloud_provider_model, logger):
         """Verify Azure API Credentials and return AzureClientsManager instance

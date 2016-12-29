@@ -467,6 +467,7 @@ class TestAzureShell(TestCase):
 
         self.azure_shell.model_parser.convert_to_cloud_provider_resource_model.assert_called_once_with(
             resource=command_context.resource,
+            cloudshell_session=cloudshell_session)
 
     @mock.patch("cloudshell.cp.azure.azure_shell.CloudShellSessionContext")
     @mock.patch("cloudshell.cp.azure.azure_shell.LoggingSessionContext")

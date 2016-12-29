@@ -15,8 +15,7 @@ class TestAutoloadOperation(TestCase):
         self.tags_service = mock.MagicMock()
         self.logger = mock.MagicMock()
         self.autoload_operation = AutoloadOperation(vm_service=self.vm_service,
-                                                    network_service=self.network_service,
-                                                    tags_service=self.tags_service)
+                                                    network_service=self.network_service)
 
     @mock.patch("cloudshell.cp.azure.domain.vm_management.operations.autoload_operation.AutoLoadDetails")
     def test_get_inventory(self, autoload_details_class):

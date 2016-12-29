@@ -59,8 +59,7 @@ class AzureShell(object):
         self.subnet_locker = Lock()
 
         self.autoload_operation = AutoloadOperation(vm_service=self.vm_service,
-                                                    network_service=self.network_service,
-                                                    tags_service=self.tags_service)
+                                                    network_service=self.network_service)
                                                     
         self.access_key_operation = AccessKeyOperation(key_pair_service=self.key_pair_service,
                                                        storage_service=self.storage_service)
