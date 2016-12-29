@@ -22,7 +22,8 @@ class TestAzureShell(TestCase):
     @mock.patch("cloudshell.cp.azure.azure_shell.PowerAzureVMOperation")
     @mock.patch("cloudshell.cp.azure.azure_shell.RefreshIPOperation")
     @mock.patch("cloudshell.cp.azure.azure_shell.DeleteAzureVMOperation")
-    def setUp(self, delete_azure_vm_operation, refresh_ip_operation, power_azure_vm_operation,
+    @mock.patch("cloudshell.cp.azure.azure_shell.AccessKeyOperation")
+    def setUp(self, access_key_operation, delete_azure_vm_operation, refresh_ip_operation, power_azure_vm_operation,
               deploy_azure_vm_operation, prepare_connectivity_operation, security_group_service,
               key_pair_service, tag_service, storage_service, network_service, vm_service,
               azure_models_parser, commands_results_parser, deployed_app_ports_operation):
@@ -441,17 +442,18 @@ class TestAzureShell(TestCase):
         cloudshell_session = mock.MagicMock()
         cloudshell_session_context = mock.MagicMock(__enter__=mock.MagicMock(return_value=cloudshell_session))
         cloudshell_session_context_class.return_value = cloudshell_session_context
-
         # mock LoggingSessionContext and ErrorHandlingContext
         logging_context = mock.MagicMock(__enter__=mock.MagicMock(return_value=self.logger))
         logging_context_class.return_value = logging_context
         error_handling = mock.MagicMock()
         error_handling_class.return_value = error_handling
-
         # mock Azure clients
         azure_clients_manager = mock.MagicMock()
         azure_clients_manager_class.return_value = azure_clients_manager
-
+        # mock Resource Group name
+        self.azure_shell.model_parser.convert_to_reservation_model.return_value = mock.MagicMock(
+            reservation_id=self.group_name)
+        # mock command context
         resource = mock.MagicMock()
         command_context = mock.MagicMock(remote_endpoints=[resource])
 
@@ -466,4 +468,6 @@ class TestAzureShell(TestCase):
             resource=command_context.resource,
             cloudshell_session=cloudshell_session)
 
-        self.azure_shell.access_key_operation.get_access_key.assert_called_once_with
+        self.azure_shell.access_key_operation.get_access_key.assert_called_once_with(
+            storage_client=azure_clients_manager.storage_client,
+            group_name=self.group_name)

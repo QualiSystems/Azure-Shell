@@ -384,7 +384,8 @@ class AzureShell(object):
                             cloudshell_session=cloudshell_session)
 
                 azure_clients = AzureClientsManager(cloud_provider_model)
-                resource_group_name = command_context.remote_reservation.reservation_id
+                resource_group_name = \
+                    self.model_parser.convert_to_reservation_model(command_context.remote_reservation).reservation_id
 
                 return self.access_key_operation.get_access_key(storage_client=azure_clients.storage_client,
                                                                 group_name=resource_group_name)
