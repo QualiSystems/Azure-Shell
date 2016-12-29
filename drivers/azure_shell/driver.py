@@ -1,4 +1,3 @@
-from cloudshell.shell.core.driver_context import AutoLoadDetails
 from cloudshell.shell.core.resource_driver_interface import ResourceDriverInterface
 
 from cloudshell.cp.azure.azure_shell import AzureShell
@@ -52,7 +51,7 @@ class AzureShellDriver(ResourceDriverInterface):
         return self.azure_shell.get_application_ports(command_context=context)
 
     def get_inventory(self, context):
-        return AutoLoadDetails([], [])
+        return self.azure_shell.get_inventory(command_context=context)
 
     def GetAccessKey(self, context, ports):
         return self.azure_shell.get_access_key(context)

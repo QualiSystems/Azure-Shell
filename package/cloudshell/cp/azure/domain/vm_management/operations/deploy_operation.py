@@ -96,8 +96,7 @@ class DeployAzureVMOperation(object):
         """
         sandbox_virtual_network = self.network_service.get_sandbox_virtual_network(
                 network_client=network_client,
-                group_name=cloud_provider_model.management_group_name,
-                tags_service=self.tags_service)
+            	group_name=cloud_provider_model.management_group_name)
 
         try:
             return next(subnet for subnet in sandbox_virtual_network.subnets if subnet.name == subnet_name)

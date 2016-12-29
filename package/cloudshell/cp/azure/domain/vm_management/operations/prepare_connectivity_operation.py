@@ -99,11 +99,11 @@ class PrepareConnectivityOperation(object):
                                                                      group_name=cloud_provider_model.management_group_name)
 
         self.cancellation_service.check_if_cancelled(cancellation_context)
-
-        management_vnet = self.network_service.get_virtual_network_by_tag(virtual_networks=virtual_networks,
-                                                                          tag_key=NetworkService.NETWORK_TYPE_TAG_NAME,
-                                                                          tag_value=NetworkService.MGMT_NETWORK_TAG_VALUE,
-                                                                          tags_service=self.tags_service)
+        
+        management_vnet = self.network_service.get_virtual_network_by_tag(        
+            virtual_networks=virtual_networks,        
+            tag_key=NetworkService.NETWORK_TYPE_TAG_NAME,
+            tag_value=NetworkService.MGMT_NETWORK_TAG_VALUE)
 
         self._validate_management_vnet(management_vnet)
 
@@ -112,10 +112,10 @@ class PrepareConnectivityOperation(object):
             NetworkService.NETWORK_TYPE_TAG_NAME,
             NetworkService.SANDBOX_NETWORK_TAG_VALUE))
 
-        sandbox_vnet = self.network_service.get_virtual_network_by_tag(virtual_networks=virtual_networks,
-                                                                       tag_key=NetworkService.NETWORK_TYPE_TAG_NAME,
-                                                                       tag_value=NetworkService.SANDBOX_NETWORK_TAG_VALUE,
-                                                                       tags_service=self.tags_service)
+        sandbox_vnet = self.network_service.get_virtual_network_by_tag(
+            virtual_networks=virtual_networks,
+            tag_key=NetworkService.NETWORK_TYPE_TAG_NAME,
+            tag_value=NetworkService.SANDBOX_NETWORK_TAG_VALUE)
 
         self._validate_sandbox_vnet(sandbox_vnet)
 

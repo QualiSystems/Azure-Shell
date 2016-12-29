@@ -303,3 +303,32 @@ class TestVirtualMachineService(TestCase):
 
         # Verify
         self.assertEqual(res, operating_system_types.windows)
+
+    def test_get_resource_group(self):
+        """Check that method will use resource_client to find needed resource group"""
+        resource_client = MagicMock()
+        group_name = "test_group_name"
+        expected_resource_group = MagicMock()
+        resource_client.resource_groups.get.return_value = expected_resource_group
+
+        # Act
+        result = self.vm_service.get_resource_group(resource_management_client=resource_client, group_name=group_name)
+
+        # Verify
+        resource_client.resource_groups.get.assert_called_once_with(resource_group_name=group_name)
+        self.assertEqual(result, expected_resource_group)
+
+    def test_list_virtual_machine_sizes(self):
+        """Check that method will use compute_client to find list VM sizes"""
+        compute_client = MagicMock()
+        location = "test_location"
+        expected_vm_sizes = MagicMock()
+        compute_client.virtual_machine_sizes.list.return_value = expected_vm_sizes
+
+        # Act
+        result = self.vm_service.list_virtual_machine_sizes(compute_management_client=compute_client,
+                                                            location=location)
+
+        # Verify
+        compute_client.virtual_machine_sizes.list.assert_called_once_with(location=location)
+        self.assertEqual(result, expected_vm_sizes)

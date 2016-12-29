@@ -43,8 +43,7 @@ class NetworkService(object):
         region = cloud_provider_model.region
         management_group_name = cloud_provider_model.management_group_name
         sandbox_virtual_network = self.get_sandbox_virtual_network(network_client=network_client,
-                                                                   group_name=management_group_name,
-                                                                   tags_service=self.tags_service)
+                                                                   group_name=management_group_name)
 
         # 1. Create ip address
         public_ip_address = None
@@ -339,18 +338,17 @@ class NetworkService(object):
         networks_list = network_client.virtual_networks.list(group_name)
         return list(networks_list)
 
-    def get_sandbox_virtual_network(self, network_client, group_name, tags_service):
+    def get_sandbox_virtual_network(self, network_client, group_name):
         virtual_networks = self.get_virtual_networks(network_client=network_client,
                                                      group_name=group_name)
 
         return self.get_virtual_network_by_tag(virtual_networks=virtual_networks,
                                                tag_key=NetworkService.NETWORK_TYPE_TAG_NAME,
-                                               tag_value=NetworkService.SANDBOX_NETWORK_TAG_VALUE,
-                                               tags_service=tags_service)
+                                               tag_value=NetworkService.SANDBOX_NETWORK_TAG_VALUE)
 
-    def get_virtual_network_by_tag(self, virtual_networks, tag_key, tag_value, tags_service):
+    def get_virtual_network_by_tag(self, virtual_networks, tag_key, tag_value):
 
         return next((network for network in virtual_networks
-                     if
-                     network and tags_service.try_find_tag(tags_list=network.tags, tag_key=tag_key) == tag_value),
+                     if network and self.tags_service.try_find_tag(
+                         tags_list=network.tags, tag_key=tag_key) == tag_value),
                     None)

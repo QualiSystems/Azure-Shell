@@ -82,8 +82,7 @@ class DeleteAzureVMOperation(object):
         management_group_name = cloud_provider_model.management_group_name
         logger.info("Retrieving sandbox vNet from MGMT group {}".format(management_group_name))
         sandbox_virtual_network = self.network_service.get_sandbox_virtual_network(network_client=network_client,
-                                                                                   group_name=management_group_name,
-                                                                                   tags_service=self.tags_service)
+                                                                                   group_name=management_group_name)
 
         subnet = next((subnet for subnet in sandbox_virtual_network.subnets if subnet.name == resource_group_name),
                       None)
@@ -112,9 +111,9 @@ class DeleteAzureVMOperation(object):
         logger.info("Deleting sandbox subnet...")
 
         logger.info("Retrieving sandbox vNet from MGMT group {}".format(cloud_provider_model.management_group_name))
-        sandbox_virtual_network = self.network_service.get_sandbox_virtual_network(network_client=network_client,
-                                                                                   group_name=cloud_provider_model.management_group_name,
-                                                                                   tags_service=self.tags_service)
+        sandbox_virtual_network = self.network_service.get_sandbox_virtual_network(
+            network_client=network_client,
+            group_name=cloud_provider_model.management_group_name)
 
         subnet = next((subnet for subnet in sandbox_virtual_network.subnets if subnet.name == resource_group_name),
                       None)

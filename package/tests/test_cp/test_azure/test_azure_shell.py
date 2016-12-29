@@ -8,6 +8,7 @@ from cloudshell.cp.azure.models.ssh_key import SSHKey
 
 class TestAzureShell(TestCase):
 
+    @mock.patch("cloudshell.cp.azure.azure_shell.AutoloadOperation")
     @mock.patch("cloudshell.cp.azure.azure_shell.DeployedAppPortsOperation")
     @mock.patch("cloudshell.cp.azure.azure_shell.CommandResultsParser")
     @mock.patch("cloudshell.cp.azure.azure_shell.AzureModelsParser")
@@ -26,7 +27,7 @@ class TestAzureShell(TestCase):
     def setUp(self, access_key_operation, delete_azure_vm_operation, refresh_ip_operation, power_azure_vm_operation,
               deploy_azure_vm_operation, prepare_connectivity_operation, security_group_service,
               key_pair_service, tag_service, storage_service, network_service, vm_service,
-              azure_models_parser, commands_results_parser, deployed_app_ports_operation):
+              azure_models_parser, commands_results_parser, deployed_app_ports_operation, autoload_operation):
 
         self.azure_shell = AzureShell()
         self.logger = mock.MagicMock()
@@ -468,6 +469,28 @@ class TestAzureShell(TestCase):
             resource=command_context.resource,
             cloudshell_session=cloudshell_session)
 
-        self.azure_shell.access_key_operation.get_access_key.assert_called_once_with(
-            storage_client=azure_clients_manager.storage_client,
-            group_name=self.group_name)
+    @mock.patch("cloudshell.cp.azure.azure_shell.CloudShellSessionContext")
+    @mock.patch("cloudshell.cp.azure.azure_shell.LoggingSessionContext")
+    @mock.patch("cloudshell.cp.azure.azure_shell.ErrorHandlingContext")
+    def test_get_inventory(self, error_handling_class, logging_context_class, cloudshell_session_context_class):
+        """Check that method uses ErrorHandlingContext and Autoload operation"""
+        # mock LoggingSessionContext and ErrorHandlingContext
+        logging_context = mock.MagicMock(__enter__=mock.MagicMock(return_value=self.logger))
+        logging_context_class.return_value = logging_context
+        error_handling = mock.MagicMock()
+        error_handling_class.return_value = error_handling
+
+        command_context = mock.MagicMock()
+        cloud_provider_model = mock.MagicMock()
+        self.azure_shell.autoload_operation.get_inventory.return_value = expected_res = mock.MagicMock()
+        self.azure_shell.model_parser.convert_to_cloud_provider_resource_model.return_value = cloud_provider_model
+
+        # Act
+        res = self.azure_shell.get_inventory(command_context=command_context)
+
+        # Verify
+        self.azure_shell.autoload_operation.get_inventory.assert_called_once_with(
+            cloud_provider_model=cloud_provider_model,
+            logger=self.logger)
+
+        self.assertEqual(res, expected_res)
