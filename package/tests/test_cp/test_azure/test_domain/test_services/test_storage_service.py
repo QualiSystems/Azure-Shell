@@ -508,3 +508,21 @@ class TestStorageService(TestCase):
                                                                        storage_name=self.storage_name)
 
         blob_service.delete_blob.assert_called_once_with(container_name=container_name, blob_name=blob_name)
+
+    def test_get_sandbox_storage_account_name(self):
+        storage_client = MagicMock()
+        group_name = "testgroupname"
+        sandbox_storage_account_name = "teststorageaccountname"
+        storage_account = MagicMock()
+        storage_account.name = sandbox_storage_account_name
+        self.storage_service.get_storage_per_resource_group = MagicMock(return_value=[storage_account])
+
+        # Act
+        storage_account_name = self.storage_service.get_sandbox_storage_account_name(
+            storage_client=storage_client,
+            group_name=group_name)
+
+        # Verify
+        self.storage_service.get_storage_per_resource_group.assert_called_once_with(storage_client, group_name)
+        self.assertEqual(storage_account_name, sandbox_storage_account_name)
+

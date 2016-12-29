@@ -13,7 +13,6 @@ class KeyPairService(object):
 
     def __init__(self, storage_service):
         """
-
         :param storage_service: cloudshell.cp.azure.domain.services.storage_service.StorageService instance
         """
         self._storage_service = storage_service
@@ -21,7 +20,8 @@ class KeyPairService(object):
         self._cached_key_pairs = {}
 
     def generate_key_pair(self, key_length=2048):
-        """Generate SSH key pair model
+        """
+        Generate SSH key pair model
 
         :param key_length: (int) SSH key length
         :return: cloudshell.cp.azure.models.ssh_key.SSHKey instance
@@ -35,7 +35,8 @@ class KeyPairService(object):
         return SSHKey(private_key=private_key, public_key=public_key)
 
     def save_key_pair(self, storage_client, group_name, storage_name, key_pair):
-        """Save SSH key pair to the Azure storage
+        """
+        Save SSH key pair to the Azure storage
 
         :param storage_client: azure.mgmt.storage.StorageManagementClient instance
         :param group_name: (str) the name of the resource group on Azure
@@ -62,7 +63,8 @@ class KeyPairService(object):
             file_content=key_pair.private_key)
 
     def get_key_pair(self, storage_client, group_name, storage_name):
-        """Get SSH key pair from the Azure storage
+        """
+        Get SSH key pair from the Azure storage
 
         :param storage_client: azure.mgmt.storage.StorageManagementClient instance
         :param group_name: (str) the name of the resource group on Azure

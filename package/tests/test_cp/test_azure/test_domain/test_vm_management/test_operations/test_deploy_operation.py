@@ -78,25 +78,6 @@ class TestDeployAzureVMOperation(TestCase):
                 cloud_provider_model=cloud_provider_model,
                 subnet_name=subnet_name)
 
-    def test_get_sandbox_storage_account_name(self):
-        """Check that method uses storage service to get storage account name"""
-        storage_client = MagicMock()
-        validator_factory = MagicMock()
-        group_name = "testgroupname"
-        sandbox_storage_account_name = "teststorageaccountname"
-        storage_account = MagicMock()
-        storage_account.name = sandbox_storage_account_name
-        self.deploy_operation.storage_service.get_storage_per_resource_group = MagicMock(return_value=[storage_account])
-
-        # Act
-        storage_account_name = self.deploy_operation._get_sandbox_storage_account_name(
-            storage_client=storage_client,
-            group_name=group_name,
-            validator_factory=validator_factory)
-
-        # Verify
-        self.assertEqual(storage_account_name, sandbox_storage_account_name)
-
     def test_get_public_ip_address(self):
         """Check that method will use network service to get Public IP by it's name"""
         network_client = MagicMock()
@@ -181,7 +162,6 @@ class TestDeployAzureVMOperation(TestCase):
                                      Mock(),
                                      Mock(),
                                      Mock(),
-                                     Mock(),
                                      Mock())
 
         # Verify
@@ -202,7 +182,6 @@ class TestDeployAzureVMOperation(TestCase):
         network_client = MagicMock()
         compute_client = MagicMock()
         storage_client = MagicMock()
-        validator_factory = MagicMock()
         logger = MagicMock()
         cancellation_context = MagicMock()
 
@@ -224,7 +203,6 @@ class TestDeployAzureVMOperation(TestCase):
             network_client=network_client,
             compute_client=compute_client,
             storage_client=storage_client,
-            validator_factory=validator_factory,
             cancellation_context=cancellation_context,
             logger=logger)
 
@@ -236,7 +214,7 @@ class TestDeployAzureVMOperation(TestCase):
         self.deploy_operation._process_nsg_rules.assert_called_once()
         self.deploy_operation._get_public_ip_address.assert_called_once()
         self.deploy_operation._get_sandbox_subnet.assert_called_once()
-        self.deploy_operation._get_sandbox_storage_account_name.assert_called_once()
+        self.deploy_operation.storage_service.get_sandbox_storage_account_name.assert_called_once()
         self.cancellation_service.check_if_cancelled.assert_called_with(cancellation_context)
 
     def test_deploy_from_custom_image_delete_all_resources_on_error(self):
@@ -247,7 +225,6 @@ class TestDeployAzureVMOperation(TestCase):
         network_client = MagicMock()
         compute_client = MagicMock()
         storage_client = MagicMock()
-        validator_factory = MagicMock()
         test_name = "test_generated_name"
         logger = MagicMock()
         cancellation_context = MagicMock()
@@ -268,7 +245,6 @@ class TestDeployAzureVMOperation(TestCase):
                 network_client=network_client,
                 compute_client=compute_client,
                 storage_client=storage_client,
-                validator_factory=validator_factory,
                 cancellation_context=cancellation_context,
                 logger=logger)
 
@@ -356,7 +332,6 @@ class TestDeployAzureVMOperation(TestCase):
                           DeployAzureVMResourceModel(),
                           AzureCloudProviderResourceModel(),
                           reservation,
-                          Mock(),
                           Mock(),
                           Mock(),
                           Mock(),
