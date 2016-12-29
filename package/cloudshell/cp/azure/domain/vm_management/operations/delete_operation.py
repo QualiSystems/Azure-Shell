@@ -71,6 +71,9 @@ class DeleteAzureVMOperation(object):
             result['success'] = False
             result['errorMessage'] = 'CleanupConnectivity ended with the error(s): {}'.format(errors)
 
+        # release the generic lock for reservation in context
+        self.generic_lock_provider.remove_lock_resource(resource_group_name, logger=logger)
+
         return result
 
     def remove_nsg_from_subnet(self, network_client, resource_group_name, cloud_provider_model, logger):

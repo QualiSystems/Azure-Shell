@@ -16,11 +16,15 @@ class AzureShellDriver(ResourceDriverInterface):
     def cleanup(self):
         pass
 
-    def deploy_vm(self, context, request):
-        return self.azure_shell.deploy_azure_vm(command_context=context, deployment_request=request)
+    def deploy_vm(self, context, request, cancellation_context):
+        return self.azure_shell.deploy_azure_vm(command_context=context,
+                                                deployment_request=request,
+                                                cancellation_context=cancellation_context)
 
-    def deploy_vm_from_custom_image(self, context, request):
-        return self.azure_shell.deploy_vm_from_custom_image(command_context=context, deployment_request=request)
+    def deploy_vm_from_custom_image(self, context, request, cancellation_context):
+        return self.azure_shell.deploy_vm_from_custom_image(command_context=context,
+                                                            deployment_request=request,
+                                                            cancellation_context=cancellation_context)
 
     def PowerOn(self, context, ports):
         return self.azure_shell.power_on_vm(context)
@@ -37,8 +41,8 @@ class AzureShellDriver(ResourceDriverInterface):
     def destroy_vm_only(self, context, ports):
         self.azure_shell.delete_azure_vm(command_context=context)
 
-    def PrepareConnectivity(self, context, request):
-        return self.azure_shell.prepare_connectivity(context, request)
+    def PrepareConnectivity(self, context, request, cancellation_context):
+        return self.azure_shell.prepare_connectivity(context, request, cancellation_context)
 
     def CleanupConnectivity(self, context, request):
         return self.azure_shell.cleanup_connectivity(command_context=context)

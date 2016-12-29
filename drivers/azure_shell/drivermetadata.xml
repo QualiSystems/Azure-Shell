@@ -1,13 +1,13 @@
 <Driver Description="This driver orchestrate all the command that will be executed on Azure" MainClass="driver.AzureShellDriver" Name="Azure Shell Driver" Version="1.0.0 ">
     <Layout>
         <Category Name="Deployment">
-            <Command Description="" DisplayName="Deploy VM" Name="deploy_vm" Tags="allow_unreserved" />
-            <Command Description="" DisplayName="Deploy Azure VM From Custom Image" Name="deploy_vm_from_custom_image" Tags="allow_unreserved" />
+            <Command Description="" DisplayName="Deploy VM" EnableCancellation="true" Name="deploy_vm" Tags="allow_unreserved" />
+            <Command Description="" DisplayName="Deploy Azure VM From Custom Image" EnableCancellation="true" Name="deploy_vm_from_custom_image" Tags="allow_unreserved" />
         </Category>
         <Category Name="Connectivity">
             <Command Description="" DisplayName="Refresh IP" EnableCancellation="true" Name="remote_refresh_ip" Tags="remote_connectivity,allow_shared" />
             <Command Description="" DisplayName="Get Application Ports" EnableCancellation="true" Name="GetApplicationPorts" Tags="remote_connectivity,allow_shared" />
-            <Command Description="" DisplayName="Prepare Connectivity" Name="PrepareConnectivity" Tags="allow_unreserved" />
+            <Command Description="" DisplayName="Prepare Connectivity" EnableCancellation="true" Name="PrepareConnectivity" Tags="allow_unreserved" />
             <Command Description="" DisplayName="Cleanup Connectivity" Name="CleanupConnectivity" Tags="allow_unreserved" />
         </Category>
         <Category Name="Hidden Commands">

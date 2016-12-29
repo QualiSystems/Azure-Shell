@@ -11,15 +11,22 @@ from azure.storage.blob import BlockBlobService
 from azure.storage.blob.models import BlobPermissions
 from retrying import retry
 
+from cloudshell.cp.azure.common.exceptions.validation_error import ValidationError
 from cloudshell.cp.azure.common.helpers.retrying_helpers import retry_if_connection_error
 from cloudshell.cp.azure.models.azure_blob_url import AzureBlobUrlModel
 from cloudshell.cp.azure.models.blob_copy_operation import BlobCopyOperationState
+from cloudshell.cp.azure.common.exceptions.cancellation_exception import CancellationException
 
 
 class StorageService(object):
     SAS_TOKEN_EXPIRATION_DAYS = 365
 
-    def __init__(self):
+    def __init__(self, cancellation_service):
+        """
+
+        :param cancellation_service: cloudshell.cp.azure.domain.services.command_cancellation.CommandCancellationService
+        """
+        self.cancellation_service = cancellation_service
         self._account_keys_lock = Lock()
         self._file_services_lock = Lock()
         self._blob_services_lock = Lock()
@@ -48,10 +55,10 @@ class StorageService(object):
         storage_accounts_create = storage_client.storage_accounts.create(group_name,
                                                                          storage_account_name,
                                                                          StorageAccountCreateParameters(
-                                                                             sku=sku,
-                                                                             kind=kind_storage_value,
-                                                                             location=region,
-                                                                             tags=tags),
+                                                                                 sku=sku,
+                                                                                 kind=kind_storage_value,
+                                                                                 location=region,
+                                                                                 tags=tags),
                                                                          raw=False)
         if wait_until_created:
             storage_accounts_create.wait()
@@ -107,9 +114,9 @@ class StorageService(object):
                 file_service = self._cached_file_services.get(cached_key)
                 if file_service is None:
                     account_key = self._get_storage_account_key(
-                        storage_client=storage_client,
-                        group_name=group_name,
-                        storage_name=storage_name)
+                            storage_client=storage_client,
+                            group_name=group_name,
+                            storage_name=storage_name)
 
                     file_service = FileService(account_name=storage_name, account_key=account_key)
                     self._cached_file_services[cached_key] = file_service
@@ -132,9 +139,9 @@ class StorageService(object):
                 blob_service = self._cached_blob_services.get(cached_key)
                 if blob_service is None:
                     account_key = self._get_storage_account_key(
-                        storage_client=storage_client,
-                        group_name=group_name,
-                        storage_name=storage_name)
+                            storage_client=storage_client,
+                            group_name=group_name,
+                            storage_name=storage_name)
 
                     blob_service = BlockBlobService(account_name=storage_name, account_key=account_key)
                     self._cached_blob_services[cached_key] = blob_service
@@ -154,14 +161,14 @@ class StorageService(object):
         :return: azure.storage.file.models.File instance
         """
         file_service = self._get_file_service(
-            storage_client=storage_client,
-            group_name=group_name,
-            storage_name=storage_name)
+                storage_client=storage_client,
+                group_name=group_name,
+                storage_name=storage_name)
 
         azure_file = file_service.get_file_to_bytes(
-            share_name=share_name,
-            directory_name=directory_name,
-            file_name=file_name)
+                share_name=share_name,
+                directory_name=directory_name,
+                file_name=file_name)
 
         return azure_file
 
@@ -180,9 +187,9 @@ class StorageService(object):
         :return:
         """
         file_service = self._get_file_service(
-            storage_client=storage_client,
-            group_name=group_name,
-            storage_name=storage_name)
+                storage_client=storage_client,
+                group_name=group_name,
+                storage_name=storage_name)
 
         file_service.create_share(share_name=share_name, fail_on_exist=False)
         file_service.create_file_from_bytes(share_name=share_name,
@@ -207,18 +214,26 @@ class StorageService(object):
                                  blob_name=blob_name)
 
     @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
-    def _wait_until_blob_copied(self, blob_service, container_name, blob_name, logger, sleep_time=10):
+    def _wait_until_blob_copied(self, blob_service, container_name, blob_name, cancellation_context,
+                                logger, sleep_time=10):
         """Wait until Blob file is copied from one storage to another
 
         :param blob_service: azure.storage.blob.BlockBlobService instance
         :param container_name: (str) container name where Blob was copied
         :param blob_name: (str) Blob name where Blob was copied
+        :param cancellation_context cloudshell.shell.core.driver_context.CancellationContext instance
         :param logger: logging.Logger instance
         :param sleep_time: (int) seconds to wait before check requests
         :return:
         """
         while True:
             blob = blob_service.get_blob_properties(container_name, blob_name)
+
+            try:
+                self.cancellation_service.check_if_cancelled(cancellation_context)
+            except CancellationException:
+                blob_service.abort_copy_blob(container_name, blob_name, blob.properties.copy.id)
+                raise
 
             if blob.properties.copy.status == "success":
                 logger.info("Image was successfully copied to {}/{}".format(container_name, blob_name))
@@ -227,7 +242,7 @@ class StorageService(object):
             elif blob.properties.copy.status in ["aborted", "failed"]:
                 blob_url = blob_service.make_blob_url(container_name, blob_name)
                 logger.error("Image was not copied to {}/{}. Status: {}".format(
-                    container_name, blob_name, blob.properties.copy.status))
+                        container_name, blob_name, blob.properties.copy.status))
 
                 raise Exception("Copying of file {} failed".format(blob_url))
 
@@ -238,7 +253,7 @@ class StorageService(object):
 
     @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def _copy_blob(self, storage_client, group_name_copy_from, group_name_copy_to,
-                   ulr_model_copy_from, url_model_copy_to, logger):
+                   ulr_model_copy_from, url_model_copy_to, cancellation_context, logger):
         """Copy Blob from one storage account to another
 
         :param storage_client: azure.mgmt.storage.StorageManagementClient instance
@@ -246,6 +261,7 @@ class StorageService(object):
         :param group_name_copy_to: (str) resource group where Blob will be copied
         :param ulr_model_copy_from: cloudshell.cp.azure.models.azure_blob_url.AzureBlobUrlModel instance copy from
         :param url_model_copy_to: cloudshell.cp.azure.models.azure_blob_url.AzureBlobUrlModel instance copy to
+        :param cancellation_context cloudshell.shell.core.driver_context.CancellationContext instance
         :param logger: logging.Logger instance
         :return: copied image URL (str) Azure Blob URL
         """
@@ -253,9 +269,9 @@ class StorageService(object):
                                                                          group_name_copy_from))
 
         blob_service_copy_from = self._get_blob_service(
-            storage_client=storage_client,
-            group_name=group_name_copy_from,
-            storage_name=ulr_model_copy_from.storage_name)
+                storage_client=storage_client,
+                group_name=group_name_copy_from,
+                storage_name=ulr_model_copy_from.storage_name)
 
         expiration_date = datetime.now() + timedelta(days=self.SAS_TOKEN_EXPIRATION_DAYS)
 
@@ -263,10 +279,10 @@ class StorageService(object):
                                                                    ulr_model_copy_from.blob_name))
 
         sas_token = blob_service_copy_from.generate_blob_shared_access_signature(
-            container_name=ulr_model_copy_from.container_name,
-            blob_name=ulr_model_copy_from.blob_name,
-            permission=BlobPermissions.READ,
-            expiry=expiration_date)
+                container_name=ulr_model_copy_from.container_name,
+                blob_name=ulr_model_copy_from.blob_name,
+                permission=BlobPermissions.READ,
+                expiry=expiration_date)
 
         copy_source = blob_service_copy_from.make_blob_url(container_name=ulr_model_copy_from.container_name,
                                                            blob_name=ulr_model_copy_from.blob_name,
@@ -276,13 +292,12 @@ class StorageService(object):
                                                                          group_name_copy_to))
 
         blob_service_copy_to = self._get_blob_service(
-            storage_client=storage_client,
-            group_name=group_name_copy_to,
-            storage_name=url_model_copy_to.storage_name)
+                storage_client=storage_client,
+                group_name=group_name_copy_to,
+                storage_name=url_model_copy_to.storage_name)
 
         if not blob_service_copy_to.exists(container_name=url_model_copy_to.container_name,
                                            blob_name=url_model_copy_to.blob_name):
-
             logger.info("Blob {}/{} doesn't exist, start copying".format(url_model_copy_to.container_name,
                                                                          url_model_copy_to.blob_name))
 
@@ -297,12 +312,13 @@ class StorageService(object):
             self._wait_until_blob_copied(blob_service=blob_service_copy_to,
                                          container_name=url_model_copy_to.container_name,
                                          blob_name=url_model_copy_to.blob_name,
+                                         cancellation_context=cancellation_context,
                                          logger=logger)
 
         return blob_service_copy_to.make_blob_url(url_model_copy_to.container_name, url_model_copy_to.blob_name)
 
     def copy_blob(self, storage_client, group_name_copy_to, storage_name_copy_to, container_name_copy_to,
-                  blob_name_copy_to, source_copy_from, group_name_copy_from, logger):
+                  blob_name_copy_to, source_copy_from, group_name_copy_from, cancellation_context, logger):
         """Copy Blob from the given source_copy_from URL
 
         :param storage_client: azure.mgmt.storage.StorageManagementClient instance
@@ -312,6 +328,7 @@ class StorageService(object):
         :param blob_name_copy_to: (str) name for copied Blob file
         :param source_copy_from: (str) Azure Blob URL ("https://someaccount.blob.core.windows.net/container/blobname")
         :param group_name_copy_from: (str) resource group of the copied Blob
+        :param cancellation_context cloudshell.shell.core.driver_context.CancellationContext instance
         :param logging.Logger logger:
         :return: copied image URL (str) Azure Blob URL
         """
@@ -334,30 +351,31 @@ class StorageService(object):
                     }
                     need_to_copy = True
                     logger.info("Image {} is not in cache/copying state. Need to start copying ".format(
-                        source_copy_from))
+                            source_copy_from))
 
                 elif copied_blob["state"] is BlobCopyOperationState.copying:
                     logger.info("Image {} is copying in other operation. Will wait for the result".format(
-                        source_copy_from))
+                            source_copy_from))
 
                     need_to_wait = True
 
             if need_to_wait:
                 while True:
+                    self.cancellation_service.check_if_cancelled(cancellation_context)
                     copied_blob_state = self._cached_copied_blob_urls[copied_blob_key]["state"]
 
                     if copied_blob_state is BlobCopyOperationState.success:
                         logger.info("Image {} copying was successfully completed in another operation".format(
-                            source_copy_from))
+                                source_copy_from))
                         break
 
                     elif copied_blob_state is BlobCopyOperationState.failed:
                         logger.error("Image {} copying was failed in another operation".format(
-                            source_copy_from))
+                                source_copy_from))
                         raise Exception("Blob copying was failed")
 
                     logger.info("Image {} is copying in other operation. Wait for the result...".format(
-                        source_copy_from))
+                            source_copy_from))
 
                     time.sleep(1)
 
@@ -372,6 +390,7 @@ class StorageService(object):
                                                       group_name_copy_to=group_name_copy_to,
                                                       ulr_model_copy_from=ulr_model_copy_from,
                                                       url_model_copy_to=url_model_copy_to,
+                                                      cancellation_context=cancellation_context,
                                                       logger=logger)
                 except Exception:
                     with self._copied_blob_urls_lock:
@@ -406,3 +425,27 @@ class StorageService(object):
                                               storage_name=storage_name)
 
         blob_service.delete_blob(container_name=container_name, blob_name=blob_name)
+
+    def validate_single_storage_account(self, storage_accounts_list):
+        """
+        Validates that there is only 1 storage account in the provided list
+        :param storage_accounts_list:
+        :return:
+        """
+        if not len(storage_accounts_list) == 1:
+            raise ValidationError(
+                    "Sandbox Resource Group should contain only one storage account but found {} storage accounts"
+                    .format(len(storage_accounts_list)))
+
+    def get_sandbox_storage_account_name(self, storage_client, group_name):
+        """
+        Get storage account name for given reservation
+
+        :param azure.mgmt.storage.storage_management_client.StorageManagementClient storage_client:
+        :param str group_name:
+        :return: storage account name
+        :rtype: str
+        """
+        storage_accounts_list = self.get_storage_per_resource_group(storage_client, group_name)
+        self.validate_single_storage_account(storage_accounts_list)
+        return storage_accounts_list[0].name
