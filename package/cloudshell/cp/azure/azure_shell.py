@@ -5,7 +5,6 @@ from cloudshell.core.context.error_handling_context import ErrorHandlingContext
 from cloudshell.cp.azure.common.profiler.profiler import profileit
 from cloudshell.shell.core.session.cloudshell_session import CloudShellSessionContext
 from cloudshell.cp.azure.common.deploy_data_holder import DeployDataHolder
-from cloudshell.cp.azure.common.validtors.factory import ValidatorFactory
 from cloudshell.cp.azure.domain.services.cryptography_service import CryptographyService
 from cloudshell.cp.azure.domain.services.ip_service import IpService
 from cloudshell.cp.azure.domain.services.lock_service import GenericLockProvider
@@ -57,11 +56,9 @@ class AzureShell(object):
         self.vm_service = VirtualMachineService(task_waiter_service=self.task_waiter_service)
         self.generic_lock_provider = GenericLockProvider()
         self.subnet_locker = Lock()
-        self.validator_provider = ValidatorFactory.get_validator()
 
         self.access_key_operation = AccessKeyOperation(key_pair_service=self.key_pair_service,
-                                                       storage_service=self.storage_service,
-                                                       validator_provider=self.validator_provider)
+                                                       storage_service=self.storage_service)
 
         self.prepare_connectivity_operation = PrepareConnectivityOperation(
             vm_service=self.vm_service,
@@ -86,8 +83,7 @@ class AzureShell(object):
             name_provider_service=self.name_provider_service,
             vm_extension_service=self.vm_extension_service,
             cancellation_service=self.cancellation_service,
-            generic_lock_provider=self.generic_lock_provider,
-            validator_provider=self.validator_provider)
+            generic_lock_provider=self.generic_lock_provider)
 
         self.power_vm_operation = PowerAzureVMOperation(vm_service=self.vm_service)
 
