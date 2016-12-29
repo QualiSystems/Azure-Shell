@@ -262,7 +262,6 @@ class DeployAzureVMOperation(object):
                 logger=logger)
 
         self.cancellation_service.check_if_cancelled(cancellation_context)  # TODO: create waiter for VM deployer
-        # TODO: create all blocking operations from operationPollers with some waiter
 
         try:
             # 1. Create network for vm
