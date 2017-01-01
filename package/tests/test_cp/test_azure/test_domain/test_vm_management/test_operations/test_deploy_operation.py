@@ -355,7 +355,6 @@ class TestDeployAzureVMOperation(TestCase):
                                                            interface_name=MagicMock(),
                                                            vm_name=MagicMock(),
                                                            ip_name=MagicMock(),
-                                                           cancellation_context=MagicMock(),
                                                            logger=MagicMock())
 
         # Verify
