@@ -50,4 +50,5 @@ class DeployAzureVMFromCustomImage(ResourceDriverInterface):
                                                     "deploy_vm_from_custom_image",
                                                     self.deployment_helper.get_command_inputs_list(deployment_info),
                                                     False)
-                    return result.Output
+
+                    return self.deployment_helper.process_command_execution_result(logger=logger, result=result)

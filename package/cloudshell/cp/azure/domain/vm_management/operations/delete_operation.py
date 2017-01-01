@@ -1,6 +1,7 @@
 from functools import partial
 from threading import Lock
 
+from azure.mgmt.network.models import VirtualNetwork, Subnet
 from msrestazure.azure_exceptions import CloudError
 
 
@@ -59,8 +60,14 @@ class DeleteAzureVMOperation(object):
                                                 group_name=resource_group_name,
                                                 logger=logger)
 
+        """
+        The order of execution is very important and it should be:
+        1. remove nsg from subnet
+        2. delete resource group
+        3. delete sandbox subnet
+        """
         errors = []
-        for command in (remove_nsg_from_subnet_command, delete_sandbox_subnet_command, delete_resource_group_command):
+        for command in (remove_nsg_from_subnet_command, delete_resource_group_command, delete_sandbox_subnet_command):
             try:
                 command()
             except Exception as e:
@@ -84,9 +91,7 @@ class DeleteAzureVMOperation(object):
         sandbox_virtual_network = self.network_service.get_sandbox_virtual_network(network_client=network_client,
                                                                                    group_name=management_group_name)
 
-        subnet = next((subnet for subnet in sandbox_virtual_network.subnets if subnet.name == resource_group_name),
-                      None)
-
+        subnet = self._find_sandbox_subnet(resource_group_name, sandbox_virtual_network)
         if subnet is None:
             logger.warning("Could not find subnet {} in resource group {} to detach NSG".format(
                 resource_group_name, management_group_name))
@@ -95,7 +100,7 @@ class DeleteAzureVMOperation(object):
         subnet.network_security_group = None
 
         """
-        This call is atomic because we have to sync subnet updating for the entire sandbox vnet
+        # This call is atomic because we have to sync subnet updating for the entire sandbox vnet
         """
         with self.subnet_locker:
             logger.info("Updating subnet {} with NSG set to null".format(subnet.name))
@@ -115,8 +120,7 @@ class DeleteAzureVMOperation(object):
             network_client=network_client,
             group_name=cloud_provider_model.management_group_name)
 
-        subnet = next((subnet for subnet in sandbox_virtual_network.subnets if subnet.name == resource_group_name),
-                      None)
+        subnet = self._find_sandbox_subnet(resource_group_name, sandbox_virtual_network)
 
         if subnet is None:
             logger.warning("Could not find subnet {} in resource group {} to delete it".format(
@@ -129,8 +133,19 @@ class DeleteAzureVMOperation(object):
                                                group_name=cloud_provider_model.management_group_name,
                                                vnet_name=sandbox_virtual_network.name,
                                                subnet_name=subnet.name)
-
             logger.info("Deleted subnet {}".format(subnet.name))
+
+    def _find_sandbox_subnet(self, resource_group_name, sandbox_virtual_network):
+        """
+        find the sandbox subnet in the vnet
+        :param str resource_group_name:
+        :param VirtualNetwork sandbox_virtual_network:
+        :return:
+        :rtype: Subnet
+        """
+        subnet = next((subnet for subnet in sandbox_virtual_network.subnets if subnet.name == resource_group_name),
+                      None)
+        return subnet
 
     def _delete_security_rules(self, network_client, group_name, vm_name, logger):
         """

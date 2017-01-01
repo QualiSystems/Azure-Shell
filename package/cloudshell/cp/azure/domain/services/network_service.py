@@ -1,5 +1,6 @@
 import azure
-from azure.mgmt.network.models import NetworkInterface, NetworkInterfaceIPConfiguration, IPAllocationMethod
+from azure.mgmt.network.models import NetworkInterface, NetworkInterfaceIPConfiguration, IPAllocationMethod, \
+    VirtualNetwork
 from retrying import retry
 
 from cloudshell.cp.azure.common.helpers.retrying_helpers import retry_if_connection_error
@@ -49,12 +50,12 @@ class NetworkService(object):
         public_ip_address = None
         if add_public_ip:
             public_ip_address = self._create_public_ip(
-                network_client=network_client,
-                region=region,
-                group_name=group_name,
-                ip_name=ip_name,
-                public_ip_type=public_ip_type,
-                tags=tags)
+                    network_client=network_client,
+                    region=region,
+                    group_name=group_name,
+                    ip_name=ip_name,
+                    public_ip_type=public_ip_type,
+                    tags=tags)
 
         # 2. Create NIC
         return self.create_nic(interface_name,
@@ -101,21 +102,21 @@ class NetworkService(object):
                                                                           logger)
 
         operation_poller = network_client.network_interfaces.create_or_update(
-            group_name,
-            interface_name,
-            NetworkInterface(
-                location=region,
-                ip_configurations=[
-                    NetworkInterfaceIPConfiguration(
-                        name='default',
-                        private_ip_allocation_method=private_ip_allocation_method,
-                        subnet=subnet,
-                        private_ip_address=private_ip_address,
-                        public_ip_address=public_ip_address,
-                    ),
-                ],
-                tags=tags
-            ),
+                group_name,
+                interface_name,
+                NetworkInterface(
+                        location=region,
+                        ip_configurations=[
+                            NetworkInterfaceIPConfiguration(
+                                    name='default',
+                                    private_ip_allocation_method=private_ip_allocation_method,
+                                    subnet=subnet,
+                                    private_ip_address=private_ip_address,
+                                    public_ip_address=public_ip_address,
+                            ),
+                        ],
+                        tags=tags
+                ),
         )
 
         return operation_poller.result()
@@ -135,14 +136,14 @@ class NetworkService(object):
         public_ip_allocation_method = self._get_ip_allocation_type(public_ip_type)
 
         operation_poller = network_client.public_ip_addresses.create_or_update(
-            group_name,
-            ip_name,
-            azure.mgmt.network.models.PublicIPAddress(
-                location=region,
-                public_ip_allocation_method=public_ip_allocation_method,
-                idle_timeout_in_minutes=4,
-                tags=tags
-            ),
+                group_name,
+                ip_name,
+                azure.mgmt.network.models.PublicIPAddress(
+                        location=region,
+                        public_ip_allocation_method=public_ip_allocation_method,
+                        idle_timeout_in_minutes=4,
+                        tags=tags
+                ),
         )
 
         return operation_poller.result()
@@ -194,8 +195,8 @@ class NetworkService(object):
                                                                    virtual_network.name,
                                                                    subnet_name,
                                                                    azure.mgmt.network.models.Subnet(
-                                                                       address_prefix=subnet_cidr,
-                                                                       network_security_group=network_security_group))
+                                                                           address_prefix=subnet_cidr,
+                                                                           network_security_group=network_security_group))
 
         if wait_for_result:
             return operation_poller.result()
@@ -240,25 +241,25 @@ class NetworkService(object):
         :return:
         """
         result = network_client.virtual_networks.create_or_update(
-            management_group_name,
-            network_name,
-            azure.mgmt.network.models.VirtualNetwork(
-                location=region,
-                tags=tags,
-                address_space=azure.mgmt.network.models.AddressSpace(
-                    address_prefixes=[
-                        vnet_cidr,
-                    ],
+                management_group_name,
+                network_name,
+                azure.mgmt.network.models.VirtualNetwork(
+                        location=region,
+                        tags=tags,
+                        address_space=azure.mgmt.network.models.AddressSpace(
+                                address_prefixes=[
+                                    vnet_cidr,
+                                ],
+                        ),
+                        subnets=[
+                            azure.mgmt.network.models.Subnet(
+                                    network_security_group=network_security_group,
+                                    name=subnet_name,
+                                    address_prefix=subnet_cidr,
+                            ),
+                        ],
                 ),
-                subnets=[
-                    azure.mgmt.network.models.Subnet(
-                        network_security_group=network_security_group,
-                        name=subnet_name,
-                        address_prefix=subnet_cidr,
-                    ),
-                ],
-            ),
-            tags=tags
+                tags=tags
         )
         result.wait()
         subnet = network_client.subnets.get(management_group_name, network_name, subnet_name)
@@ -330,15 +331,22 @@ class NetworkService(object):
     @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def get_virtual_networks(self, network_client, group_name):
         """
-
         :param azure.mgmt.network.network_management_client.NetworkManagementClient network_client:
-        :param group_name:
-        :return:
+        :param str group_name:
+        :return: list of vNets in group
+        :rtype: list[VirtualNetwork]
         """
         networks_list = network_client.virtual_networks.list(group_name)
         return list(networks_list)
 
     def get_sandbox_virtual_network(self, network_client, group_name):
+        """
+        :param azure.mgmt.network.network_management_client.NetworkManagementClient network_client:
+        :param str group_name:
+        :return:
+        :rtype: VirtualNetwork
+        """
+
         virtual_networks = self.get_virtual_networks(network_client=network_client,
                                                      group_name=group_name)
 
@@ -347,8 +355,13 @@ class NetworkService(object):
                                                tag_value=NetworkService.SANDBOX_NETWORK_TAG_VALUE)
 
     def get_virtual_network_by_tag(self, virtual_networks, tag_key, tag_value):
-
+        """
+        :param list[VirtualNetwork] virtual_networks:
+        :param str tag_key:
+        :param str tag_value:
+        :return:
+        """
         return next((network for network in virtual_networks
                      if network and self.tags_service.try_find_tag(
-                         tags_list=network.tags, tag_key=tag_key) == tag_value),
+                        tags_list=network.tags, tag_key=tag_key) == tag_value),
                     None)
