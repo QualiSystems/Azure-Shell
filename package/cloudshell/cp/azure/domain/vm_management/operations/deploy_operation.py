@@ -106,9 +106,11 @@ class DeployAzureVMOperation(object):
             raise Exception("Could not find a valid subnet.")
 
     def _rollback_deployed_resources(self, compute_client, network_client, group_name, interface_name, vm_name,
-                                     ip_name, cancellation_context, logger):
+                                     ip_name, logger):
         """
-        Remove all created resources by Deploy VM operation on any Exception
+        Remove all created resources by Deploy VM operation on any Exception.
+        This method doesnt support cancellation because full cleanup is mandatory for successful deletion of subnet
+        during cleanup-connectivity.
 
         :param compute_client: azure.mgmt.compute.compute_management_client.ComputeManagementClient
         :param network_client: azure.mgmt.network.network_management_client.NetworkManagementClient instance
@@ -124,14 +126,10 @@ class DeployAzureVMOperation(object):
                                   group_name=group_name,
                                   vm_name=vm_name)
 
-        self.cancellation_service.check_if_cancelled(cancellation_context)
-
         logger.info("Delete NIC {} ".format(interface_name))
         self.network_service.delete_nic(network_client=network_client,
                                         group_name=group_name,
                                         interface_name=interface_name)
-
-        self.cancellation_service.check_if_cancelled(cancellation_context)
 
         logger.info("Delete IP {} ".format(ip_name))
         self.network_service.delete_ip(network_client=network_client,
