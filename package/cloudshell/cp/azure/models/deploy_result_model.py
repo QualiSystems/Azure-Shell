@@ -1,14 +1,11 @@
 class DeployResult(object):
-    def __init__(self, vm_name, vm_uuid, cloud_provider_resource_name, autoload, auto_delete,
-                 auto_power_off, inbound_ports, deployed_app_attributes,
-                 deployed_app_address, public_ip, resource_group):
+    def __init__(self, vm_name, vm_uuid, cloud_provider_resource_name, autoload,
+                 inbound_ports, deployed_app_attributes, deployed_app_address,
+                 public_ip, resource_group):
         """
         :param str vm_name: The name of the virtual machine
         :param uuid uuid: The UUID
         :param str cloud_provider_resource_name: The Cloud Provider resource name
-        :param boolean auto_power_off:
-        :param boolean wait_for_ip: issue 285: "wait for IP" should be always set to false in the deploy result
-        :param boolean auto_delete:
         :param boolean autoload:
         :param str inbound_ports:
         :param [dict] deployed_app_attributes:
@@ -22,9 +19,9 @@ class DeployResult(object):
         self.vm_name = vm_name
         self.vm_uuid = vm_uuid
         self.cloud_provider_resource_name = cloud_provider_resource_name
-        self.auto_power_off = auto_power_off
+        self.auto_power_off = False
         self.wait_for_ip = False
-        self.auto_delete = auto_delete
+        self.auto_delete = False
         self.autoload = autoload
         self.deployed_app_attributes = deployed_app_attributes
         self.deployed_app_address = deployed_app_address

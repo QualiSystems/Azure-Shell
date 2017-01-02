@@ -1,5 +1,11 @@
 from cloudshell.cp.azure.models.deploy_result_model import DeployResult
 from cloudshell.cp.azure.domain.services.parsers.rules_attribute_parser import RulesAttributeParser
+from cloudshell.cp.azure.models.reservation_model import ReservationModel
+from cloudshell.cp.azure.models.deploy_azure_vm_resource_models import \
+    DeployAzureVMFromCustomImageResourceModel, BaseDeployAzureVMResourceModel, DeployAzureVMResourceModel
+from cloudshell.cp.azure.models.azure_cloud_provider_resource_model import AzureCloudProviderResourceModel
+from azure.mgmt.network.models import Subnet
+from azure.mgmt.compute.models import OperatingSystemTypes
 
 
 class DeployAzureVMOperation(object):
@@ -96,7 +102,7 @@ class DeployAzureVMOperation(object):
         """
         sandbox_virtual_network = self.network_service.get_sandbox_virtual_network(
                 network_client=network_client,
-            	group_name=cloud_provider_model.management_group_name)
+                group_name=cloud_provider_model.management_group_name)
 
         try:
             return next(subnet for subnet in sandbox_virtual_network.subnets if subnet.name == subnet_name)
@@ -174,8 +180,8 @@ class DeployAzureVMOperation(object):
         """
         Prepare Azure VM Size
 
-        :param azure_vm_deployment_model: deploy_azure_vm_resource_models.BaseDeployAzureVMResourceModel
-        :param cloud_provider_model: cloudshell.cp.azure.models.azure_cloud_provider_resource_model.AzureCloudProviderResourceModel
+        :param BaseDeployAzureVMResourceModel azure_vm_deployment_model:
+        :param AzureCloudProviderResourceModel cloud_provider_model:
         :return: (str) Azure VM Size
         """
         vm_size = azure_vm_deployment_model.vm_size or cloud_provider_model.vm_size
@@ -194,7 +200,7 @@ class DeployAzureVMOperation(object):
         :param azure.mgmt.storage.storage_management_client.StorageManagementClient storage_client:
         :param azure.mgmt.compute.compute_management_client.ComputeManagementClient compute_client:
         :param azure.mgmt.network.network_management_client.NetworkManagementClient network_client:
-        :param reservation: cloudshell.cp.azure.models.reservation_model.ReservationModel
+        :param cloudshell.cp.azure.models.reservation_model.ReservationModel reservation:
         :param cloudshell.cp.azure.models.deploy_azure_vm_resource_models.DeployAzureVMFromCustomImageResourceModel azure_vm_deployment_model:
         :param cloudshell.cp.azure.models.azure_cloud_provider_resource_model.AzureCloudProviderResourceModel cloud_provider_model:cloud provider
         :param logging.Logger logger:
@@ -347,7 +353,6 @@ class DeployAzureVMOperation(object):
                                               interface_name=interface_name,
                                               vm_name=vm_name,
                                               ip_name=ip_name,
-                                              cancellation_context=cancellation_context,
                                               logger=logger)
 
             raise
@@ -369,8 +374,6 @@ class DeployAzureVMOperation(object):
         return DeployResult(vm_name=vm_name,
                             vm_uuid=result_create.vm_id,
                             cloud_provider_resource_name=azure_vm_deployment_model.cloud_provider,
-                            auto_power_off=True,
-                            auto_delete=True,
                             autoload=azure_vm_deployment_model.autoload,
                             inbound_ports=azure_vm_deployment_model.inbound_ports,
                             deployed_app_attributes=deployed_app_attributes,
@@ -378,14 +381,14 @@ class DeployAzureVMOperation(object):
                             public_ip=public_ip_address,
                             resource_group=reservation_id)
 
-    def deploy(self, azure_vm_deployment_model,
-               cloud_provider_model,
-               reservation,
-               network_client,
-               compute_client,
-               storage_client,
-               cancellation_context,
-               logger):
+    def deploy_from_marketplace(self, azure_vm_deployment_model,
+                                cloud_provider_model,
+                                reservation,
+                                network_client,
+                                compute_client,
+                                storage_client,
+                                cancellation_context,
+                                logger):
         """
         :param cancellation_context:
         :param azure.mgmt.storage.storage_management_client.StorageManagementClient storage_client:
@@ -398,40 +401,8 @@ class DeployAzureVMOperation(object):
         :return:
         """
         logger.info("Start Deploy Azure VM operation")
-        reservation_id = reservation.reservation_id
-        app_name = azure_vm_deployment_model.app_name.replace(" ", "")
-        resource_name = app_name
-        base_name = resource_name
-        random_name = self.name_provider_service.generate_name(base_name)
-        group_name = str(reservation_id)
-        interface_name = random_name
-        ip_name = random_name
-        computer_name = self._prepare_computer_name(random_name)
-        vm_name = random_name
 
-        self._validate_deployment_model(azure_vm_deployment_model)
-
-        vm_size = self._prepare_vm_size(azure_vm_deployment_model=azure_vm_deployment_model,
-                                        cloud_provider_model=cloud_provider_model)
-
-        logger.info("Retrieve sandbox subnet {}".format(group_name))
-        subnet = self._get_sandbox_subnet(network_client=network_client,
-                                          cloud_provider_model=cloud_provider_model,
-                                          subnet_name=group_name,
-                                          logger=logger)
-
-        self.cancellation_service.check_if_cancelled(cancellation_context)
-
-        logger.info("Retrieve sandbox storage account name by resource group {}".format(group_name))
-        storage_account_name = self.storage_service.get_sandbox_storage_account_name(storage_client=storage_client,
-                                                                                     group_name=group_name)
-
-        self.cancellation_service.check_if_cancelled(cancellation_context)
-
-        tags = self.tags_service.get_tags(vm_name, resource_name, subnet.name, reservation)
-        logger.info("Tags for the VM {}".format(tags))
-
-        logger.info("Retrieve operation system type for the VM Image {}:{}:{}".format(
+        logger.info("Retrieving operation system type for the VM Image {}:{}:{}".format(
                 azure_vm_deployment_model.image_publisher,
                 azure_vm_deployment_model.image_offer,
                 azure_vm_deployment_model.image_sku))
@@ -443,19 +414,21 @@ class DeployAzureVMOperation(object):
                 offer=azure_vm_deployment_model.image_offer,
                 skus=azure_vm_deployment_model.image_sku)
 
-        self.cancellation_service.check_if_cancelled(cancellation_context)
-
         os_type = virtual_machine_image.os_disk_image.operating_system
 
         logger.info("Operation system type for the VM is {}".format(os_type))
 
-        if azure_vm_deployment_model.extension_script_file:
-            self.vm_extension_service.validate_script_extension(
-                    image_os_type=os_type,
-                    script_file=azure_vm_deployment_model.extension_script_file,
-                    script_configurations=azure_vm_deployment_model.extension_script_configurations)
+        self.cancellation_service.check_if_cancelled(cancellation_context)
 
-            self.cancellation_service.check_if_cancelled(cancellation_context)
+        data = self._prepare_deploy_data(logger=logger,
+                                         reservation=reservation,
+                                         deployment_model=azure_vm_deployment_model,
+                                         cloud_provider_model=cloud_provider_model,
+                                         network_client=network_client,
+                                         storage_client=storage_client,
+                                         os_type=os_type)
+
+        self.cancellation_service.check_if_cancelled(cancellation_context)
 
         try:
             # 1. Create network for vm
@@ -538,14 +511,13 @@ class DeployAzureVMOperation(object):
             logger.info("VM Custom Script Extension for VM {} was successfully deployed".format(vm_name))
 
         except Exception:
-            logger.exception("Failed to deploy VM. Error:")
+            logger.exception("Failed to deploy VM from marketplace. Error:")
             self._rollback_deployed_resources(compute_client=compute_client,
                                               network_client=network_client,
                                               group_name=group_name,
                                               interface_name=interface_name,
                                               vm_name=vm_name,
                                               ip_name=ip_name,
-                                              cancellation_context=cancellation_context,
                                               logger=logger)
             raise
 
@@ -566,8 +538,6 @@ class DeployAzureVMOperation(object):
         return DeployResult(vm_name=vm_name,
                             vm_uuid=result_create.vm_id,
                             cloud_provider_resource_name=azure_vm_deployment_model.cloud_provider,
-                            auto_power_off=True,
-                            auto_delete=True,
                             autoload=azure_vm_deployment_model.autoload,
                             inbound_ports=azure_vm_deployment_model.inbound_ports,
                             deployed_app_attributes=deployed_app_attributes,
@@ -575,9 +545,19 @@ class DeployAzureVMOperation(object):
                             public_ip=public_ip_address,
                             resource_group=reservation_id)
 
-    def _validate_deployment_model(self, vm_deployment_model):
+    def _validate_deployment_model(self, vm_deployment_model, os_type):
+        """
+        :param BaseDeployAzureVMResourceModel vm_deployment_model:
+        :param OperatingSystemTypes image_os_type: (enum) windows/linux value os_type
+        """
         if vm_deployment_model.inbound_ports and not vm_deployment_model.add_public_ip:
             raise Exception('"Inbound Ports" attribute must be empty when "Add Public IP" is false')
+
+        if vm_deployment_model.extension_script_file:
+            self.vm_extension_service.validate_script_extension(
+                    image_os_type=os_type,
+                    script_file=vm_deployment_model.extension_script_file,
+                    script_configurations=vm_deployment_model.extension_script_configurations)
 
     def _validate_resource_is_single_per_group(self, resources_list, group_name, resource_name):
         if len(resources_list) > 1:
@@ -598,3 +578,66 @@ class DeployAzureVMOperation(object):
         deployed_app_attr = {'Password': admin_password, 'User': admin_username, 'Public IP': public_ip}
 
         return deployed_app_attr
+
+    def _prepare_deploy_data(self, logger, reservation, deployment_model, cloud_provider_model,
+                             network_client, storage_client, os_type):
+        """
+        :param logging.Logger logger:
+        :param ReservationModel reservation:
+        :param BaseDeployAzureVMResourceModel deployment_model:
+        :param AzureCloudProviderResourceModel cloud_provider_model: cloud provider
+        :param azure.mgmt.network.network_management_client.NetworkManagementClient network_client:
+        :param azure.mgmt.storage.storage_management_client.StorageManagementClient storage_client:
+        :param OperatingSystemTypes os_type: (enum) windows/linux value os_type
+        :return:
+        :rtype: self.DeployDataModel
+        """
+        self._validate_deployment_model(vm_deployment_model=deployment_model, os_type=os_type)
+
+        data = self.DeployDataModel()
+
+        data.reservation_id = str(reservation.reservation_id)
+        data.group_name = str(reservation.reservation_id)
+        data.os_type = os_type
+
+        # normalize the app name to a valid Azure vm name
+        data.app_name = deployment_model.app_name.lower().replace(" ", "")
+
+        random_name = self.name_provider_service.generate_name(data.app_name)
+        data.interface_name = random_name
+        data.ip_name = random_name
+        data.computer_name = self._prepare_computer_name(random_name)
+        data.vm_name = random_name
+
+        data.vm_size = self._prepare_vm_size(azure_vm_deployment_model=deployment_model,
+                                             cloud_provider_model=cloud_provider_model)
+
+        logger.info("Retrieve sandbox subnet {}".format(data.group_name))
+        data.subnet = self._get_sandbox_subnet(network_client=network_client,
+                                               cloud_provider_model=cloud_provider_model,
+                                               subnet_name=data.group_name,
+                                               logger=logger)
+
+        logger.info("Retrieve sandbox storage account name by resource group {}".format(data.group_name))
+        data.storage_account_name = self.storage_service.get_sandbox_storage_account_name(storage_client=storage_client,
+                                                                                          group_name=data.group_name)
+
+        data.tags = self.tags_service.get_tags(vm_name=data.vm_name, reservation=reservation)
+        logger.info("Tags for the VM {}".format(data.tags))
+
+        return data
+
+    class DeployDataModel(object):
+        def __init__(self):
+            self.reservation_id = ''  # type: str
+            self.app_name = ''  # type: str
+            self.group_name = ''  # type: str
+            self.interface_name = ''  # type: str
+            self.ip_name = ''  # type: str
+            self.computer_name = ''  # type: str
+            self.vm_name = ''  # type: str
+            self.vm_size = ''  # type: str
+            self.subnet = None  # type: Subnet
+            self.storage_account_name = ''  # type: str
+            self.tags = {}  # type: dict
+            self.os_type = ''  # type: str

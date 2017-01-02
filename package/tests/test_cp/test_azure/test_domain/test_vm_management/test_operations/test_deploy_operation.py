@@ -154,14 +154,14 @@ class TestDeployAzureVMOperation(TestCase):
 
         # Act
 
-        self.deploy_operation.deploy(resource_model,
-                                     AzureCloudProviderResourceModel(),
-                                     reservation,
-                                     self.network_client,
-                                     Mock(),
-                                     Mock(),
-                                     Mock(),
-                                     Mock())
+        self.deploy_operation.deploy_from_marketplace(resource_model,
+                                                      AzureCloudProviderResourceModel(),
+                                                      reservation,
+                                                      self.network_client,
+                                                      Mock(),
+                                                      Mock(),
+                                                      Mock(),
+                                                      Mock())
 
         # Verify
         self.vm_service.get_virtual_machine_image.assert_called_once()
@@ -272,7 +272,7 @@ class TestDeployAzureVMOperation(TestCase):
 
         # Act 1
         self.assertRaises(Exception,
-                          self.deploy_operation.deploy,
+                          self.deploy_operation.deploy_from_marketplace,
                           DeployAzureVMResourceModel(),
                           AzureCloudProviderResourceModel(),
                           Mock(),
@@ -287,7 +287,7 @@ class TestDeployAzureVMOperation(TestCase):
 
         # Act 2
         self.assertRaises(Exception,
-                          self.deploy_operation.deploy,
+                          self.deploy_operation.deploy_from_marketplace,
                           DeployAzureVMResourceModel(),
                           AzureCloudProviderResourceModel(),
                           Mock(),
@@ -327,7 +327,7 @@ class TestDeployAzureVMOperation(TestCase):
 
         # Act
         self.assertRaises(Exception,
-                          self.deploy_operation.deploy,
+                          self.deploy_operation.deploy_from_marketplace,
                           DeployAzureVMResourceModel(),
                           AzureCloudProviderResourceModel(),
                           reservation,

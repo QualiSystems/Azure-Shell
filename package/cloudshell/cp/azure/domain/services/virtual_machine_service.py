@@ -5,7 +5,7 @@ from azure.mgmt.compute.models.linux_configuration import LinuxConfiguration
 from azure.mgmt.compute.models.ssh_configuration import SshConfiguration
 from azure.mgmt.resource.resources.models import ResourceGroup
 from azure.mgmt.compute.models.ssh_public_key import SshPublicKey
-from azure.mgmt.compute.models import OperatingSystemTypes
+from azure.mgmt.compute.models import OperatingSystemTypes, VirtualMachineImage
 from retrying import retry
 
 from cloudshell.cp.azure.common.helpers.retrying_helpers import retry_if_connection_error
@@ -335,7 +335,8 @@ class VirtualMachineService(object):
         :param publisher_name: (str) Azure publisher name
         :param offer: (str) Azure Image offer
         :param skus: (str) Azure Image SKU
-        :return: (enum) azure.mgmt.compute.models.OperatingSystemTypes windows/linux value
+        :return: Virtual Machine Image
+        :rtype: VirtualMachineImage
         """
         # get last version first (required for the virtual machine images GET Api)
         image_resources = compute_management_client.virtual_machine_images.list(

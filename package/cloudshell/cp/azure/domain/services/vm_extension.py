@@ -18,7 +18,7 @@ class VMExtensionService(object):
     def validate_script_extension(self, image_os_type, script_file, script_configurations):
         """Validate that script extension name and configuration are valid
 
-        :param image_os_type: (enum) azure.mgmt.compute.models.OperatingSystemTypes windows/linux value
+        :param OperatingSystemTypes image_os_type: (enum) windows/linux value
         :param script_file: (str) path to the script file(s) that will be downloaded to the virtual machine
         :param script_configurations: (str) additional information for the extension execution
         :return:

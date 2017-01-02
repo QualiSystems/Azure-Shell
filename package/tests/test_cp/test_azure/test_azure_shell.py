@@ -72,7 +72,7 @@ class TestAzureShell(TestCase):
         # Verify
         error_handling.__enter__.assert_called_once_with()
         error_handling_class.assert_called_once_with(self.logger)
-        self.azure_shell.deploy_azure_vm_operation.deploy.assert_called_once_with(
+        self.azure_shell.deploy_azure_vm_operation.deploy_from_marketplace.assert_called_once_with(
             azure_vm_deployment_model=azure_vm_deployment_model,
             cloud_provider_model=cloud_provider_model,
             reservation=reservation,

@@ -149,7 +149,7 @@ class AzureShell(object):
 
                 azure_clients = AzureClientsManager(cloud_provider_model)
 
-                deploy_data = self.deploy_azure_vm_operation.deploy(
+                deploy_data = self.deploy_azure_vm_operation.deploy_from_marketplace(
                         azure_vm_deployment_model=azure_vm_deployment_model,
                         cloud_provider_model=cloud_provider_model,
                         reservation=self.model_parser.convert_to_reservation_model(command_context.reservation),
