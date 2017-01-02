@@ -255,7 +255,6 @@ class TestDeployAzureVMOperation(TestCase):
             ip_name=test_name,
             network_client=network_client,
             vm_name=test_name,
-            cancellation_context=cancellation_context,
             logger=logger)
 
     def test_deploy_operation_virtual_networks_validation(self):
