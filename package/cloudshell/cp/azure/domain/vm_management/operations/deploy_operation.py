@@ -347,7 +347,6 @@ class DeployAzureVMOperation(object):
                                               interface_name=interface_name,
                                               vm_name=vm_name,
                                               ip_name=ip_name,
-                                              cancellation_context=cancellation_context,
                                               logger=logger)
 
             raise
@@ -545,7 +544,6 @@ class DeployAzureVMOperation(object):
                                               interface_name=interface_name,
                                               vm_name=vm_name,
                                               ip_name=ip_name,
-                                              cancellation_context=cancellation_context,
                                               logger=logger)
             raise
 
