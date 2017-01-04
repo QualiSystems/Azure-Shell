@@ -325,19 +325,19 @@ class DeployAzureVMOperation(object):
             # 5. Create VM Extension
             logger.info("Processing VM Custom Script Extension for VM {}".format(vm_name))
             if azure_vm_deployment_model.extension_script_file:
-                self.vm_extension_service.create_script_extension(
-                        compute_client=compute_client,
-                        location=cloud_provider_model.region,
-                        group_name=group_name,
-                        vm_name=vm_name,
-                        image_os_type=image_os_type,
-                        script_file=azure_vm_deployment_model.extension_script_file,
-                        script_configurations=azure_vm_deployment_model.extension_script_configurations,
-                        tags=tags)
+                self.vm_extension_service.create_script_extension(compute_client=compute_client,
+                                                                              location=cloud_provider_model.region,
+                                                                              group_name=group_name, vm_name=vm_name,
+                                                                              image_os_type=image_os_type,
+                                                                              script_file=azure_vm_deployment_model.extension_script_file,
+                                                                              script_configurations=azure_vm_deployment_model.extension_script_configurations,
+                                                                              tags=tags)
 
                 self.cancellation_service.check_if_cancelled(cancellation_context)
 
-            logger.info("VM Custom Script Extension for VM {} was successfully deployed".format(vm_name))
+                logger.info("VM Custom Script Extension for VM {} was successfully deployed".format(vm_name))
+
+
 
         except Exception:
             logger.exception("Failed to deploy VM From custom Image. Error:")
