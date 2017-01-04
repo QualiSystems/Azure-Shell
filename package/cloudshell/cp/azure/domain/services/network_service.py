@@ -38,7 +38,7 @@ class NetworkService(object):
         :param region:
         :param subnet:
         :param tags:
-        :return:
+        :rtype: NetworkInterface
         """
 
         region = cloud_provider_model.region

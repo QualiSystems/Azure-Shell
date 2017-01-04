@@ -1,11 +1,13 @@
 import jsonpickle
 from threading import Lock
 
+from cloudshell.shell.core.driver_context import ResourceCommandContext, CancellationContext
 from cloudshell.core.context.error_handling_context import ErrorHandlingContext
 from cloudshell.cp.azure.common.profiler.profiler import profileit
 from cloudshell.shell.core.session.cloudshell_session import CloudShellSessionContext
 from cloudshell.cp.azure.common.deploy_data_holder import DeployDataHolder
 from cloudshell.cp.azure.domain.services.cryptography_service import CryptographyService
+from cloudshell.cp.azure.domain.services.image_data import ImageDataFactory
 from cloudshell.cp.azure.domain.services.ip_service import IpService
 from cloudshell.cp.azure.domain.services.lock_service import GenericLockProvider
 from cloudshell.cp.azure.domain.services.tags import TagService
@@ -57,13 +59,13 @@ class AzureShell(object):
         self.vm_service = VirtualMachineService(task_waiter_service=self.task_waiter_service)
         self.generic_lock_provider = GenericLockProvider()
         self.subnet_locker = Lock()
+        self.image_data_factory = ImageDataFactory(vm_service=self.vm_service)
 
         self.autoload_operation = AutoloadOperation(vm_service=self.vm_service,
                                                     network_service=self.network_service)
                                                     
         self.access_key_operation = AccessKeyOperation(key_pair_service=self.key_pair_service,
                                                        storage_service=self.storage_service)
-
 
         self.prepare_connectivity_operation = PrepareConnectivityOperation(
                 vm_service=self.vm_service,
@@ -88,7 +90,8 @@ class AzureShell(object):
                 name_provider_service=self.name_provider_service,
                 vm_extension_service=self.vm_extension_service,
                 cancellation_service=self.cancellation_service,
-                generic_lock_provider=self.generic_lock_provider)
+                generic_lock_provider=self.generic_lock_provider,
+                image_data_factory=self.image_data_factory)
 
         self.power_vm_operation = PowerAzureVMOperation(vm_service=self.vm_service)
 
@@ -128,11 +131,11 @@ class AzureShell(object):
                     return result
 
     def deploy_azure_vm(self, command_context, deployment_request, cancellation_context):
-        """Will deploy Azure Image on the cloud provider
+        """ Will deploy Azure Image on the cloud provider
 
-        :param command_context: ResourceCommandContext instance
-        :param deployment_request: (str) JSON string
-        :param cancellation_context cloudshell.shell.core.driver_context.CancellationContext instance
+        :param ResourceCommandContext command_context:
+        :param str deployment_request: JSON string
+        :param CancellationContext cancellation_context:
         """
         with LoggingSessionContext(command_context) as logger:
             with ErrorHandlingContext(logger):
@@ -150,7 +153,7 @@ class AzureShell(object):
                 azure_clients = AzureClientsManager(cloud_provider_model)
 
                 deploy_data = self.deploy_azure_vm_operation.deploy_from_marketplace(
-                        azure_vm_deployment_model=azure_vm_deployment_model,
+                        deployment_model=azure_vm_deployment_model,
                         cloud_provider_model=cloud_provider_model,
                         reservation=self.model_parser.convert_to_reservation_model(command_context.reservation),
                         network_client=azure_clients.network_client,
@@ -165,9 +168,9 @@ class AzureShell(object):
     def deploy_vm_from_custom_image(self, command_context, deployment_request, cancellation_context):
         """Deploy Azure Image from given Image URN
 
-        :param command_context: ResourceCommandContext instance
-        :param deployment_request: (str) JSON string
-        :param cancellation_context cloudshell.shell.core.driver_context.CancellationContext instance
+        :param ResourceCommandContext command_context: ResourceCommandContext instance
+        :param str deployment_request: (str) JSON string
+        :param CancellationContext cancellation_context:
         :return:
         """
         with LoggingSessionContext(command_context) as logger:
@@ -187,7 +190,7 @@ class AzureShell(object):
                 azure_clients = AzureClientsManager(cloud_provider_model)
 
                 deploy_data = self.deploy_azure_vm_operation.deploy_from_custom_image(
-                        azure_vm_deployment_model=azure_vm_deployment_model,
+                        deployment_model=azure_vm_deployment_model,
                         cloud_provider_model=cloud_provider_model,
                         reservation=self.model_parser.convert_to_reservation_model(command_context.reservation),
                         network_client=azure_clients.network_client,

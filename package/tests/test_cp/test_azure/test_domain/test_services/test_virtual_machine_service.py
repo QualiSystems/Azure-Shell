@@ -78,22 +78,22 @@ class TestVirtualMachineService(TestCase):
         plan = Plan(name=image_sku, publisher=image_publisher, product=image_offer)
 
         # Act
-        self.vm_service.create_vm(compute_management_client=compute_management_client,
-                                  image_offer=image_offer,
-                                  image_publisher=image_publisher,
-                                  image_sku=image_sku,
-                                  image_version=MagicMock(),
-                                  vm_credentials=MagicMock(),
-                                  computer_name=MagicMock(),
-                                  group_name=group_name,
-                                  nic_id=MagicMock(),
-                                  region=region,
-                                  storage_name=MagicMock(),
-                                  vm_name=vm_name,
-                                  tags=tags,
-                                  vm_size=MagicMock(),
-                                  purchase_plan=plan,
-                                  cancellation_context=cancellation_context)
+        self.vm_service.create_vm_from_marketplace(compute_management_client=compute_management_client,
+                                                   image_offer=image_offer,
+                                                   image_publisher=image_publisher,
+                                                   image_sku=image_sku,
+                                                   image_version=MagicMock(),
+                                                   vm_credentials=MagicMock(),
+                                                   computer_name=MagicMock(),
+                                                   group_name=group_name,
+                                                   nic_id=MagicMock(),
+                                                   region=region,
+                                                   storage_name=MagicMock(),
+                                                   vm_name=vm_name,
+                                                   tags=tags,
+                                                   vm_size=MagicMock(),
+                                                   purchase_plan=plan,
+                                                   cancellation_context=cancellation_context)
 
         # Verify
         self.vm_service._create_vm.assert_called_once_with(compute_management_client=compute_management_client,

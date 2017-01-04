@@ -76,7 +76,7 @@ class VirtualMachineService(object):
         :param storage_profile: azure.mgmt.compute.models.StorageProfile instance
         :param cancellation_context cloudshell.shell.core.driver_context.CancellationContext instance
         :param tags: azure tags
-        :return: azure.mgmt.compute.models.VirtualMachine instance
+        :rtype: azure.mgmt.compute.models.VirtualMachine
         """
         virtual_machine = VirtualMachine(location=region,
                                          tags=tags,
@@ -122,8 +122,9 @@ class VirtualMachineService(object):
     def prepare_image_os_type(self, image_os_type):
         """Prepare Image OS Type object for the VM
 
-        :param image_os_type: (str) Image OS Type attribute ("Windows" or "Linux")
-        :return: (enum) azure.mgmt.compute.models.OperatingSystemTypes windows/linux value
+        :param str image_os_type: (str) Image OS Type attribute ("Windows" or "Linux")
+        :return: (enum) windows/linux value
+        :rtype: azure.mgmt.compute.models.OperatingSystemTypes
         """
         if image_os_type.lower() == "linux":
             return OperatingSystemTypes.linux
@@ -159,6 +160,7 @@ class VirtualMachineService(object):
         :param vm_name: name for VM
         :param tags: Azure tags
         :return:
+        :rtype: azure.mgmt.compute.models.VirtualMachine
         """
         os_profile = self._prepare_os_profile(vm_credentials=vm_credentials,
                                               computer_name=computer_name)
@@ -190,23 +192,23 @@ class VirtualMachineService(object):
             cancellation_context=cancellation_context,
             tags=tags)
 
-    def create_vm(self,
-                  compute_management_client,
-                  image_offer,
-                  image_publisher,
-                  image_sku,
-                  image_version,
-                  vm_credentials,
-                  computer_name,
-                  group_name,
-                  nic_id,
-                  region,
-                  storage_name,
-                  vm_name,
-                  tags,
-                  vm_size,
-                  purchase_plan,
-                  cancellation_context):
+    def create_vm_from_marketplace(self,
+                                   compute_management_client,
+                                   image_offer,
+                                   image_publisher,
+                                   image_sku,
+                                   image_version,
+                                   vm_credentials,
+                                   computer_name,
+                                   group_name,
+                                   nic_id,
+                                   region,
+                                   storage_name,
+                                   vm_name,
+                                   tags,
+                                   vm_size,
+                                   purchase_plan,
+                                   cancellation_context):
         """
 
         :param vm_size: (str) Azure instance type
@@ -225,7 +227,7 @@ class VirtualMachineService(object):
         :param tags: Azure tags
         :param purchase_plan: PurchasePlan
         :param cancellation_context cloudshell.shell.core.driver_context.CancellationContext instance
-        :return:
+        :rtype: azure.mgmt.compute.models.VirtualMachine
         """
         os_profile = self._prepare_os_profile(vm_credentials=vm_credentials,
                                               computer_name=computer_name)

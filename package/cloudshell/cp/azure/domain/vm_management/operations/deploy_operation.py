@@ -1,15 +1,19 @@
+from functools import partial
+
 from cloudshell.cp.azure.models.deploy_result_model import DeployResult
 from cloudshell.cp.azure.domain.services.parsers.rules_attribute_parser import RulesAttributeParser
 from cloudshell.cp.azure.models.reservation_model import ReservationModel
 from cloudshell.cp.azure.models.deploy_azure_vm_resource_models import \
     DeployAzureVMFromCustomImageResourceModel, BaseDeployAzureVMResourceModel, DeployAzureVMResourceModel
 from cloudshell.cp.azure.models.azure_cloud_provider_resource_model import AzureCloudProviderResourceModel
-from azure.mgmt.network.models import Subnet
-from azure.mgmt.compute.models import OperatingSystemTypes
+from azure.mgmt.network.models import Subnet, NetworkInterface
+from azure.mgmt.compute.models import OperatingSystemTypes, PurchasePlan
+from cloudshell.shell.core.driver_context import CancellationContext
+from cloudshell.cp.azure.models.vm_credentials import VMCredentials
 
 
 class DeployAzureVMOperation(object):
-    CUSTOM_IMAGES_CONTAINER_PREFIX = "customimages"
+    CUSTOM_IMAGES_CONTAINER_PREFIX = "customimages-"
 
     def __init__(self,
                  vm_service,
@@ -22,7 +26,8 @@ class DeployAzureVMOperation(object):
                  name_provider_service,
                  vm_extension_service,
                  cancellation_service,
-                 generic_lock_provider):
+                 generic_lock_provider,
+                 image_data_factory):
         """
 
         :param cloudshell.cp.azure.domain.services.virtual_machine_service.VirtualMachineService vm_service:
@@ -36,8 +41,10 @@ class DeployAzureVMOperation(object):
         :param cloudshell.cp.azure.domain.services.vm_extension.VMExtensionService vm_extension_service:
         :param cloudshell.cp.azure.domain.services.command_cancellation.CommandCancellationService cancellation_service:
         :param cloudshell.cp.azure.domain.services.lock_service.GenericLockProvider generic_lock_provider:
+        :param cloudshell.cp.azure.domain.services.image_data.ImageDataFactory image_data_factory:
         :return:
         """
+        self.image_data_factory = image_data_factory
         self.generic_lock_provider = generic_lock_provider
         self.vm_service = vm_service
         self.network_service = network_service
@@ -49,6 +56,228 @@ class DeployAzureVMOperation(object):
         self.name_provider_service = name_provider_service
         self.vm_extension_service = vm_extension_service
         self.cancellation_service = cancellation_service
+
+    def deploy_from_custom_image(self, deployment_model,
+                                 cloud_provider_model,
+                                 reservation,
+                                 network_client,
+                                 compute_client,
+                                 storage_client,
+                                 cancellation_context,
+                                 logger):
+        """ Deploy Azure VM from custom image URN
+
+        :param azure.mgmt.storage.storage_management_client.StorageManagementClient storage_client:
+        :param azure.mgmt.compute.compute_management_client.ComputeManagementClient compute_client:
+        :param azure.mgmt.network.network_management_client.NetworkManagementClient network_client:
+        :param ReservationModel reservation:
+        :param DeployAzureVMFromCustomImageResourceModel deployment_model:
+        :param AzureCloudProviderResourceModel cloud_provider_model:
+        :param logging.Logger logger:
+        :param CancellationContext cancellation_context:
+        :return:
+        """
+        logger.info("Start Deploy Azure VM From Custom Image operation")
+
+        return self._deploy_vm_generic(create_vm_action=self._create_vm_custom_image_action,
+                                       deployment_model=deployment_model,
+                                       cloud_provider_model=cloud_provider_model,
+                                       reservation=reservation,
+                                       storage_client=storage_client,
+                                       compute_client=compute_client,
+                                       network_client=network_client,
+                                       cancellation_context=cancellation_context,
+                                       logger=logger)
+
+    def deploy_from_marketplace(self, deployment_model,
+                                cloud_provider_model,
+                                reservation,
+                                network_client,
+                                compute_client,
+                                storage_client,
+                                cancellation_context,
+                                logger):
+        """
+        :param CancellationContext cancellation_context:
+        :param azure.mgmt.storage.storage_management_client.StorageManagementClient storage_client:
+        :param azure.mgmt.compute.compute_management_client.ComputeManagementClient compute_client:
+        :param azure.mgmt.network.network_management_client.NetworkManagementClient network_client:
+        :param reservation: cloudshell.cp.azure.models.reservation_model.ReservationModel
+        :param cloudshell.cp.azure.models.deploy_azure_vm_resource_models.DeployAzureVMResourceModel deployment_model:
+        :param cloudshell.cp.azure.models.azure_cloud_provider_resource_model.AzureCloudProviderResourceModel cloud_provider_model:cloud provider
+        :param logging.Logger logger:
+        :return:
+        """
+        logger.info("Start Deploy Azure VM from marketplace operation")
+
+        return self._deploy_vm_generic(create_vm_action=self._create_vm_marketplace_action,
+                                       deployment_model=deployment_model,
+                                       cloud_provider_model=cloud_provider_model,
+                                       reservation=reservation,
+                                       storage_client=storage_client,
+                                       compute_client=compute_client,
+                                       network_client=network_client,
+                                       cancellation_context=cancellation_context,
+                                       logger=logger)
+
+    def _deploy_vm_generic(self, create_vm_action, deployment_model, cloud_provider_model, reservation, storage_client,
+                           compute_client, network_client, cancellation_context, logger):
+        """
+
+        :param create_vm_action: action that returns a VM object with the following signature:
+            (compute_client, storage_client, deployment_model, cloud_provider_model, data, cancellation_context, logger)
+        :param BaseDeployAzureVMResourceModel deployment_model:
+        :param AzureCloudProviderResourceModel cloud_provider_model:
+        :param azure.mgmt.storage.storage_management_client.StorageManagementClient storage_client:
+        :param azure.mgmt.compute.compute_management_client.ComputeManagementClient compute_client:
+        :param azure.mgmt.network.network_management_client.NetworkManagementClient network_client:
+        :param CancellationContext cancellation_context:
+        :param logging.Logger logger:
+        :return:
+        """
+        logger.info("Start Deploy Azure VM operation")
+
+        # 1. prepare deploy data model object
+        data = self._prepare_deploy_data(logger=logger,
+                                         reservation=reservation,
+                                         deployment_model=deployment_model,
+                                         cloud_provider_model=cloud_provider_model,
+                                         network_client=network_client,
+                                         storage_client=storage_client,
+                                         compute_client=compute_client)
+
+        self.cancellation_service.check_if_cancelled(cancellation_context)
+
+        try:
+            # 2. create NIC + Credentials & update NSG
+            data = self._create_vm_common_objects(
+                    logger=logger,
+                    data=data,
+                    deployment_model=deployment_model,
+                    cloud_provider_model=cloud_provider_model,
+                    network_client=network_client,
+                    storage_client=storage_client,
+                    cancellation_context=cancellation_context)
+
+            # 3. create VM
+            logger.info("Start Deploying VM {}".format(data.vm_name))
+
+            vm = create_vm_action(deployment_model=deployment_model,
+                                  cloud_provider_model=cloud_provider_model,
+                                  data=data,
+                                  compute_client=compute_client,
+                                  storage_client=storage_client,
+                                  cancellation_context=cancellation_context,
+                                  logger=logger)
+
+            logger.info("VM {} was successfully deployed".format(data.vm_name))
+
+            self.cancellation_service.check_if_cancelled(cancellation_context)
+
+            # 4. create custom script extension
+            self._create_vm_custom_script_extension(
+                    deployment_model=deployment_model,
+                    cloud_provider_model=cloud_provider_model,
+                    compute_client=compute_client,
+                    data=data,
+                    logger=logger,
+                    cancellation_context=cancellation_context)
+
+        except Exception:
+            logger.exception("Failed to deploy VM from marketplace. Error:")
+            self._rollback_deployed_resources(compute_client=compute_client,
+                                              network_client=network_client,
+                                              group_name=data.group_name,
+                                              interface_name=data.interface_name,
+                                              vm_name=data.vm_name,
+                                              ip_name=data.ip_name,
+                                              logger=logger)
+            raise
+
+        logger.info("VM {} was successfully deployed".format(data.vm_name))
+
+        deployed_app_attributes = self._prepare_deployed_app_attributes(
+                admin_username=data.vm_credentials.admin_username,
+                admin_password=data.vm_credentials.admin_password,
+                public_ip=data.public_ip_address)
+
+        return DeployResult(vm_name=data.vm_name,
+                            vm_uuid=vm.vm_id,
+                            cloud_provider_resource_name=deployment_model.cloud_provider,
+                            autoload=deployment_model.autoload,
+                            inbound_ports=deployment_model.inbound_ports,
+                            deployed_app_attributes=deployed_app_attributes,
+                            deployed_app_address=data.private_ip_address,
+                            public_ip=data.public_ip_address,
+                            resource_group=data.reservation_id)
+
+    def _create_vm_custom_image_action(self, compute_client, storage_client, deployment_model, cloud_provider_model,
+                                       data, cancellation_context, logger):
+        """
+        :param DeployAzureVMFromCustomImageResourceModel deployment_model:
+        :param AzureCloudProviderResourceModel cloud_provider_model:
+        :param azure.mgmt.storage.storage_management_client.StorageManagementClient storage_client:
+        :param azure.mgmt.compute.compute_management_client.ComputeManagementClient compute_client:
+        :param DeployAzureVMOperation.DeployDataModel data:
+        :param CancellationContext cancellation_context:
+        :param logging.Logger logger:
+        :return:
+        :rtype: azure.mgmt.compute.models.VirtualMachine
+        """
+
+        # copy custom image blob to sandbox storage account
+        image_urn = self._copy_blob(cancellation_context, cloud_provider_model, data, deployment_model, logger,
+                                    storage_client)
+
+        self.cancellation_service.check_if_cancelled(cancellation_context)
+
+        # 4. create VM
+        logger.info("Start creating VM {} From custom image {}".format(data.vm_name, image_urn))
+        return self.vm_service.create_vm_from_custom_image(
+                compute_management_client=compute_client,
+                image_urn=image_urn,
+                image_os_type=data.os_type,
+                vm_credentials=data.vm_credentials,
+                computer_name=data.computer_name,
+                group_name=data.group_name,
+                nic_id=data.nic.id,
+                region=cloud_provider_model.region,
+                storage_name=data.storage_account_name,
+                vm_name=data.vm_name,
+                tags=data.tags,
+                vm_size=data.vm_size,
+                cancellation_context=cancellation_context)
+
+    def _create_vm_marketplace_action(self, compute_client, storage_client, deployment_model, cloud_provider_model,
+                                      data, cancellation_context, logger):
+        """
+        :param DeployAzureVMResourceModel deployment_model:
+        :param AzureCloudProviderResourceModel cloud_provider_model:
+        :param azure.mgmt.storage.storage_management_client.StorageManagementClient storage_client:
+        :param azure.mgmt.compute.compute_management_client.ComputeManagementClient compute_client:
+        :param DeployAzureVMOperation.DeployDataModel data:
+        :param CancellationContext cancellation_context:
+        :param logging.Logger logger:
+        :return:
+        :rtype: azure.mgmt.compute.models.VirtualMachine
+        """
+        return self.vm_service.create_vm_from_marketplace(
+                compute_management_client=compute_client,
+                image_offer=deployment_model.image_offer,
+                image_publisher=deployment_model.image_publisher,
+                image_sku=deployment_model.image_sku,
+                image_version=deployment_model.image_version,
+                vm_credentials=data.vm_credentials,
+                computer_name=data.computer_name,
+                group_name=data.group_name,
+                nic_id=data.nic.id,
+                region=cloud_provider_model.region,
+                storage_name=data.storage_account_name,
+                vm_name=data.vm_name,
+                tags=data.tags,
+                vm_size=data.vm_size,
+                purchase_plan=data.purchase_plan,
+                cancellation_context=cancellation_context)
 
     def _process_nsg_rules(self, network_client, group_name, azure_vm_deployment_model, nic,
                            cancellation_context, logger):
@@ -192,358 +421,128 @@ class DeployAzureVMOperation(object):
 
         return vm_size
 
-    def deploy_from_custom_image(self, azure_vm_deployment_model, cloud_provider_model, reservation, network_client,
-                                 compute_client, storage_client, cancellation_context, logger):
-        """
-        Deploy Azure VM from custom image URN
-
-        :param azure.mgmt.storage.storage_management_client.StorageManagementClient storage_client:
-        :param azure.mgmt.compute.compute_management_client.ComputeManagementClient compute_client:
-        :param azure.mgmt.network.network_management_client.NetworkManagementClient network_client:
-        :param cloudshell.cp.azure.models.reservation_model.ReservationModel reservation:
-        :param cloudshell.cp.azure.models.deploy_azure_vm_resource_models.DeployAzureVMFromCustomImageResourceModel azure_vm_deployment_model:
-        :param cloudshell.cp.azure.models.azure_cloud_provider_resource_model.AzureCloudProviderResourceModel cloud_provider_model:cloud provider
-        :param logging.Logger logger:
-        :return:
-        """
-        logger.info("Start Deploy Azure VM From Custom Image operation")
-        reservation_id = reservation.reservation_id
-        app_name = azure_vm_deployment_model.app_name.lower().replace(" ", "")
-        resource_name = app_name
-        base_name = resource_name
-        random_name = self.name_provider_service.generate_name(base_name)
-        interface_name = random_name
-        ip_name = random_name
-        computer_name = self._prepare_computer_name(random_name)
-        vm_name = random_name
-        group_name = str(reservation_id)
-
-        self._validate_deployment_model(azure_vm_deployment_model)
-
-        vm_size = self._prepare_vm_size(azure_vm_deployment_model=azure_vm_deployment_model,
-                                        cloud_provider_model=cloud_provider_model)
-
-        logger.info("Retrieve sandbox subnet {}".format(group_name))
-        subnet = self._get_sandbox_subnet(network_client=network_client,
-                                          cloud_provider_model=cloud_provider_model,
-                                          subnet_name=group_name,
-                                          logger=logger)
-
-        self.cancellation_service.check_if_cancelled(cancellation_context)
-
-        logger.info("Retrieve sandbox storage account name by resource group {}".format(group_name))
-        storage_account_name = self.storage_service.get_sandbox_storage_account_name(storage_client=storage_client,
-                                                                                     group_name=group_name)
-
-        self.cancellation_service.check_if_cancelled(cancellation_context)
-
-        image_os_type = self.vm_service.prepare_image_os_type(azure_vm_deployment_model.image_os_type)
-
-        if azure_vm_deployment_model.extension_script_file:
-            self.vm_extension_service.validate_script_extension(
-                    image_os_type=image_os_type,
-                    script_file=azure_vm_deployment_model.extension_script_file,
-                    script_configurations=azure_vm_deployment_model.extension_script_configurations)
-
-        tags = self.tags_service.get_tags(vm_name, resource_name, subnet.name, reservation)
-        logger.info("Tags for the VM {}".format(tags))
-
-        blob_url_model = self.storage_service.parse_blob_url(azure_vm_deployment_model.image_urn)
-
+    def _copy_blob(self, cancellation_context, cloud_provider_model, data, deployment_model, logger, storage_client):
+        blob_url_model = self.storage_service.parse_blob_url(deployment_model.image_urn)
         container_name_copy_to = "{}{}".format(self.CUSTOM_IMAGES_CONTAINER_PREFIX, blob_url_model.container_name)
 
         logger.info("Copy custom image to the sandbox account")
+
         image_urn = self.storage_service.copy_blob(
                 storage_client=storage_client,
-                group_name_copy_to=group_name,
-                storage_name_copy_to=storage_account_name,
+                group_name_copy_to=data.group_name,
+                storage_name_copy_to=data.storage_account_name,
                 container_name_copy_to=container_name_copy_to,
                 blob_name_copy_to=blob_url_model.blob_name,
-                source_copy_from=azure_vm_deployment_model.image_urn,
+                source_copy_from=deployment_model.image_urn,
                 group_name_copy_from=cloud_provider_model.management_group_name,
                 cancellation_context=cancellation_context,
                 logger=logger)
 
-        self.cancellation_service.check_if_cancelled(cancellation_context)  # TODO: create waiter for VM deployer
+        self.cancellation_service.check_if_cancelled(cancellation_context)
 
-        try:
-            # 1. Create network for vm
-            logger.info("Creating NIC '{}'".format(interface_name))
-            nic = self.network_service.create_network_for_vm(network_client=network_client,
-                                                             group_name=group_name,
-                                                             interface_name=interface_name,
-                                                             ip_name=ip_name,
-                                                             cloud_provider_model=cloud_provider_model,
-                                                             subnet=subnet,
-                                                             add_public_ip=azure_vm_deployment_model.add_public_ip,
-                                                             public_ip_type=azure_vm_deployment_model.public_ip_type,
-                                                             tags=tags,
-                                                             logger=logger)
+        return image_urn
 
-            self.cancellation_service.check_if_cancelled(cancellation_context)
+    def _create_vm_custom_script_extension(self, deployment_model, cloud_provider_model, compute_client, data,
+                                           logger, cancellation_context):
+        """ Create VM custom script extension if data exist in deployment model
 
-            private_ip_address = nic.ip_configurations[0].private_ip_address
-            logger.info("NIC private IP is {}".format(private_ip_address))
-
-            # 2. Prepare credentials for VM
-            logger.info("Prepare credentials for the VM {}".format(vm_name))
-            vm_credentials = self.vm_credentials_service.prepare_credentials(
-                    os_type=image_os_type,
-                    username=azure_vm_deployment_model.username,
-                    password=azure_vm_deployment_model.password,
-                    storage_service=self.storage_service,
-                    key_pair_service=self.key_pair_service,
-                    storage_client=storage_client,
-                    group_name=group_name,
-                    storage_name=storage_account_name)
-
-            self.cancellation_service.check_if_cancelled(cancellation_context)
-
-            # 3. create NSG rules
-            logger.info("Processing Network Security Group rules")
-            self._process_nsg_rules(network_client=network_client,
-                                    group_name=group_name,
-                                    azure_vm_deployment_model=azure_vm_deployment_model,
-                                    nic=nic,
-                                    cancellation_context=cancellation_context,
-                                    logger=logger)
-
-            # 4. create Vm
-            logger.info("Start Deploying VM {} From custom image {}".format(vm_name, image_urn))
-            result_create = self.vm_service.create_vm_from_custom_image(
-                    compute_management_client=compute_client,
-                    image_urn=image_urn,
-                    image_os_type=image_os_type,
-                    vm_credentials=vm_credentials,
-                    computer_name=computer_name,
-                    group_name=group_name,
-                    nic_id=nic.id,
-                    region=cloud_provider_model.region,
-                    storage_name=storage_account_name,
-                    vm_name=vm_name,
-                    tags=tags,
-                    vm_size=vm_size,
-                    cancellation_context=cancellation_context)
-
-            logger.info("VM {} was successfully deployed".format(vm_name))
-            self.cancellation_service.check_if_cancelled(cancellation_context)  # TODO: create waiter for VM deployer
-
-            # 5. Create VM Extension
-            logger.info("Processing VM Custom Script Extension for VM {}".format(vm_name))
-            if azure_vm_deployment_model.extension_script_file:
-                self.vm_extension_service.create_script_extension(
-                        compute_client=compute_client,
-                        location=cloud_provider_model.region,
-                        group_name=group_name,
-                        vm_name=vm_name,
-                        image_os_type=image_os_type,
-                        script_file=azure_vm_deployment_model.extension_script_file,
-                        script_configurations=azure_vm_deployment_model.extension_script_configurations,
-                        tags=tags)
-
-                self.cancellation_service.check_if_cancelled(cancellation_context)
-
-            logger.info("VM Custom Script Extension for VM {} was successfully deployed".format(vm_name))
-
-        except Exception:
-            logger.exception("Failed to deploy VM From custom Image. Error:")
-            self._rollback_deployed_resources(compute_client=compute_client,
-                                              network_client=network_client,
-                                              group_name=group_name,
-                                              interface_name=interface_name,
-                                              vm_name=vm_name,
-                                              ip_name=ip_name,
-                                              logger=logger)
-
-            raise
-
-        public_ip_address = self._get_public_ip_address(network_client=network_client,
-                                                        azure_vm_deployment_model=azure_vm_deployment_model,
-                                                        group_name=group_name,
-                                                        ip_name=ip_name,
-                                                        cancellation_context=cancellation_context,
-                                                        logger=logger)
-
-        deployed_app_attributes = self._prepare_deployed_app_attributes(
-                vm_credentials.admin_username,
-                vm_credentials.admin_password,
-                public_ip_address)
-
-        logger.info("VM {} was successfully deployed from custom image".format(vm_name))
-
-        return DeployResult(vm_name=vm_name,
-                            vm_uuid=result_create.vm_id,
-                            cloud_provider_resource_name=azure_vm_deployment_model.cloud_provider,
-                            autoload=azure_vm_deployment_model.autoload,
-                            inbound_ports=azure_vm_deployment_model.inbound_ports,
-                            deployed_app_attributes=deployed_app_attributes,
-                            deployed_app_address=private_ip_address,
-                            public_ip=public_ip_address,
-                            resource_group=reservation_id)
-
-    def deploy_from_marketplace(self, azure_vm_deployment_model,
-                                cloud_provider_model,
-                                reservation,
-                                network_client,
-                                compute_client,
-                                storage_client,
-                                cancellation_context,
-                                logger):
-        """
-        :param cancellation_context:
-        :param azure.mgmt.storage.storage_management_client.StorageManagementClient storage_client:
+        :param BaseDeployAzureVMResourceModel deployment_model:
+        :param AzureCloudProviderResourceModel cloud_provider_model:
         :param azure.mgmt.compute.compute_management_client.ComputeManagementClient compute_client:
-        :param azure.mgmt.network.network_management_client.NetworkManagementClient network_client:
-        :param reservation: cloudshell.cp.azure.models.reservation_model.ReservationModel
-        :param cloudshell.cp.azure.models.deploy_azure_vm_resource_models.DeployAzureVMResourceModel azure_vm_deployment_model:
-        :param cloudshell.cp.azure.models.azure_cloud_provider_resource_model.AzureCloudProviderResourceModel cloud_provider_model:cloud provider
+        :param DeployAzureVMOperation.DeployDataModel data:
         :param logging.Logger logger:
+        :param CancellationContext cancellation_context:
         :return:
         """
-        logger.info("Start Deploy Azure VM operation")
 
-        logger.info("Retrieving operation system type for the VM Image {}:{}:{}".format(
-                azure_vm_deployment_model.image_publisher,
-                azure_vm_deployment_model.image_offer,
-                azure_vm_deployment_model.image_sku))
+        # Create VM Extension
+        if not deployment_model.extension_script_file:
+            logger.info("No VM Custom Script Extension for VM {}".format(data.vm_name))
+            return
 
-        virtual_machine_image = self.vm_service.get_virtual_machine_image(
-                compute_management_client=compute_client,
+        self.cancellation_service.check_if_cancelled(cancellation_context)
+
+        logger.info("Processing VM Custom Script Extension for VM {}".format(data.vm_name))
+
+        self.vm_extension_service.create_script_extension(
+                compute_client=compute_client,
                 location=cloud_provider_model.region,
-                publisher_name=azure_vm_deployment_model.image_publisher,
-                offer=azure_vm_deployment_model.image_offer,
-                skus=azure_vm_deployment_model.image_sku)
+                group_name=data.group_name,
+                vm_name=data.vm_name,
+                image_os_type=data.os_type,
+                script_file=deployment_model.extension_script_file,
+                script_configurations=deployment_model.extension_script_configurations,
+                tags=data.tags)
 
-        os_type = virtual_machine_image.os_disk_image.operating_system
-
-        logger.info("Operation system type for the VM is {}".format(os_type))
-
-        self.cancellation_service.check_if_cancelled(cancellation_context)
-
-        data = self._prepare_deploy_data(logger=logger,
-                                         reservation=reservation,
-                                         deployment_model=azure_vm_deployment_model,
-                                         cloud_provider_model=cloud_provider_model,
-                                         network_client=network_client,
-                                         storage_client=storage_client,
-                                         os_type=os_type)
+        logger.info("VM Custom Script Extension for VM {} was successfully deployed".format(data.vm_name))
 
         self.cancellation_service.check_if_cancelled(cancellation_context)
 
-        try:
-            # 1. Create network for vm
-            logger.info("Creating NIC '{}'".format(interface_name))
-            nic = self.network_service.create_network_for_vm(network_client=network_client,
-                                                             group_name=group_name,
-                                                             interface_name=interface_name,
-                                                             ip_name=ip_name,
-                                                             cloud_provider_model=cloud_provider_model,
-                                                             subnet=subnet,
-                                                             add_public_ip=azure_vm_deployment_model.add_public_ip,
-                                                             public_ip_type=azure_vm_deployment_model.public_ip_type,
-                                                             tags=tags,
+    def _create_vm_common_objects(self, logger, data, deployment_model, cloud_provider_model, network_client,
+                                  storage_client, cancellation_context):
+        """ Creates and configures common VM objects: NIC, Credentials, NSG (if needed)
+
+        :param DeployAzureVMOperation.DeployDataModel data:
+        :param BaseDeployAzureVMResourceModel deployment_model:
+        :param AzureCloudProviderResourceModel cloud_provider_model:
+        :param logging.Logger logger:
+        :param azure.mgmt.network.network_management_client.NetworkManagementClient network_client:
+        :param azure.mgmt.network.network_management_client.StorageManagementClient storage_client:
+        :param CancellationContext cancellation_context:
+        :return: Updated DeployDataModel instance
+        :rtype: DeployAzureVMOperation.DeployDataModel
+        """
+        # 1. Create network for vm
+        logger.info("Creating NIC '{}'".format(data.interface_name))
+        data.nic = self.network_service.create_network_for_vm(network_client=network_client,
+                                                              group_name=data.group_name,
+                                                              interface_name=data.interface_name,
+                                                              ip_name=data.ip_name,
+                                                              cloud_provider_model=cloud_provider_model,
+                                                              subnet=data.subnet,
+                                                              add_public_ip=deployment_model.add_public_ip,
+                                                              public_ip_type=deployment_model.public_ip_type,
+                                                              tags=data.tags,
+                                                              logger=logger)
+
+        data.private_ip_address = data.nic.ip_configurations[0].private_ip_address
+        logger.info("NIC private IP is {}".format(data.private_ip_address))
+
+        self.cancellation_service.check_if_cancelled(cancellation_context)
+
+        data.public_ip_address = self._get_public_ip_address(network_client=network_client,
+                                                             azure_vm_deployment_model=deployment_model,
+                                                             group_name=data.group_name,
+                                                             ip_name=data.ip_name,
+                                                             cancellation_context=cancellation_context,
                                                              logger=logger)
 
-            self.cancellation_service.check_if_cancelled(cancellation_context)
+        # 2. create NSG rules
+        logger.info("Processing Network Security Group rules")
+        self._process_nsg_rules(network_client=network_client,
+                                group_name=data.group_name,
+                                azure_vm_deployment_model=deployment_model,
+                                nic=data.nic,
+                                cancellation_context=cancellation_context,
+                                logger=logger)
 
-            private_ip_address = nic.ip_configurations[0].private_ip_address
-            logger.info("NIC private IP is {}".format(private_ip_address))
+        self.cancellation_service.check_if_cancelled(cancellation_context)
 
-            # 2. Prepare credentials for VM
-            logger.info("Prepare credentials for the VM {}".format(vm_name))
-            vm_credentials = self.vm_credentials_service.prepare_credentials(
-                    os_type=os_type,
-                    username=azure_vm_deployment_model.username,
-                    password=azure_vm_deployment_model.password,
-                    storage_service=self.storage_service,
-                    key_pair_service=self.key_pair_service,
-                    storage_client=storage_client,
-                    group_name=group_name,
-                    storage_name=storage_account_name)
+        # 3. Prepare credentials for VM
+        logger.info("Prepare credentials for the VM {}".format(data.vm_name))
+        data.vm_credentials = self.vm_credentials_service.prepare_credentials(
+                os_type=data.os_type,
+                username=deployment_model.username,
+                password=deployment_model.password,
+                storage_service=self.storage_service,
+                key_pair_service=self.key_pair_service,
+                storage_client=storage_client,
+                group_name=data.group_name,
+                storage_name=data.storage_account_name)
 
-            self.cancellation_service.check_if_cancelled(cancellation_context)
+        self.cancellation_service.check_if_cancelled(cancellation_context)
 
-            # 3. create NSG rules
-            logger.info("Processing Network Security Group rules")
-            self._process_nsg_rules(network_client=network_client,
-                                    group_name=group_name,
-                                    azure_vm_deployment_model=azure_vm_deployment_model,
-                                    nic=nic,
-                                    cancellation_context=cancellation_context,
-                                    logger=logger)
-            # 4. create Vm
-            logger.info("Start Deploying VM {}".format(vm_name))
-            result_create = self.vm_service.create_vm(compute_management_client=compute_client,
-                                                      image_offer=azure_vm_deployment_model.image_offer,
-                                                      image_publisher=azure_vm_deployment_model.image_publisher,
-                                                      image_sku=azure_vm_deployment_model.image_sku,
-                                                      image_version=azure_vm_deployment_model.image_version,
-                                                      vm_credentials=vm_credentials,
-                                                      computer_name=computer_name,
-                                                      group_name=group_name,
-                                                      nic_id=nic.id,
-                                                      region=cloud_provider_model.region,
-                                                      storage_name=storage_account_name,
-                                                      vm_name=vm_name,
-                                                      tags=tags,
-                                                      vm_size=vm_size,
-                                                      purchase_plan=virtual_machine_image.plan,
-                                                      cancellation_context=cancellation_context)
-
-            logger.info("VM {} was successfully deployed".format(vm_name))  # TODO: create waiter for VM deployer
-            self.cancellation_service.check_if_cancelled(cancellation_context)
-
-            # 5. Create VM Extension
-            logger.info("Processing VM Custom Script Extension for VM {}".format(vm_name))
-            if azure_vm_deployment_model.extension_script_file:
-                self.vm_extension_service.create_script_extension(
-                        compute_client=compute_client,
-                        location=cloud_provider_model.region,
-                        group_name=group_name,
-                        vm_name=vm_name,
-                        image_os_type=os_type,
-                        script_file=azure_vm_deployment_model.extension_script_file,
-                        script_configurations=azure_vm_deployment_model.extension_script_configurations,
-                        tags=tags)
-
-                self.cancellation_service.check_if_cancelled(cancellation_context)
-
-            logger.info("VM Custom Script Extension for VM {} was successfully deployed".format(vm_name))
-
-        except Exception:
-            logger.exception("Failed to deploy VM from marketplace. Error:")
-            self._rollback_deployed_resources(compute_client=compute_client,
-                                              network_client=network_client,
-                                              group_name=group_name,
-                                              interface_name=interface_name,
-                                              vm_name=vm_name,
-                                              ip_name=ip_name,
-                                              logger=logger)
-            raise
-
-        public_ip_address = self._get_public_ip_address(network_client=network_client,
-                                                        azure_vm_deployment_model=azure_vm_deployment_model,
-                                                        group_name=group_name,
-                                                        ip_name=ip_name,
-                                                        cancellation_context=cancellation_context,
-                                                        logger=logger)
-
-        deployed_app_attributes = self._prepare_deployed_app_attributes(
-                vm_credentials.admin_username,
-                vm_credentials.admin_password,
-                public_ip_address)
-
-        logger.info("VM {} was successfully deployed".format(vm_name))
-
-        return DeployResult(vm_name=vm_name,
-                            vm_uuid=result_create.vm_id,
-                            cloud_provider_resource_name=azure_vm_deployment_model.cloud_provider,
-                            autoload=azure_vm_deployment_model.autoload,
-                            inbound_ports=azure_vm_deployment_model.inbound_ports,
-                            deployed_app_attributes=deployed_app_attributes,
-                            deployed_app_address=private_ip_address,
-                            public_ip=public_ip_address,
-                            resource_group=reservation_id)
+        return data
 
     def _validate_deployment_model(self, vm_deployment_model, os_type):
         """
@@ -580,7 +579,7 @@ class DeployAzureVMOperation(object):
         return deployed_app_attr
 
     def _prepare_deploy_data(self, logger, reservation, deployment_model, cloud_provider_model,
-                             network_client, storage_client, os_type):
+                             network_client, storage_client, compute_client):
         """
         :param logging.Logger logger:
         :param ReservationModel reservation:
@@ -588,17 +587,25 @@ class DeployAzureVMOperation(object):
         :param AzureCloudProviderResourceModel cloud_provider_model: cloud provider
         :param azure.mgmt.network.network_management_client.NetworkManagementClient network_client:
         :param azure.mgmt.storage.storage_management_client.StorageManagementClient storage_client:
-        :param OperatingSystemTypes os_type: (enum) windows/linux value os_type
+        :param azure.mgmt.storage.storage_management_client.ComputeManagementClient compute_client:
         :return:
-        :rtype: self.DeployDataModel
+        :rtype: DeployAzureVMOperation.DeployDataModel
         """
-        self._validate_deployment_model(vm_deployment_model=deployment_model, os_type=os_type)
+
+        image_data_model = self.image_data_factory.get_image_data_model(
+                cloud_provider_model=cloud_provider_model,
+                deployment_model=deployment_model,
+                compute_client=compute_client,
+                logger=logger)
+
+        self._validate_deployment_model(vm_deployment_model=deployment_model, os_type=image_data_model.os_type)
 
         data = self.DeployDataModel()
 
         data.reservation_id = str(reservation.reservation_id)
         data.group_name = str(reservation.reservation_id)
-        data.os_type = os_type
+        data.os_type = image_data_model.os_type
+        data.purchase_plan = image_data_model.purchase_plan
 
         # normalize the app name to a valid Azure vm name
         data.app_name = deployment_model.app_name.lower().replace(" ", "")
@@ -641,3 +648,8 @@ class DeployAzureVMOperation(object):
             self.storage_account_name = ''  # type: str
             self.tags = {}  # type: dict
             self.os_type = ''  # type: str
+            self.purchase_plan = None  # type: PurchasePlan
+            self.nic = None  # type: NetworkInterface
+            self.vm_credentials = None  # type: VMCredentials
+            self.private_ip_address = ''  # type: str
+            self.public_ip_address = ''  # type: str
