@@ -3,9 +3,12 @@ from azure.mgmt.compute.models import VirtualMachineExtension
 from retrying import retry
 
 from cloudshell.cp.azure.common.helpers.retrying_helpers import retry_if_connection_error
+from cloudshell.cp.azure.common.helpers.url_helper import URLHelper
 
 
 class VMExtensionService(object):
+    def __init__(self):
+        self.url_helper = URLHelper()
 
     WINDOWS_PUBLISHER = "Microsoft.Compute"
     WINDOWS_EXTENSION_TYPE = "CustomScriptExtension"
@@ -92,6 +95,11 @@ class VMExtensionService(object):
         :param tags: (dict) Azure tags
         :return:
         """
+
+        # If the url is not valid we should stop the creation of the script
+        if not self.url_helper.check_url(script_file):
+            return
+
         if image_os_type is OperatingSystemTypes.linux:
             vm_extension = self._prepare_linux_vm_script_extension(location=location,
                                                                    script_file=script_file,
