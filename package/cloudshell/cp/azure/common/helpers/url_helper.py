@@ -12,3 +12,4 @@ class URLHelper(object):
         except Exception:
             return False
         return True
+

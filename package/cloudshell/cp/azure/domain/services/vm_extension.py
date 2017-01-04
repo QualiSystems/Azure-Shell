@@ -7,8 +7,8 @@ from cloudshell.cp.azure.common.helpers.url_helper import URLHelper
 
 
 class VMExtensionService(object):
-    def __init__(self):
-        self.url_helper = URLHelper()
+    def __init__(self,url_helper):
+        self.url_helper = url_helper
 
     WINDOWS_PUBLISHER = "Microsoft.Compute"
     WINDOWS_EXTENSION_TYPE = "CustomScriptExtension"
@@ -98,7 +98,7 @@ class VMExtensionService(object):
 
         # If the url is not valid we should stop the creation of the script
         if not self.url_helper.check_url(script_file):
-            return
+            return False
 
         if image_os_type is OperatingSystemTypes.linux:
             vm_extension = self._prepare_linux_vm_script_extension(location=location,
