@@ -231,7 +231,7 @@ class DeployAzureVMOperation(object):
 
         self.cancellation_service.check_if_cancelled(cancellation_context)
 
-        # 4. create VM
+        # create VM
         logger.info("Start creating VM {} From custom image {}".format(data.vm_name, image_urn))
         return self.vm_service.create_vm_from_custom_image(
                 compute_management_client=compute_client,
