@@ -1,8 +1,8 @@
 from unittest import TestCase
 
 from azure.mgmt.compute.models import Plan
-import mock
-from mock import MagicMock
+from mock import MagicMock, Mock, patch
+from msrestazure.azure_exceptions import CloudError
 
 from cloudshell.cp.azure.domain.services.virtual_machine_service import VirtualMachineService
 
@@ -11,7 +11,7 @@ class TestVirtualMachineService(TestCase):
     def setUp(self):
         self.vm_service = VirtualMachineService(MagicMock())
 
-    @mock.patch("cloudshell.cp.azure.domain.services.virtual_machine_service.VirtualMachine")
+    @patch("cloudshell.cp.azure.domain.services.virtual_machine_service.VirtualMachine")
     def test__create_vm(self, virtual_machine_class):
         """Check that method will create VirtualMachine instance and execute create_or_update request"""
         compute_management_client = MagicMock()
@@ -51,9 +51,9 @@ class TestVirtualMachineService(TestCase):
                                                       tags=tags,
                                                       plan=plan)
 
-    @mock.patch("cloudshell.cp.azure.domain.services.virtual_machine_service.StorageProfile")
-    @mock.patch("cloudshell.cp.azure.domain.services.virtual_machine_service.NetworkProfile")
-    @mock.patch("cloudshell.cp.azure.domain.services.virtual_machine_service.HardwareProfile")
+    @patch("cloudshell.cp.azure.domain.services.virtual_machine_service.StorageProfile")
+    @patch("cloudshell.cp.azure.domain.services.virtual_machine_service.NetworkProfile")
+    @patch("cloudshell.cp.azure.domain.services.virtual_machine_service.HardwareProfile")
     def test_create_vm(self, hardware_profile_class, network_profile_class, storage_profile_class):
         """Check that method will prepare all required parameters and call _create_vm method"""
         compute_management_client = MagicMock()
@@ -78,22 +78,22 @@ class TestVirtualMachineService(TestCase):
         plan = Plan(name=image_sku, publisher=image_publisher, product=image_offer)
 
         # Act
-        self.vm_service.create_vm(compute_management_client=compute_management_client,
-                                  image_offer=image_offer,
-                                  image_publisher=image_publisher,
-                                  image_sku=image_sku,
-                                  image_version=MagicMock(),
-                                  vm_credentials=MagicMock(),
-                                  computer_name=MagicMock(),
-                                  group_name=group_name,
-                                  nic_id=MagicMock(),
-                                  region=region,
-                                  storage_name=MagicMock(),
-                                  vm_name=vm_name,
-                                  tags=tags,
-                                  vm_size=MagicMock(),
-                                  purchase_plan=plan,
-                                  cancellation_context=cancellation_context)
+        self.vm_service.create_vm_from_marketplace(compute_management_client=compute_management_client,
+                                                   image_offer=image_offer,
+                                                   image_publisher=image_publisher,
+                                                   image_sku=image_sku,
+                                                   image_version=MagicMock(),
+                                                   vm_credentials=MagicMock(),
+                                                   computer_name=MagicMock(),
+                                                   group_name=group_name,
+                                                   nic_id=MagicMock(),
+                                                   region=region,
+                                                   storage_name=MagicMock(),
+                                                   vm_name=vm_name,
+                                                   tags=tags,
+                                                   vm_size=MagicMock(),
+                                                   purchase_plan=plan,
+                                                   cancellation_context=cancellation_context)
 
         # Verify
         self.vm_service._create_vm.assert_called_once_with(compute_management_client=compute_management_client,
@@ -108,9 +108,9 @@ class TestVirtualMachineService(TestCase):
                                                            vm_plan=plan,
                                                            cancellation_context=cancellation_context)
 
-    @mock.patch("cloudshell.cp.azure.domain.services.virtual_machine_service.StorageProfile")
-    @mock.patch("cloudshell.cp.azure.domain.services.virtual_machine_service.NetworkProfile")
-    @mock.patch("cloudshell.cp.azure.domain.services.virtual_machine_service.HardwareProfile")
+    @patch("cloudshell.cp.azure.domain.services.virtual_machine_service.StorageProfile")
+    @patch("cloudshell.cp.azure.domain.services.virtual_machine_service.NetworkProfile")
+    @patch("cloudshell.cp.azure.domain.services.virtual_machine_service.HardwareProfile")
     def test_create_vm_from_custom_image(self, hardware_profile_class, network_profile_class, storage_profile_class):
         """Check that method will prepare all required parameters and call _create_vm method"""
         compute_management_client = MagicMock()
@@ -156,6 +156,50 @@ class TestVirtualMachineService(TestCase):
                                                            cancellation_context=cancellation_context,
                                                            tags=tags,
                                                            vm_name=vm_name)
+
+    @patch("cloudshell.cp.azure.domain.services.virtual_machine_service.StorageProfile")
+    @patch("cloudshell.cp.azure.domain.services.virtual_machine_service.NetworkProfile")
+    @patch("cloudshell.cp.azure.domain.services.virtual_machine_service.HardwareProfile")
+    def test_create_vm_from_custom_image_raises_provisioning_timed_out(self, hardware_profile_class,
+                                                                       network_profile_class, storage_profile_class):
+        compute_management_client = MagicMock()
+        group_name = "test_group_name"
+        vm_name = "test_vm_name"
+        region = "test_region"
+        image_urn = "https://teststorage.blob.core.windows.net/testcontainer/testblob"
+        tags = MagicMock()
+        os_profile = MagicMock()
+        hardware_profile = MagicMock()
+        network_profile = MagicMock()
+        storage_profile = MagicMock()
+        cancellation_context = MagicMock()
+        self.vm_service._prepare_os_profile = MagicMock(return_value=os_profile)
+        hardware_profile_class.return_value = hardware_profile
+        network_profile_class.return_value = network_profile
+        storage_profile_class.return_value = storage_profile
+
+        response_error = MagicMock()
+        response_error.__str__ = Mock(return_value="OSProvisioningTimedOut")
+        self.vm_service._create_vm = Mock(side_effect=CloudError(response=response_error,
+                                                                 error="OSProvisioningTimedOut"))
+
+        # Act
+        with self.assertRaisesRegexp(Exception,
+                                     ".*You may have a mismatch between the selected 'Image OS Type' and the "
+                                     "operation system provided in the 'Image URN'.$"):
+            self.vm_service.create_vm_from_custom_image(compute_management_client=compute_management_client,
+                                                        image_urn=image_urn,
+                                                        image_os_type="Linux",
+                                                        vm_credentials=MagicMock(),
+                                                        computer_name=MagicMock(),
+                                                        group_name=group_name,
+                                                        nic_id=MagicMock(),
+                                                        region=region,
+                                                        storage_name=MagicMock(),
+                                                        vm_name=vm_name,
+                                                        cancellation_context=cancellation_context,
+                                                        tags=tags,
+                                                        vm_size=MagicMock())
 
     def test_vm_service_create_resource_group(self):
         # Arrange
@@ -227,11 +271,11 @@ class TestVirtualMachineService(TestCase):
         operation_poller.result.assert_not_called()
         self.assertIsNone(res)
 
-    @mock.patch("cloudshell.cp.azure.domain.services.virtual_machine_service.LinuxConfiguration")
+    @patch("cloudshell.cp.azure.domain.services.virtual_machine_service.LinuxConfiguration")
     def test_prepare_linux_configuration(self, linux_configuration_class):
         """Check that method will return LinuxConfiguration instance for the Azure client"""
-        ssh_key = mock.MagicMock()
-        linux_configuration = mock.MagicMock()
+        ssh_key = MagicMock()
+        linux_configuration = MagicMock()
         linux_configuration_class.return_value = linux_configuration
 
         res = self.vm_service._prepare_linux_configuration(ssh_key)
@@ -240,16 +284,16 @@ class TestVirtualMachineService(TestCase):
 
     def test_get_virtual_machine_image(self):
         """Check that method returns operating_system of the provided image"""
-        compute_client = mock.MagicMock()
-        image = mock.MagicMock()
+        compute_client = MagicMock()
+        image = MagicMock()
         compute_client.virtual_machine_images.get.return_value = image
 
         vm_image = self.vm_service.get_virtual_machine_image(
             compute_management_client=compute_client,
-            location=mock.MagicMock(),
-            publisher_name=mock.MagicMock(),
-            offer=mock.MagicMock(),
-            skus=mock.MagicMock())
+            location=MagicMock(),
+            publisher_name=MagicMock(),
+            offer=MagicMock(),
+            skus=MagicMock())
 
         compute_client.virtual_machine_images.list.assert_called_once()
         compute_client.virtual_machine_images.get.assert_called_once()
@@ -259,9 +303,9 @@ class TestVirtualMachineService(TestCase):
         """Check that method will return Azure VM if instance exists and is in "Succeeded" provisioning state"""
         vm_name = "test_vm_name"
         group_name = "test_group_name"
-        compute_client = mock.MagicMock()
-        mocked_vm = mock.MagicMock(provisioning_state=self.vm_service.SUCCEEDED_PROVISIONING_STATE)
-        self.vm_service.get_vm = mock.MagicMock(return_value=mocked_vm)
+        compute_client = MagicMock()
+        mocked_vm = MagicMock(provisioning_state=self.vm_service.SUCCEEDED_PROVISIONING_STATE)
+        self.vm_service.get_vm = MagicMock(return_value=mocked_vm)
 
         # Act
         vm = self.vm_service.get_active_vm(compute_management_client=compute_client, group_name=group_name,
@@ -274,15 +318,15 @@ class TestVirtualMachineService(TestCase):
         """Check that method will raise exception if VM is not in "Succeeded" provisioning state"""
         vm_name = "test_vm_name"
         group_name = "test_group_name"
-        compute_client = mock.MagicMock()
-        mocked_vm = mock.MagicMock(provisioning_state="SOME_PROVISION_STATE")
-        self.vm_service.get_vm = mock.MagicMock(return_value=mocked_vm)
+        compute_client = MagicMock()
+        mocked_vm = MagicMock(provisioning_state="SOME_PROVISION_STATE")
+        self.vm_service.get_vm = MagicMock(return_value=mocked_vm)
 
         with self.assertRaises(Exception):
             self.vm_service.get_active_vm(compute_management_client=compute_client, group_name=group_name,
                                           vm_name=vm_name)
 
-    @mock.patch("cloudshell.cp.azure.domain.services.virtual_machine_service.OperatingSystemTypes")
+    @patch("cloudshell.cp.azure.domain.services.virtual_machine_service.OperatingSystemTypes")
     def test_prepare_image_os_type_returns_linux(self, operating_system_types):
         """Check that method will return Linux OS type"""
         image_os_type = "Linux"
@@ -293,7 +337,7 @@ class TestVirtualMachineService(TestCase):
         # Verify
         self.assertEqual(res, operating_system_types.linux)
 
-    @mock.patch("cloudshell.cp.azure.domain.services.virtual_machine_service.OperatingSystemTypes")
+    @patch("cloudshell.cp.azure.domain.services.virtual_machine_service.OperatingSystemTypes")
     def test_prepare_image_os_type_returns_windows(self, operating_system_types):
         """Check that method will return Windows OS type"""
         image_os_type = "Windows"

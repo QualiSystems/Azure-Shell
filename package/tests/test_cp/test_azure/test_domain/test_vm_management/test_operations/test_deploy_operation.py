@@ -26,6 +26,7 @@ class TestDeployAzureVMOperation(TestCase):
         self.vm_extension_service = MagicMock()
         self.generic_lock_provider = MagicMock()
         self.cancellation_service = MagicMock()
+        self.image_data_factory = MagicMock()
 
         self.deploy_operation = DeployAzureVMOperation(vm_service=self.vm_service,
                                                        network_service=self.network_service,
@@ -37,7 +38,8 @@ class TestDeployAzureVMOperation(TestCase):
                                                        name_provider_service=self.name_provider_service,
                                                        vm_extension_service=self.vm_extension_service,
                                                        generic_lock_provider=self.generic_lock_provider,
-                                                       cancellation_service=self.cancellation_service)
+                                                       cancellation_service=self.cancellation_service,
+                                                       image_data_factory=self.image_data_factory)
 
     def test_get_sandbox_subnet(self):
         """Check that method will call network service to get sandbox vNet and will return it's subnet by given name"""
@@ -47,19 +49,19 @@ class TestDeployAzureVMOperation(TestCase):
         sandbox_subnet = MagicMock()
         sandbox_subnet.name = subnet_name
         self.network_service.get_sandbox_virtual_network = MagicMock(
-            return_value=MagicMock(subnets=[MagicMock(), MagicMock(), sandbox_subnet]))
+                return_value=MagicMock(subnets=[MagicMock(), MagicMock(), sandbox_subnet]))
 
         # Act
         subnet = self.deploy_operation._get_sandbox_subnet(
-            network_client=network_client,
-            cloud_provider_model=cloud_provider_model,
-            subnet_name=subnet_name,
-            logger=self.logger)
+                network_client=network_client,
+                cloud_provider_model=cloud_provider_model,
+                subnet_name=subnet_name,
+                logger=self.logger)
 
         # Verify
         self.network_service.get_sandbox_virtual_network.assert_called_once_with(
-            network_client=network_client,
-            group_name=cloud_provider_model.management_group_name)
+                network_client=network_client,
+                group_name=cloud_provider_model.management_group_name)
 
         self.assertEqual(subnet, sandbox_subnet)
 
@@ -69,13 +71,14 @@ class TestDeployAzureVMOperation(TestCase):
         cloud_provider_model = MagicMock()
         subnet_name = "testsubnetname"
         self.network_service.get_sandbox_virtual_network = MagicMock(
-            return_value=MagicMock(subnets=[MagicMock(), MagicMock(), MagicMock()]))
+                return_value=MagicMock(subnets=[MagicMock(), MagicMock(), MagicMock()]))
 
-        with self.assertRaises(Exception):
+        with self.assertRaisesRegexp(Exception, "Could not find a valid subnet."):
             self.deploy_operation._get_sandbox_subnet(
-                network_client=network_client,
-                cloud_provider_model=cloud_provider_model,
-                subnet_name=subnet_name)
+                    network_client=network_client,
+                    cloud_provider_model=cloud_provider_model,
+                    subnet_name=subnet_name,
+                    logger=Mock())
 
     def test_get_public_ip_address(self):
         """Check that method will use network service to get Public IP by it's name"""
@@ -90,12 +93,12 @@ class TestDeployAzureVMOperation(TestCase):
 
         # Act
         ip_addr = self.deploy_operation._get_public_ip_address(
-            network_client=network_client,
-            azure_vm_deployment_model=azure_vm_deployment_model,
-            group_name=group_name,
-            ip_name=ip_name,
-            cancellation_context=cancellation_context,
-            logger=self.logger)
+                network_client=network_client,
+                azure_vm_deployment_model=azure_vm_deployment_model,
+                group_name=group_name,
+                ip_name=ip_name,
+                cancellation_context=cancellation_context,
+                logger=self.logger)
 
         # Verify
         self.assertEqual(ip_addr, expected_ip_addr)
@@ -111,134 +114,121 @@ class TestDeployAzureVMOperation(TestCase):
 
         # Act
         ip_addr = self.deploy_operation._get_public_ip_address(
-            network_client=network_client,
-            azure_vm_deployment_model=azure_vm_deployment_model,
-            group_name=group_name,
-            ip_name=ip_name,
-            cancellation_context=cancellation_context,
-            logger=self.logger)
+                network_client=network_client,
+                azure_vm_deployment_model=azure_vm_deployment_model,
+                group_name=group_name,
+                ip_name=ip_name,
+                cancellation_context=cancellation_context,
+                logger=self.logger)
 
         # Verify
         self.assertIsNone(ip_addr)
         self.network_service.get_public_ip.assert_not_called()
 
-    def test_deploy_operation_deploy_result(self):
+    def test_deploy_vm_generic(self):
         """
         This method verifies the basic deployment of vm.
         :return:
         """
-
         # Arrange
-        self.vm_service.create_resource_group = Mock(return_value=True)
-        self.storage_service.create_storage_account = Mock(return_value=True)
-        self.storage_service.get_storage_per_resource_group = MagicMock()
-        self.network_service.get_virtual_networks = Mock(return_value=[MagicMock()])
-        self.network_service.create_network_for_vm = MagicMock()
-        self.vm_service.get_virtual_machine_image = MagicMock()
-        self.vm_service.create_vm = MagicMock()
-        self.deploy_operation._process_nsg_rules = MagicMock()
         resource_model = DeployAzureVMResourceModel()
-        resource_model.add_public_ip = True
-        self.network_client = MagicMock()
-        self.network_client.public_ip_addresses.get = Mock()
-        self.deploy_operation._prepare_vm_size = MagicMock()
+        data = Mock()
+        updated_data = Mock()
+        updated_data.vm_credentials = Mock()
+        deployed_app_attributes = Mock()
+        self.deploy_operation._prepare_deploy_data = Mock(return_value=data)
+        self.deploy_operation._create_vm_common_objects = Mock(return_value=updated_data)
+        self.deploy_operation._create_vm_custom_script_extension = Mock()
+        self.deploy_operation._prepare_deployed_app_attributes = Mock(return_value=deployed_app_attributes)
 
-        vnet = Mock()
-        subnet = MagicMock()
-        name = "name"
-        subnet.name = name
-        vnet.subnets = [subnet]
+        vm = Mock()
+        create_vm_action = Mock(return_value=vm)
+
+        cancellation_context = Mock()
         reservation = Mock()
-        reservation.reservation_id = name
-        self.network_service.get_sandbox_virtual_network = Mock(return_value=vnet)
+        cloud_provider_model = Mock()
+        logger = Mock()
+        network_client = Mock()
+        compute_client = Mock()
+        storage_client = Mock()
 
         # Act
-
-        self.deploy_operation.deploy(resource_model,
-                                     AzureCloudProviderResourceModel(),
-                                     reservation,
-                                     self.network_client,
-                                     Mock(),
-                                     Mock(),
-                                     Mock(),
-                                     Mock())
+        result = self.deploy_operation._deploy_vm_generic(create_vm_action=create_vm_action,
+                                                          deployment_model=resource_model,
+                                                          cloud_provider_model=cloud_provider_model,
+                                                          reservation=reservation,
+                                                          network_client=network_client,
+                                                          compute_client=compute_client,
+                                                          storage_client=storage_client,
+                                                          cancellation_context=cancellation_context,
+                                                          logger=logger)
 
         # Verify
-        self.vm_service.get_virtual_machine_image.assert_called_once()
-        self.network_service.create_network_for_vm.assert_called_once()
-        self.vm_service.create_vm.assert_called_once()
-        self.network_service.create_network_for_vm.assert_called_once()
-        self.deploy_operation._process_nsg_rules.assert_called_once()
-        self.network_client.public_ip_addresses.get.assert_called_once()
-        self.network_service.get_sandbox_virtual_network.assert_called_once()
-        self.cancellation_service.check_if_cancelled.assert_called()
+        self.assertEquals(self.cancellation_service.check_if_cancelled.call_count, 2)
+        self.cancellation_service.check_if_cancelled.assert_called_with(cancellation_context)
+        self.deploy_operation._prepare_deploy_data.assert_called_once_with(
+                logger=logger,
+                reservation=reservation,
+                deployment_model=resource_model,
+                cloud_provider_model=cloud_provider_model,
+                network_client=network_client,
+                storage_client=storage_client,
+                compute_client=compute_client)
+        self.deploy_operation._create_vm_common_objects.assert_called_once_with(
+                logger=logger,
+                data=data,
+                deployment_model=resource_model,
+                cloud_provider_model=cloud_provider_model,
+                network_client=network_client,
+                storage_client=storage_client,
+                cancellation_context=cancellation_context)
+        create_vm_action.assert_called_once_with(
+                deployment_model=resource_model,
+                cloud_provider_model=cloud_provider_model,
+                data=updated_data,
+                compute_client=compute_client,
+                storage_client=storage_client,
+                cancellation_context=cancellation_context,
+                logger=logger)
+        self.deploy_operation._create_vm_custom_script_extension.assert_called_once_with(
+                deployment_model=resource_model,
+                cloud_provider_model=cloud_provider_model,
+                compute_client=compute_client,
+                data=updated_data,
+                logger=logger,
+                cancellation_context=cancellation_context)
+        self.deploy_operation._prepare_deployed_app_attributes.assert_called_once_with(
+                admin_username=updated_data.vm_credentials.admin_username,
+                admin_password=updated_data.vm_credentials.admin_password,
+                public_ip=updated_data.public_ip_address
+        )
+        self.assertEquals(result.vm_name, updated_data.vm_name)
+        self.assertEquals(result.vm_uuid, vm.vm_id)
+        self.assertEquals(result.cloud_provider_resource_name, resource_model.cloud_provider)
+        self.assertEquals(result.autoload, resource_model.autoload)
+        self.assertEquals(result.inbound_ports, resource_model.inbound_ports)
+        self.assertEquals(result.deployed_app_attributes, deployed_app_attributes)
+        self.assertEquals(result.deployed_app_address, updated_data.private_ip_address)
+        self.assertEquals(result.public_ip, updated_data.public_ip_address)
+        self.assertEquals(result.resource_group, updated_data.reservation_id)
 
     def test_deploy_from_custom_image(self):
-        """Check deploy from custom Image operation"""
-        azure_vm_deployment_model = MagicMock(app_name="")
-        cloud_provider_model = MagicMock()
-        reservation = MagicMock()
-        network_client = MagicMock()
-        compute_client = MagicMock()
-        storage_client = MagicMock()
-        logger = MagicMock()
-        cancellation_context = MagicMock()
-
-        self.deploy_operation._get_sandbox_subnet = MagicMock()
-        self.deploy_operation._get_sandbox_storage_account_name = MagicMock()
-        self.deploy_operation._process_nsg_rules = MagicMock()
-        self.deploy_operation._get_public_ip_address = MagicMock()
-        self.storage_service.copy_blob = MagicMock()
-        self.network_service.create_network_for_vm = MagicMock()
-        self.vm_credentials_service.prepare_credentials = MagicMock()
-        self.vm_service.create_vm_from_custom_image = MagicMock()
-        self.network_client = MagicMock()
+        # Arrange
+        expected_result = Mock()
+        self.deploy_operation._deploy_vm_generic = Mock(return_value=expected_result)
+        self.deploy_operation._create_vm_custom_image_action = Mock()
+        azure_vm_deployment_model = Mock()
+        cloud_provider_model = Mock()
+        reservation = Mock()
+        network_client = Mock()
+        compute_client = Mock()
+        storage_client = Mock()
+        cancellation_context = Mock()
+        logger = Mock()
 
         # Act
-        self.deploy_operation.deploy_from_custom_image(
-            azure_vm_deployment_model=azure_vm_deployment_model,
-            cloud_provider_model=cloud_provider_model,
-            reservation=reservation,
-            network_client=network_client,
-            compute_client=compute_client,
-            storage_client=storage_client,
-            cancellation_context=cancellation_context,
-            logger=logger)
-
-        # Verify
-        self.storage_service.copy_blob.assert_called_once()
-        self.network_service.create_network_for_vm.assert_called_once()
-        self.vm_service.create_vm_from_custom_image.assert_called_once()
-        self.network_service.create_network_for_vm.assert_called_once()
-        self.deploy_operation._process_nsg_rules.assert_called_once()
-        self.deploy_operation._get_public_ip_address.assert_called_once()
-        self.deploy_operation._get_sandbox_subnet.assert_called_once()
-        self.deploy_operation.storage_service.get_sandbox_storage_account_name.assert_called_once()
-        self.cancellation_service.check_if_cancelled.assert_called_with(cancellation_context)
-
-    def test_deploy_from_custom_image_delete_all_resources_on_error(self):
-        """Check that method will delete all created resources in case of any Exception occurs while deploying"""
-        azure_vm_deployment_model = MagicMock(app_name="")
-        cloud_provider_model = MagicMock()
-        reservation = MagicMock()
-        network_client = MagicMock()
-        compute_client = MagicMock()
-        storage_client = MagicMock()
-        test_name = "test_generated_name"
-        logger = MagicMock()
-        cancellation_context = MagicMock()
-        self.name_provider_service.generate_name.return_value = test_name
-        self.deploy_operation._rollback_deployed_resources = MagicMock()
-        self.deploy_operation._get_sandbox_subnet = MagicMock()
-        self.deploy_operation._get_sandbox_storage_account_name = MagicMock()
-        self.deploy_operation._process_nsg_rules = MagicMock()
-        self.storage_service.copy_blob = MagicMock()
-        self.network_service.create_network_for_vm = MagicMock(side_effect=Exception)
-
-        with self.assertRaises(Exception):
-            # Act
-            self.deploy_operation.deploy_from_custom_image(
-                azure_vm_deployment_model=azure_vm_deployment_model,
+        res = self.deploy_operation.deploy_from_custom_image(
+                deployment_model=azure_vm_deployment_model,
                 cloud_provider_model=cloud_provider_model,
                 reservation=reservation,
                 network_client=network_client,
@@ -247,99 +237,205 @@ class TestDeployAzureVMOperation(TestCase):
                 cancellation_context=cancellation_context,
                 logger=logger)
 
-        # Verify
-        self.deploy_operation._rollback_deployed_resources.assert_called_once_with(
-            compute_client=compute_client,
-            group_name=str(reservation.reservation_id),
-            interface_name=test_name,
-            ip_name=test_name,
-            network_client=network_client,
-            vm_name=test_name,
-            logger=logger)
+        # Assert
+        self.assertEquals(expected_result, res)
+        self.deploy_operation._deploy_vm_generic.assert_called_once_with(
+                create_vm_action=self.deploy_operation._create_vm_custom_image_action,
+                deployment_model=azure_vm_deployment_model,
+                cloud_provider_model=cloud_provider_model,
+                reservation=reservation,
+                storage_client=storage_client,
+                compute_client=compute_client,
+                network_client=network_client,
+                cancellation_context=cancellation_context,
+                logger=logger)
 
-    def test_deploy_operation_virtual_networks_validation(self):
+    def test_deploy_from_marketplace(self):
         # Arrange
-        self.vm_service.create_resource_group = Mock(return_value=True)
-        self.storage_service.create_storage_account = Mock(return_value=True)
-        self.storage_service.get_storage_per_resource_group = MagicMock()
-        self.network_service.create_network_for_vm = MagicMock()
-        self.network_service.get_public_ip = MagicMock()
-        self.vm_service.create_vm = Mock()
-
-        # Arrange 1 - more than one network
-        self.network_service.get_virtual_networks = Mock(return_value=[MagicMock(), MagicMock()])
-
-        # Act 1
-        self.assertRaises(Exception,
-                          self.deploy_operation.deploy,
-                          DeployAzureVMResourceModel(),
-                          AzureCloudProviderResourceModel(),
-                          Mock(),
-                          MagicMock(),
-                          Mock(),
-                          Mock(),
-                          Mock()
-                          )
-
-        # Arrange 2 - no networks
-        self.network_service.get_virtual_networks = Mock(return_value=[])
-
-        # Act 2
-        self.assertRaises(Exception,
-                          self.deploy_operation.deploy,
-                          DeployAzureVMResourceModel(),
-                          AzureCloudProviderResourceModel(),
-                          Mock(),
-                          MagicMock(),
-                          Mock(),
-                          Mock(),
-                          Mock()
-                          )
-
-    def test_should_delete_all_created_on_error(self):
-        """
-        This method verifies the basic deployment of vm.
-        :return:
-        """
-
-        # Arrange
-        self.network_service.create_network_for_vm = MagicMock()
-        vnet = Mock()
-        subnet = MagicMock()
-        name = "name"
-        subnet.name = name
-        vnet.subnets = [subnet]
+        expected_result = Mock()
+        self.deploy_operation._deploy_vm_generic = Mock(return_value=expected_result)
+        self.deploy_operation._create_vm_custom_image_action = Mock()
+        azure_vm_deployment_model = Mock()
+        cloud_provider_model = Mock()
         reservation = Mock()
-        reservation.reservation_id = name
-        self.network_service.get_sandbox_virtual_network = Mock(return_value=vnet)
-
-        self.storage_service.get_storage_per_resource_group = MagicMock()
-        self.vm_service.create_vm = Mock(side_effect=Exception('Boom!'))
-        self.network_service.delete_nic = Mock()
-        self.network_service.delete_ip = Mock()
-        self.vm_service.delete_vm = Mock()
-        self.vm_service.get_virtual_machine_image = MagicMock()
-        self.deploy_operation._process_nsg_rules = Mock()
-        self.deploy_operation._rollback_deployed_resources = MagicMock()
-        self.deploy_operation._prepare_vm_size = MagicMock()
-        self.deploy_operation.cancellation_service.check_if_cancelled.return_value = False
+        network_client = Mock()
+        compute_client = Mock()
+        storage_client = Mock()
+        cancellation_context = Mock()
+        logger = Mock()
 
         # Act
-        self.assertRaises(Exception,
-                          self.deploy_operation.deploy,
-                          DeployAzureVMResourceModel(),
-                          AzureCloudProviderResourceModel(),
-                          reservation,
-                          Mock(),
-                          Mock(),
-                          Mock(),
-                          Mock(),
-                          Mock())
+        res = self.deploy_operation.deploy_from_marketplace(
+                deployment_model=azure_vm_deployment_model,
+                cloud_provider_model=cloud_provider_model,
+                reservation=reservation,
+                network_client=network_client,
+                compute_client=compute_client,
+                storage_client=storage_client,
+                cancellation_context=cancellation_context,
+                logger=logger)
+
+        # Assert
+        self.assertEquals(expected_result, res)
+        self.deploy_operation._deploy_vm_generic.assert_called_once_with(
+                create_vm_action=self.deploy_operation._create_vm_marketplace_action,
+                deployment_model=azure_vm_deployment_model,
+                cloud_provider_model=cloud_provider_model,
+                reservation=reservation,
+                storage_client=storage_client,
+                compute_client=compute_client,
+                network_client=network_client,
+                cancellation_context=cancellation_context,
+                logger=logger)
+
+    def test_create_vm_custom_image_action(self):
+        """Check deploy from custom Image operation"""
+        # Arrange
+        azure_vm_deployment_model = MagicMock()
+        cloud_provider_model = MagicMock()
+        logger = MagicMock()
+        compute_client = Mock()
+        storage_client = Mock()
+        cancellation_context = MagicMock()
+        data = Mock()
+        data.group_name = "group"
+        data.storage_account_name = "storage_account"
+
+        image_urn = "image_urn"
+        self.storage_service.copy_blob = Mock(return_value=image_urn)
+        blob_url = Mock()
+        blob_url.container_name = "container"
+        self.storage_service.parse_blob_url = Mock(return_value=blob_url)
+        self.vm_service.create_vm_from_custom_image = Mock()
+
+        # Act
+        self.deploy_operation._create_vm_custom_image_action(
+                compute_client=compute_client,
+                storage_client=storage_client,
+                deployment_model=azure_vm_deployment_model,
+                cloud_provider_model=cloud_provider_model,
+                data=data,
+                cancellation_context=cancellation_context,
+                logger=logger)
 
         # Verify
-        self.network_service.create_network_for_vm.assert_called_once()
-        self.vm_service.create_vm.assert_called_once()
-        self.deploy_operation._rollback_deployed_resources.assert_called_once()
+        self.storage_service.copy_blob.assert_called_once_with(
+                storage_client=storage_client,
+                group_name_copy_to=data.group_name,
+                storage_name_copy_to=data.storage_account_name,
+                container_name_copy_to="customimages-container",
+                blob_name_copy_to=blob_url.blob_name,
+                source_copy_from=azure_vm_deployment_model.image_urn,
+                group_name_copy_from=cloud_provider_model.management_group_name,
+                cancellation_context=cancellation_context,
+                logger=logger)
+        self.storage_service.parse_blob_url.assert_called_once_with(azure_vm_deployment_model.image_urn)
+        self.cancellation_service.check_if_cancelled.assert_called_with(cancellation_context)
+        self.assertEquals(self.cancellation_service.check_if_cancelled.call_count, 2)
+        self.vm_service.create_vm_from_custom_image.assert_called_once_with(
+                compute_management_client=compute_client,
+                image_urn=image_urn,
+                image_os_type=data.os_type,
+                vm_credentials=data.vm_credentials,
+                computer_name=data.computer_name,
+                group_name=data.group_name,
+                nic_id=data.nic.id,
+                region=cloud_provider_model.region,
+                storage_name=data.storage_account_name,
+                vm_name=data.vm_name,
+                tags=data.tags,
+                vm_size=data.vm_size,
+                cancellation_context=cancellation_context)
+
+    def test_create_vm_marketplace_action(self):
+        """Check deploy from custom Image operation"""
+        # Arrange
+        azure_vm_deployment_model = MagicMock()
+        cloud_provider_model = MagicMock()
+        logger = MagicMock()
+        compute_client = Mock()
+        storage_client = Mock()
+        cancellation_context = MagicMock()
+        data = Mock()
+        self.vm_service.create_vm_from_marketplace = Mock()
+
+        # Act
+        self.deploy_operation._create_vm_marketplace_action(
+                compute_client=compute_client,
+                storage_client=storage_client,
+                deployment_model=azure_vm_deployment_model,
+                cloud_provider_model=cloud_provider_model,
+                data=data,
+                cancellation_context=cancellation_context,
+                logger=logger)
+
+        # Verify
+        self.vm_service.create_vm_from_marketplace.assert_called_once_with(
+                compute_management_client=compute_client,
+                image_offer=azure_vm_deployment_model.image_offer,
+                image_publisher=azure_vm_deployment_model.image_publisher,
+                image_sku=azure_vm_deployment_model.image_sku,
+                image_version=azure_vm_deployment_model.image_version,
+                vm_credentials=data.vm_credentials,
+                computer_name=data.computer_name,
+                group_name=data.group_name,
+                nic_id=data.nic.id,
+                region=cloud_provider_model.region,
+                storage_name=data.storage_account_name,
+                vm_name=data.vm_name,
+                tags=data.tags,
+                vm_size=data.vm_size,
+                purchase_plan=data.purchase_plan,
+                cancellation_context=cancellation_context)
+
+    def test_deploy_vm_generic_delete_all_resources_on_error(self):
+        """ Check that method will delete all created resources in case of any Exception occurs while deploying"""
+        # Arrange
+        resource_model = DeployAzureVMResourceModel()
+        data = Mock()
+        updated_data = Mock()
+        updated_data.vm_credentials = Mock()
+        deployed_app_attributes = Mock()
+        self.deploy_operation._prepare_deploy_data = Mock(return_value=data)
+        self.deploy_operation._create_vm_common_objects = Mock(return_value=updated_data)
+        self.deploy_operation._create_vm_custom_script_extension = Mock()
+        self.deploy_operation._prepare_deployed_app_attributes = Mock(return_value=deployed_app_attributes)
+
+        cancellation_context = Mock()
+        reservation = Mock()
+        cloud_provider_model = Mock()
+        logger = Mock()
+        network_client = Mock()
+        compute_client = Mock()
+        storage_client = Mock()
+        create_vm_action = Mock(side_effect=Exception)
+        self.deploy_operation._rollback_deployed_resources = Mock()
+
+        # Act
+        with self.assertRaises(Exception):
+            self.deploy_operation._deploy_vm_generic(create_vm_action=create_vm_action,
+                                                     deployment_model=resource_model,
+                                                     cloud_provider_model=cloud_provider_model,
+                                                     reservation=reservation,
+                                                     network_client=network_client,
+                                                     compute_client=compute_client,
+                                                     storage_client=storage_client,
+                                                     cancellation_context=cancellation_context,
+                                                     logger=logger)
+
+        # Verify
+        self.deploy_operation._rollback_deployed_resources.assert_called_once_with(
+                compute_client=compute_client,
+                network_client=network_client,
+                group_name=updated_data.group_name,
+                interface_name=updated_data.interface_name,
+                ip_name=updated_data.ip_name,
+                vm_name=updated_data.vm_name,
+                logger=logger)
+
+    def test_deploy_operation_virtual_networks_validation(self):
+        # todo - add tests for validations
+        pass
 
     def test_rollback_deployed_resources(self):
         """Check that deploy rollback method will delete resources"""
@@ -374,29 +470,29 @@ class TestDeployAzureVMOperation(TestCase):
         self.deploy_operation._validate_resource_is_single_per_group = MagicMock()
         self.deploy_operation.security_group_service.get_network_security_group.return_value = security_groups_list[0]
         lock = Mock()
-        self.generic_lock_provider.get_resource_lock=Mock(return_value=lock)
+        self.generic_lock_provider.get_resource_lock = Mock(return_value=lock)
 
         # Act
         self.deploy_operation._process_nsg_rules(
-            network_client=network_client,
-            group_name=group_name,
-            azure_vm_deployment_model=azure_vm_deployment_model,
-            nic=nic,
-            cancellation_context=cancellation_context,
-            logger=logger)
+                network_client=network_client,
+                group_name=group_name,
+                azure_vm_deployment_model=azure_vm_deployment_model,
+                nic=nic,
+                cancellation_context=cancellation_context,
+                logger=logger)
 
         # Verify
         self.deploy_operation.security_group_service.get_network_security_group.assert_called_once_with(
-            network_client=network_client,
-            group_name=group_name)
+                network_client=network_client,
+                group_name=group_name)
 
         self.deploy_operation.security_group_service.create_network_security_group_rules.assert_called_once_with(
-            destination_addr=nic.ip_configurations[0].private_ip_address,
-            group_name=group_name,
-            inbound_rules=[],
-            network_client=network_client,
-            security_group_name=security_groups_list[0].name,
-            lock=lock)
+                destination_addr=nic.ip_configurations[0].private_ip_address,
+                group_name=group_name,
+                inbound_rules=[],
+                network_client=network_client,
+                security_group_name=security_groups_list[0].name,
+                lock=lock)
 
     def test_process_nsg_rules_inbound_ports_attribute_is_empty(self):
         """Check that method will not call security group service for NSG rules creation if there are no rules"""
@@ -411,12 +507,12 @@ class TestDeployAzureVMOperation(TestCase):
 
         # Act
         self.deploy_operation._process_nsg_rules(
-            network_client=network_client,
-            group_name=group_name,
-            azure_vm_deployment_model=azure_vm_deployment_model,
-            nic=nic,
-            cancellation_context=cancellation_context,
-            logger=logger)
+                network_client=network_client,
+                group_name=group_name,
+                azure_vm_deployment_model=azure_vm_deployment_model,
+                nic=nic,
+                cancellation_context=cancellation_context,
+                logger=logger)
 
         # Verify
         self.deploy_operation.security_group_service.list_network_security_group.assert_not_called()
@@ -501,3 +597,224 @@ class TestDeployAzureVMOperation(TestCase):
         with self.assertRaises(Exception):
             self.deploy_operation._prepare_vm_size(azure_vm_deployment_model=azure_vm_deployment_model,
                                                    cloud_provider_model=cloud_provider_model)
+
+    def test_prepare_deploy_data(self):
+        # Arrange
+        image_data_model = Mock()
+        self.deploy_operation.image_data_factory.get_image_data_model = Mock(return_value=image_data_model)
+        self.deploy_operation._validate_deployment_model = Mock()
+        self.deploy_operation.name_provider_service.generate_name = Mock(return_value="random_name")
+        self.deploy_operation._prepare_computer_name = Mock(return_value="computer_name")
+        self.deploy_operation._prepare_vm_size = Mock(return_value="vm_size")
+        self.deploy_operation._get_sandbox_subnet = Mock()
+        self.deploy_operation.storage_service.get_sandbox_storage_account_name = Mock(return_value="storage")
+        self.deploy_operation.tags_service.get_tags = Mock()
+        logger = Mock()
+        reservation_id = "res_id"
+        reservation = MagicMock(reservation_id=reservation_id)
+        deployment_model = MagicMock(app_name="Cool App")
+        cloud_provider_model = Mock()
+        network_client = Mock()
+        storage_client = Mock()
+        compute_client = Mock()
+
+        # Act
+        data = self.deploy_operation._prepare_deploy_data(
+                logger=logger,
+                reservation=reservation,
+                deployment_model=deployment_model,
+                cloud_provider_model=cloud_provider_model,
+                network_client=network_client,
+                storage_client=storage_client,
+                compute_client=compute_client)
+
+        # Assert
+        self.deploy_operation.image_data_factory.get_image_data_model.assert_called_once_with(
+                cloud_provider_model=cloud_provider_model,
+                deployment_model=deployment_model,
+                compute_client=compute_client,
+                logger=logger)
+        self.deploy_operation._validate_deployment_model.assert_called_once_with(vm_deployment_model=deployment_model,
+                                                                                 os_type=image_data_model.os_type)
+        self.deploy_operation._prepare_vm_size.assert_called_once()
+        self.deploy_operation._prepare_vm_size._get_sandbox_subnet()
+        self.deploy_operation.storage_service.get_sandbox_storage_account_name()
+        self.deploy_operation.tags_service.get_tags()
+        self.assertEquals(data.reservation_id, reservation_id)
+        self.assertEquals(data.group_name, reservation_id)
+        self.assertEquals(data.os_type, image_data_model.os_type)
+        self.assertEquals(data.purchase_plan, image_data_model.purchase_plan)
+        self.assertEquals(data.app_name, "coolapp")
+        self.assertEquals(data.interface_name, "random_name")
+        self.assertEquals(data.ip_name, "random_name")
+        self.assertEquals(data.computer_name, "computer_name")
+        self.assertEquals(data.vm_name, "random_name")
+        self.assertEquals(data.vm_size, "vm_size")
+        self.assertEquals(data.subnet, self.deploy_operation._get_sandbox_subnet.return_value)
+        self.assertEquals(data.storage_account_name, "storage")
+        self.assertEquals(data.tags, self.deploy_operation.tags_service.get_tags.return_value)
+
+    def test_vm_common_objects(self):
+        # Arrange
+        logger = Mock()
+        data = Mock()
+        deployment_model = Mock()
+        cloud_provider_model = Mock()
+        network_client = Mock()
+        storage_client = Mock()
+        cancellation_context = Mock()
+        nic = MagicMock()
+        self.deploy_operation.network_service.create_network_for_vm = Mock(return_value=nic)
+        self.deploy_operation._get_public_ip_address = Mock(return_value="pub_ip_address")
+        self.deploy_operation._process_nsg_rules = Mock()
+        credentials = Mock()
+        self.deploy_operation.vm_credentials_service.prepare_credentials = Mock(return_value=credentials)
+
+        # Act
+        data_res = self.deploy_operation._create_vm_common_objects(
+                logger=logger,
+                data=data,
+                deployment_model=deployment_model,
+                cloud_provider_model=cloud_provider_model,
+                network_client=network_client,
+                storage_client=storage_client,
+                cancellation_context=cancellation_context)
+
+        # Assert
+
+        self.deploy_operation.cancellation_service.check_if_cancelled.assert_called_with(cancellation_context)
+        self.assertEquals(self.deploy_operation.cancellation_service.check_if_cancelled.call_count, 3)
+        self.deploy_operation.network_service.create_network_for_vm.assert_called_once_with(
+                network_client=network_client,
+                group_name=data.group_name,
+                interface_name=data.interface_name,
+                ip_name=data.ip_name,
+                cloud_provider_model=cloud_provider_model,
+                subnet=data.subnet,
+                add_public_ip=deployment_model.add_public_ip,
+                public_ip_type=deployment_model.public_ip_type,
+                tags=data.tags,
+                logger=logger)
+        self.deploy_operation._get_public_ip_address.assert_called_once_with(
+                network_client=network_client,
+                azure_vm_deployment_model=deployment_model,
+                group_name=data.group_name,
+                ip_name=data.ip_name,
+                cancellation_context=cancellation_context,
+                logger=logger)
+        self.deploy_operation._process_nsg_rules.assert_called_once_with(
+                network_client=network_client,
+                group_name=data.group_name,
+                azure_vm_deployment_model=deployment_model,
+                nic=data.nic,
+                cancellation_context=cancellation_context,
+                logger=logger)
+        self.deploy_operation.vm_credentials_service.prepare_credentials.assert_called_once_with(
+                os_type=data.os_type,
+                username=deployment_model.username,
+                password=deployment_model.password,
+                storage_service=self.storage_service,
+                key_pair_service=self.key_pair_service,
+                storage_client=storage_client,
+                group_name=data.group_name,
+                storage_name=data.storage_account_name)
+        self.assertEquals(data_res.nic, nic)
+        self.assertEquals(data_res.private_ip_address, nic.ip_configurations[0].private_ip_address)
+        self.assertEquals(data_res.public_ip_address, "pub_ip_address")
+        self.assertEquals(data_res.vm_credentials, credentials)
+
+    def test_create_vm_custom_script_extension_no_ext_script_file(self):
+        # Assert
+        deployment_model = Mock()
+        deployment_model.extension_script_file = ""
+        cloud_provider_model = Mock()
+        compute_client = Mock()
+        data = Mock()
+        logger = Mock()
+        cancellation_context = Mock()
+        self.deploy_operation.vm_extension_service.create_script_extension = Mock()
+
+        # Act
+        self.deploy_operation._create_vm_custom_script_extension(
+                deployment_model=deployment_model,
+                cloud_provider_model=cloud_provider_model,
+                compute_client=compute_client,
+                data=data,
+                logger=logger,
+                cancellation_context=cancellation_context)
+
+        # Assert
+        self.deploy_operation.vm_extension_service.create_script_extension.assert_not_called()
+        self.deploy_operation.cancellation_service.check_if_cancelled.assert_not_called()
+
+    def test_create_vm_custom_script_extension(self):
+        # Assert
+        deployment_model = Mock()
+        cloud_provider_model = Mock()
+        compute_client = Mock()
+        data = Mock()
+        logger = Mock()
+        cancellation_context = Mock()
+        self.deploy_operation.vm_extension_service.create_script_extension = Mock()
+
+        # Act
+        self.deploy_operation._create_vm_custom_script_extension(
+                deployment_model=deployment_model,
+                cloud_provider_model=cloud_provider_model,
+                compute_client=compute_client,
+                data=data,
+                logger=logger,
+                cancellation_context=cancellation_context)
+
+        # Assert
+        self.deploy_operation.cancellation_service.check_if_cancelled.assert_called_with(cancellation_context)
+        self.assertEquals(self.deploy_operation.cancellation_service.check_if_cancelled.call_count, 2)
+        self.deploy_operation.vm_extension_service.create_script_extension.assert_called_once_with(
+                compute_client=compute_client,
+                location=cloud_provider_model.region,
+                group_name=data.group_name,
+                vm_name=data.vm_name,
+                image_os_type=data.os_type,
+                script_file=deployment_model.extension_script_file,
+                script_configurations=deployment_model.extension_script_configurations,
+                tags=data.tags)
+
+    def test_validate_deployment_model_throws_when_has_inbound_ports_without_public_ip(self):
+        # Arrange
+        deployment_model = Mock()
+        deployment_model.inbound_ports = "xxx"
+        deployment_model.add_public_ip = None
+        os_type = Mock()
+
+        # Act & Assert
+        with self.assertRaisesRegexp(Exception,
+                                     '"Inbound Ports" attribute must be empty when "Add Public IP" is false'):
+            self.deploy_operation._validate_deployment_model(vm_deployment_model=deployment_model,
+                                                             os_type=os_type)
+
+    def test_validate_deployment_model_has_extension_script_file(self):
+        # Arrange
+        deployment_model = Mock()
+        deployment_model.extension_script_file = "http://bla.com/script"
+        os_type = Mock()
+        self.deploy_operation.vm_extension_service.validate_script_extension = Mock()
+
+        # Act
+        self.deploy_operation._validate_deployment_model(vm_deployment_model=deployment_model,
+                                                         os_type=os_type)
+
+        # Assert
+        self.deploy_operation.vm_extension_service.validate_script_extension.assert_called_once_with(
+            image_os_type=os_type,
+            script_file=deployment_model.extension_script_file,
+            script_configurations=deployment_model.extension_script_configurations)
+
+
+    def test_prepare_deployed_app_attributes(self):
+        expected_res = {'Password': 'pass', 'User': 'admin', 'Public IP': '5.5.5.5'}
+
+        res = self.deploy_operation._prepare_deployed_app_attributes(admin_username='admin',
+                                                                     admin_password='pass',
+                                                                     public_ip='5.5.5.5')
+
+        self.assertEquals(res, expected_res)

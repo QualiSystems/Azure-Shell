@@ -32,7 +32,7 @@ class VMCredentialsService(object):
 
     def prepare_credentials(self, os_type, username, password, storage_service, key_pair_service,
                             storage_client, group_name, storage_name):
-        """Prepare credentials for Windows/Linux VM
+        """ Prepare credentials for Windows/Linux VM
 
         :param os_type: azure.mgmt.compute.models.OperatingSystemTypes os type (linux/windows)
         :param username: VM username
@@ -42,7 +42,8 @@ class VMCredentialsService(object):
         :param storage_client: azure.mgmt.storage.StorageManagementClient instance
         :param group_name: resource group name (reservation id)
         :param storage_name: Azure storage name
-        :return: cloudshell.cp.azure.models.vm_credentials.VMCredentials instance
+        :return: VMCredentials instance
+        :rtype: cloudshell.cp.azure.models.vm_credentials.VMCredentials
         """
         ssh_key = None
 

@@ -5,7 +5,8 @@ from azure.mgmt.compute.models.linux_configuration import LinuxConfiguration
 from azure.mgmt.compute.models.ssh_configuration import SshConfiguration
 from azure.mgmt.resource.resources.models import ResourceGroup
 from azure.mgmt.compute.models.ssh_public_key import SshPublicKey
-from azure.mgmt.compute.models import OperatingSystemTypes
+from azure.mgmt.compute.models import OperatingSystemTypes, VirtualMachineImage
+from msrestazure.azure_exceptions import CloudError
 from retrying import retry
 
 from cloudshell.cp.azure.common.helpers.retrying_helpers import retry_if_connection_error
@@ -76,7 +77,7 @@ class VirtualMachineService(object):
         :param storage_profile: azure.mgmt.compute.models.StorageProfile instance
         :param cancellation_context cloudshell.shell.core.driver_context.CancellationContext instance
         :param tags: azure tags
-        :return: azure.mgmt.compute.models.VirtualMachine instance
+        :rtype: azure.mgmt.compute.models.VirtualMachine
         """
         virtual_machine = VirtualMachine(location=region,
                                          tags=tags,
@@ -122,8 +123,9 @@ class VirtualMachineService(object):
     def prepare_image_os_type(self, image_os_type):
         """Prepare Image OS Type object for the VM
 
-        :param image_os_type: (str) Image OS Type attribute ("Windows" or "Linux")
-        :return: (enum) azure.mgmt.compute.models.OperatingSystemTypes windows/linux value
+        :param str image_os_type: (str) Image OS Type attribute ("Windows" or "Linux")
+        :return: (enum) windows/linux value
+        :rtype: azure.mgmt.compute.models.OperatingSystemTypes
         """
         if image_os_type.lower() == "linux":
             return OperatingSystemTypes.linux
@@ -146,6 +148,7 @@ class VirtualMachineService(object):
                                     cancellation_context):
         """Create VM from custom image URN
 
+        :param cancellation_context:
         :param vm_size: (str) Azure instance type
         :param compute_management_client: azure.mgmt.compute.ComputeManagementClient instance
         :param image_urn: Azure custom image URL
@@ -159,6 +162,7 @@ class VirtualMachineService(object):
         :param vm_name: name for VM
         :param tags: Azure tags
         :return:
+        :rtype: azure.mgmt.compute.models.VirtualMachine
         """
         os_profile = self._prepare_os_profile(vm_credentials=vm_credentials,
                                               computer_name=computer_name)
@@ -178,35 +182,43 @@ class VirtualMachineService(object):
 
         storage_profile = StorageProfile(os_disk=os_disk)
 
-        return self._create_vm(
-            compute_management_client=compute_management_client,
-            region=region,
-            group_name=group_name,
-            vm_name=vm_name,
-            hardware_profile=hardware_profile,
-            network_profile=network_profile,
-            os_profile=os_profile,
-            storage_profile=storage_profile,
-            cancellation_context=cancellation_context,
-            tags=tags)
+        try:
+            return self._create_vm(
+                    compute_management_client=compute_management_client,
+                    region=region,
+                    group_name=group_name,
+                    vm_name=vm_name,
+                    hardware_profile=hardware_profile,
+                    network_profile=network_profile,
+                    os_profile=os_profile,
+                    storage_profile=storage_profile,
+                    cancellation_context=cancellation_context,
+                    tags=tags)
+        except CloudError as exc:
+            error = str(exc)
+            if "OSProvisioningTimedOut".lower() in error.lower():
+                raise Exception(error + "\r\n"
+                                        "You may have a mismatch between the selected 'Image OS Type' and the "
+                                        "operation system provided in the 'Image URN'.")
+            raise
 
-    def create_vm(self,
-                  compute_management_client,
-                  image_offer,
-                  image_publisher,
-                  image_sku,
-                  image_version,
-                  vm_credentials,
-                  computer_name,
-                  group_name,
-                  nic_id,
-                  region,
-                  storage_name,
-                  vm_name,
-                  tags,
-                  vm_size,
-                  purchase_plan,
-                  cancellation_context):
+    def create_vm_from_marketplace(self,
+                                   compute_management_client,
+                                   image_offer,
+                                   image_publisher,
+                                   image_sku,
+                                   image_version,
+                                   vm_credentials,
+                                   computer_name,
+                                   group_name,
+                                   nic_id,
+                                   region,
+                                   storage_name,
+                                   vm_name,
+                                   tags,
+                                   vm_size,
+                                   purchase_plan,
+                                   cancellation_context):
         """
 
         :param vm_size: (str) Azure instance type
@@ -225,7 +237,7 @@ class VirtualMachineService(object):
         :param tags: Azure tags
         :param purchase_plan: PurchasePlan
         :param cancellation_context cloudshell.shell.core.driver_context.CancellationContext instance
-        :return:
+        :rtype: azure.mgmt.compute.models.VirtualMachine
         """
         os_profile = self._prepare_os_profile(vm_credentials=vm_credentials,
                                               computer_name=computer_name)
@@ -251,17 +263,17 @@ class VirtualMachineService(object):
             vm_plan = Plan(name=purchase_plan.name, publisher=purchase_plan.publisher, product=purchase_plan.product)
 
         return self._create_vm(
-            compute_management_client=compute_management_client,
-            region=region,
-            group_name=group_name,
-            vm_name=vm_name,
-            hardware_profile=hardware_profile,
-            network_profile=network_profile,
-            os_profile=os_profile,
-            storage_profile=storage_profile,
-            cancellation_context=cancellation_context,
-            tags=tags,
-            vm_plan=vm_plan)
+                compute_management_client=compute_management_client,
+                region=region,
+                group_name=group_name,
+                vm_name=vm_name,
+                hardware_profile=hardware_profile,
+                network_profile=network_profile,
+                os_profile=os_profile,
+                storage_profile=storage_profile,
+                cancellation_context=cancellation_context,
+                tags=tags,
+                vm_plan=vm_plan)
 
     @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def create_resource_group(self, resource_management_client, group_name, region, tags):
@@ -335,23 +347,24 @@ class VirtualMachineService(object):
         :param publisher_name: (str) Azure publisher name
         :param offer: (str) Azure Image offer
         :param skus: (str) Azure Image SKU
-        :return: (enum) azure.mgmt.compute.models.OperatingSystemTypes windows/linux value
+        :return: Virtual Machine Image
+        :rtype: VirtualMachineImage
         """
         # get last version first (required for the virtual machine images GET Api)
         image_resources = compute_management_client.virtual_machine_images.list(
-            location=location,
-            publisher_name=publisher_name,
-            offer=offer,
-            skus=skus)
+                location=location,
+                publisher_name=publisher_name,
+                offer=offer,
+                skus=skus)
 
         version = image_resources[-1].name
 
         deployed_image = compute_management_client.virtual_machine_images.get(
-            location=location,
-            publisher_name=publisher_name,
-            offer=offer,
-            skus=skus,
-            version=version)
+                location=location,
+                publisher_name=publisher_name,
+                offer=offer,
+                skus=skus,
+                version=version)
 
         return deployed_image
 

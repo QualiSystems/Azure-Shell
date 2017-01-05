@@ -14,14 +14,12 @@ class TagService(object):
     def __init__(self):
         pass
 
-    def get_tags(self, vm_name=None, admin_username=None, subnet_name=None, reservation=None):
+    def get_tags(self, vm_name=None, reservation=None):
         """
-
         :param vm_name:
-        :param admin_username:
-        :param subnet_name:
         :type reservation: cloudshell.cp.azure.models.reservation_model.ReservationModel
         :return:
+        :rtype: dict
         """
 
         result = {TagNames.CreatedBy: TagService.CREATED_BY_QUALI}

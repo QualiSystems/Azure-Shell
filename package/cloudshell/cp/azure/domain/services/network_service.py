@@ -38,7 +38,7 @@ class NetworkService(object):
         :param region:
         :param subnet:
         :param tags:
-        :return:
+        :rtype: NetworkInterface
         """
 
         region = cloud_provider_model.region
@@ -360,6 +360,7 @@ class NetworkService(object):
         :param str tag_key:
         :param str tag_value:
         :return:
+        :rtype: VirtualNetwork
         """
         return next((network for network in virtual_networks
                      if network and self.tags_service.try_find_tag(
