@@ -3,6 +3,8 @@ from threading import Lock
 
 from cloudshell.shell.core.driver_context import ResourceCommandContext, CancellationContext
 from cloudshell.core.context.error_handling_context import ErrorHandlingContext
+
+from cloudshell.cp.azure.common.helpers.url_helper import URLHelper
 from cloudshell.cp.azure.common.profiler.profiler import profileit
 from cloudshell.shell.core.session.cloudshell_session import CloudShellSessionContext
 from cloudshell.cp.azure.common.deploy_data_holder import DeployDataHolder
@@ -54,7 +56,7 @@ class AzureShell(object):
         self.vm_custom_params_extractor = VmCustomParamsExtractor()
         self.cryptography_service = CryptographyService()
         self.name_provider_service = NameProviderService()
-        self.vm_extension_service = VMExtensionService()
+        self.vm_extension_service = VMExtensionService(URLHelper())
         self.task_waiter_service = TaskWaiterService(cancellation_service=self.cancellation_service)
         self.vm_service = VirtualMachineService(task_waiter_service=self.task_waiter_service)
         self.generic_lock_provider = GenericLockProvider()

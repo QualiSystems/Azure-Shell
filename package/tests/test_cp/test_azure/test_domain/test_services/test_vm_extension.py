@@ -1,8 +1,15 @@
+# -*- coding: utf-8 -*-
 from unittest import TestCase
 
 import mock
 
+from cloudshell.cp.azure.common.helpers.url_helper import URLHelper
 from cloudshell.cp.azure.domain.services.vm_extension import VMExtensionService
+
+
+class UrlHelperMock(URLHelper):
+    def check_url(self, url):
+        return True
 
 
 class TestVMExtensionService(TestCase):
@@ -10,7 +17,7 @@ class TestVMExtensionService(TestCase):
         self.location = "southcentralus"
         self.script_file = "https://gist.github.com/ahmetalpbalkan/raw/40507c990a4d5a2f5c79f901fa89a80841/hello.sh"
         self.script_configurations = ""
-        self.vm_extension_service = VMExtensionService()
+        self.vm_extension_service = VMExtensionService(UrlHelperMock())
         self.tags = mock.MagicMock()
 
     @mock.patch("cloudshell.cp.azure.domain.services.vm_extension.OperatingSystemTypes")
@@ -138,3 +145,11 @@ class TestVMExtensionService(TestCase):
             resource_group_name=group_name,
             vm_extension_name=vm_name,
             vm_name=vm_name)
+
+    def test_url_helper(self):
+        uh = URLHelper()
+
+        self.assertTrue(uh.check_url('http://www.stackoverflow.com'))
+        self.assertFalse(uh.check_url('https://en.wikipedia.org/wiki/List_of_HTTP_status_codesqqdfdfqqq'))
+        self.assertFalse(uh.check_url('‪C:\\QsPythonDriverHost.log'))
+        self.assertFalse(uh.check_url(u'https://gist.github.com/ahmetalpbalkan/b5d4a856fe15464015ae87d5587a4439/raw/466f5c30507c990a4d5a2f5c79f901fa89a80841/hello.shha'))
