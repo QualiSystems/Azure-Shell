@@ -73,11 +73,12 @@ class TestDeployAzureVMOperation(TestCase):
         self.network_service.get_sandbox_virtual_network = MagicMock(
                 return_value=MagicMock(subnets=[MagicMock(), MagicMock(), MagicMock()]))
 
-        with self.assertRaises(Exception):
+        with self.assertRaisesRegexp(Exception, "Could not find a valid subnet."):
             self.deploy_operation._get_sandbox_subnet(
                     network_client=network_client,
                     cloud_provider_model=cloud_provider_model,
-                    subnet_name=subnet_name)
+                    subnet_name=subnet_name,
+                    logger=Mock())
 
     def test_get_public_ip_address(self):
         """Check that method will use network service to get Public IP by it's name"""
@@ -777,3 +778,43 @@ class TestDeployAzureVMOperation(TestCase):
                 script_file=deployment_model.extension_script_file,
                 script_configurations=deployment_model.extension_script_configurations,
                 tags=data.tags)
+
+    def test_validate_deployment_model_throws_when_has_inbound_ports_without_public_ip(self):
+        # Arrange
+        deployment_model = Mock()
+        deployment_model.inbound_ports = "xxx"
+        deployment_model.add_public_ip = None
+        os_type = Mock()
+
+        # Act & Assert
+        with self.assertRaisesRegexp(Exception,
+                                     '"Inbound Ports" attribute must be empty when "Add Public IP" is false'):
+            self.deploy_operation._validate_deployment_model(vm_deployment_model=deployment_model,
+                                                             os_type=os_type)
+
+    def test_validate_deployment_model_has_extension_script_file(self):
+        # Arrange
+        deployment_model = Mock()
+        deployment_model.extension_script_file = "http://bla.com/script"
+        os_type = Mock()
+        self.deploy_operation.vm_extension_service.validate_script_extension = Mock()
+
+        # Act
+        self.deploy_operation._validate_deployment_model(vm_deployment_model=deployment_model,
+                                                         os_type=os_type)
+
+        # Assert
+        self.deploy_operation.vm_extension_service.validate_script_extension.assert_called_once_with(
+            image_os_type=os_type,
+            script_file=deployment_model.extension_script_file,
+            script_configurations=deployment_model.extension_script_configurations)
+
+
+    def test_prepare_deployed_app_attributes(self):
+        expected_res = {'Password': 'pass', 'User': 'admin', 'Public IP': '5.5.5.5'}
+
+        res = self.deploy_operation._prepare_deployed_app_attributes(admin_username='admin',
+                                                                     admin_password='pass',
+                                                                     public_ip='5.5.5.5')
+
+        self.assertEquals(res, expected_res)
