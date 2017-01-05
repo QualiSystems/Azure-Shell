@@ -274,8 +274,8 @@ class TestVirtualMachineService(TestCase):
     @patch("cloudshell.cp.azure.domain.services.virtual_machine_service.LinuxConfiguration")
     def test_prepare_linux_configuration(self, linux_configuration_class):
         """Check that method will return LinuxConfiguration instance for the Azure client"""
-        ssh_key = mock.MagicMock()
-        linux_configuration = mock.MagicMock()
+        ssh_key = MagicMock()
+        linux_configuration = MagicMock()
         linux_configuration_class.return_value = linux_configuration
 
         res = self.vm_service._prepare_linux_configuration(ssh_key)
@@ -284,16 +284,16 @@ class TestVirtualMachineService(TestCase):
 
     def test_get_virtual_machine_image(self):
         """Check that method returns operating_system of the provided image"""
-        compute_client = mock.MagicMock()
-        image = mock.MagicMock()
+        compute_client = MagicMock()
+        image = MagicMock()
         compute_client.virtual_machine_images.get.return_value = image
 
         vm_image = self.vm_service.get_virtual_machine_image(
             compute_management_client=compute_client,
-            location=mock.MagicMock(),
-            publisher_name=mock.MagicMock(),
-            offer=mock.MagicMock(),
-            skus=mock.MagicMock())
+            location=MagicMock(),
+            publisher_name=MagicMock(),
+            offer=MagicMock(),
+            skus=MagicMock())
 
         compute_client.virtual_machine_images.list.assert_called_once()
         compute_client.virtual_machine_images.get.assert_called_once()
@@ -303,9 +303,9 @@ class TestVirtualMachineService(TestCase):
         """Check that method will return Azure VM if instance exists and is in "Succeeded" provisioning state"""
         vm_name = "test_vm_name"
         group_name = "test_group_name"
-        compute_client = mock.MagicMock()
-        mocked_vm = mock.MagicMock(provisioning_state=self.vm_service.SUCCEEDED_PROVISIONING_STATE)
-        self.vm_service.get_vm = mock.MagicMock(return_value=mocked_vm)
+        compute_client = MagicMock()
+        mocked_vm = MagicMock(provisioning_state=self.vm_service.SUCCEEDED_PROVISIONING_STATE)
+        self.vm_service.get_vm = MagicMock(return_value=mocked_vm)
 
         # Act
         vm = self.vm_service.get_active_vm(compute_management_client=compute_client, group_name=group_name,
@@ -318,9 +318,9 @@ class TestVirtualMachineService(TestCase):
         """Check that method will raise exception if VM is not in "Succeeded" provisioning state"""
         vm_name = "test_vm_name"
         group_name = "test_group_name"
-        compute_client = mock.MagicMock()
-        mocked_vm = mock.MagicMock(provisioning_state="SOME_PROVISION_STATE")
-        self.vm_service.get_vm = mock.MagicMock(return_value=mocked_vm)
+        compute_client = MagicMock()
+        mocked_vm = MagicMock(provisioning_state="SOME_PROVISION_STATE")
+        self.vm_service.get_vm = MagicMock(return_value=mocked_vm)
 
         with self.assertRaises(Exception):
             self.vm_service.get_active_vm(compute_management_client=compute_client, group_name=group_name,
