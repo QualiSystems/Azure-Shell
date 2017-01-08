@@ -42,6 +42,7 @@ from cloudshell.cp.azure.domain.vm_management.operations.autoload_operation impo
 
 class AzureShell(object):
     def __init__(self):
+        waiter_service = TaskWaiterService(cancellation_service=self.cancellation_service)
         self.command_result_parser = CommandResultsParser()
         self.model_parser = AzureModelsParser()
         self.resource_id_parser = AzureResourceIdParser()
@@ -56,8 +57,8 @@ class AzureShell(object):
         self.vm_custom_params_extractor = VmCustomParamsExtractor()
         self.cryptography_service = CryptographyService()
         self.name_provider_service = NameProviderService()
-        self.vm_extension_service = VMExtensionService(URLHelper())
-        self.task_waiter_service = TaskWaiterService(cancellation_service=self.cancellation_service)
+        self.vm_extension_service = VMExtensionService(URLHelper(),waiter_service )
+        self.task_waiter_service = waiter_service
         self.vm_service = VirtualMachineService(task_waiter_service=self.task_waiter_service)
         self.generic_lock_provider = GenericLockProvider()
         self.subnet_locker = Lock()
