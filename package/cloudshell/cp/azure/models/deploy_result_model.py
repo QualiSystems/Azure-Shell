@@ -21,7 +21,7 @@ class DeployResult(object):
         self.cloud_provider_resource_name = cloud_provider_resource_name
         self.auto_power_off = False
         self.wait_for_ip = False
-        self.auto_delete = False
+        self.auto_delete = True
         self.autoload = autoload
         self.deployed_app_attributes = deployed_app_attributes
         self.deployed_app_address = deployed_app_address

@@ -140,6 +140,7 @@ class TestDeployAzureVMOperation(TestCase):
         self.deploy_operation._create_vm_common_objects = Mock(return_value=updated_data)
         self.deploy_operation._create_vm_custom_script_extension = Mock()
         self.deploy_operation._prepare_deployed_app_attributes = Mock(return_value=deployed_app_attributes)
+        self.deploy_operation._get_public_ip_address = Mock(return_value="pub_ip_address")
 
         vm = Mock()
         create_vm_action = Mock(return_value=vm)
@@ -197,11 +198,19 @@ class TestDeployAzureVMOperation(TestCase):
                 data=updated_data,
                 logger=logger,
                 cancellation_context=cancellation_context)
+        self.deploy_operation._get_public_ip_address.assert_called_once_with(
+                network_client=network_client,
+                azure_vm_deployment_model=resource_model,
+                group_name=updated_data.group_name,
+                ip_name=updated_data.ip_name,
+                cancellation_context=cancellation_context,
+                logger=logger)
         self.deploy_operation._prepare_deployed_app_attributes.assert_called_once_with(
                 admin_username=updated_data.vm_credentials.admin_username,
                 admin_password=updated_data.vm_credentials.admin_password,
                 public_ip=updated_data.public_ip_address
         )
+        self.assertEquals(updated_data.public_ip_address, "pub_ip_address")
         self.assertEquals(result.vm_name, updated_data.vm_name)
         self.assertEquals(result.vm_uuid, vm.vm_id)
         self.assertEquals(result.cloud_provider_resource_name, resource_model.cloud_provider)
@@ -211,6 +220,9 @@ class TestDeployAzureVMOperation(TestCase):
         self.assertEquals(result.deployed_app_address, updated_data.private_ip_address)
         self.assertEquals(result.public_ip, updated_data.public_ip_address)
         self.assertEquals(result.resource_group, updated_data.reservation_id)
+        self.assertEquals(result.auto_delete, True)
+        self.assertEquals(result.auto_power_off, False)
+        self.assertEquals(result.wait_for_ip, False)
 
     def test_deploy_from_custom_image(self):
         # Arrange
@@ -665,7 +677,6 @@ class TestDeployAzureVMOperation(TestCase):
         cancellation_context = Mock()
         nic = MagicMock()
         self.deploy_operation.network_service.create_network_for_vm = Mock(return_value=nic)
-        self.deploy_operation._get_public_ip_address = Mock(return_value="pub_ip_address")
         self.deploy_operation._process_nsg_rules = Mock()
         credentials = Mock()
         self.deploy_operation.vm_credentials_service.prepare_credentials = Mock(return_value=credentials)
@@ -695,13 +706,6 @@ class TestDeployAzureVMOperation(TestCase):
                 public_ip_type=deployment_model.public_ip_type,
                 tags=data.tags,
                 logger=logger)
-        self.deploy_operation._get_public_ip_address.assert_called_once_with(
-                network_client=network_client,
-                azure_vm_deployment_model=deployment_model,
-                group_name=data.group_name,
-                ip_name=data.ip_name,
-                cancellation_context=cancellation_context,
-                logger=logger)
         self.deploy_operation._process_nsg_rules.assert_called_once_with(
                 network_client=network_client,
                 group_name=data.group_name,
@@ -720,7 +724,6 @@ class TestDeployAzureVMOperation(TestCase):
                 storage_name=data.storage_account_name)
         self.assertEquals(data_res.nic, nic)
         self.assertEquals(data_res.private_ip_address, nic.ip_configurations[0].private_ip_address)
-        self.assertEquals(data_res.public_ip_address, "pub_ip_address")
         self.assertEquals(data_res.vm_credentials, credentials)
 
     def test_create_vm_custom_script_extension_no_ext_script_file(self):
