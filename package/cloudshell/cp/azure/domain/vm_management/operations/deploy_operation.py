@@ -194,6 +194,13 @@ class DeployAzureVMOperation(object):
 
         logger.info("VM {} was successfully deployed".format(data.vm_name))
 
+        data.public_ip_address = self._get_public_ip_address(network_client=network_client,
+                                                             azure_vm_deployment_model=deployment_model,
+                                                             group_name=data.group_name,
+                                                             ip_name=data.ip_name,
+                                                             cancellation_context=cancellation_context,
+                                                             logger=logger)
+
         deployed_app_attributes = self._prepare_deployed_app_attributes(
                 admin_username=data.vm_credentials.admin_username,
                 admin_password=data.vm_credentials.admin_password,
@@ -507,13 +514,6 @@ class DeployAzureVMOperation(object):
         logger.info("NIC private IP is {}".format(data.private_ip_address))
 
         self.cancellation_service.check_if_cancelled(cancellation_context)
-
-        data.public_ip_address = self._get_public_ip_address(network_client=network_client,
-                                                             azure_vm_deployment_model=deployment_model,
-                                                             group_name=data.group_name,
-                                                             ip_name=data.ip_name,
-                                                             cancellation_context=cancellation_context,
-                                                             logger=logger)
 
         # 2. create NSG rules
         logger.info("Processing Network Security Group rules")
