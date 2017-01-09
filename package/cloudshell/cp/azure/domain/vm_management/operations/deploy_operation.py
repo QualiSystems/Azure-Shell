@@ -473,10 +473,11 @@ class DeployAzureVMOperation(object):
                 script_file=deployment_model.extension_script_file,
                 script_configurations=deployment_model.extension_script_configurations,
                 tags=data.tags,
-                cancellation_context=cancellation_context)
+                cancellation_context=cancellation_context,
+                timeout=deployment_model.extension_script_timeout)
 
             logger.info("VM Custom Script Extension for VM {} was successfully deployed".format(data.vm_name))
-        except Exception, e:
+        except Exception:
             raise
         except QualiTimeoutException:
             logger.info("Script Execution timeout {}.".format(deployment_model.extension_script_file))
