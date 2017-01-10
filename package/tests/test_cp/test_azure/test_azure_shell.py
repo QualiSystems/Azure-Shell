@@ -118,8 +118,12 @@ class TestAzureShell(TestCase):
                                                      cancellation_context=cancellation_context)
 
         # Verify
+
         error_handling.__enter__.assert_called_once_with()
         error_handling_class.assert_called_once_with(self.logger)
+
+
+
         self.azure_shell.deploy_azure_vm_operation.deploy_from_custom_image.assert_called_once_with(
             deployment_model=azure_vm_deployment_model,
             cloud_provider_model=cloud_provider_model,
@@ -128,7 +132,8 @@ class TestAzureShell(TestCase):
             compute_client=azure_clients_manager.compute_client,
             storage_client=azure_clients_manager.storage_client,
             cancellation_context=cancellation_context,
-            logger=self.logger)
+            logger=self.logger,
+            cloudshell_session=cloudshell_session)
 
     @mock.patch("cloudshell.cp.azure.azure_shell.CloudShellSessionContext")
     @mock.patch("cloudshell.cp.azure.azure_shell.jsonpickle")

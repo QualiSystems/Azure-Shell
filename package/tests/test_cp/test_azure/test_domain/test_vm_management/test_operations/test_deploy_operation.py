@@ -152,6 +152,7 @@ class TestDeployAzureVMOperation(TestCase):
         network_client = Mock()
         compute_client = Mock()
         storage_client = Mock()
+        cloudshell_session = Mock()
 
         # Act
         result = self.deploy_operation._deploy_vm_generic(create_vm_action=create_vm_action,
@@ -162,7 +163,8 @@ class TestDeployAzureVMOperation(TestCase):
                                                           compute_client=compute_client,
                                                           storage_client=storage_client,
                                                           cancellation_context=cancellation_context,
-                                                          logger=logger)
+                                                          logger=logger,
+                                                          cloudshell_session=cloudshell_session)
 
         # Verify
         self.assertEquals(self.cancellation_service.check_if_cancelled.call_count, 2)
@@ -237,6 +239,7 @@ class TestDeployAzureVMOperation(TestCase):
         storage_client = Mock()
         cancellation_context = Mock()
         logger = Mock()
+        cloudshell_session=Mock()
 
         # Act
         res = self.deploy_operation.deploy_from_custom_image(
@@ -247,7 +250,8 @@ class TestDeployAzureVMOperation(TestCase):
                 compute_client=compute_client,
                 storage_client=storage_client,
                 cancellation_context=cancellation_context,
-                logger=logger)
+                logger=logger,
+                cloudshell_session=cloudshell_session)
 
         # Assert
         self.assertEquals(expected_result, res)
@@ -260,7 +264,8 @@ class TestDeployAzureVMOperation(TestCase):
                 compute_client=compute_client,
                 network_client=network_client,
                 cancellation_context=cancellation_context,
-                logger=logger)
+                logger=logger,
+                cloudshell_session=cloudshell_session)
 
     def test_deploy_from_marketplace(self):
         # Arrange
@@ -275,6 +280,7 @@ class TestDeployAzureVMOperation(TestCase):
         storage_client = Mock()
         cancellation_context = Mock()
         logger = Mock()
+        cloudshell_session=Mock()
 
         # Act
         res = self.deploy_operation.deploy_from_marketplace(
@@ -285,7 +291,8 @@ class TestDeployAzureVMOperation(TestCase):
                 compute_client=compute_client,
                 storage_client=storage_client,
                 cancellation_context=cancellation_context,
-                logger=logger)
+                logger=logger,
+                cloudshell_session=cloudshell_session)
 
         # Assert
         self.assertEquals(expected_result, res)
@@ -298,7 +305,8 @@ class TestDeployAzureVMOperation(TestCase):
                 compute_client=compute_client,
                 network_client=network_client,
                 cancellation_context=cancellation_context,
-                logger=logger)
+                logger=logger,
+                cloudshell_session=cloudshell_session)
 
     def test_create_vm_custom_image_action(self):
         """Check deploy from custom Image operation"""
@@ -420,6 +428,7 @@ class TestDeployAzureVMOperation(TestCase):
         network_client = Mock()
         compute_client = Mock()
         storage_client = Mock()
+        cloudshell_session = Mock()
         create_vm_action = Mock(side_effect=Exception)
         self.deploy_operation._rollback_deployed_resources = Mock()
 
@@ -433,7 +442,8 @@ class TestDeployAzureVMOperation(TestCase):
                                                      compute_client=compute_client,
                                                      storage_client=storage_client,
                                                      cancellation_context=cancellation_context,
-                                                     logger=logger)
+                                                     logger=logger,
+                                                     cloudshell_session=cloudshell_session)
 
         # Verify
         self.deploy_operation._rollback_deployed_resources.assert_called_once_with(
@@ -780,7 +790,10 @@ class TestDeployAzureVMOperation(TestCase):
                 image_os_type=data.os_type,
                 script_file=deployment_model.extension_script_file,
                 script_configurations=deployment_model.extension_script_configurations,
-                tags=data.tags)
+                tags=data.tags,
+                cancellation_context=cancellation_context,
+                timeout=deployment_model.extension_script_timeout)
+
 
     def test_validate_deployment_model_throws_when_has_inbound_ports_without_public_ip(self):
         # Arrange
