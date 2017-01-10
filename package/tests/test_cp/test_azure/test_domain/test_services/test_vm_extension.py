@@ -17,7 +17,7 @@ class TestVMExtensionService(TestCase):
         self.location = "southcentralus"
         self.script_file = "https://gist.github.com/ahmetalpbalkan/raw/40507c990a4d5a2f5c79f901fa89a80841/hello.sh"
         self.script_configurations = ""
-        self.vm_extension_service = VMExtensionService(UrlHelperMock())
+        self.vm_extension_service = VMExtensionService(url_helper=UrlHelperMock(),waiter_service=mock.MagicMock())
         self.tags = mock.MagicMock()
 
     @mock.patch("cloudshell.cp.azure.domain.services.vm_extension.OperatingSystemTypes")
