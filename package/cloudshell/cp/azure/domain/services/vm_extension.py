@@ -7,7 +7,14 @@ from cloudshell.cp.azure.common.helpers.url_helper import URLHelper
 
 
 class VMExtensionService(object):
-    def __init__(self,url_helper):
+    def __init__(self, url_helper, waiter_service):
+        """
+
+        :param cloudshell.cp.azure.common.helpers.url_helper.URLHelper url_helper:
+        :param cloudshell.cp.azure.domain.services.task_waiter.TaskWaiterService waiter_service:
+        :return:
+        """
+        self.waiter_service = waiter_service
         self.url_helper = url_helper
 
     WINDOWS_PUBLISHER = "Microsoft.Compute"
@@ -82,9 +89,10 @@ class VMExtensionService(object):
 
     @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def create_script_extension(self, compute_client, location, group_name, vm_name, image_os_type, script_file,
-                                script_configurations, tags=None):
+                                script_configurations,timeout=1800, cancellation_context=None, tags=None):
         """Create VM Script extension on the Azure
 
+        :param CancellationContext cancellation_context:
         :param compute_client: azure.mgmt.compute.compute_management_client.ComputeManagementClient instance
         :param location: (str) Azure region
         :param group_name: (str) the name of the resource group on Azure
@@ -117,4 +125,6 @@ class VMExtensionService(object):
             vm_extension_name=vm_name,
             extension_parameters=vm_extension)
 
-        return operation_poller.result()
+        return self.waiter_service.wait_for_task_with_timeout(operation_poller=operation_poller,
+                                                              cancellation_context=cancellation_context,
+                                                              timeout=timeout)

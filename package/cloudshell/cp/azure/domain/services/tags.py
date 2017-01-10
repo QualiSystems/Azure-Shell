@@ -2,7 +2,7 @@ class TagNames(object):
     CreatedBy = 'CreatedBy'
     Owner = 'Owner'
     Blueprint = 'Blueprint'
-    ReservationId = 'ReservationId'
+    SandboxId = 'SandboxId'
     Domain = 'Domain'
     Name = 'Name'
     Isolation = 'Isolation'
@@ -29,7 +29,7 @@ class TagService(object):
         if reservation.owner:
             result.update({TagNames.Owner: reservation.owner})
         if reservation.reservation_id:
-            result.update({TagNames.ReservationId: reservation.reservation_id})
+            result.update({TagNames.SandboxId: reservation.reservation_id})
         if reservation.blueprint:
             result.update({TagNames.Blueprint: reservation.blueprint})
         if reservation.domain:

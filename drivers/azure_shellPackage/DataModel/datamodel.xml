@@ -37,6 +37,12 @@
         <Rule Name="Setting" />
       </Rules>
     </AttributeInfo>
+    <AttributeInfo Name="Extension Script Timeout" DefaultValue="1200" Description="Extension Script Timeout in seconds" IsReadOnly="false" Type="String">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
     <AttributeInfo Name="Public IP" DefaultValue="" Description="Static Public IP Type ensures that the VM always uses the same public IP. By default, Public IPs are dynamic and the address associated to them may change when the VM is deleted from Azure" IsReadOnly="false" Type="String">
         <Rules>
             <Rule Name="Configuration" />
@@ -273,6 +279,9 @@
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Extension Script Configurations" UserInput="true">
               <AllowedValues />
             </AttachedAttribute>
+          <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Extension Script Timeout" UserInput="false">
+              <AllowedValues />
+            </AttachedAttribute>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Public IP Type" UserInput="true">
               <AllowedValues>
                 <AllowedValue>Static</AllowedValue>
@@ -321,6 +330,9 @@
               <AllowedValues />
             </AttachedAttribute>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Extension Script Configurations" UserInput="true">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Extension Script Timeout" UserInput="false">
               <AllowedValues />
             </AttachedAttribute>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Public IP Type" UserInput="true">

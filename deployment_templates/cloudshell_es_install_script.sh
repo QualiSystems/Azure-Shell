@@ -3,6 +3,7 @@
 REQUIRED_MONO_VERSION="4.0.1"
 ES_DOWNLOAD_LINK="https://s3.amazonaws.com/alex-az/ExecutionServer.tar"
 
+ES_NUMBER_OF_SLOTS=100
 cs_server_host=${1}  # "192.168.120.20"
 cs_server_user=${2}  # "user"
 cs_server_pass=${3}  # "password"
@@ -57,7 +58,7 @@ setup_supervisor() {
 	yes | yum install supervisor
 	# create config file
 	echo_supervisord_conf > /etc/supervisord.conf
-	echo -e '\n[program:cloudshell_execution_server]\ndirectory='$execution_server_path'\ncommand=/bin/bash -c "/usr/bin/mono QsExecutionServerConsoleConfig.exe /s:'$cs_server_host' /u:'$cs_server_user' /p:'$cs_server_pass' /esn:'$es_name' && /usr/bin/mono QsExecutionServer.exe console"\nenvironment=MONO_IOMAP=all\n' >> /etc/supervisord.conf
+	echo -e '\n[program:cloudshell_execution_server]\ndirectory='$execution_server_path'\ncommand=/bin/bash -c "/usr/bin/mono QsExecutionServerConsoleConfig.exe /s:'$cs_server_host' /u:'$cs_server_user' /p:'$cs_server_pass' /esn:'$es_name' /i:'$ES_NUMBER_OF_SLOTS' && /usr/bin/mono QsExecutionServer.exe console"\nenvironment=MONO_IOMAP=all\n' >> /etc/supervisord.conf
 }
 
 # Install Python pip

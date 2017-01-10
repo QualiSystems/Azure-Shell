@@ -36,8 +36,8 @@ class AzureModelsParser(object):
         deployment_resource_model.username = data_holder.ami_params.username
         deployment_resource_model.password = data_holder.ami_params.password
         deployment_resource_model.extension_script_file = data_holder.ami_params.extension_script_file
-        deployment_resource_model.extension_script_configurations = (
-            data_holder.ami_params.extension_script_configurations)
+        deployment_resource_model.extension_script_configurations = (data_holder.ami_params.extension_script_configurations)
+        deployment_resource_model.extension_script_timeout= (int(data_holder.ami_params.extension_script_timeout))
 
         if deployment_resource_model.password:
             logger.info('Decrypting Azure VM password...')

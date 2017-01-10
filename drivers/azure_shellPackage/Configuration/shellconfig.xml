@@ -11,7 +11,7 @@
             </AutoLoad>
             <Attributes>
                 <Attribute Name="Region" Value="" />
-                <Attribute Value="" Name="VM Size"/>
+                <Attribute Value="Standard_A3" Name="VM Size"/>
                 <Attribute Value="" Name="Networks In Use"/>
                 <Attribute Value="" Name="Azure Subscription ID"/>
                 <Attribute Value="" Name="Azure Tenant ID"/>
