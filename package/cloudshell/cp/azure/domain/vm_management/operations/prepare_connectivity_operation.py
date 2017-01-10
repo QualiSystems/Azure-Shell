@@ -238,13 +238,12 @@ class PrepareConnectivityOperation(object):
         """Creates NSG management rules
 
         NOTE: NSG rules must be created only one by one, without concurrency
-        :param group_name: (str) resource group name (reservation id)
-        :param management_vnet: (str) management network
-        :param network_client: azure.mgmt.network.NetworkManagementClient instance
-        :param security_group_name: (str) NSG name from the Azure
-        :param additional_mgmt_networks: (list) additional management networks
-        :param logger: logging.Logger instance
-        :return: msrestazure.azure_operation.AzureOperationPoller instance for the last NSG rule
+        :param str group_name: resource group name (reservation id)
+        :param str management_vnet: management network
+        :param azure.mgmt.network.NetworkManagementClient network_client:
+        :param str security_group_name: NSG name from the Azure
+        :param list additional_mgmt_networks: list of additional management networks
+        :param logging.Logger logger:
         """
         mgmt_rules_priorities = range(3900, 4001)
         all_symbol = SecurityRuleProtocol.asterisk
