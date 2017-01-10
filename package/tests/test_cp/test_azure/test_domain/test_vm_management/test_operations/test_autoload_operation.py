@@ -153,5 +153,4 @@ class TestAutoloadOperation(TestCase):
                                                               networks_in_use=networks_in_use)
         # Verify
         self.assertEqual(ex.exception.message, "Subnet(s) 'network1' under the '{}' Vnet are not in the "
-                                               "'Networks In Use' attribute".format(
-                                                    self.network_service.SANDBOX_NETWORK_TAG_VALUE))
+                                               "'Networks In Use' attribute".format(sandbox_vnet.name))
