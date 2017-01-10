@@ -78,7 +78,8 @@ class TestAzureShell(TestCase):
             compute_client=azure_clients_manager.compute_client,
             storage_client=azure_clients_manager.storage_client,
             cancellation_context=cancellation_context,
-            logger=self.logger)
+            logger=self.logger,
+            cloudshell_session=cloudshell_session)
 
     @mock.patch("cloudshell.cp.azure.azure_shell.CloudShellSessionContext")
     @mock.patch("cloudshell.cp.azure.azure_shell.AzureClientsManager")
