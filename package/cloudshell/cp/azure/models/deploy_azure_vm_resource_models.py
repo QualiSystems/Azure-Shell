@@ -13,7 +13,7 @@ class BaseDeployAzureVMResourceModel(object):
         self.password = ''  # type: str
         self.extension_script_file = ''
         self.extension_script_configurations = ''
-        self.extension_script_timeout = 0  # type: int
+        self.extension_script_timeout = 1200  # type: int
 
 
 class DeployAzureVMResourceModel(BaseDeployAzureVMResourceModel):
