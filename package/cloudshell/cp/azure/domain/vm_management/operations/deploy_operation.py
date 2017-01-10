@@ -10,6 +10,7 @@ from azure.mgmt.network.models import Subnet, NetworkInterface
 from azure.mgmt.compute.models import OperatingSystemTypes, PurchasePlan
 from cloudshell.shell.core.driver_context import CancellationContext
 from cloudshell.cp.azure.models.vm_credentials import VMCredentials
+from cloudshell.api.cloudshell_api import CloudShellAPISession
 
 
 class DeployAzureVMOperation(object):
@@ -102,7 +103,7 @@ class DeployAzureVMOperation(object):
                                 logger,
                                 cloudshell_session):
         """
-        :param cloudshell.api.cloudshell_api.CloudShellAPISession cloudshell_session:
+        :param CloudShellAPISession cloudshell_session:
         :param CancellationContext cancellation_context:
         :param azure.mgmt.storage.storage_management_client.StorageManagementClient storage_client:
         :param azure.mgmt.compute.compute_management_client.ComputeManagementClient compute_client:
@@ -192,8 +193,9 @@ class DeployAzureVMOperation(object):
 
         except QualiScriptExecutionTimeoutException, e:
             logger.info(e.message)
+            html_format = "<html><body><span style='color: red;'>{0}</span></body></html>".format(e.message)
             cloudshell_session.WriteMessageToReservationOutput(reservationId=reservation.reservation_id,
-                                                               message=e.message)
+                                                               message=html_format)
         except Exception:
             logger.exception("Failed to deploy VM from marketplace. Error:")
             self._rollback_deployed_resources(compute_client=compute_client,
@@ -490,9 +492,11 @@ class DeployAzureVMOperation(object):
 
             logger.info("VM Custom Script Extension for VM {} was successfully deployed".format(data.vm_name))
         except QualiTimeoutException:
-            msg = "<html><body><span style='color: red;'>App {0} was partially deployed - " \
-                  "Custom script extension reached maximum timeout of {1} minutes.</span></body></html>" \
-                .format(deployment_model.app_name, str(deployment_model.extension_script_timeout))
+            seconds = deployment_model.extension_script_timeout
+
+            msg = "App {0} was partially deployed - " \
+                  "Custom script extension reached maximum timeout of {1} minutes and {2} seconds" \
+                .format(deployment_model.app_name, seconds / 60, seconds % 60)
             raise QualiScriptExecutionTimeoutException(msg)
         except Exception:
             raise
