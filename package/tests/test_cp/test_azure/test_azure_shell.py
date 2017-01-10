@@ -7,7 +7,6 @@ from cloudshell.cp.azure.models.ssh_key import SSHKey
 
 
 class TestAzureShell(TestCase):
-
     @mock.patch("cloudshell.cp.azure.azure_shell.AutoloadOperation")
     @mock.patch("cloudshell.cp.azure.azure_shell.DeployedAppPortsOperation")
     @mock.patch("cloudshell.cp.azure.azure_shell.CommandResultsParser")
@@ -28,7 +27,6 @@ class TestAzureShell(TestCase):
               deploy_azure_vm_operation, prepare_connectivity_operation, security_group_service,
               key_pair_service, tag_service, storage_service, network_service, vm_service,
               azure_models_parser, commands_results_parser, deployed_app_ports_operation, autoload_operation):
-
         self.azure_shell = AzureShell()
         self.logger = mock.MagicMock()
         self.group_name = "test group name"
@@ -80,14 +78,15 @@ class TestAzureShell(TestCase):
             compute_client=azure_clients_manager.compute_client,
             storage_client=azure_clients_manager.storage_client,
             cancellation_context=cancellation_context,
-            logger=self.logger)
+            logger=self.logger,
+            cloudshell_session=cloudshell_session)
 
     @mock.patch("cloudshell.cp.azure.azure_shell.CloudShellSessionContext")
     @mock.patch("cloudshell.cp.azure.azure_shell.AzureClientsManager")
     @mock.patch("cloudshell.cp.azure.azure_shell.LoggingSessionContext")
     @mock.patch("cloudshell.cp.azure.azure_shell.ErrorHandlingContext")
     def test_deploy_vm_from_custom_image(self, error_handling_class, logging_context_class, azure_clients_manager_class,
-                             cloudshell_session_context_class):
+                                         cloudshell_session_context_class):
         """Check that method uses ErrorHandlingContext and deploy_azure_vm_operation.deploy_from_custom_image method"""
         # mock Cloudshell Session
         cloudshell_session = mock.MagicMock()
@@ -118,8 +117,10 @@ class TestAzureShell(TestCase):
                                                      cancellation_context=cancellation_context)
 
         # Verify
+
         error_handling.__enter__.assert_called_once_with()
         error_handling_class.assert_called_once_with(self.logger)
+
         self.azure_shell.deploy_azure_vm_operation.deploy_from_custom_image.assert_called_once_with(
             deployment_model=azure_vm_deployment_model,
             cloud_provider_model=cloud_provider_model,
@@ -128,7 +129,8 @@ class TestAzureShell(TestCase):
             compute_client=azure_clients_manager.compute_client,
             storage_client=azure_clients_manager.storage_client,
             cancellation_context=cancellation_context,
-            logger=self.logger)
+            logger=self.logger,
+            cloudshell_session=cloudshell_session)
 
     @mock.patch("cloudshell.cp.azure.azure_shell.CloudShellSessionContext")
     @mock.patch("cloudshell.cp.azure.azure_shell.jsonpickle")
