@@ -36,9 +36,6 @@ class TaskWaiterService(object):
         :return: Azure Operation Poller result
         """
 
-        if wait_time > timeout:
-            raise Exception("Wait time should be smaller than timeout.")
-
         datetime_now = datetime.now()
         next_time = datetime_now + timedelta(seconds=timeout)
 

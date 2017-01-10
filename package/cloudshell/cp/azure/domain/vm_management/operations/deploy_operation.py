@@ -1,4 +1,5 @@
-from cloudshell.cp.azure.common.exceptions.quali_timeout_exception import QualiTimeoutException
+from cloudshell.cp.azure.common.exceptions.quali_timeout_exception import QualiTimeoutException, \
+    QualiScriptExecutionTimeoutException
 from cloudshell.cp.azure.models.deploy_result_model import DeployResult
 from cloudshell.cp.azure.domain.services.parsers.rules_attribute_parser import RulesAttributeParser
 from cloudshell.cp.azure.models.reservation_model import ReservationModel
@@ -63,9 +64,11 @@ class DeployAzureVMOperation(object):
                                  compute_client,
                                  storage_client,
                                  cancellation_context,
-                                 logger):
+                                 logger,
+                                 cloudshell_session):
         """ Deploy Azure VM from custom image URN
 
+        :param CloudShellAPISession cloudshell_session:
         :param azure.mgmt.storage.storage_management_client.StorageManagementClient storage_client:
         :param azure.mgmt.compute.compute_management_client.ComputeManagementClient compute_client:
         :param azure.mgmt.network.network_management_client.NetworkManagementClient network_client:
@@ -86,7 +89,8 @@ class DeployAzureVMOperation(object):
                                        compute_client=compute_client,
                                        network_client=network_client,
                                        cancellation_context=cancellation_context,
-                                       logger=logger)
+                                       logger=logger,
+                                       cloudshell_session=cloudshell_session)
 
     def deploy_from_marketplace(self, deployment_model,
                                 cloud_provider_model,
@@ -95,8 +99,10 @@ class DeployAzureVMOperation(object):
                                 compute_client,
                                 storage_client,
                                 cancellation_context,
-                                logger):
+                                logger,
+                                cloudshell_session):
         """
+        :param cloudshell.api.cloudshell_api.CloudShellAPISession cloudshell_session:
         :param CancellationContext cancellation_context:
         :param azure.mgmt.storage.storage_management_client.StorageManagementClient storage_client:
         :param azure.mgmt.compute.compute_management_client.ComputeManagementClient compute_client:
@@ -117,10 +123,11 @@ class DeployAzureVMOperation(object):
                                        compute_client=compute_client,
                                        network_client=network_client,
                                        cancellation_context=cancellation_context,
-                                       logger=logger)
+                                       logger=logger,
+                                       cloudshell_session=cloudshell_session)
 
     def _deploy_vm_generic(self, create_vm_action, deployment_model, cloud_provider_model, reservation, storage_client,
-                           compute_client, network_client, cancellation_context, logger):
+                           compute_client, network_client, cancellation_context, logger, cloudshell_session):
         """
 
         :param create_vm_action: action that returns a VM object with the following signature:
@@ -128,10 +135,11 @@ class DeployAzureVMOperation(object):
         :param BaseDeployAzureVMResourceModel deployment_model:
         :param AzureCloudProviderResourceModel cloud_provider_model:
         :param azure.mgmt.storage.storage_management_client.StorageManagementClient storage_client:
-        :param azure.mgmt.compute.compute_management_client.ComputeManagementClient compute_client:
+        :param azure.mgmt.compute.compu;te_management_client.ComputeManagementClient compute_client:
         :param azure.mgmt.network.network_management_client.NetworkManagementClient network_client:
         :param CancellationContext cancellation_context:
         :param logging.Logger logger:
+        :param cloudshell.api.cloudshell_api.CloudShellAPISession cloudshell_session:
         :return:
         """
         logger.info("Start Deploy Azure VM operation")
@@ -182,6 +190,10 @@ class DeployAzureVMOperation(object):
                 logger=logger,
                 cancellation_context=cancellation_context)
 
+        except QualiScriptExecutionTimeoutException, e:
+            logger.info(e.message)
+            cloudshell_session.WriteMessageToReservationOutput(reservationId=reservation.reservation_id,
+                                                               message=e.message)
         except Exception:
             logger.exception("Failed to deploy VM from marketplace. Error:")
             self._rollback_deployed_resources(compute_client=compute_client,
@@ -477,10 +489,13 @@ class DeployAzureVMOperation(object):
                 timeout=deployment_model.extension_script_timeout)
 
             logger.info("VM Custom Script Extension for VM {} was successfully deployed".format(data.vm_name))
+        except QualiTimeoutException:
+            msg = "<html><body><span style='color: red;'>App {0} was partially deployed - " \
+                  "Custom script extension reached maximum timeout of {1} minutes.</span></body></html>" \
+                .format(deployment_model.app_name, str(deployment_model.extension_script_timeout))
+            raise QualiScriptExecutionTimeoutException(msg)
         except Exception:
             raise
-        except QualiTimeoutException:
-            logger.info("Script Execution timeout {}.".format(deployment_model.extension_script_file))
 
         self.cancellation_service.check_if_cancelled(cancellation_context)
 
