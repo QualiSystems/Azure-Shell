@@ -245,12 +245,12 @@ class PrepareConnectivityOperation(object):
         :param list additional_mgmt_networks: list of additional management networks
         :param logging.Logger logger:
         """
-        mgmt_rules_priorities = range(3900, 4001)
+        used_priorities = []
         all_symbol = SecurityRuleProtocol.asterisk
 
         # rule 0
         priority = 3950
-        mgmt_rules_priorities.remove(priority)
+        used_priorities.append(priority)
         logger.info("Creating NSG rule to deny inbound traffic from other subnets with priority {}..."
                     .format(priority))
 
@@ -275,7 +275,7 @@ class PrepareConnectivityOperation(object):
 
         # Rule 1
         priority = 4000
-        mgmt_rules_priorities.remove(priority)
+        used_priorities.append(priority)
         logger.info("Creating NSG rule to deny inbound traffic from other subnets with priority {}..."
                     .format(priority))
 
@@ -301,7 +301,7 @@ class PrepareConnectivityOperation(object):
         # Rule 2:
         source_address_prefix = management_vnet.address_space.address_prefixes[0]
         priority = 3900
-        mgmt_rules_priorities.remove(priority)
+        used_priorities.append(priority)
         logger.info("Creating (async) NSG rule to allow management subnet traffic with priority {}".format(priority))
 
         operation_poller = self.security_group_service.create_network_security_group_custom_rule(
@@ -320,6 +320,9 @@ class PrepareConnectivityOperation(object):
                 protocol=all_symbol),
             async=True)
         operation_poller.wait()
+
+        # free priorities for additional NSG rules
+        mgmt_rules_priorities = (priority for priority in xrange(3900, 4001, 5) if priority not in used_priorities)
 
         # create NSG rules for additional management networks
         logger.info("Creating NSG rules to allow traffic from additional management networks...")
