@@ -1,0 +1,22 @@
+{
+	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/vpn_creationFalse.json#",
+	"contentVersion": "1.0.0.0"	,
+	"variables":{			
+	},
+	"parameters":{	
+		"virtualNetworks_mgmt_vnet_name": {
+			"defaultValue": "management_vnet",
+			"type": "String"
+		},
+		"gatewaySubnetRef":{
+			"type":"string"
+		},
+		"on_premise_CIDR": {			
+			"type": "String"
+		},		
+		"vpn_address": {			
+			"type": "String"
+		}
+	},
+	"resources":[]	
+}

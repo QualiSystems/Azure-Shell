@@ -1,0 +1,374 @@
+<?xml version="1.0" encoding="utf-8"?>
+<DataModelInfo xmlns="http://schemas.qualisystems.com/ResourceManagement/DataModelSchema.xsd">
+  <Attributes>
+    <AttributeInfo Name="Cloud Provider" DefaultValue="" Description="The name of the cloud provider resource in CloudShell." IsReadOnly="false" Type="String">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo Name="Autoload" DefaultValue="true" Description="Determines if the Autoload process runs for Apps deployed manually or during the reservation's setup." IsReadOnly="false" Type="Boolean">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo Name="Add Public IP" DefaultValue="False" Description="Use a public IP address to communicate with the virtual machine from outside the virtual network. In most cases the public IP address is associated with the VM until it's stopped or terminated, after which it's no longer available for you to use. It's possible to reserve a public IP in Azure to ensure that the IP is available to your subscription at any time." IsReadOnly="false" Type="Boolean">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo Name="Inbound Ports" Description="Semi-colon separated list of ports and protocols to open inbound traffic from outside of the sandbox. The syntax is port[single/range]:protocol [tcp(default)/udp ].For example: “80;443:tcp;200-220:udp”" IsReadOnly="false" Type="String">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo Name="Extension Script file" Description="The path to the script files that will be downloaded to the virtual machine. For Linux machines, it’s possible to use more than one script file. Example: https://gist.github.com/ahmetalpbalkan/b5d4a856fe15464015ae87d5587a4439/raw/466f5c30507c990a4d5a2f5c79f901fa89a80841/hello.sh" IsReadOnly="false" Type="String">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo Name="Extension Script Configurations" Description="Additional information for the extension execution. For Linux machines, The command to execute, for example: python MyPythonScript.py input1 input2. For Windows machines, The PowerShell script arguments(Optional), for example: --input1 value2 –input2 value2." IsReadOnly="false" Type="String">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo Name="Extension Script Timeout" DefaultValue="1200" Description="Extension Script Timeout in seconds" IsReadOnly="false" Type="String">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo Name="Public IP" DefaultValue="" Description="Static Public IP Type ensures that the VM always uses the same public IP. By default, Public IPs are dynamic and the address associated to them may change when the VM is deleted from Azure" IsReadOnly="false" Type="String">
+        <Rules>
+            <Rule Name="Configuration" />
+            <Rule Name="Setting" />
+        </Rules>
+    </AttributeInfo>
+    <AttributeInfo Name="Password" DefaultValue="" Description="" IsReadOnly="false" Type="Password">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo Name="User"  DefaultValue="" Description="" IsReadOnly="false" Type="String">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo Name="Generic Input" DefaultValue="" Description="" IsReadOnly="false" Type="String">
+      <Rules/>
+    </AttributeInfo>
+    <AttributeInfo Name="Region" DefaultValue="" Description="The public cloud region to be used by this cloud provider resource." IsReadOnly="false" Type="String">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo Name="VM Size"  DefaultValue="" Description="The Microsoft Azure VM Size. The VM Size determines the CPU, memory, disk size and networking capacity of the VM. For example: “Standard_A1_v2”. Use the &lt;a href='https://docs.microsoft.com/en-us/azure/virtual-machines/virtual-machines-windows-sizes' target='_blank'&gt;Azure documentation &lt;/a&gt; for more information, or the Azure CLI for a list of your region’s supported values: &lt;i&gt;azure vm sizes --location “West US”&lt;/i&gt;" IsReadOnly="false" Type="String">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo Name="Networks In Use"  DefaultValue="" Description="Reserved networks to be excluded when allocating Sandbox networks. The value should include at least the Management Network. The syntax is comma-separated CIDRs. For example: “10.0.0.0/24, 10.1.0.0/16, 172.31.0.0/24”." IsReadOnly="false" Type="String">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+
+    <!--Cloud Provider new Attributes-->
+    <AttributeInfo Name="Azure Subscription ID"  DefaultValue="" Description="The Subscription ID of the Azure user." IsReadOnly="false" Type="String">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo Name="Azure Tenant ID"  DefaultValue="" Description="The Azure tenant Id that is associated with your Azure Active Directory (AAD) instance. For example: ccd13026-98e3-4e90-01f4-28e2afdf3213. This GUID can be retrieved using Azure CLI." IsReadOnly="false" Type="String">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo Name="Azure Secret"  DefaultValue="" Description="Secret key associated with the Azure API web application. The secret key allows CloudShell to access the Azure API and is generated as part of the web application’s configuration process. For more information, see the “Configure Azure API to work with CloudShell” article in the CloudShell online help." IsReadOnly="false" Type="Password">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo Name="Azure Client ID"  DefaultValue="" Description="Client ID associated with the Azure API web application. The client ID allows CloudShell to access the Azure API and is generated as part of the web application’s configuration process. For more information, see Configure Azure API to work with CloudShell." IsReadOnly="false" Type="String">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo Name="Management Group Name"  DefaultValue="" Description="The name of the Management Resource Group." IsReadOnly="false" Type="String">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo Name="Additional Mgmt Networks"  DefaultValue="" Description="List of comma-separated networks in a CIDR manner that will be allowed to interact with all Sandbox instances. This is used for allowing connectivity to resource outside the CloudShell Mgmt network that should be available to the Sandbox Instances." IsReadOnly="false" Type="String">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+
+    <!--New Azure Deployment Option Attributes -->
+    <AttributeInfo Name="Public IP Type"  DefaultValue="" Description="Static Public IP Type will guarantee that the VM always uses the same public IP. By default, Public IPs are dynamic and the address associated to them may change when the VM is deleted." IsReadOnly="false" Type="String">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo Name="Image Publisher"  DefaultValue="" Description="The name of the Azure Image publisher. For example: “canonical”." IsReadOnly="false" Type="String">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo Name="Image Offer"  DefaultValue="" Description="The name of the Azure Image offer. For example: “UbuntuServer”." IsReadOnly="false" Type="String">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo Name="Image SKU"  DefaultValue="" Description="The version of the Azure SKU (unique system identifier of the VM created by the image). For example: “SKU: 14.04.3-LTS”." IsReadOnly="false" Type="String">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo Name="Image URN"  DefaultValue="" Description="URL of the image disk file in the storage container blob. For example: https://xxxxxxxxxxxxxx.blob.core.windows.net/system/Microsoft.Compute/Images/vhds/MyVHDNamePrefix-osDisk.vhd Note: The image file must reside in a blob of type Page blob." IsReadOnly="false" Type="String">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo Name="Image OS Type"  DefaultValue="" Description="Operating system type to be installed on the VM. (Linux or Windows)" IsReadOnly="false" Type="String">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo Name="Image Version" DefaultValue="latest" Description="" IsReadOnly="false" Type="String">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+  </Attributes>
+  <ResourceFamilies>
+    <ResourceFamily Description="" IsAdminOnly="true" IsSearchable="true" Name="Cloud Provider">
+      <AttachedAttributes />
+      <AttributeValues />
+      <Models>
+        <ResourceModel Description="" ImagePath="Azure.png" Name="Microsoft Azure" SupportsConcurrentCommands="true">
+          <AttachedAttributes>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Region">
+              <AllowedValues/>
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="VM Size">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Networks In Use">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Azure Subscription ID">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Azure Tenant ID">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Azure Secret">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Azure Client ID">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Management Group Name">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Additional Mgmt Networks">
+              <AllowedValues />
+            </AttachedAttribute>
+          </AttachedAttributes>
+          <ParentModels />
+          <Drivers>
+            <DriverName>Azure Shell Driver</DriverName>
+          </Drivers>
+          <Scripts>
+          </Scripts>
+        </ResourceModel>
+      </Models>
+      <Categories />
+    </ResourceFamily>
+    <ResourceFamily Description="" IsSearchable="true" Name="Generic App Family" ResourceType="Application" IsLockedByDefault="true">
+      <AttachedAttributes>
+      </AttachedAttributes>
+      <AttributeValues>
+      </AttributeValues>
+      <Models>
+        <ResourceModel Description="" Name="Generic App Model" SupportsConcurrentCommands="false">
+          <AttachedAttributes>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Password"/>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="User"/>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Public IP"/>
+          </AttachedAttributes>
+          <AttributeValues>
+          </AttributeValues>
+          <ParentModels />
+          <Drivers>
+          </Drivers>
+          <Scripts>
+          </Scripts>
+        </ResourceModel>
+      </Models>
+      <Categories />
+    </ResourceFamily>
+    <ResourceFamily Description="" IsService="true" Name="Installation Options" ServiceType="Installation">
+      <AttachedAttributes />
+      <AttributeValues />
+      <Models>
+        <ResourceModel Description="" Name="Generic Installation Option" SupportsConcurrentCommands="false">
+          <AttachedAttributes>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Generic Input" UserInput="true">
+              <AllowedValues />
+            </AttachedAttribute>
+          </AttachedAttributes>
+          <AttributeValues>
+            <AttributeValue Name="Generic Input" Value="" />
+          </AttributeValues>
+          <ParentModels />
+          <Drivers>
+            <DriverName>Generic Driver</DriverName>
+          </Drivers>
+          <Scripts />
+        </ResourceModel>
+      </Models>
+      <Categories>
+      </Categories>
+    </ResourceFamily>
+    <ResourceFamily Description="" IsService="true" Name="Deployment Options" ServiceType="Deployment">
+      <AttachedAttributes />
+      <AttributeValues />
+      <Models>
+        <ResourceModel Description="" Name="Azure VM From Marketplace" ImagePath="AzureMarketplaceImage.png" SupportsConcurrentCommands="false">          <AttachedAttributes>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Cloud Provider" UserInput="true">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="VM Size" UserInput="true">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Autoload" UserInput="false">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Add Public IP" UserInput="true">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Extension Script file" UserInput="true">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Extension Script Configurations" UserInput="true">
+              <AllowedValues />
+            </AttachedAttribute>
+          <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Extension Script Timeout" UserInput="false">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Public IP Type" UserInput="true">
+              <AllowedValues>
+                <AllowedValue>Static</AllowedValue>
+                <AllowedValue>Dynamic</AllowedValue>
+              </AllowedValues>
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Inbound Ports" UserInput="true">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Image Publisher" UserInput="true">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Image Offer" UserInput="true">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Image SKU" UserInput="true">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Image Version" UserInput="false">
+              <AllowedValues />
+            </AttachedAttribute>
+          </AttachedAttributes>
+          <AttributeValues>
+            <AttributeValue Name="Public IP Type" Value="Dynamic" />
+          </AttributeValues>
+          <ParentModels />
+          <Drivers>
+            <DriverName>Azure Deploy VM Driver</DriverName>
+          </Drivers>
+        </ResourceModel>
+        <ResourceModel Description="" Name="Azure VM From Custom Image" ImagePath="AzureCustomImage.png" SupportsConcurrentCommands="false">
+          <AttachedAttributes>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Cloud Provider" UserInput="true">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="VM Size" UserInput="true">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Autoload" UserInput="false">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Add Public IP" UserInput="true">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Extension Script file" UserInput="true">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Extension Script Configurations" UserInput="true">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Extension Script Timeout" UserInput="false">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Public IP Type" UserInput="true">
+              <AllowedValues>
+                <AllowedValue>Static</AllowedValue>
+                <AllowedValue>Dynamic</AllowedValue>
+              </AllowedValues>
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Inbound Ports" UserInput="true">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Image URN" UserInput="true">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Image OS Type" UserInput="true">
+              <AllowedValues>
+                <AllowedValue>Linux</AllowedValue>
+                <AllowedValue>Windows</AllowedValue>
+              </AllowedValues>
+            </AttachedAttribute>
+          </AttachedAttributes>
+          <AttributeValues>
+            <AttributeValue Name="Public IP Type" Value="Dynamic" />
+            <AttributeValue Name="Image OS Type" Value="Linux" />
+          </AttributeValues>
+          <ParentModels />
+          <Drivers>
+            <DriverName>Azure Deploy VM From Custom Image Driver</DriverName>
+          </Drivers>
+        </ResourceModel>
+      </Models>
+      <Categories>
+      </Categories>
+    </ResourceFamily>
+  </ResourceFamilies>
+  <DriverDescriptors>
+      <DriverDescriptor Name="Azure Shell Driver" DriverType="PythonDriver" />
+  </DriverDescriptors>
+</DataModelInfo>

@@ -1,0 +1,16 @@
+[report]
+omit =
+    package/setup.py,
+	*/package/cloudshell/cp/azure/domain/context/validators_factory_context.py*,
+	*/package/cloudshell/cp/azure/common/validtors/validators.py*,
+	*/package/cloudshell/cp/azure/common/validtors/validator_factory.py*,
+	*/package/cloudshell/cp/azure/models/*,
+	*/package/cloudshell/cp/azure/domain/context/azure_client_context.py*,
+	*/package/cloudshell/cp/azure/domain/context/azure_resource_model.py*,
+	*/package/cloudshell/cp/azure/common/handlers.py*,
+	*/package/cloudshell/cp/azure/common/azure_client_factory.py*,
+	*/package/cloudshell/cp/azure/domain/context/client_contextes.py*,
+	*/package/tests/test_cp/test_azure/test_domain/test_services/test_parsers/test_rules_attribute_parser.py*
+	
+	
+

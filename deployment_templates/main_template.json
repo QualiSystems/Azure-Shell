@@ -1,0 +1,362 @@
+{
+	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {		
+		"CloudshellAdmin":{
+			"type": "string",
+			"metadata": {"description": "The CloudShell admin user"}
+		},
+		"CloudshellAdminPassword":{
+			"type": "securestring",
+			"metadata": {"description": "The CloudShell admin’s password"}
+		},
+		"CloudshellServerIP":{
+			"type": "string",
+			"metadata": {"description": "The IP address of the Quali Server"}
+		},	
+		"CloudshellSSHUserName": {
+            "type": "string",
+			"metadata": {"description": "The CloudShell SSH user to be used to access CloudShell components in the Management VNet. For example, QualiX Server and TestShell Execution Server."}
+        },
+        "CloudshellSSHPassword": {
+            "type": "securestring",
+			"metadata": {"description": "The CloudShell SSH user’s password."}
+        },			
+		"ManagementVnetCIDR": {
+			"defaultValue": "192.168.120.0/24",
+			"type": "String",
+			"metadata": {"description": "The IP range (in CIDR notation) to be used for the Management VNet. Specify a class C CIDR (/24). Example: 192.168.120.0/24"}
+		},
+		"ManagementVnetVPNSubnetCIDR": {
+			"defaultValue": "192.168.120.0/28",
+			"type": "String",
+			"metadata": {"description": "Relevant if “Create VPN Endpoint” is set to True. The IP range (in CIDR notation) of the subnet in which the VPN connection is set. This range must be included in the Management VNet’s range. Example: 192.168.120.0/28"}
+		},		
+		"ManagementVnetSubnetCIDR": {
+			"defaultValue": "192.168.120.16/28",
+			"type": "String",
+			"metadata": {"description": "The IP range (in CIDR notation) of the subnet to be used by the Management VNet. This range must be included in the Management VNet’s range. This subnet is used by CloudShell components such as QualiX Server and TestShell Execution Server. Example: 192.168.120.16/28"}
+		},			
+		"DeploymentMode":{
+			"type":"string",
+			"defaultValue":"External",
+			"allowedValues":["External","Internal"],
+			"metadata": {"description": "Use external deployment to create a QualiX VM with a public IP, or internal deployment to create the QualiX VM with a private IP. The private IP is accessible from the networks that are connected to the Management VNet (such as the network in which the Quali Server resides)."}
+		},			
+		"CreateVPNEndpoint":{
+			"type":"string",
+			"defaultValue":"False",
+			"allowedValues":["True","False"],
+			"metadata": {"description": "Set to True to create a VPN endpoint for the Management VNet to support a hybrid scenario."}
+		},
+		"OnPremiseCIDR": {
+			"defaultValue": "",
+			"type": "String",
+			"metadata": {"description": "The IP range (in CIDR notation) of the private network in which the Quali Server resides (outside of the Management VNet)."}
+		},
+        "VPNAddress": {
+            "type": "string",
+            "defaultValue": "",
+			"metadata": {"description": "The public IP address of the router on the network in which Quali Server resides."}
+        }
+		
+	},
+	"variables": {
+		"storageAccountType": "Standard_LRS",
+		"virtualNetworks_mgmt_vnet_name": "CloudShell-Management-Vnet",
+		"virtualNetworks_sandbox_vnet_name": "CloudShell-Sandbox-Vnet",
+		"nsg_management_name" : "ExecutionServer-Security-Group",
+	    "apiVersion": "2016-06-01",
+		"storageAccountName": "[concat('storage',uniquestring(resourceGroup().id))]",
+		"vNet1": {
+			"peeringName": "vNet_mgmt-to-vNet_sndbx"
+		},
+		"vNet2": {
+			"peeringName": "vNet_sndbx-to-vNet_mgmt"
+		},				
+		"vnetID": "[resourceId('Microsoft.Network/virtualNetworks',variables('virtualNetworks_mgmt_vnet_name'))]",
+        "gatewaySubnetRef": "[concat(variables('vnetID'),'/subnets/','GatewaySubnet')]",
+        "SubnetRef": "[concat(variables('vnetID'),'/subnets/','default')]",
+		"location": "[resourceGroup().location]",
+		"es_nic_name":"ExecutionServer-VM-NIC",
+		"virtualMachineEsName": "ExecutionServer-VM",
+		"virtualMachineEsNameInVM": "[concat('azure',variables('location'))]",
+		"qx_template_location":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/develop/deployment_templates/",
+		"vpn_template_location":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/develop/deployment_templates/",
+		"scriptUrl":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/develop/deployment_templates/guacamole-quali-install.sh",
+		"commandToExe":"sh guacamole-quali-install.sh",
+		"scriptUrlES":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/develop/deployment_templates/cloudshell_es_install_script.sh",
+		"commandToExeES":"[concat('sh cloudshell_es_install_script.sh ', parameters('CloudshellServerIP'),' ',parameters('CloudshellAdmin'),' ', parameters('CloudshellAdminPassword'),' ',variables('virtualMachineEsNameInVM') )]",
+		"vmSize":"Standard_A3"
+	},
+	"resources": [
+	{
+		"name": "[variables('virtualMachineEsName')]",
+		"type": "Microsoft.Compute/virtualMachines",
+		"apiVersion": "2015-06-15",
+		"location": "[variables('location')]",
+		"dependsOn": [
+			"[concat('Microsoft.Network/networkInterfaces/', variables('es_nic_name'))]",
+			"[concat('Microsoft.Storage/storageAccounts/', variables('storageAccountName'))]"
+		],
+		"properties": {
+			"osProfile": {
+				"computerName": "[variables('virtualMachineEsName')]",
+				"adminUsername": "[parameters('CloudshellSSHUserName')]",
+				"adminPassword": "[parameters('CloudshellSSHPassword')]"
+			},
+			"hardwareProfile": {
+				"vmSize": "[variables('vmSize')]"
+			},
+			"storageProfile": {
+				"imageReference": {
+					"publisher": "OpenLogic",
+					"offer": "CentOS",
+					"sku": "7.2",
+					"version": "latest"
+				},
+				"osDisk": {
+					"name": "[variables('virtualMachineEsName')]",
+					"vhd": {
+						"uri": "[concat(concat(reference(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), '2015-06-15').primaryEndpoints['blob'], 'vhds/'), variables('virtualMachineEsName'), '2016102316823.vhd')]"
+					},
+					"createOption": "fromImage"
+				},
+				"dataDisks": []
+			},
+			"networkProfile": {
+				"networkInterfaces": [
+					{
+						"id": "[resourceId('Microsoft.Network/networkInterfaces', variables('es_nic_name'))]"
+					}
+				]
+			}
+		}
+	},	
+	
+	
+	{
+	  "type": "Microsoft.Compute/virtualMachines/extensions",
+	  "name": "[concat(variables('virtualMachineEsName'),'/ExecutionServerScript')]",
+	  "apiVersion": "2015-06-15",
+	  "location": "[resourceGroup().location]",
+	  "dependsOn": ["[concat('Microsoft.Compute/virtualMachines/', variables('virtualMachineEsName'))]"],
+	  "properties": {
+		"publisher": "Microsoft.Azure.Extensions",
+		"type": "CustomScript",
+		"typeHandlerVersion": "2.0",			
+		"settings": {
+		  "fileUris": ["[variables('scriptUrlES')]"]
+		},
+		"protectedSettings": {
+			"commandToExecute": "[variables('commandToExeES')]"
+		}
+	  }
+	},
+		
+		
+	
+	{
+            "name": "[variables('es_nic_name')]",
+            "type": "Microsoft.Network/networkInterfaces",
+            "apiVersion": "2016-09-01",
+            "location": "[resourceGroup().location]",			
+            "dependsOn": [
+                "[concat('Microsoft.Network/virtualNetworks/', variables('virtualNetworks_mgmt_vnet_name'))]",
+				"[concat('Microsoft.Network/networkSecurityGroups/', variables('nsg_management_name'))]"
+            ],
+            "properties": {
+				"networkSecurityGroup": {
+						  "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsg_management_name'))]"
+					},
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "subnet": {  
+								"id":"[variables('SubnetRef')]"
+                            },
+                            "privateIPAllocationMethod": "Dynamic"
+                        }
+                    }
+                ]
+            }
+	},
+	
+	
+	
+	
+
+
+
+
+	
+	
+	
+	
+	
+	
+	
+	
+	
+    {
+      "apiVersion": "2015-01-01",
+      "name": "qxDeployment",
+      "type": "Microsoft.Resources/deployments",
+	  "dependsOn": [
+		"[concat('Microsoft.Storage/storageAccounts/', variables('storageAccountName'))]",
+		"[concat('Microsoft.Network/virtualNetworks/', variables('virtualNetworks_mgmt_vnet_name'))]"
+		
+	  ],
+      "properties": {
+        "mode": "incremental",
+        "templateLink": {
+          "uri": "[concat(variables('qx_template_location'),'qx',parameters('DeploymentMode'),'Mode.json')]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {          
+          "adminUsername": { "value": "[parameters('CloudshellSSHUserName')]" },
+          "adminPassword": { "value": "[parameters('CloudshellSSHPassword')]" },
+          "virtualNetworks_mgmt_vnet_name": { "value": "[variables('virtualNetworks_mgmt_vnet_name')]" },
+		  "storageAccountName":{"value":"[variables('storageAccountName')]"},
+		  "storageBlob":{"value":"[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"},
+		  "SubnetRef":{"value":"[variables('SubnetRef')]"},
+		  "scriptUrl":{"value":"[variables('scriptUrl')]"},
+		  "commandToExe":{"value":"[variables('commandToExe')]"},
+		  "vmSize":{"value":"[variables('vmSize')]"}
+        }
+      }
+    },	
+	
+	
+    {
+      "apiVersion": "2015-01-01",
+      "name": "vpnDeployment",
+      "type": "Microsoft.Resources/deployments",
+	  "dependsOn": [	  
+	  "[concat('Microsoft.Network/virtualNetworks/', variables('virtualNetworks_mgmt_vnet_name'))]"
+		
+	  ],
+      "properties": {
+        "mode": "incremental",
+        "templateLink": {
+          "uri": "[concat(variables('vpn_template_location'),'vpn_creation',parameters('CreateVPNEndpoint'),'.json')]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {          
+          "virtualNetworks_mgmt_vnet_name": { "value": "[variables('virtualNetworks_mgmt_vnet_name')]" },		  
+		  "gatewaySubnetRef":{"value":"[variables('gatewaySubnetRef')]"},
+		  "on_premise_CIDR":{"value":"[parameters('OnPremiseCIDR')]"},
+		  "vpn_address":{"value":"[parameters('VPNAddress')]"}
+        }
+      }
+    },	
+
+
+	
+	{
+		"type": "Microsoft.Network/virtualNetworks",
+		"name": "[variables('virtualNetworks_mgmt_vnet_name')]",
+		"apiVersion": "[variables('apiVersion')]",
+		"location": "[variables('location')]",
+		"tags": {
+			"network_type": "mgmt"
+		},
+		"properties": {
+			"addressSpace": {
+				"addressPrefixes": ["[parameters('ManagementVnetCIDR')]"]
+			},
+			"subnets": [
+					{
+						"name": "GatewaySubnet",
+						"properties": {
+							"addressPrefix": "[parameters('ManagementVnetVPNSubnetCIDR')]"
+						}
+					},
+					{
+						"name": "default",
+						"properties": {
+							"addressPrefix": "[parameters('ManagementVnetSubnetCIDR')]"
+						}
+					}
+			]
+		},
+		"resources": [{
+			"apiVersion": "[variables('apiVersion')]",
+			"type": "virtualNetworkPeerings",
+			"name": "[variables('vNet1').peeringName]",
+			"location": "[resourceGroup().location]",
+			"dependsOn": ["[concat('Microsoft.Network/virtualNetworks/', variables('virtualNetworks_mgmt_vnet_name'))]",
+			"[concat('Microsoft.Network/virtualNetworks/', variables('virtualNetworks_sandbox_vnet_name'))]"],
+			"comments": "This is the peering from vNet Management to vNet Sandbox",
+			"properties": {
+				"allowVirtualNetworkAccess": "true",
+				"allowForwardedTraffic": "false",
+				"allowGatewayTransit": "false",
+				"useRemoteGateways": "false",
+				"remoteVirtualNetwork": {
+					"id": "[resourceId('Microsoft.Network/virtualNetworks',variables('virtualNetworks_sandbox_vnet_name'))]"
+				}
+			}
+		}],
+		"dependsOn": []
+	},
+	{
+		"type": "Microsoft.Network/virtualNetworks",
+		"name": "[variables('virtualNetworks_sandbox_vnet_name')]",
+		"apiVersion": "[variables('apiVersion')]",
+		"location": "[variables('location')]",
+		"tags": {
+			"network_type": "sandbox"
+		},
+		"properties": {
+			"addressSpace": {
+				"addressPrefixes": ["10.0.0.0/8"]
+			},
+			"subnets": [{
+				"name": "default",
+				"properties": {
+					"addressPrefix": "10.0.0.0/24"
+				}
+			}]
+		},
+		"resources": [{
+			"apiVersion": "[variables('apiVersion')]",
+			"type": "virtualNetworkPeerings",
+			"name": "[variables('vNet2').peeringName]",
+			"location": "[resourceGroup().location]",
+			"dependsOn": ["[concat('Microsoft.Network/virtualNetworks/', variables('virtualNetworks_sandbox_vnet_name'))]",
+			"[concat('Microsoft.Network/virtualNetworks/', variables('virtualNetworks_mgmt_vnet_name'))]"],
+			"comments": "This is the peering from vNet Sandbox to vNet Management",
+			"properties": {
+				"allowVirtualNetworkAccess": "true",
+				"allowForwardedTraffic": "false",
+				"allowGatewayTransit": "false",
+				"useRemoteGateways": "false",
+				"remoteVirtualNetwork": {
+					"id": "[resourceId('Microsoft.Network/virtualNetworks',variables('virtualNetworks_mgmt_vnet_name'))]"
+				}
+			}
+		}],
+		"dependsOn": []
+	},
+	{
+		"type": "Microsoft.Storage/storageAccounts",
+		"name": "[variables('storageAccountName')]",
+		"apiVersion": "2016-05-01",
+		"location": "[resourceGroup().location]",
+		"sku": {
+			"name": "[variables('storageAccountType')]"
+		},
+		"kind": "Storage",
+		"properties": {}
+	},
+	{
+      "apiVersion": "[variables('apiVersion')]",
+      "type": "Microsoft.Network/networkSecurityGroups",
+      "name": "[variables('nsg_management_name')]",
+      "location": "[resourceGroup().location]",
+      "properties": {"securityRules": []}
+    }	
+	]
+}
