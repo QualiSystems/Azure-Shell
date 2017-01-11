@@ -171,6 +171,7 @@ class TestAzureModelsParser(TestCase):
         test_resource.attributes = {}
         test_resource.attributes["Azure Client ID"] = test_azure_client_id = mock.MagicMock()
         test_resource.attributes["Azure Secret"] = test_azure_secret = mock.MagicMock()
+        test_resource.attributes["Additional Mgmt Networks"] = " mgmt_network1, mgmt_network2"
         test_resource.attributes["Azure Subscription ID"] = test_azure_subscription_id = mock.MagicMock()
         test_resource.attributes["Azure Tenant ID"] = test_azure_tenant = mock.MagicMock()
         test_resource.attributes["VM Size"] = test_vm_size = mock.MagicMock()
@@ -194,7 +195,9 @@ class TestAzureModelsParser(TestCase):
         self.assertEqual(result.networks_in_use, ["network1", "network2"])
         self.assertEqual(result.region, "eastcanada")
         self.assertEqual(result.management_group_name, test_mgmt_group_name)
+        self.assertEqual(result.additional_mgmt_networks, ["mgmt_network1", "mgmt_network2"])
         self.assertEqual(result.azure_secret, decrypted_azure_secret.Value)
+
 
     @mock.patch("cloudshell.cp.azure.domain.services.parsers.azure_model_parser.ReservationModel")
     def test_convert_to_reservation_model(self, reservation_model_class):

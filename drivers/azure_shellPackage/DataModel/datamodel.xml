@@ -121,6 +121,12 @@
         <Rule Name="Setting" />
       </Rules>
     </AttributeInfo>
+    <AttributeInfo Name="Additional Mgmt Networks"  DefaultValue="" Description="List of comma-separated networks in a CIDR manner that will be allowed to interact with all Sandbox instances. This is used for allowing connectivity to resource outside the CloudShell Mgmt network that should be available to the Sandbox Instances." IsReadOnly="false" Type="String">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
 
     <!--New Azure Deployment Option Attributes -->
     <AttributeInfo Name="Public IP Type"  DefaultValue="" Description="Static Public IP Type will guarantee that the VM always uses the same public IP. By default, Public IPs are dynamic and the address associated to them may change when the VM is deleted." IsReadOnly="false" Type="String">
@@ -198,6 +204,9 @@
               <AllowedValues />
             </AttachedAttribute>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Execution Server Selector">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Additional Mgmt Networks">
               <AllowedValues />
             </AttachedAttribute>
           </AttachedAttributes>

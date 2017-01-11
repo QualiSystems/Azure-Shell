@@ -128,7 +128,7 @@ class AutoloadOperation(object):
         if cidrs:
             error_msg = "Subnet(s) '{}' under the '{}' Vnet are not in the 'Networks In Use' attribute".format(
                 ', '.join(cidrs),
-                self.network_service.SANDBOX_NETWORK_TAG_VALUE)
+                sandbox_vnet.name)
 
             raise AutoloadException(error_msg)
 
