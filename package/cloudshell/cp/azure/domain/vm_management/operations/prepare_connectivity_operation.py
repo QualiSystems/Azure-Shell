@@ -142,6 +142,7 @@ class PrepareConnectivityOperation(object):
             network_client=network_client,
             sandbox_vnet_cidr=cidr,
             security_group_name=security_group_name,
+            additional_mgmt_networks=cloud_provider_model.additional_mgmt_networks,
             logger=logger)
 
         self.cancellation_service.check_if_cancelled(cancellation_context)
@@ -233,22 +234,23 @@ class PrepareConnectivityOperation(object):
                                                wait_for_result=True)
 
     def _create_management_rules(self, group_name, management_vnet, sandbox_vnet_cidr, network_client,
-                                 security_group_name,
-                                 logger):
+                                 security_group_name, additional_mgmt_networks, logger):
         """Creates NSG management rules
 
         NOTE: NSG rules must be created only one by one, without concurrency
-        :param group_name: (str) resource group name (reservation id)
-        :param management_vnet: (str) management network
-        :param network_client: azure.mgmt.network.NetworkManagementClient instance
-        :param security_group_name: NSG name from the Azure
-        :param logger: logging.Logger instance
-        :return: msrestazure.azure_operation.AzureOperationPoller instance for the last NSG rule
+        :param str group_name: resource group name (reservation id)
+        :param str management_vnet: management network
+        :param azure.mgmt.network.NetworkManagementClient network_client:
+        :param str security_group_name: NSG name from the Azure
+        :param list additional_mgmt_networks: list of additional management networks
+        :param logging.Logger logger:
         """
+        used_priorities = []
         all_symbol = SecurityRuleProtocol.asterisk
 
         # rule 0
         priority = 3950
+        used_priorities.append(priority)
         logger.info("Creating NSG rule to deny inbound traffic from other subnets with priority {}..."
                     .format(priority))
 
@@ -273,6 +275,7 @@ class PrepareConnectivityOperation(object):
 
         # Rule 1
         priority = 4000
+        used_priorities.append(priority)
         logger.info("Creating NSG rule to deny inbound traffic from other subnets with priority {}..."
                     .format(priority))
 
@@ -298,6 +301,7 @@ class PrepareConnectivityOperation(object):
         # Rule 2:
         source_address_prefix = management_vnet.address_space.address_prefixes[0]
         priority = 3900
+        used_priorities.append(priority)
         logger.info("Creating (async) NSG rule to allow management subnet traffic with priority {}".format(priority))
 
         operation_poller = self.security_group_service.create_network_security_group_custom_rule(
@@ -316,6 +320,30 @@ class PrepareConnectivityOperation(object):
                 protocol=all_symbol),
             async=True)
         operation_poller.wait()
+
+        # free priorities for additional NSG rules
+        mgmt_rules_priorities = (priority for priority in xrange(3900, 4001, 5) if priority not in used_priorities)
+
+        # create NSG rules for additional management networks
+        logger.info("Creating NSG rules to allow traffic from additional management networks...")
+        for additional_network, priority in zip(additional_mgmt_networks, mgmt_rules_priorities):
+            logger.info("Creating NSG rule for additional management network {} with priority {} ..."
+                        .format(additional_network, priority))
+            self.security_group_service.create_network_security_group_custom_rule(
+                network_client=network_client,
+                group_name=group_name,
+                security_group_name=security_group_name,
+                rule=SecurityRule(
+                    access=SecurityRuleAccess.allow,
+                    direction="Inbound",
+                    source_address_prefix=additional_network,
+                    source_port_range=all_symbol,
+                    name="rule_{}".format(priority),
+                    destination_address_prefix=all_symbol,
+                    destination_port_range=all_symbol,
+                    priority=priority,
+                    protocol=all_symbol),
+                async=False)
 
     @staticmethod
     def _validate_management_vnet(management_vnet):
