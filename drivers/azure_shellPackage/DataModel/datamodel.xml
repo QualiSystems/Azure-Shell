@@ -82,6 +82,13 @@
         <Rule Name="Setting" />
       </Rules>
     </AttributeInfo>
+     <AttributeInfo DefaultValue="" Description="This attribute points to a pre-define group of execution servers. Usually used for different sites or domains." IsReadOnly="false" Name="Execution Server Selector" Type="String">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+        <Rule Name="Execution Server Selector" />
+      </Rules>
+    </AttributeInfo>
 
     <!--Cloud Provider new Attributes-->
     <AttributeInfo Name="Azure Subscription ID"  DefaultValue="" Description="The Subscription ID of the Azure user." IsReadOnly="false" Type="String">
@@ -188,6 +195,9 @@
               <AllowedValues />
             </AttachedAttribute>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Management Group Name">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Execution Server Selector">
               <AllowedValues />
             </AttachedAttribute>
           </AttachedAttributes>
