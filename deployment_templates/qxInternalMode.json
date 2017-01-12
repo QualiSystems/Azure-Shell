@@ -32,6 +32,9 @@
 		"scriptUrl":{
 			"type": "String"
 		},
+		"scriptName":{
+			"type": "String"
+		},
 		"commandToExe":{
 			"type": "String"
 		}
@@ -84,7 +87,7 @@
 		
 		{
 		  "type": "Microsoft.Compute/virtualMachines/extensions",
-		  "name": "[concat(variables('virtualMachineQxName'),'/QualiX-Script')]",
+		  "name": "[concat(variables('virtualMachineQxName'), '/', parameters('scriptName'))]",
 		  "apiVersion": "2015-06-15",
 		  "location": "[resourceGroup().location]",
 		  "dependsOn": ["[concat('Microsoft.Compute/virtualMachines/', variables('virtualMachineQxName'))]"],

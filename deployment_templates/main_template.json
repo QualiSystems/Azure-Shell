@@ -139,7 +139,7 @@
 	
 	{
 	  "type": "Microsoft.Compute/virtualMachines/extensions",
-	  "name": "[variables('scriptUrlES')]",
+	  "name": "[concat(variables('virtualMachineEsName'), '/', variables('scriptNameEs'))]",
 	  "apiVersion": "2015-06-15",
 	  "location": "[resourceGroup().location]",
 	  "dependsOn": ["[concat('Microsoft.Compute/virtualMachines/', variables('virtualMachineEsName'))]"],
@@ -224,6 +224,7 @@
 		  "storageBlob":{"value":"[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"},
 		  "SubnetRef":{"value":"[variables('SubnetRef')]"},
 		  "scriptUrl":{"value":"[variables('scriptUrl')]"},
+		  "scriptName":{"value":"[variables('scriptName')]"},
 		  "commandToExe":{"value":"[variables('commandToExe')]"},
 		  "vmSize":{"value":"[variables('vmSize')]"}
         }

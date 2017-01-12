@@ -10,6 +10,7 @@
 	"parameters":{		
 		"vmSize":{"type": "String"},
 		"scriptUrl":{"type": "String"},
+		"scriptName":{"type": "String"},
 		"commandToExe":{"type": "String"},
 		"adminUsername": {
             "type": "string"			
@@ -79,7 +80,7 @@
 
 		{
 		  "type": "Microsoft.Compute/virtualMachines/extensions",
-		  "name": "[variables('scriptName')]",
+		  "name": "[concat(variables('virtualMachineQxName'), '/', parameters('scriptName'))]",
 		  "apiVersion": "2015-06-15",
 		  "location": "[resourceGroup().location]",
 		  "dependsOn": ["[concat('Microsoft.Compute/virtualMachines/', variables('virtualMachineQxName'))]"],
