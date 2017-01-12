@@ -45,6 +45,21 @@ class AzureModelsParser(object):
             deployment_resource_model.password = decrypted_pass.Value
 
     @staticmethod
+    def _convert_list_attribute(attribute):
+        """Convert string attribute "param1, param2, param3" into list ["param1", "param2", "param3"]
+
+        :param str attribute: data model attribute
+        :return: attribute list of params
+        :rtype: list
+        """
+        if attribute:
+            list_attr = [param.strip() for param in attribute.split(",")]
+        else:
+            list_attr = []
+
+        return list_attr
+
+    @staticmethod
     def convert_to_deploy_azure_vm_resource_model(deployment_request, cloudshell_session, logger):
         """
         Convert deployment request JSON to the DeployAzureVMResourceModel model
@@ -105,14 +120,14 @@ class AzureModelsParser(object):
         azure_resource_model.azure_subscription_id = resource_context['Azure Subscription ID']
         azure_resource_model.azure_tenant = resource_context['Azure Tenant ID']
         azure_resource_model.vm_size = resource_context['VM Size']
-        networks_in_use = resource_context['Networks In Use']
-        azure_resource_model.networks_in_use = [cidr.strip() for cidr in networks_in_use.split(",")]
         azure_resource_model.region = resource_context['Region'].replace(" ", "").lower()
         azure_resource_model.management_group_name = resource_context['Management Group Name']
 
-        additional_mgmt_networks = resource_context['Additional Mgmt Networks']
-        azure_resource_model.additional_mgmt_networks = [
-            network.strip() for network in additional_mgmt_networks.split(",")]
+        azure_resource_model.networks_in_use = AzureModelsParser._convert_list_attribute(
+            resource_context['Networks In Use'])
+
+        azure_resource_model.additional_mgmt_networks = AzureModelsParser._convert_list_attribute(
+            resource_context['Additional Mgmt Networks'])
 
         encrypted_azure_secret = resource_context['Azure Secret']
         azure_secret = cloudshell_session.DecryptPassword(encrypted_azure_secret)
