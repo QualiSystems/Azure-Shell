@@ -198,6 +198,15 @@ class TestAzureModelsParser(TestCase):
         self.assertEqual(result.additional_mgmt_networks, ["mgmt_network1", "mgmt_network2"])
         self.assertEqual(result.azure_secret, decrypted_azure_secret.Value)
 
+    def test_convert_list_attribute(self):
+        """Check that method will convert sting attribute into the list"""
+        attribute = "param1 , param2, param3 "
+
+        # Act
+        result = self.tested_class._convert_list_attribute(attribute)
+
+        # Verify
+        self.assertEqual(result, ["param1", "param2", "param3"])
 
     @mock.patch("cloudshell.cp.azure.domain.services.parsers.azure_model_parser.ReservationModel")
     def test_convert_to_reservation_model(self, reservation_model_class):
