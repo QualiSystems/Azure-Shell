@@ -294,6 +294,7 @@ class TestAzureShell(TestCase):
             reservation_id=self.group_name)
 
         command_context = mock.MagicMock()
+        resource_full_name = command_context.remote_endpoints[0].fullname
 
         # Act
         self.azure_shell.power_on_vm(command_context=command_context)
@@ -305,10 +306,9 @@ class TestAzureShell(TestCase):
         self.azure_shell.power_vm_operation.power_on.assert_called_once_with(
             compute_client=azure_clients_manager.compute_client,
             resource_group_name=self.group_name,
-            vm_name=self.vm_name)
-
-        cloudshell_session.SetResourceLiveStatus.assert_called_once_with(
-            command_context.remote_endpoints[0].fullname, "Online", "Active")
+            resource_full_name=resource_full_name,
+            data_holder=data_holder,
+            cloudshell_session=cloudshell_session)
 
     @mock.patch("cloudshell.cp.azure.azure_shell.CloudShellSessionContext")
     @mock.patch("cloudshell.cp.azure.azure_shell.AzureClientsManager")
