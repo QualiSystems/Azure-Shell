@@ -87,7 +87,7 @@ class NetworkService(object):
         :param public_ip_address:
         :param region:
         :param subnet:
-        :param private_ip_allocation_method:
+        :param IPAllocationMethod private_ip_allocation_method:
         :param tags:
         :return:
         """
@@ -95,7 +95,7 @@ class NetworkService(object):
         # private_ip_address in required only in the case of static allocation method
         # in the case of dynamic allocation method is ignored
         private_ip_address = ""
-        if private_ip_allocation_method.static:
+        if private_ip_allocation_method == IPAllocationMethod.static:
             private_ip_address = self.ip_service.get_available_private_ip(network_client, management_group_name,
                                                                           virtual_network_name,
                                                                           subnet.address_prefix[:-3],
