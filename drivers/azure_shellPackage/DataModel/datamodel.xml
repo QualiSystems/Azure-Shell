@@ -129,7 +129,7 @@
     </AttributeInfo>
 
     <!--New Azure Deployment Option Attributes -->
-    <AttributeInfo Name="Public IP Type"  DefaultValue="" Description="Static Public IP Type will guarantee that the VM always uses the same public IP. By default, Public IPs are dynamic and the address associated to them may change when the VM is deleted." IsReadOnly="false" Type="String">
+    <AttributeInfo Name="Public IP Type"  DefaultValue="" Description="Static Public IP Type ensures that the VM always uses the same public IP. By default, Public IPs are dynamic and their address may change when the VM is powered off." IsReadOnly="false" Type="String">
       <Rules>
         <Rule Name="Configuration" />
         <Rule Name="Setting" />
