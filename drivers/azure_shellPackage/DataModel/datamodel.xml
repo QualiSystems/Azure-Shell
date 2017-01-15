@@ -1,12 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <DataModelInfo xmlns="http://schemas.qualisystems.com/ResourceManagement/DataModelSchema.xsd">
   <Attributes>
-    <AttributeInfo Name="Cloud Provider" DefaultValue="" Description="The name of the cloud provider resource in CloudShell." IsReadOnly="false" Type="String">
-      <Rules>
-        <Rule Name="Configuration" />
-        <Rule Name="Setting" />
-      </Rules>
-    </AttributeInfo>
     <AttributeInfo Name="Autoload" DefaultValue="true" Description="Determines if the Autoload process runs for Apps deployed manually or during the reservation's setup." IsReadOnly="false" Type="Boolean">
       <Rules>
         <Rule Name="Configuration" />
@@ -271,9 +265,6 @@
       <AttributeValues />
       <Models>
         <ResourceModel Description="" Name="Azure VM From Marketplace" ImagePath="AzureMarketplaceImage.png" SupportsConcurrentCommands="false">          <AttachedAttributes>
-            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Cloud Provider" UserInput="true">
-              <AllowedValues />
-            </AttachedAttribute>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="VM Size" UserInput="true">
               <AllowedValues />
             </AttachedAttribute>
@@ -324,9 +315,6 @@
         </ResourceModel>
         <ResourceModel Description="" Name="Azure VM From Custom Image" ImagePath="AzureCustomImage.png" SupportsConcurrentCommands="false">
           <AttachedAttributes>
-            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Cloud Provider" UserInput="true">
-              <AllowedValues />
-            </AttachedAttribute>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="VM Size" UserInput="true">
               <AllowedValues />
             </AttachedAttribute>
