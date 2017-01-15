@@ -152,5 +152,6 @@ class TestAutoloadOperation(TestCase):
             self.autoload_operation._validate_networks_in_use(sandbox_vnet=sandbox_vnet,
                                                               networks_in_use=networks_in_use)
         # Verify
-        self.assertEqual(ex.exception.message, "Subnet(s) 'network1' under the '{}' Vnet are not in the "
-                                               "'Networks In Use' attribute".format(sandbox_vnet.name))
+        self.assertEqual(ex.exception.message, 'The following subnets "network1" were found under the "{}" VNet '
+                                               'in Azure and should be set in the "Network In Use" field.'
+                         .format(sandbox_vnet.name))
