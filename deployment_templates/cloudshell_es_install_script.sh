@@ -64,6 +64,9 @@ setup_supervisor() {
 
 # Install Python pip
 yum-complete-transaction -y --cleanup-only
+yum clean all
+yum makecache
+
 yes | yum install epel-release
 yes | yum -y install python-pip
 yes | pip install -U pip

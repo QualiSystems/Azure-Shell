@@ -1,12 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <DataModelInfo xmlns="http://schemas.qualisystems.com/ResourceManagement/DataModelSchema.xsd">
   <Attributes>
-    <AttributeInfo Name="Cloud Provider" DefaultValue="" Description="The name of the cloud provider resource in CloudShell." IsReadOnly="false" Type="String">
-      <Rules>
-        <Rule Name="Configuration" />
-        <Rule Name="Setting" />
-      </Rules>
-    </AttributeInfo>
     <AttributeInfo Name="Autoload" DefaultValue="true" Description="Determines if the Autoload process runs for Apps deployed manually or during the reservation's setup." IsReadOnly="false" Type="Boolean">
       <Rules>
         <Rule Name="Configuration" />
@@ -82,6 +76,13 @@
         <Rule Name="Setting" />
       </Rules>
     </AttributeInfo>
+     <AttributeInfo DefaultValue="" Description="This attribute points to a pre-define group of execution servers. Usually used for different sites or domains." IsReadOnly="false" Name="Execution Server Selector" Type="String">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+        <Rule Name="Execution Server Selector" />
+      </Rules>
+    </AttributeInfo>
 
     <!--Cloud Provider new Attributes-->
     <AttributeInfo Name="Azure Subscription ID"  DefaultValue="" Description="The Subscription ID of the Azure user." IsReadOnly="false" Type="String">
@@ -122,7 +123,7 @@
     </AttributeInfo>
 
     <!--New Azure Deployment Option Attributes -->
-    <AttributeInfo Name="Public IP Type"  DefaultValue="" Description="Static Public IP Type will guarantee that the VM always uses the same public IP. By default, Public IPs are dynamic and the address associated to them may change when the VM is deleted." IsReadOnly="false" Type="String">
+    <AttributeInfo Name="Public IP Type"  DefaultValue="" Description="Static Public IP Type ensures that the VM always uses the same public IP. By default, Public IPs are dynamic and their address may change when the VM is powered off." IsReadOnly="false" Type="String">
       <Rules>
         <Rule Name="Configuration" />
         <Rule Name="Setting" />
@@ -196,6 +197,9 @@
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Management Group Name">
               <AllowedValues />
             </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Execution Server Selector">
+              <AllowedValues />
+            </AttachedAttribute>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Additional Mgmt Networks">
               <AllowedValues />
             </AttachedAttribute>
@@ -261,9 +265,6 @@
       <AttributeValues />
       <Models>
         <ResourceModel Description="" Name="Azure VM From Marketplace" ImagePath="AzureMarketplaceImage.png" SupportsConcurrentCommands="false">          <AttachedAttributes>
-            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Cloud Provider" UserInput="true">
-              <AllowedValues />
-            </AttachedAttribute>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="VM Size" UserInput="true">
               <AllowedValues />
             </AttachedAttribute>
@@ -314,9 +315,6 @@
         </ResourceModel>
         <ResourceModel Description="" Name="Azure VM From Custom Image" ImagePath="AzureCustomImage.png" SupportsConcurrentCommands="false">
           <AttachedAttributes>
-            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Cloud Provider" UserInput="true">
-              <AllowedValues />
-            </AttachedAttribute>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="VM Size" UserInput="true">
               <AllowedValues />
             </AttachedAttribute>

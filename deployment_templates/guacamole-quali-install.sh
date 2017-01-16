@@ -18,6 +18,8 @@ KEYSTORE_PASS="123123"
 
 #Make sure all yum transaction are complete
 yum-complete-transaction -y --cleanup-only
+yum clean all
+yum makecache
 
 #source https://deviantengineer.com/2015/02/guacamole-centos7/
 
