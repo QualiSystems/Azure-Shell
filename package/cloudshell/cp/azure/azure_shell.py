@@ -96,7 +96,8 @@ class AzureShell(object):
             generic_lock_provider=self.generic_lock_provider,
             image_data_factory=self.image_data_factory)
 
-        self.power_vm_operation = PowerAzureVMOperation(vm_service=self.vm_service)
+        self.power_vm_operation = PowerAzureVMOperation(vm_service=self.vm_service,
+                                                        vm_custom_params_extractor=self.vm_custom_params_extractor)
 
         self.refresh_ip_operation = RefreshIPOperation(vm_service=self.vm_service,
                                                        resource_id_parser=self.resource_id_parser)
@@ -314,23 +315,21 @@ class AzureShell(object):
 
                 resource = command_context.remote_endpoints[0]
                 data_holder = self.model_parser.convert_app_resource_to_deployed_app(resource)
-                vm_name = data_holder.name
 
                 with CloudShellSessionContext(command_context) as cloudshell_session:
                     cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(
                         resource=command_context.resource,
                         cloudshell_session=cloudshell_session)
 
-                azure_clients = AzureClientsManager(cloud_provider_model)
+                    azure_clients = AzureClientsManager(cloud_provider_model)
 
-                self.power_vm_operation.power_on(compute_client=azure_clients.compute_client,
-                                                 resource_group_name=group_name,
-                                                 vm_name=vm_name)
+                    self.power_vm_operation.power_on(compute_client=azure_clients.compute_client,
+                                                     resource_group_name=group_name,
+                                                     resource_full_name=resource.fullname,
+                                                     data_holder=data_holder,
+                                                     cloudshell_session=cloudshell_session)
 
-                logger.info('Azure VM {} was successfully powered on'.format(vm_name))
-
-                with CloudShellSessionContext(command_context) as cloudshell_session:
-                    cloudshell_session.SetResourceLiveStatus(resource.fullname, "Online", "Active")
+                logger.info('Azure VM was successfully powered on')
 
     def power_off_vm(self, command_context):
         """Power off Azure VM
