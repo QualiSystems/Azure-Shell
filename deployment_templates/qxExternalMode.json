@@ -2,14 +2,15 @@
 	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/qxExternalMode.json#",
 	"contentVersion": "1.0.0.0"	,
 	"variables":{	
-		"qx_nic_name":"QualiX-VM-NIC",
+		"qx_nic_name":"QualiX-NIC",
 		"virtualMachineQxName": "QualiX-VM",
-		"publicIpAddressNameVMCentosQX": "QualiX-VM-IP",
-		"nsg_management_name" : "QualiX-Security-Group"
+		"publicIpAddressNameVMCentosQX": "QualiX-Public-IP",
+		"nsg_management_name" : "QualiX-NSG"
 	},
 	"parameters":{		
 		"vmSize":{"type": "String"},
 		"scriptUrl":{"type": "String"},
+		"scriptName":{"type": "String"},
 		"commandToExe":{"type": "String"},
 		"adminUsername": {
             "type": "string"			
@@ -79,7 +80,7 @@
 
 		{
 		  "type": "Microsoft.Compute/virtualMachines/extensions",
-		  "name": "[concat(variables('virtualMachineQxName'),'/qsScript')]",
+		  "name": "[concat(variables('virtualMachineQxName'), '/', parameters('scriptName'))]",
 		  "apiVersion": "2015-06-15",
 		  "location": "[resourceGroup().location]",
 		  "dependsOn": ["[concat('Microsoft.Compute/virtualMachines/', variables('virtualMachineQxName'))]"],
