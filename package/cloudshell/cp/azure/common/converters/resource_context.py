@@ -5,7 +5,6 @@ from cloudshell.cp.azure.models.deploy_azure_vm_resource_models import DeployAzu
 
 
 class ResourceContextConverter(object):
-
     def _get_attribute_by_name(self, attr_name, attrs):
         """Get attribute value by it's name from the attributes list
 
@@ -24,7 +23,10 @@ class ResourceContextConverter(object):
         """
         deployed_resource.group_name = ""  # needs to be auto generated
         deployed_resource.vm_name = ""  # needs to be auto generated
-        deployed_resource.cloud_provider = resource.attributes['Cloud Provider']
+
+        deployed_resource.cloud_provider = resource.attributes[
+            'Cloud Provider'] if 'Cloud Provider' in resource.attributes.keys() else None
+
         deployed_resource.vm_size = resource.attributes['VM Size']
         deployed_resource.autoload = self._convert_to_bool(resource.attributes['Autoload'])
         deployed_resource.add_public_ip = self._convert_to_bool(resource.attributes['Add Public IP'])
