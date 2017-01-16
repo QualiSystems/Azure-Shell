@@ -2,9 +2,9 @@
 	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/vpn_creationTrue.json#",
 	"contentVersion": "1.0.0.0"	,
 	"variables":{	
-		"gatewayPublicIPName" : "[concat(uniquestring('azureGatewayPIP'),'_vpn_public_ip')]",
-		"gateway_vpn_name" :"[concat(uniqueString('vpn'),'_vpn')]",
-		"localGatewayName": "local_getway_network",
+		"gatewayPublicIPName" : "CloudShell-VPN-Public-IP",
+		"gateway_vpn_name" :"CloudShell-VPN-Virtual-Gateway",
+		"localGatewayName": "CloudShell-VPN-Local-Gateway"
 	},
 	"parameters":{	
 		"virtualNetworks_mgmt_vnet_name": {
