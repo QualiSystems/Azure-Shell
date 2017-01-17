@@ -1,4 +1,4 @@
-<Driver Description="Deploy Azure VM From Custom Image" MainClass="driver.DeployAzureVMFromCustomImage" Name="Deploy Azure VM From Custom Image" Version="0.2.0">
+<Driver Description="Deploy Azure VM From Custom Image" MainClass="driver.DeployAzureVMFromCustomImage" Name="Deploy Azure VM From Custom Image" Version="0.2.1">
     <Layout>
         <Category Name="App Management">
             <Command Description="" DisplayName="Deploy" Name="Deploy" Tags="allow_shared" />
