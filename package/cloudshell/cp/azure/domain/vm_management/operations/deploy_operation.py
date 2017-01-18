@@ -144,6 +144,7 @@ class DeployAzureVMOperation(object):
         :return:
         """
         logger.info("Start Deploy Azure VM operation")
+        extension_time_out = False
 
         # 1. prepare deploy data model object
         data = self._prepare_deploy_data(logger=logger,
@@ -196,6 +197,8 @@ class DeployAzureVMOperation(object):
             html_format = "<html><body><span style='color: red;'>{0}</span></body></html>".format(e.message)
             cloudshell_session.WriteMessageToReservationOutput(reservationId=reservation.reservation_id,
                                                                message=html_format)
+            extension_time_out = True
+
         except Exception:
             logger.exception("Failed to deploy VM from marketplace. Error:")
             self._rollback_deployed_resources(compute_client=compute_client,
@@ -229,7 +232,8 @@ class DeployAzureVMOperation(object):
                             deployed_app_attributes=deployed_app_attributes,
                             deployed_app_address=data.private_ip_address,
                             public_ip=data.public_ip_address,
-                            resource_group=data.reservation_id)
+                            resource_group=data.reservation_id,
+                            extension_time_out=extension_time_out)
 
     def _create_vm_custom_image_action(self, compute_client, storage_client, deployment_model, cloud_provider_model,
                                        data, cancellation_context, logger):
