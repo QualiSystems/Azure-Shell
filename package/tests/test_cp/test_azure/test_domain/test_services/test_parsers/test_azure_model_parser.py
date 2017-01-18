@@ -178,6 +178,7 @@ class TestAzureModelsParser(TestCase):
         test_resource.attributes["Networks In Use"] = "network1,  network2 "
         test_resource.attributes["Region"] = "East Canada"
         test_resource.attributes["Management Group Name"] = test_mgmt_group_name = mock.MagicMock()
+        test_resource.attributes["Execution Server Selector"] = ""
         cloudshell_session = mock.MagicMock()
         decrypted_azure_secret = mock.MagicMock()
         cloudshell_session.DecryptPassword.return_value = decrypted_azure_secret
