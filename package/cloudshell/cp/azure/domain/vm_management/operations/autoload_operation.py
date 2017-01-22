@@ -18,6 +18,15 @@ class AutoloadOperation(object):
         self.vm_service = vm_service
         self.network_service = network_service
 
+    def _validate_region(self, region):
+        """Verify Azure region
+
+        :param str region: Azure region
+        :return:
+        """
+        if not region:
+            raise AutoloadException("Region attribute can not be empty")
+
     def _validate_api_credentials(self, cloud_provider_model, logger):
         """Verify Azure API Credentials and return AzureClientsManager instance
 
@@ -141,6 +150,8 @@ class AutoloadOperation(object):
         logger.info("Starting Autoload Operation...")
 
         azure_clients = self._validate_api_credentials(cloud_provider_model=cloud_provider_model, logger=logger)
+
+        self._validate_region(cloud_provider_model.region)
 
         self._register_azure_providers(resource_client=azure_clients.resource_client, logger=logger)
 

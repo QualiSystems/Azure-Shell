@@ -56,6 +56,15 @@ class TestAutoloadOperation(TestCase):
         # Verify
         self.assertEqual(ex.exception.message, "Failed to connect to Azure API, please check the log for more details")
 
+    def test_validate_region(self):
+        """Check that method will raise AutoloadException if region is empty"""
+        # Act
+        with self.assertRaises(AutoloadException) as ex:
+            self.autoload_operation._validate_region(region="")
+
+        # Verify
+        self.assertEqual(ex.exception.message, "Region attribute can not be empty")
+
     def test_validate_mgmt_resource_group_not_found(self):
         """Check that method will raise AutoloadException if management resource group doesn't exist on Azure"""
         resource_client = mock.MagicMock()
