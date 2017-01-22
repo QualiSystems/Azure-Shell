@@ -6,7 +6,7 @@ install:
   - pip install -r external_requirements.txt
   - pip install -r test_requirements.txt
   - bash ./install_dependencies.sh
-  
+
 script:
     - pushd package
     - python setup.py develop
