@@ -30,6 +30,7 @@ class TestAutoloadOperation(TestCase):
         self.autoload_operation._validate_vnet = mock.MagicMock()
         self.autoload_operation._validate_vm_size = mock.MagicMock()
         self.autoload_operation._validate_networks_in_use = mock.MagicMock()
+        self.autoload_operation._validate_additional_mgmt_networks = mock.MagicMock()
 
         # Act
         result = self.autoload_operation.get_inventory(cloud_provider_model=cloud_provider_model,
@@ -42,6 +43,7 @@ class TestAutoloadOperation(TestCase):
         self.autoload_operation._validate_vnet.assert_called()
         self.autoload_operation._validate_vm_size.assert_called_once()
         self.autoload_operation._validate_networks_in_use.assert_called_once()
+        self.autoload_operation._validate_additional_mgmt_networks.assert_called_once()
 
     @mock.patch("cloudshell.cp.azure.domain.vm_management.operations.autoload_operation.AzureClientsManager")
     def test_validate_api_credentials(self, azure_clients_manager_class):
@@ -55,6 +57,15 @@ class TestAutoloadOperation(TestCase):
                                                               logger=self.logger)
         # Verify
         self.assertEqual(ex.exception.message, "Failed to connect to Azure API, please check the log for more details")
+
+    def test_validate_region(self):
+        """Check that method will raise AutoloadException if region is empty"""
+        # Act
+        with self.assertRaises(AutoloadException) as ex:
+            self.autoload_operation._validate_region(region="")
+
+        # Verify
+        self.assertEqual(ex.exception.message, "Region attribute can not be empty")
 
     def test_validate_mgmt_resource_group_not_found(self):
         """Check that method will raise AutoloadException if management resource group doesn't exist on Azure"""
@@ -138,11 +149,11 @@ class TestAutoloadOperation(TestCase):
             mock.call("Microsoft.Network"),
             mock.call("Microsoft.Compute")])
 
-    @mock.patch("cloudshell.cp.azure.domain.vm_management.operations.autoload_operation.AzureClientsManager")
-    def test_validate_networks_in_use(self, azure_clients_manager_class):
+    def test_validate_networks_in_use_not_all_sandbox_subnets_listed(self):
         """Check that method will raise AutoloadException if "Networks In Use" attribute is invalid
 
         Verify that all subnets in the "sandbox" vNet are listed in the attribute"""
+        self.autoload_operation._validate_cidr_format = mock.MagicMock(return_value=True)
         networks_in_use = ["network2", "network4"]
         sandbox_vnet = mock.MagicMock(subnets=[mock.MagicMock(address_prefix="network1"),
                                                mock.MagicMock(address_prefix="network2")])
@@ -150,8 +161,65 @@ class TestAutoloadOperation(TestCase):
         # Act
         with self.assertRaises(AutoloadException) as ex:
             self.autoload_operation._validate_networks_in_use(sandbox_vnet=sandbox_vnet,
-                                                              networks_in_use=networks_in_use)
+                                                              networks_in_use=networks_in_use,
+                                                              logger=self.logger)
         # Verify
         self.assertEqual(ex.exception.message, 'The following subnets "network1" were found under the "{}" VNet '
                                                'in Azure and should be set in the "Network In Use" field.'
                          .format(sandbox_vnet.name))
+
+        self.autoload_operation._validate_cidr_format.assert_any_call("network2", self.logger)
+        self.autoload_operation._validate_cidr_format.assert_any_call("network4", self.logger)
+
+    def test_validate_networks_in_use_with_invalid_cidr_format(self):
+        """Check that method will raise AutoloadException if "Networks In Use" attribute have invalid CIDR format"""
+        self.autoload_operation._validate_cidr_format = mock.MagicMock(return_value=False)
+        networks_in_use = ["network2", "network4"]
+        sandbox_vnet = mock.MagicMock()
+
+        # Act
+        with self.assertRaises(AutoloadException) as ex:
+            self.autoload_operation._validate_networks_in_use(sandbox_vnet=sandbox_vnet,
+                                                              networks_in_use=networks_in_use,
+                                                              logger=self.logger)
+        # Verify
+        self.assertEqual(ex.exception.message, 'CIDR network2 under the "Networks In Use" attribute '
+                                               'is not in the valid format')
+
+    def test_validate_cidr_format(self):
+        """Check that method will return True is CIDR format is valid"""
+        cidr = "10.10.10.10/24"
+
+        result = self.autoload_operation._validate_cidr_format(cidr=cidr, logger=self.logger)
+
+        self.assertTrue(result)
+
+    def test_validate_cidr_format_invalid(self):
+        """Check that method will return False if given CIDR format is valid"""
+        cidr = "invalid CIDR"
+
+        result = self.autoload_operation._validate_cidr_format(cidr=cidr, logger=self.logger)
+
+        self.assertFalse(result)
+
+    def test_validate_cidr_format_single_ip(self):
+        """Check that method will return False if given CIDR is a single IP address"""
+        cidr = "10.10.10.10"
+
+        result = self.autoload_operation._validate_cidr_format(cidr=cidr, logger=self.logger)
+
+        self.assertFalse(result)
+
+    def test_validate_additional_mgmt_networks(self):
+        """Check that method will raise AutoloadException if "Additional Mgmt Networks" attr have invalid CIDR format"""
+        self.autoload_operation._validate_cidr_format = mock.MagicMock(return_value=False)
+        additional_mgmt_networks = ["network2", "network4"]
+
+        # Act
+        with self.assertRaises(AutoloadException) as ex:
+            self.autoload_operation._validate_additional_mgmt_networks(
+                additional_mgmt_networks=additional_mgmt_networks,
+                logger=self.logger)
+        # Verify
+        self.assertEqual(ex.exception.message, 'CIDR network2 under the "Additional Mgmt Networks" attribute '
+                                               'is not in the valid format')
