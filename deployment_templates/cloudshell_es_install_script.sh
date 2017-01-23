@@ -67,7 +67,16 @@ yum-complete-transaction -y --cleanup-only
 yum clean all
 yum makecache
 
-yes | yum install epel-release
+yum -y install epel-release
+# previous command failed
+if [ $? -ne 0 ]
+then
+    echo "Epel-release installation failed"
+    sed -i "s~#baseurl=~baseurl=~g" /etc/yum.repos.d/epel.repo
+    sed -i "s~mirrorlist=~#mirrorlist=~g" /etc/yum.repos.d/epel.repo
+    yum -y install epel-release
+fi
+
 yes | yum -y install python-pip
 yes | pip install -U pip
 
