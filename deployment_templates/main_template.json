@@ -16,11 +16,11 @@
 		},	
 		"CloudshellSSHUserName": {
             "type": "string",
-			"metadata": {"description": "The CloudShell SSH user to be used to access CloudShell components in the Management VNet. For example, QualiX Server and TestShell Execution Server."}
+			"metadata": {"description": "Create a user name and password to be used to connect to the QualiX and TestShell Execution Server that will be created in Azure. Make sure you save these credentials for future use."}
         },
         "CloudshellSSHPassword": {
             "type": "securestring",
-			"metadata": {"description": "The CloudShell SSH user’s password."}
+			"metadata": {"description": "Create a password to be used with the CloudShell SSH User Name. Password must contain 12-72 characters and include 1 lower case character, 1 upper case character and 1 special character."}
         },			
 		"ManagementVnetCIDR": {
 			"defaultValue": "192.168.120.0/24",
