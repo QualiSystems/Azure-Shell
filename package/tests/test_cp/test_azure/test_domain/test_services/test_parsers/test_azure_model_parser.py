@@ -169,8 +169,8 @@ class TestAzureModelsParser(TestCase):
         azure_cp_model_class.return_value = azure_cp_model
         test_resource = mock.Mock()
         test_resource.attributes = {}
-        test_resource.attributes["Azure Client ID"] = test_azure_client_id = mock.MagicMock()
-        test_resource.attributes["Azure Secret"] = test_azure_secret = mock.MagicMock()
+        test_resource.attributes["Azure Application ID"] = test_azure_application_id = mock.MagicMock()
+        test_resource.attributes["Azure Application Key"] = test_azure_application_key = mock.MagicMock()
         test_resource.attributes["Additional Mgmt Networks"] = " mgmt_network1, mgmt_network2"
         test_resource.attributes["Azure Subscription ID"] = test_azure_subscription_id = mock.MagicMock()
         test_resource.attributes["Azure Tenant ID"] = test_azure_tenant = mock.MagicMock()
@@ -180,8 +180,8 @@ class TestAzureModelsParser(TestCase):
         test_resource.attributes["Management Group Name"] = test_mgmt_group_name = mock.MagicMock()
         test_resource.attributes["Execution Server Selector"] = ""
         cloudshell_session = mock.MagicMock()
-        decrypted_azure_secret = mock.MagicMock()
-        cloudshell_session.DecryptPassword.return_value = decrypted_azure_secret
+        decrypted_azure_application_key = mock.MagicMock()
+        cloudshell_session.DecryptPassword.return_value = decrypted_azure_application_key
 
         # Act
         result = self.tested_class.convert_to_cloud_provider_resource_model(resource=test_resource,
@@ -189,7 +189,7 @@ class TestAzureModelsParser(TestCase):
 
         # Verify
         self.assertIs(result, azure_cp_model)
-        self.assertEqual(result.azure_client_id, test_azure_client_id)
+        self.assertEqual(result.azure_application_id, test_azure_application_id)
         self.assertEqual(result.azure_subscription_id, test_azure_subscription_id)
         self.assertEqual(result.azure_tenant, test_azure_tenant)
         self.assertEqual(result.vm_size, test_vm_size)
@@ -197,7 +197,7 @@ class TestAzureModelsParser(TestCase):
         self.assertEqual(result.region, "eastcanada")
         self.assertEqual(result.management_group_name, test_mgmt_group_name)
         self.assertEqual(result.additional_mgmt_networks, ["mgmt_network1", "mgmt_network2"])
-        self.assertEqual(result.azure_secret, decrypted_azure_secret.Value)
+        self.assertEqual(result.azure_application_key, decrypted_azure_application_key.Value)
 
     def test_convert_list_attribute(self):
         """Check that method will convert sting attribute into the list"""
