@@ -115,7 +115,7 @@
         <Rule Name="Setting" />
       </Rules>
     </AttributeInfo>
-    <AttributeInfo Name="Additional Mgmt Networks"  DefaultValue="" Description="List of comma-separated networks in a CIDR manner that will be allowed to interact with all Sandbox instances. This is used for allowing connectivity to resource outside the CloudShell Mgmt network that should be available to the Sandbox Instances." IsReadOnly="false" Type="String">
+    <AttributeInfo Name="Additional Mgmt Networks"  DefaultValue="" Description="Networks to be allowed to interact with all sandboxes. This is used for allowing connectivity to Azure resources outside the CloudShell Management VNet that should be available to CloudShell sandboxes. The syntax is comma separated CIDRs." IsReadOnly="false" Type="String">
       <Rules>
         <Rule Name="Configuration" />
         <Rule Name="Setting" />
