@@ -97,13 +97,13 @@
         <Rule Name="Setting" />
       </Rules>
     </AttributeInfo>
-    <AttributeInfo Name="Azure Application key"  DefaultValue="" Description="Application key associated with the Azure API application. The application key allows CloudShell to access the Azure API and is generated as part of the Azure application’s configuration process. For more information, see the “Configure Azure API to work with CloudShell” article in the CloudShell online help." IsReadOnly="false" Type="Password">
+    <AttributeInfo Name="Azure Application Key"  DefaultValue="" Description="Application key associated with the Azure API application. The application key allows CloudShell to access the Azure API and is generated as part of the Azure application’s configuration process. For more information, see the “Configure Azure API to work with CloudShell” article in the CloudShell online help." IsReadOnly="false" Type="Password">
       <Rules>
         <Rule Name="Configuration" />
         <Rule Name="Setting" />
       </Rules>
     </AttributeInfo>
-    <AttributeInfo Name="Azure application Id"  DefaultValue="" Description="Application Id associated with the Azure API application. The application ID allows CloudShell to access the Azure API and is generated as part of the web application’s configuration process. For more information, see Configure Azure API to work with CloudShell." IsReadOnly="false" Type="String">
+    <AttributeInfo Name="Azure Application ID"  DefaultValue="" Description="Application Id associated with the Azure API application. The application ID allows CloudShell to access the Azure API and is generated as part of the web application’s configuration process. For more information, see Configure Azure API to work with CloudShell." IsReadOnly="false" Type="String">
       <Rules>
         <Rule Name="Configuration" />
         <Rule Name="Setting" />
@@ -188,10 +188,10 @@
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Azure Tenant ID">
               <AllowedValues />
             </AttachedAttribute>
-            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Azure Application key">
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Azure Application Key">
               <AllowedValues />
             </AttachedAttribute>
-            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Azure application Id">
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Azure Application ID">
               <AllowedValues />
             </AttachedAttribute>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Management Group Name">

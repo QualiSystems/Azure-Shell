@@ -116,7 +116,7 @@ class AzureModelsParser(object):
         """
         resource_context = resource.attributes
         azure_resource_model = AzureCloudProviderResourceModel()
-        azure_resource_model.azure_application_id = resource_context['Azure application Id']
+        azure_resource_model.azure_application_id = resource_context['Azure Application ID']
         azure_resource_model.azure_subscription_id = resource_context['Azure Subscription ID']
         azure_resource_model.azure_tenant = resource_context['Azure Tenant ID']
         azure_resource_model.vm_size = resource_context['VM Size']
@@ -129,7 +129,7 @@ class AzureModelsParser(object):
         azure_resource_model.additional_mgmt_networks = AzureModelsParser._convert_list_attribute(
             resource_context['Additional Mgmt Networks'])
 
-        encrypted_azure_application_key = resource_context['Azure Application key']
+        encrypted_azure_application_key = resource_context['Azure Application Key']
         azure_application_key = cloudshell_session.DecryptPassword(encrypted_azure_application_key)
         azure_resource_model.azure_application_key = azure_application_key.Value
 

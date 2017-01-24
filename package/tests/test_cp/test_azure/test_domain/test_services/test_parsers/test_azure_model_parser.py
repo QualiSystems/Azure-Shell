@@ -169,8 +169,8 @@ class TestAzureModelsParser(TestCase):
         azure_cp_model_class.return_value = azure_cp_model
         test_resource = mock.Mock()
         test_resource.attributes = {}
-        test_resource.attributes["Azure application Id"] = test_azure_application_id = mock.MagicMock()
-        test_resource.attributes["Azure Application key"] = test_azure_application_key = mock.MagicMock()
+        test_resource.attributes["Azure Application ID"] = test_azure_application_id = mock.MagicMock()
+        test_resource.attributes["Azure Application Key"] = test_azure_application_key = mock.MagicMock()
         test_resource.attributes["Additional Mgmt Networks"] = " mgmt_network1, mgmt_network2"
         test_resource.attributes["Azure Subscription ID"] = test_azure_subscription_id = mock.MagicMock()
         test_resource.attributes["Azure Tenant ID"] = test_azure_tenant = mock.MagicMock()
