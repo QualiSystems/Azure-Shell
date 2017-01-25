@@ -166,3 +166,18 @@ class TesAzureClientsManager(TestCase):
         self.assertIs(storage_client, self.azure_clients_manager._storage_client)
         storage_client_class.assert_called_once_with(self.azure_clients_manager._service_credentials,
                                                      self.azure_clients_manager._subscription_id)
+
+    @mock.patch("cloudshell.cp.azure.common.azure_clients.SubscriptionClient")
+    def test_subscription_client(self, subscription_client_class):
+        """Check that property will get SubscriptionClient client and initialize client only once"""
+        mocked_subscription_client = mock.MagicMock()
+        subscription_client_class.return_value = mocked_subscription_client
+        # Act
+        subscription_client = self.azure_clients_manager.subscription_client
+        # repeat property call to verify that method will not create one more instance
+        subscription_client = self.azure_clients_manager.subscription_client
+
+        # Verify
+        self.assertIs(subscription_client, mocked_subscription_client)
+        self.assertIs(subscription_client, self.azure_clients_manager._subscription_client)
+        subscription_client_class.assert_called_once_with(self.azure_clients_manager._service_credentials)
