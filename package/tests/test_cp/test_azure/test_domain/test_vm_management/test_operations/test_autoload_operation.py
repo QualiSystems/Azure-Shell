@@ -11,10 +11,12 @@ from cloudshell.cp.azure.common.exceptions.autoload_exception import AutoloadExc
 class TestAutoloadOperation(TestCase):
     def setUp(self):
         self.vm_service = mock.MagicMock()
+        self.subscription_service = mock.MagicMock()
         self.network_service = mock.MagicMock()
         self.tags_service = mock.MagicMock()
         self.logger = mock.MagicMock()
-        self.autoload_operation = AutoloadOperation(vm_service=self.vm_service,
+        self.autoload_operation = AutoloadOperation(subscription_service=self.subscription_service,
+                                                    vm_service=self.vm_service,
                                                     network_service=self.network_service)
 
     @mock.patch("cloudshell.cp.azure.domain.vm_management.operations.autoload_operation.AutoLoadDetails")
@@ -24,6 +26,7 @@ class TestAutoloadOperation(TestCase):
         autoload_details = mock.MagicMock()
         autoload_details_class.return_value = autoload_details
 
+        self.autoload_operation._validate_region = mock.MagicMock()
         self.autoload_operation._validate_api_credentials = mock.MagicMock()
         self.autoload_operation._register_azure_providers = mock.MagicMock()
         self.autoload_operation._validate_mgmt_resource_group = mock.MagicMock()
@@ -37,6 +40,7 @@ class TestAutoloadOperation(TestCase):
                                                        logger=self.logger)
         # Verify
         self.assertEqual(result, autoload_details)
+        self.autoload_operation._validate_region.assert_called_once()
         self.autoload_operation._validate_api_credentials.assert_called_once()
         self.autoload_operation._register_azure_providers.assert_called_once()
         self.autoload_operation._validate_mgmt_resource_group.assert_called_once()
@@ -59,13 +63,55 @@ class TestAutoloadOperation(TestCase):
         self.assertEqual(ex.exception.message, "Failed to connect to Azure API, please check the log for more details")
 
     def test_validate_region(self):
+        """Check that method will not raise AutoloadException if region is a valid Azure Geo-location"""
+        subscription_client = mock.MagicMock()
+        subscription_id = "subscription ID"
+        region = "valid region"
+        valid_region = mock.MagicMock()
+        valid_region.name = region
+        self.subscription_service.list_available_regions.return_value = [valid_region]
+
+        # Act
+        self.autoload_operation._validate_region(subscription_client=subscription_client,
+                                                 subscription_id=subscription_id,
+                                                 region=region)
+
+        # Verify
+        self.subscription_service.list_available_regions.assert_called_once_with(
+            subscription_client=subscription_client,
+            subscription_id=subscription_id)
+
+    def test_validate_region_is_empty(self):
         """Check that method will raise AutoloadException if region is empty"""
+        subscription_client = mock.MagicMock()
+        subscription_id = "subscription ID"
+
         # Act
         with self.assertRaises(AutoloadException) as ex:
-            self.autoload_operation._validate_region(region="")
+            self.autoload_operation._validate_region(subscription_client=subscription_client,
+                                                     subscription_id=subscription_id,
+                                                     region="")
 
         # Verify
         self.assertEqual(ex.exception.message, "Region attribute can not be empty")
+
+    def test_validate_region_is_invalid(self):
+        """Check that method will raise AutoloadException if region is invalid Azure Geo-location"""
+        subscription_client = mock.MagicMock()
+        subscription_id = "subscription ID"
+        region = "invalid region"
+
+        # Act
+        with self.assertRaises(AutoloadException) as ex:
+            self.autoload_operation._validate_region(subscription_client=subscription_client,
+                                                     subscription_id=subscription_id,
+                                                     region=region)
+
+        # Verify
+        self.assertEqual(ex.exception.message, 'Region "{}" is not a valid Azure Geo-location'.format(region))
+        self.subscription_service.list_available_regions.assert_called_once_with(
+            subscription_client=subscription_client,
+            subscription_id=subscription_id)
 
     def test_validate_mgmt_resource_group_not_found(self):
         """Check that method will raise AutoloadException if management resource group doesn't exist on Azure"""
