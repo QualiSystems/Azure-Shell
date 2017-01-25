@@ -1,6 +1,7 @@
 #!/bin/bash
 
 REQUIRED_MONO_VERSION="4.0.1"
+REQUIRED_PYTHON_VERSION="2.7.10"
 ES_DOWNLOAD_LINK="https://s3.amazonaws.com/alex-az/ExecutionServer.tar"
 ES_INSTALL_PATH="/opt/ExecutionServer/"
 
@@ -42,27 +43,25 @@ install_mono () {
 	# Add Mono repository
 	yum-config-manager --add-repo http://download.mono-project.com/repo/centos/
 	# Install Mono
-	yes | yum install mono-devel-4.0.1 --skip-broken
-	yes | yum install mono-complete-4.0.1 --skip-broken
+	yum -y install mono-devel-4.0.1 --skip-broken
+	yum -y install mono-complete-4.0.1 --skip-broken
 	# Install required stuff to build cryptography package
-	yes | yum -y install gcc 
-	yes | yum -y install python-devel
-	yes | yum -y install openssl-devel
+	yum -y install gcc
+	yum -y install openssl-devel
 	# Install requiered packages for the QsDriverHost
-	pip install -r $ES_INSTALL_PATH/packages/VirtualEnvironment/requirements.txt
+	$python_path -m pip install -r $ES_INSTALL_PATH/packages/VirtualEnvironment/requirements.txt
 	
 }
 
 setup_supervisor() {
 	# Install Needed Package
-	yes | yum install python-setuptools
-	yes | yum install supervisor
+	yum -y install python-setuptools
+	yum -y install supervisor
 	# create config file
 	echo_supervisord_conf > /etc/supervisord.conf
 	echo -e '\n[program:cloudshell_execution_server]\ndirectory='$ES_INSTALL_PATH'\ncommand=/bin/bash -c "/usr/bin/mono QsExecutionServerConsoleConfig.exe /s:'$cs_server_host' /u:'$cs_server_user' /p:'$cs_server_pass' /esn:'$es_name' /i:'$ES_NUMBER_OF_SLOTS' && /usr/bin/mono QsExecutionServer.exe console"\nenvironment=MONO_IOMAP=all\n' >> /etc/supervisord.conf
 }
 
-# Install Python pip
 yum-complete-transaction -y --cleanup-only
 yum clean all
 yum makecache
@@ -77,8 +76,29 @@ then
     yum -y install epel-release
 fi
 
-yes | yum -y install python-pip
-yes | pip install -U pip
+yum install -y which
+yum install -y wget
+python_version=$(python -V)
+if ! contains "$python_version" "$REQUIRED_PYTHON_VERSION"
+then
+    echo "Installing Python required version..."
+    yum -y update
+    yum groupinstall -y 'development tools'
+    yum install -y gcc zlib-dev openssl-devel sqlite-devel bzip2-devel
+    # install needed python version
+    cd /opt/
+    wget https://www.python.org/ftp/python/$REQUIRED_PYTHON_VERSION/Python-$REQUIRED_PYTHON_VERSION.tgz
+    tar xzf Python-$REQUIRED_PYTHON_VERSION.tgz
+    cd Python-$REQUIRED_PYTHON_VERSION
+    ./configure --prefix=/usr/local
+    make altinstall
+    python_path="/usr/local/bin/python2.7"
+else
+    python_path=$(which python)
+fi
+
+wget "https://bootstrap.pypa.io/get-pip.py"
+$python_path get-pip.py
 
 # create installation directory
 mkdir -p $ES_INSTALL_PATH
@@ -87,17 +107,17 @@ mkdir -p $ES_INSTALL_PATH
 wget $ES_DOWNLOAD_LINK -O es.tar
 tar -xf es.tar -C $ES_INSTALL_PATH --strip-components=1
 
-if [command_exists mono]
-	then
-		echo "Mono installed, checking version..."
-		res=$(mono -V);
+if command_exists mono
+then
+    echo "Mono installed, checking version..."
+    res=$(mono -V);
 
-		if ! [contains "res" $REQUIRED_MONO_VERSION]
-			then
-				echo "Mono Version is not $REQUIRED_MONO_VERSION"
-				unistall_mono_old_version
-				install_mono
-	fi
+    if ! contains "$res" "$REQUIRED_MONO_VERSION"
+        then
+            echo "Mono Version is not $REQUIRED_MONO_VERSION"
+            unistall_mono_old_version
+            install_mono
+    fi
 else
 	install_mono
 fi
@@ -105,11 +125,9 @@ fi
 setup_supervisor
 
 # install virtualenv
-pip install virtualenv
+$python_path -m pip install virtualenv
 
-# add python path to customer.config
-# python_path=$(which python)
-# sed -i "s~</appSettings>~<add key='ScriptRunnerExecutablePath' value='${python_path}' />\n</appSettings>~g" customer.config
+echo -e "<appSettings>\n<add key='ScriptRunnerExecutablePath' value='${python_path}' />\n</appSettings>" > ${ES_INSTALL_PATH}customer.config
 
 service supervisord start
 rm es.tar
