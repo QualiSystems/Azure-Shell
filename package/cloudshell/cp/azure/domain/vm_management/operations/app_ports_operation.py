@@ -1,4 +1,4 @@
-from cloudshell.cp.azure.domain.services.parsers.rules_attribute_parser import RulesAttributeParser
+from cloudshell.cp.azure.common.parsers.rules_attribute_parser import RulesAttributeParser
 
 
 class DeployedAppPortsOperation(object):

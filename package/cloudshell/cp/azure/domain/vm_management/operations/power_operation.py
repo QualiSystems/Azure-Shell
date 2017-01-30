@@ -2,7 +2,7 @@ class PowerAzureVMOperation(object):
     def __init__(self, vm_service, vm_custom_params_extractor):
         """
         :param cloudshell.cp.azure.domain.services.virtual_machine_service.VirtualMachineService vm_service:
-        :param cloudshell.cp.azure.domain.services.parsers.custom_param_extractor.VmCustomParamsExtractor vm_custom_params_extractor:
+        :param cloudshell.cp.azure.common.parsers.custom_param_extractor.VmCustomParamsExtractor vm_custom_params_extractor:
         :return:
         """
         self.vm_service = vm_service
