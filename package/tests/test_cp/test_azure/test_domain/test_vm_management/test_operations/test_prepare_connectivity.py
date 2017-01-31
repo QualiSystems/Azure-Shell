@@ -102,14 +102,15 @@ class TestPrepareConnectivity(TestCase):
 
     def test_prepare_storage_account_name(self):
         # Arrange
-        reservation_id = "some_id"
-        self.name_provider_service.generate_name = Mock()
+        reservation_id = "some-id"
+        self.name_provider_service.generate_name = Mock(return_value="{0}-{1}".format(reservation_id, "guid"))
 
         # Act
-        self.prepare_connectivity_operation._prepare_storage_account_name(reservation_id)
+        res =  self.prepare_connectivity_operation._prepare_storage_account_name(reservation_id)
 
         # Assert
         self.name_provider_service.generate_name.assert_called_once_with(name=reservation_id, max_length=24)
+        self.assertEquals(res, "someidguid")
 
     def test_extract_cidr_throws_error(self):
         action = Mock()

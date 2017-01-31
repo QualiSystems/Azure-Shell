@@ -82,8 +82,6 @@ class PrepareConnectivityOperation(object):
                                               region=cloud_provider_model.region, tags=tags)
 
         self.cancellation_service.check_if_cancelled(cancellation_context)
-
-        # storage account name in azure must be between 3-24 chars
         storage_account_name = self._prepare_storage_account_name(reservation_id)
 
         # 2+3. create storage account and keypairs (async)
@@ -171,7 +169,11 @@ class PrepareConnectivityOperation(object):
         return result
 
     def _prepare_storage_account_name(self, reservation_id):
-        return self.name_provider_service.generate_name(name=reservation_id, max_length=24)
+        """ Storage account name in azure must be between 3-24 chars. Dashes are not allowed as well.
+        :param str reservation_id:
+        :rtype: str
+        """
+        return self.name_provider_service.generate_name(name=reservation_id, max_length=24).replace("-", "")
 
     def _create_storage_and_keypairs(self, logger, storage_client, storage_account_name, group_name,
                                      cloud_provider_model, tags, cancellation_context, action_result):
