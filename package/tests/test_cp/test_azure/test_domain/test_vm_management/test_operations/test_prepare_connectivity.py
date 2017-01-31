@@ -100,6 +100,17 @@ class TestPrepareConnectivity(TestCase):
         network_client.network_security_groups.create_or_update.assert_called_once()
         self.cancellation_service.check_if_cancelled.assert_called_with(cancellation_context)
 
+    def test_prepare_storage_account_name(self):
+        # Arrange
+        reservation_id = "some_id"
+        self.name_provider_service.generate_name = Mock()
+
+        # Act
+        self.prepare_connectivity_operation._prepare_storage_account_name(reservation_id)
+
+        # Assert
+        self.name_provider_service.generate_name.assert_called_once_with(name=reservation_id, max_length=24)
+
     def test_extract_cidr_throws_error(self):
         action = Mock()
         att = Mock()
