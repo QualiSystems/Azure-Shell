@@ -4,6 +4,9 @@ from cloudshell.cp.azure.models.azure_cloud_provider_resource_model import Azure
 from cloudshell.cp.azure.models.deploy_azure_vm_resource_models import DeployAzureVMResourceModel
 from cloudshell.cp.azure.models.deploy_azure_vm_resource_models import DeployAzureVMFromCustomImageResourceModel
 from cloudshell.cp.azure.common.deploy_data_holder import DeployDataHolder
+from cloudshell.cp.azure.common.validators import CloudProviderDataModelValidator
+from cloudshell.cp.azure.common.validators import DeployAzureVMDataModelValidator
+from cloudshell.cp.azure.common.validators import DeployAzureVMFromCustomImageDataModelValidator
 from cloudshell.cp.azure.models.reservation_model import ReservationModel
 
 
@@ -71,7 +74,9 @@ class AzureModelsParser(object):
         :rtype: DeployAzureVMResourceModel
         """
         data = jsonpickle.decode(deployment_request)
-        data_holder = DeployDataHolder(data)
+        validator = DeployAzureVMDataModelValidator()
+        validator.validate(data)
+        data_holder = DeployDataHolder(data["ami_params"])
         deployment_resource_model = DeployAzureVMResourceModel()
         deployment_resource_model.image_offer = data_holder.ami_params.image_offer
         deployment_resource_model.image_publisher = data_holder.ami_params.image_publisher
@@ -96,6 +101,9 @@ class AzureModelsParser(object):
         :rtype: DeployAzureVMFromCustomImageResourceModel
         """
         data = jsonpickle.decode(deployment_request)
+        validator = DeployAzureVMFromCustomImageDataModelValidator()
+        validator.validate(data["ami_params"])
+
         data_holder = DeployDataHolder(data)
         deployment_resource_model = DeployAzureVMFromCustomImageResourceModel()
         deployment_resource_model.image_urn = data_holder.ami_params.image_urn
@@ -115,6 +123,8 @@ class AzureModelsParser(object):
         :return: AzureCloudProviderResourceModel
         """
         resource_context = resource.attributes
+        validator = CloudProviderDataModelValidator()
+        validator.validate(resource_context)
         azure_resource_model = AzureCloudProviderResourceModel()
         azure_resource_model.azure_application_id = resource_context['Azure Application ID']
         azure_resource_model.azure_subscription_id = resource_context['Azure Subscription ID']
