@@ -29,6 +29,7 @@ from cloudshell.cp.azure.domain.services.name_provider import NameProviderServic
 from cloudshell.cp.azure.domain.services.vm_extension import VMExtensionService
 from cloudshell.cp.azure.domain.services.task_waiter import TaskWaiterService
 from cloudshell.cp.azure.domain.services.command_cancellation import CommandCancellationService
+from cloudshell.cp.azure.domain.services.subscription import SubscriptionService
 from cloudshell.cp.azure.domain.vm_management.operations.deploy_operation import DeployAzureVMOperation
 from cloudshell.cp.azure.domain.vm_management.operations.power_operation import PowerAzureVMOperation
 from cloudshell.cp.azure.domain.vm_management.operations.refresh_ip_operation import RefreshIPOperation
@@ -58,13 +59,15 @@ class AzureShell(object):
         self.cryptography_service = CryptographyService()
         self.name_provider_service = NameProviderService()
         self.vm_extension_service = VMExtensionService(URLHelper(), waiter_service)
+        self.subscription_service = SubscriptionService()
         self.task_waiter_service = waiter_service
         self.vm_service = VirtualMachineService(task_waiter_service=self.task_waiter_service)
         self.generic_lock_provider = GenericLockProvider()
         self.subnet_locker = Lock()
         self.image_data_factory = ImageDataFactory(vm_service=self.vm_service)
 
-        self.autoload_operation = AutoloadOperation(vm_service=self.vm_service,
+        self.autoload_operation = AutoloadOperation(subscription_service=self.subscription_service,
+                                                    vm_service=self.vm_service,
                                                     network_service=self.network_service)
 
         self.access_key_operation = AccessKeyOperation(key_pair_service=self.key_pair_service,

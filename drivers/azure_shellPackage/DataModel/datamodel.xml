@@ -91,7 +91,7 @@
         <Rule Name="Setting" />
       </Rules>
     </AttributeInfo>
-    <AttributeInfo Name="Azure Tenant ID"  DefaultValue="" Description="The Azure tenant Id that is associated with your Azure Active Directory (AAD) instance. For example: ccd13026-98e3-4e90-01f4-28e2afdf3213. This GUID can be retrieved using Azure CLI." IsReadOnly="false" Type="String">
+    <AttributeInfo Name="Azure Tenant ID"  DefaultValue="" Description="The Azure Tenant Id that is associated with your Azure Active Directory (AAD) instance. For example: ccd13026-98e3-4e90-01f4-28e2afdf3213. The Tenant ID is created for the Active Directory and can be retrieved when creating the Azure API web application or retrieved from Azure CLI. For more information, see the “Configure Azure API to work with CloudShell” article in the CloudShell online help." IsReadOnly="false" Type="String">
       <Rules>
         <Rule Name="Configuration" />
         <Rule Name="Setting" />
@@ -103,7 +103,7 @@
         <Rule Name="Setting" />
       </Rules>
     </AttributeInfo>
-    <AttributeInfo Name="Azure Application ID"  DefaultValue="" Description="Application Id associated with the Azure API application. The application ID allows CloudShell to access the Azure API and is generated as part of the web application’s configuration process. For more information, see Configure Azure API to work with CloudShell." IsReadOnly="false" Type="String">
+    <AttributeInfo Name="Azure Application ID"  DefaultValue="" Description="Application Id associated with the Azure API application. The application ID allows CloudShell to access the Azure API and is generated as part of the web application’s configuration process. For more information, see the “Configure Azure API to work with CloudShell” article in the CloudShell online help." IsReadOnly="false" Type="String">
       <Rules>
         <Rule Name="Configuration" />
         <Rule Name="Setting" />

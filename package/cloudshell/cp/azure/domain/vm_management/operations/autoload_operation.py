@@ -9,24 +9,34 @@ from cloudshell.cp.azure.common.exceptions.autoload_exception import AutoloadExc
 
 
 class AutoloadOperation(object):
-    def __init__(self, vm_service, network_service):
+    def __init__(self, subscription_service, vm_service, network_service):
         """
 
-        :param vm_service: cloudshell.cp.azure.domain.services.virtual_machine_service.VirtualMachineService instance
-        :param network_service: cloudshell.cp.azure.domain.services.network_service.NetworkService instance
+        :param cloudshell.cp.azure.domain.services.subscription.SubscriptionService subscription_service:
+        :param cloudshell.cp.azure.domain.services.virtual_machine_service.VirtualMachineService vm_service:
+        :param cloudshell.cp.azure.domain.services.network_service.NetworkService network_service:
         :return:
         """
+        self.subscription_service = subscription_service
         self.vm_service = vm_service
         self.network_service = network_service
 
-    def _validate_region(self, region):
+    def _validate_region(self, subscription_client, subscription_id, region):
         """Verify Azure region
 
+        :param azure.mgmt.resource.SubscriptionClient subscription_client:
+        :param str subscription_id: Azure Subscription ID
         :param str region: Azure region
         :return:
         """
         if not region:
             raise AutoloadException("Region attribute can not be empty")
+
+        available_regions = self.subscription_service.list_available_regions(subscription_client=subscription_client,
+                                                                             subscription_id=subscription_id)
+
+        if region not in (available_region.name for available_region in available_regions):
+            raise AutoloadException('Region "{}" is not a valid Azure Geo-location'.format(region))
 
     def _validate_api_credentials(self, cloud_provider_model, logger):
         """Verify Azure API Credentials and return AzureClientsManager instance
@@ -190,7 +200,9 @@ class AutoloadOperation(object):
 
         azure_clients = self._validate_api_credentials(cloud_provider_model=cloud_provider_model, logger=logger)
 
-        self._validate_region(cloud_provider_model.region)
+        self._validate_region(subscription_client=azure_clients.subscription_client,
+                              subscription_id=cloud_provider_model.azure_subscription_id,
+                              region=cloud_provider_model.region)
 
         self._register_azure_providers(resource_client=azure_clients.resource_client, logger=logger)
 

@@ -82,7 +82,7 @@ class PrepareConnectivityOperation(object):
                                               region=cloud_provider_model.region, tags=tags)
 
         self.cancellation_service.check_if_cancelled(cancellation_context)
-        storage_account_name = self.name_provider_service.generate_name(reservation_id)
+        storage_account_name = self._prepare_storage_account_name(reservation_id)
 
         # 2+3. create storage account and keypairs (async)
         pool = ThreadPool()
@@ -120,7 +120,7 @@ class PrepareConnectivityOperation(object):
         self._validate_sandbox_vnet(sandbox_vnet)
 
         # 4. Create the NSG object
-        security_group_name = self.name_provider_service.generate_name(reservation_id)
+        security_group_name = reservation_id
         logger.info("Creating a network security group '{}' .".format(security_group_name))
         network_security_group = self.security_group_service.create_network_security_group(
             network_client=network_client,
@@ -167,6 +167,13 @@ class PrepareConnectivityOperation(object):
         action_result.subnet_name = subnet_name
         result.append(action_result)
         return result
+
+    def _prepare_storage_account_name(self, reservation_id):
+        """ Storage account name in azure must be between 3-24 chars. Dashes are not allowed as well.
+        :param str reservation_id:
+        :rtype: str
+        """
+        return self.name_provider_service.generate_name(name=reservation_id, max_length=24).replace("-", "")
 
     def _create_storage_and_keypairs(self, logger, storage_client, storage_account_name, group_name,
                                      cloud_provider_model, tags, cancellation_context, action_result):

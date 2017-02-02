@@ -1,6 +1,7 @@
 from azure.mgmt.compute import ComputeManagementClient
 from azure.mgmt.network import NetworkManagementClient
 from azure.mgmt.resource import ResourceManagementClient
+from azure.mgmt.resource import SubscriptionClient
 from azure.mgmt.storage import StorageManagementClient
 from msrestazure.azure_active_directory import ServicePrincipalCredentials
 
@@ -42,6 +43,7 @@ class AzureClientsManager(AbstractComparableInstance):
         self._network_client = None
         self._storage_client = None
         self._resource_client = None
+        self._subscription_client = None
 
     def _get_service_credentials(self):
         return ServicePrincipalCredentials(client_id=self._application_id, secret=self._application_key, tenant=self._tenant)
@@ -93,3 +95,12 @@ class AzureClientsManager(AbstractComparableInstance):
                     self._resource_client = ResourceManagementClient(self._service_credentials, self._subscription_id)
 
         return self._resource_client
+
+    @property
+    def subscription_client(self):
+        if self._subscription_client is None:
+            with SingletonByArgsMeta.lock:
+                if self._subscription_client is None:
+                    self._subscription_client = SubscriptionClient(self._service_credentials)
+
+        return self._subscription_client
