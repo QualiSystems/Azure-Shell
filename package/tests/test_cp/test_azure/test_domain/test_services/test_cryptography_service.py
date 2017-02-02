@@ -1,5 +1,5 @@
 from unittest import TestCase
-from mock import Mock, patch
+from mock import Mock
 
 from cloudshell.cp.azure.domain.services.cryptography_service import CryptographyService
 

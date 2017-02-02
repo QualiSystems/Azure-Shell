@@ -1,6 +1,7 @@
 import base64
 import os
 
+from cloudshell.shell.core.cryptography.aes_service import AESCipher
 from cloudshell.shell.core.cryptography.rsa_service import RsaService
 
 
@@ -22,7 +23,7 @@ class CryptographyService(object):
     def encrypt(self, input):
         secret_key = base64.b64encode(os.urandom(16))
 
-        encrypted_input = self.AESCipher(secret_key).encrypt(input)
+        encrypted_input = AESCipher(secret_key).encrypt(input)
         encrypted_secret_key = self.rsa_service.encrypt(secret_key)
 
         cryptography_dto = CryptographyDto()
