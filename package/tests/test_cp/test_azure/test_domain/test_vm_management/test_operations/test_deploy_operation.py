@@ -1,5 +1,6 @@
 from unittest import TestCase
 
+from azure.mgmt.compute.models import OperatingSystemTypes
 from mock import MagicMock
 from mock import Mock
 
@@ -578,15 +579,36 @@ class TestDeployAzureVMOperation(TestCase):
         with self.assertRaises(Exception):
             self.deploy_operation._validate_resource_is_single_per_group(resource_list, group_name, resource_name)
 
-    def test_prepare_computer_name(self):
-        """Check that method will use NameProviderService.generate_name to process computer name"""
+    def test_prepare_computer_name_win(self):
+        """
+        Check that method will use NameProviderService.generate_name to process computer name and correct length is
+        selected based on the OS type
+        """
         computer_name = MagicMock()
-        self.name_provider_service.generate_name.return_value = computer_name
+        self.name_provider_service.generate_name = Mock(return_value=computer_name)
+        os_type = OperatingSystemTypes.windows
+        postfix = Mock()
         name = "test_name"
         # Act
-        res = self.deploy_operation._prepare_computer_name(name)
+        res = self.deploy_operation._prepare_computer_name(name=name, postfix=postfix, os_type=os_type)
         # Verify
-        self.name_provider_service.generate_name.assert_called_once_with(name, length=15)
+        self.name_provider_service.generate_name.assert_called_once_with(name=name, postfix=postfix, max_length=15)
+        self.assertEqual(res, computer_name)
+
+    def test_prepare_computer_name_linux(self):
+        """
+        Check that method will use NameProviderService.generate_name to process computer name and correct length is
+        selected based on the OS type
+        """
+        computer_name = MagicMock()
+        self.name_provider_service.generate_name = Mock(return_value=computer_name)
+        os_type = OperatingSystemTypes.linux
+        postfix = Mock()
+        name = "test_name"
+        # Act
+        res = self.deploy_operation._prepare_computer_name(name=name, postfix=postfix, os_type=os_type)
+        # Verify
+        self.name_provider_service.generate_name.assert_called_once_with(name=name, postfix=postfix, max_length=64)
         self.assertEqual(res, computer_name)
 
     def test_prepare_vm_size_retrieve_attr_from_deployment_model(self):
@@ -622,6 +644,7 @@ class TestDeployAzureVMOperation(TestCase):
 
     def test_prepare_deploy_data(self):
         # Arrange
+        deployment_model = MagicMock(app_name="Cool App")
         image_data_model = Mock()
         self.deploy_operation.image_data_factory.get_image_data_model = Mock(return_value=image_data_model)
         self.deploy_operation._validate_deployment_model = Mock()
@@ -631,10 +654,10 @@ class TestDeployAzureVMOperation(TestCase):
         self.deploy_operation._get_sandbox_subnet = Mock()
         self.deploy_operation.storage_service.get_sandbox_storage_account_name = Mock(return_value="storage")
         self.deploy_operation.tags_service.get_tags = Mock()
+        self.name_provider_service.normalize_name = Mock(return_value="cool-app")
         logger = Mock()
         reservation_id = "res_id"
         reservation = MagicMock(reservation_id=reservation_id)
-        deployment_model = MagicMock(app_name="Cool App")
         cloud_provider_model = Mock()
         network_client = Mock()
         storage_client = Mock()
@@ -666,7 +689,8 @@ class TestDeployAzureVMOperation(TestCase):
         self.assertEquals(data.group_name, reservation_id)
         self.assertEquals(data.os_type, image_data_model.os_type)
         self.assertEquals(data.purchase_plan, image_data_model.purchase_plan)
-        self.assertEquals(data.app_name, "coolapp")
+        self.name_provider_service.normalize_name.assert_called_once_with(deployment_model.app_name)
+        self.assertEquals(data.app_name, "cool-app")
         self.assertEquals(data.interface_name, "random_name")
         self.assertEquals(data.ip_name, "random_name")
         self.assertEquals(data.computer_name, "computer_name")
