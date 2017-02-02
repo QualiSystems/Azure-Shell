@@ -14,6 +14,7 @@
             <Command Description="" DisplayName="Power Cycle" Name="PowerCycle" Tags="power" />
             <Command Description="" DisplayName="Delete VM Only" Name="destroy_vm_only" Tags="remote_app_management,allow_shared" />
             <Command Description="" DisplayName="GetAccessKey" Name="GetAccessKey" Tags="remote_app_management" />
+            <Command Description="" DisplayName="Clean Up Stale Data " Name="clean_up_stale_data" Tags="remote_app_management" />
         </Category>
         <Category Name="Power">
             <Command Description="" DisplayName="Power On" Name="PowerOn" Tags="power" />

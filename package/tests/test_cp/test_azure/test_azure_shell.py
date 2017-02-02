@@ -7,6 +7,7 @@ from cloudshell.cp.azure.models.ssh_key import SSHKey
 
 
 class TestAzureShell(TestCase):
+    @mock.patch("cloudshell.cp.azure.azure_shell.CleanUpStaleDataOperation")
     @mock.patch("cloudshell.cp.azure.azure_shell.AutoloadOperation")
     @mock.patch("cloudshell.cp.azure.azure_shell.DeployedAppPortsOperation")
     @mock.patch("cloudshell.cp.azure.azure_shell.CommandResultsParser")
@@ -26,7 +27,8 @@ class TestAzureShell(TestCase):
     def setUp(self, access_key_operation, delete_azure_vm_operation, refresh_ip_operation, power_azure_vm_operation,
               deploy_azure_vm_operation, prepare_connectivity_operation, security_group_service,
               key_pair_service, tag_service, storage_service, network_service, vm_service,
-              azure_models_parser, commands_results_parser, deployed_app_ports_operation, autoload_operation):
+              azure_models_parser, commands_results_parser, deployed_app_ports_operation, autoload_operation,
+              cleanup_stale_data_operation):
         self.azure_shell = AzureShell()
         self.logger = mock.MagicMock()
         self.group_name = "test group name"
@@ -496,3 +498,39 @@ class TestAzureShell(TestCase):
             logger=self.logger)
 
         self.assertEqual(res, expected_res)
+
+    @mock.patch("cloudshell.cp.azure.azure_shell.AzureClientsManager")
+    @mock.patch("cloudshell.cp.azure.azure_shell.CloudShellSessionContext")
+    @mock.patch("cloudshell.cp.azure.azure_shell.LoggingSessionContext")
+    @mock.patch("cloudshell.cp.azure.azure_shell.ErrorHandlingContext")
+    def test_clean_up_stale_data(self, error_handling_class, logging_context_class, cloudshell_session_context_class,
+                                 azure_clients_manager_class):
+        """Check that method uses ErrorHandlingContext and CleanUpStaleData operation"""
+        # mock LoggingSessionContext and ErrorHandlingContext
+        logging_context = mock.MagicMock(__enter__=mock.MagicMock(return_value=self.logger))
+        logging_context_class.return_value = logging_context
+        error_handling = mock.MagicMock()
+        error_handling_class.return_value = error_handling
+        # mock Cloudshell Session
+        cloudshell_session = mock.MagicMock()
+        cloudshell_session_context = mock.MagicMock(__enter__=mock.MagicMock(return_value=cloudshell_session))
+        cloudshell_session_context_class.return_value = cloudshell_session_context
+        # mock Azure clients
+        azure_clients_manager = mock.MagicMock()
+        azure_clients_manager_class.return_value = azure_clients_manager
+
+        command_context = mock.MagicMock()
+        cloud_provider_model = mock.MagicMock()
+        self.azure_shell.cleanup_stale_data_operation.cleanup_stale_data.return_value = expected_res = mock.MagicMock()
+        self.azure_shell.model_parser.convert_to_cloud_provider_resource_model.return_value = cloud_provider_model
+
+        # Act
+        self.azure_shell.clean_up_stale_data(command_context=command_context)
+
+        # Verify
+        self.azure_shell.cleanup_stale_data_operation.cleanup_stale_data.assert_called_once_with(
+            cloud_provider_model=cloud_provider_model,
+            network_client=azure_clients_manager.network_client,
+            resource_client=azure_clients_manager.resource_client,
+            cloudshell_session=cloudshell_session,
+            logger=self.logger)
