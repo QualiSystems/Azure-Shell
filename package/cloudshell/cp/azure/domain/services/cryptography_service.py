@@ -13,17 +13,19 @@ class CryptographyDto(object):
         self.encrypted_asymmetric_key = ""
 
 
-class CryptographyService(object):
+class CryptographyService(object, AESCipher):
     """Encrypt using RSA and AES together"""
     def __init__(self):
         """
+        :param cloudshell.shell.core.cryptography.aes_service.AESCipher AESCipher:
         """
+        self.AESCipher = AESCipher
         self.rsa_service = RsaService()
 
     def encrypt(self, input):
         secret_key = base64.b64encode(os.urandom(16))
 
-        encrypted_input = AESCipher(secret_key).encrypt(input)
+        encrypted_input = self.AESCipher(secret_key).encrypt(input)
         encrypted_secret_key = self.rsa_service.encrypt(secret_key)
 
         cryptography_dto = CryptographyDto()

@@ -1,20 +1,27 @@
 from unittest import TestCase
+from mock import Mock, patch
 
 from cloudshell.cp.azure.domain.services.cryptography_service import CryptographyService
 
 
 class TestCryptographyService(TestCase):
     def setUp(self):
-        self.cryptography_service = CryptographyService()
+        self.crypto_service = CryptographyService()
+        self.crypto_service.rsa_service = Mock()
 
     def test_encrypt(self):
         # Arrange
         plain_text = "password"
-        self.crypto_service = CryptographyService()
+
+        encrypted_secret_key = Mock()
+        self.crypto_service.rsa_service.encrypt = Mock(return_value=encrypted_secret_key)
 
         # Act
-        encrypted_text = self.crypto_service.encrypt(plain_text)
+        crypto_dto = self.crypto_service.encrypt(plain_text)
 
         # Verify
-        # self.assertEqual(plain_text, result)
-        # no check - just verify there is no exception
+        self.crypto_service.rsa_service.encrypt.assert_called_once()
+        self.assertEquals(crypto_dto.encrypted_asymmetric_key, encrypted_secret_key)
+        self.assertNotEquals(crypto_dto.encrypted_input, plain_text)
+        self.assertTrue(crypto_dto.encrypted_input)
+
