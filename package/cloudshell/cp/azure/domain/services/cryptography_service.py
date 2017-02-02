@@ -1,7 +1,6 @@
 import base64
 import os
 
-from cloudshell.shell.core.cryptography.aes_service import AESCipher
 from cloudshell.shell.core.cryptography.rsa_service import RsaService
 
 
@@ -13,13 +12,11 @@ class CryptographyDto(object):
         self.encrypted_asymmetric_key = ""
 
 
-class CryptographyService(object, AESCipher):
+class CryptographyService(object):
     """Encrypt using RSA and AES together"""
     def __init__(self):
         """
-        :param cloudshell.shell.core.cryptography.aes_service.AESCipher AESCipher:
         """
-        self.AESCipher = AESCipher
         self.rsa_service = RsaService()
 
     def encrypt(self, input):
