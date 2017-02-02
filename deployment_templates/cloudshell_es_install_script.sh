@@ -97,8 +97,10 @@ else
     python_path=$(which python)
 fi
 
+# install python for both Python versions
 wget "https://bootstrap.pypa.io/get-pip.py"
 $python_path get-pip.py
+python get-pip.py
 
 # create installation directory
 mkdir -p $ES_INSTALL_PATH
