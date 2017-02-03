@@ -26,7 +26,7 @@ class CleanUpStaleDataOperation(object):
                 resource_id=subnet.network_security_group.id)
             resource_groups.add(resource_group)
 
-        if subnet.ip_configurations:
+        if subnet.ip_configurations is not None:
             for ip_conf in subnet.ip_configurations:
                 resource_group = self.resource_id_parser.get_resource_group_name(
                     resource_id=ip_conf.id)

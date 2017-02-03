@@ -5,7 +5,7 @@ import mock
 from cloudshell.cp.azure.domain.vm_management.operations.cleanup_stale_data import CleanUpStaleDataOperation
 
 
-class TestAutoloadOperation(TestCase):
+class TestCleanUpStaleDataOperation(TestCase):
     def setUp(self):
         self.network_service = mock.MagicMock()
         self.vm_service = mock.MagicMock()
