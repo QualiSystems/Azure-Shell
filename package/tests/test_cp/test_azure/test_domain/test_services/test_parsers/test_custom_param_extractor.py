@@ -2,7 +2,7 @@ from unittest import TestCase
 
 import mock
 
-from cloudshell.cp.azure.domain.services.parsers.custom_param_extractor import VmCustomParamsExtractor
+from cloudshell.cp.azure.common.parsers.custom_param_extractor import VmCustomParamsExtractor
 
 
 class TestRulesAttributeParser(TestCase):
