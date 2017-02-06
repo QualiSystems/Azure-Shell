@@ -83,7 +83,8 @@ class AzureShell(object):
             cryptography_service=self.cryptography_service,
             name_provider_service=self.name_provider_service,
             cancellation_service=self.cancellation_service,
-            subnet_locker=self.subnet_locker)
+            subnet_locker=self.subnet_locker,
+            resource_id_parser=self.resource_id_parser)
 
         self.deploy_azure_vm_operation = DeployAzureVMOperation(
             vm_service=self.vm_service,
