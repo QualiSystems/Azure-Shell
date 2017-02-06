@@ -3,6 +3,7 @@ from threading import Lock
 from unittest import TestCase
 
 from mock import MagicMock, Mock
+from msrestazure.azure_exceptions import CloudError
 
 from cloudshell.cp.azure.common.exceptions.virtual_network_not_found_exception import VirtualNetworkNotFoundException
 from cloudshell.cp.azure.domain.services.cryptography_service import CryptographyService
@@ -71,6 +72,7 @@ class TestPrepareConnectivity(TestCase):
         network_client.security_rules.create_or_update = Mock()
         network_client.network_security_groups.create_or_update = Mock()
         cancellation_context = MagicMock()
+        self.prepare_connectivity_operation._cleanup_stale_data = MagicMock()
 
         self.prepare_connectivity_operation.prepare_connectivity(
             reservation=MagicMock(),
@@ -211,3 +213,38 @@ class TestPrepareConnectivity(TestCase):
 
         self.vm_service.delete_resource_group.assert_any_call(resource_management_client=resource_client,
                                                               group_name="resource_group2")
+
+    def test_create_subnet_calls_cleanup_stale_data(self):
+        """Check that method will call _cleanup_stale_data method on CloudError"""
+        network_client = MagicMock()
+        resource_client = MagicMock()
+        cloud_provider_model = MagicMock()
+        network_security_group = MagicMock()
+        subnet_cidr = "10.10.10.10/24"
+        subnet_name = "test_subnet_name"
+        subnet = MagicMock(address_prefix=subnet_cidr, ip_configurations=[MagicMock(), MagicMock()])
+        sandbox_vnet = MagicMock(subnets=[subnet])
+        self.prepare_connectivity_operation._cleanup_stale_data = MagicMock()
+        self.network_service.create_subnet.side_effect = [CloudError(MagicMock(__str__=MagicMock(
+            return_value="NetcfgInvalidSubnet")),
+            error=True), MagicMock()]
+
+        # Act
+        self.prepare_connectivity_operation._create_subnet(
+            cidr=subnet_cidr,
+            cloud_provider_model=cloud_provider_model,
+            logger=self.logger,
+            network_client=network_client,
+            resource_client=resource_client,
+            network_security_group=network_security_group,
+            sandbox_vnet=sandbox_vnet,
+            subnet_name=subnet_name)
+
+        # Verfy
+        self.prepare_connectivity_operation._cleanup_stale_data.assert_called_once_with(
+            cloud_provider_model=cloud_provider_model,
+            network_client=network_client,
+            resource_client=resource_client,
+            sandbox_vnet=sandbox_vnet,
+            subnet_cidr=subnet_cidr,
+            logger=self.logger)
