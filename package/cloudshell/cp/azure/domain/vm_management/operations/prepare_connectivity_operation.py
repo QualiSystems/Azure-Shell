@@ -306,7 +306,7 @@ class PrepareConnectivityOperation(object):
                 resource_group = self.resource_id_parser.get_resource_group_name(resource_id=ip_conf.id)
                 resource_groups.append(resource_group)
 
-        for resource_group in resource_groups:
+        for resource_group in set(resource_groups):
             logger.info("Resource group {} of the connected to subnet resource is not in the active state. "
                         "Deleting resource group ".format(resource_group))
 

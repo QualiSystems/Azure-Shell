@@ -39,7 +39,6 @@ from cloudshell.cp.azure.common.azure_clients import AzureClientsManager
 from cloudshell.cp.azure.domain.services.parsers.custom_param_extractor import VmCustomParamsExtractor
 from cloudshell.cp.azure.domain.vm_management.operations.app_ports_operation import DeployedAppPortsOperation
 from cloudshell.cp.azure.domain.vm_management.operations.autoload_operation import AutoloadOperation
-from cloudshell.cp.azure.domain.vm_management.operations.cleanup_stale_data import CleanUpStaleDataOperation
 
 
 class AzureShell(object):
@@ -118,10 +117,6 @@ class AzureShell(object):
 
         self.deployed_app_ports_operation = DeployedAppPortsOperation(
             vm_custom_params_extractor=self.vm_custom_params_extractor)
-
-        self.cleanup_stale_data_operation = CleanUpStaleDataOperation(network_service=self.network_service,
-                                                                      vm_service=self.vm_service,
-                                                                      resource_id_parser=self.resource_id_parser)
 
     def get_inventory(self, command_context):
         """Validate Cloud Provider
@@ -444,25 +439,3 @@ class AzureShell(object):
 
                 return self.deployed_app_ports_operation.get_formated_deployed_app_ports(
                     data_holder.vmdetails.vmCustomParams)
-
-    def clean_up_stale_data(self, command_context):
-        """Clean up stale resources on Azure
-
-        :param command_context: ResourceRemoteCommandContext
-        """
-        with LoggingSessionContext(command_context) as logger:
-            with ErrorHandlingContext(logger):
-                logger.info('Clean Up Stale Resources...')
-                with CloudShellSessionContext(command_context) as cloudshell_session:
-                    cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(
-                        resource=command_context.resource,
-                        cloudshell_session=cloudshell_session)
-
-                azure_clients = AzureClientsManager(cloud_provider_model)
-                self.cleanup_stale_data_operation.cleanup_stale_data(cloud_provider_model=cloud_provider_model,
-                                                                     network_client=azure_clients.network_client,
-                                                                     resource_client=azure_clients.resource_client,
-                                                                     cloudshell_session=cloudshell_session,
-                                                                     logger=logger)
-
-                logger.info('Stale Resources were successfully Cleaned Up')
