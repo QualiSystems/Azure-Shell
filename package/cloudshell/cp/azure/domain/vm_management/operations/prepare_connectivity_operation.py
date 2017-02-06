@@ -11,7 +11,7 @@ from cloudshell.cp.azure.common.exceptions.virtual_network_not_found_exception i
 from cloudshell.cp.azure.domain.services.network_service import NetworkService
 from cloudshell.cp.azure.models.prepare_connectivity_action_result import PrepareConnectivityActionResult
 from cloudshell.cp.azure.models.azure_cloud_provider_resource_model import AzureCloudProviderResourceModel
-from cloudshell.cp.azure.domain.services.parsers.azure_resource_id_parser import AzureResourceIdParser
+from cloudshell.cp.azure.common.parsers.azure_resource_id_parser import AzureResourceIdParser
 
 INVALID_REQUEST_ERROR = 'Invalid request: {0}'
 
