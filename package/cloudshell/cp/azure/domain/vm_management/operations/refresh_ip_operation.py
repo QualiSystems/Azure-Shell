@@ -3,7 +3,7 @@ class RefreshIPOperation(object):
         """
 
         :param vm_service: cloudshell.cp.azure.domain.services.virtual_machine_service.VirtualMachineService
-        :param resource_id_parser: cloudshell.cp.azure.domain.services.parsers.azure_model_parser.AzureModelsParser
+        :param resource_id_parser: cloudshell.cp.azure.common.parsers.azure_model_parser.AzureModelsParser
         :return:
         """
         self.vm_service = vm_service

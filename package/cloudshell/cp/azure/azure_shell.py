@@ -17,9 +17,9 @@ from cloudshell.cp.azure.domain.vm_management.operations.access_key_operation im
 from cloudshell.cp.azure.domain.vm_management.operations.delete_operation import DeleteAzureVMOperation
 from cloudshell.shell.core.session.logging_session import LoggingSessionContext
 from cloudshell.cp.azure.domain.services.network_service import NetworkService
-from cloudshell.cp.azure.domain.services.parsers.azure_model_parser import AzureModelsParser
-from cloudshell.cp.azure.domain.services.parsers.azure_resource_id_parser import AzureResourceIdParser
-from cloudshell.cp.azure.domain.services.parsers.command_result_parser import CommandResultsParser
+from cloudshell.cp.azure.common.parsers.azure_model_parser import AzureModelsParser
+from cloudshell.cp.azure.common.parsers.azure_resource_id_parser import AzureResourceIdParser
+from cloudshell.cp.azure.common.parsers.command_result_parser import CommandResultsParser
 from cloudshell.cp.azure.domain.services.virtual_machine_service import VirtualMachineService
 from cloudshell.cp.azure.domain.services.storage_service import StorageService
 from cloudshell.cp.azure.domain.services.vm_credentials_service import VMCredentialsService
@@ -36,7 +36,7 @@ from cloudshell.cp.azure.domain.vm_management.operations.refresh_ip_operation im
 from cloudshell.cp.azure.domain.vm_management.operations.prepare_connectivity_operation import \
     PrepareConnectivityOperation
 from cloudshell.cp.azure.common.azure_clients import AzureClientsManager
-from cloudshell.cp.azure.domain.services.parsers.custom_param_extractor import VmCustomParamsExtractor
+from cloudshell.cp.azure.common.parsers.custom_param_extractor import VmCustomParamsExtractor
 from cloudshell.cp.azure.domain.vm_management.operations.app_ports_operation import DeployedAppPortsOperation
 from cloudshell.cp.azure.domain.vm_management.operations.autoload_operation import AutoloadOperation
 
