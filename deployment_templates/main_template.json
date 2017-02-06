@@ -97,6 +97,10 @@
 		"type": "Microsoft.Compute/virtualMachines",
 		"apiVersion": "2015-06-15",
 		"location": "[variables('location')]",
+		"tags": {
+			"CreatedBy": "CloudShell",
+			"Role": "Management"
+		},
 		"dependsOn": [
 			"[concat('Microsoft.Network/networkInterfaces/', variables('es_nic_name'))]",
 			"[concat('Microsoft.Storage/storageAccounts/', variables('storageAccountName'))]"
