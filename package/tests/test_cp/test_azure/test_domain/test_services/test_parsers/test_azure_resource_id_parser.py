@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from cloudshell.cp.azure.domain.services.parsers.azure_resource_id_parser import AzureResourceIdParser
+from cloudshell.cp.azure.common.parsers.azure_resource_id_parser import AzureResourceIdParser
 
 
 class TestAzureResourceIdParser(TestCase):
