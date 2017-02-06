@@ -1,7 +1,7 @@
 from cloudshell.cp.azure.common.exceptions.quali_timeout_exception import QualiTimeoutException, \
     QualiScriptExecutionTimeoutException
 from cloudshell.cp.azure.models.deploy_result_model import DeployResult
-from cloudshell.cp.azure.domain.services.parsers.rules_attribute_parser import RulesAttributeParser
+from cloudshell.cp.azure.common.parsers.rules_attribute_parser import RulesAttributeParser
 from cloudshell.cp.azure.models.reservation_model import ReservationModel
 from cloudshell.cp.azure.models.deploy_azure_vm_resource_models import \
     DeployAzureVMFromCustomImageResourceModel, BaseDeployAzureVMResourceModel, DeployAzureVMResourceModel
