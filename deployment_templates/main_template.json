@@ -371,7 +371,11 @@
       "type": "Microsoft.Network/networkSecurityGroups",
       "name": "[variables('nsg_management_name')]",
       "location": "[resourceGroup().location]",
-      "properties": {"securityRules": []}
+      "properties": {"securityRules": []},
+	  "tags": {
+		  "CreatedBy": "CloudShell",
+		  "Role": "Management"
+	  }
     }	
 	]
 }
