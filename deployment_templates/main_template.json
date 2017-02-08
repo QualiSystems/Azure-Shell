@@ -97,6 +97,10 @@
 		"type": "Microsoft.Compute/virtualMachines",
 		"apiVersion": "2015-06-15",
 		"location": "[variables('location')]",
+		"tags": {
+			"CreatedBy": "CloudShell",
+			"Role": "Management"
+		},
 		"dependsOn": [
 			"[concat('Microsoft.Network/networkInterfaces/', variables('es_nic_name'))]",
 			"[concat('Microsoft.Storage/storageAccounts/', variables('storageAccountName'))]"
@@ -142,6 +146,10 @@
 	  "name": "[concat(variables('virtualMachineEsName'), '/', variables('scriptNameEs'))]",
 	  "apiVersion": "2015-06-15",
 	  "location": "[resourceGroup().location]",
+	  "tags": {
+		"CreatedBy": "CloudShell",
+		"Role": "Management"
+	  },
 	  "dependsOn": ["[concat('Microsoft.Compute/virtualMachines/', variables('virtualMachineEsName'))]"],
 	  "properties": {
 		"publisher": "Microsoft.Azure.Extensions",
@@ -162,7 +170,11 @@
             "name": "[variables('es_nic_name')]",
             "type": "Microsoft.Network/networkInterfaces",
             "apiVersion": "2016-09-01",
-            "location": "[resourceGroup().location]",			
+            "location": "[resourceGroup().location]",
+			"tags": {
+				"CreatedBy": "CloudShell",
+				"Role": "Management"
+			},
             "dependsOn": [
                 "[concat('Microsoft.Network/virtualNetworks/', variables('virtualNetworks_mgmt_vnet_name'))]",
 				"[concat('Microsoft.Network/networkSecurityGroups/', variables('nsg_management_name'))]"
@@ -359,7 +371,11 @@
       "type": "Microsoft.Network/networkSecurityGroups",
       "name": "[variables('nsg_management_name')]",
       "location": "[resourceGroup().location]",
-      "properties": {"securityRules": []}
+      "properties": {"securityRules": []},
+	  "tags": {
+		  "CreatedBy": "CloudShell",
+		  "Role": "Management"
+	  }
     }	
 	]
 }
