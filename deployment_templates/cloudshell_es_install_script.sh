@@ -60,6 +60,8 @@ setup_supervisor() {
 	# create config file
 	echo_supervisord_conf > /etc/supervisord.conf
 	echo -e '\n[program:cloudshell_execution_server]\ndirectory='$ES_INSTALL_PATH'\ncommand=/bin/bash -c "/usr/bin/mono QsExecutionServerConsoleConfig.exe /s:'$cs_server_host' /u:'$cs_server_user' /p:'$cs_server_pass' /esn:'$es_name' /i:'$ES_NUMBER_OF_SLOTS' && /usr/bin/mono QsExecutionServer.exe console"\nenvironment=MONO_IOMAP=all\n' >> /etc/supervisord.conf
+	setenforce 0
+	systemctl enable supervisord.service
 }
 
 # Install Python pip
