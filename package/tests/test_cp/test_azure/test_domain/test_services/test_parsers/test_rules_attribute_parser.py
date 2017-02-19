@@ -23,6 +23,19 @@ class TestRulesAttributeParser(TestCase):
             self.assertEqual(len(parsed_rules), 3)
             self.tested_class._single_port_parse.assert_called()
 
+    def test_parse_port_group_attribute_with_delimiter_in_front_and_end(self):
+        """Check that parser will parse string into list with three rules """
+        test_rules_data = ";80;443;200-220:udp;"
+
+        # Act
+        with mock.patch.object(self.tested_class, "_single_port_parse"):
+            parsed_rules = self.tested_class.parse_port_group_attribute(test_rules_data)
+
+            # Verify
+            self.assertIsInstance(parsed_rules, list)
+            self.assertEqual(len(parsed_rules), 3)
+            self.tested_class._single_port_parse.assert_called()
+
     @mock.patch("cloudshell.cp.azure.common.parsers.rules_attribute_parser.RuleData")
     def test_single_port_parse_ports_range_with_protocol(self, rule_data_class):
         """Check that method will return RuleData instance with correct attributes"""
