@@ -87,7 +87,7 @@ mkdir -p $ES_INSTALL_PATH
 
 # download ES
 wget $ES_DOWNLOAD_LINK -O es.tar
-tar -xf es.tar -C $ES_INSTALL_PATH --strip-components=1
+tar -xf es.tar -C $ES_INSTALL_PATH
 
 if [command_exists mono]
 	then
