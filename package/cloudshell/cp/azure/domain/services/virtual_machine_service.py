@@ -1,6 +1,6 @@
 from azure.mgmt.compute.models import OSProfile, HardwareProfile, NetworkProfile, \
     NetworkInterfaceReference, CachingTypes, DiskCreateOptionTypes, VirtualHardDisk, ImageReference, OSDisk, \
-    VirtualMachine, StorageProfile, Plan
+    VirtualMachine, StorageProfile, Plan, DataDisk, ManagedDiskParameters, StorageAccountTypes
 from azure.mgmt.compute.models.linux_configuration import LinuxConfiguration
 from azure.mgmt.compute.models.ssh_configuration import SshConfiguration
 from azure.mgmt.resource.resources.models import ResourceGroup
@@ -246,17 +246,12 @@ class VirtualMachineService(object):
 
         network_profile = NetworkProfile(network_interfaces=[NetworkInterfaceReference(id=nic_id)])
 
-        vhd = self._prepare_vhd(storage_name, vm_name)
-
-        os_disk = OSDisk(caching=CachingTypes.none,
-                         create_option=DiskCreateOptionTypes.from_image,
-                         name=storage_name,
-                         vhd=vhd)
-
-        image_reference = ImageReference(publisher=image_publisher, offer=image_offer, sku=image_sku,
-                                         version=image_version)
-
-        storage_profile = StorageProfile(os_disk=os_disk, image_reference=image_reference)
+        # os_disk - this is optional now and when its not used a Managed Disk will be created
+        storage_profile = StorageProfile(
+                image_reference=ImageReference(publisher=image_publisher,
+                                               offer=image_offer,
+                                               sku=image_sku,
+                                               version=image_version))
 
         vm_plan = None
         if purchase_plan is not None:
@@ -377,3 +372,15 @@ class VirtualMachineService(object):
         :return: azure.mgmt.compute.models.VirtualMachineSizePaged instance
         """
         return compute_management_client.virtual_machine_sizes.list(location=location)
+
+    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
+    def delete_managed_disk(self, compute_management_client, resource_group, disk_name):
+        """ Will delete the provided managed disk
+
+        :param azure.mgmt.compute.ComputeManagementClient compute_management_client:
+        :param str resource_group:
+        :param str disk_name:
+        :return:
+        """
+        operation = compute_management_client.disks.delete(resource_group_name=resource_group, disk_name=disk_name)
+        return operation.result()
