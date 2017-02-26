@@ -169,18 +169,23 @@ class TestDeleteOperation(TestCase):
         """
 
         # Arrange
+        vm = Mock()
         self.vm_service.delete_vm = Mock()
+        self.vm_service.get_vm = Mock(return_value=vm)
         network_client = Mock()
         storage_client = Mock()
+        compute_client = Mock()
+        group_name = "AzureTestGroup"
         network_client.network_interfaces.delete = Mock()
         network_client.public_ip_addresses.delete = Mock()
         self.delete_operation.security_group_service.delete_security_rules = Mock()
+        self.delete_operation._delete_vm_disk = Mock()
 
         # Act
-        self.delete_operation.delete(compute_client=Mock(),
+        self.delete_operation.delete(compute_client=compute_client,
                                      network_client=network_client,
                                      storage_client=storage_client,
-                                     group_name="AzureTestGroup",
+                                     group_name=group_name,
                                      vm_name="AzureTestVM",
                                      logger=self.logger)
 
@@ -188,6 +193,12 @@ class TestDeleteOperation(TestCase):
         self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.vm_service.delete_vm))
         self.assertTrue(TestHelper.CheckMethodCalledXTimes(network_client.public_ip_addresses.delete))
         self.assertTrue(TestHelper.CheckMethodCalledXTimes(network_client.network_interfaces.delete))
+        self.delete_operation._delete_vm_disk.assert_called_once_with(
+                logger=self.logger,
+                storage_client=storage_client,
+                compute_client=compute_client,
+                group_name=group_name,
+                vm=vm)
         self.delete_operation.generic_lock_provider.get_resource_lock.assert_called_with(lock_key="AzureTestGroup",
                                                                                          logger=self.logger)
 
