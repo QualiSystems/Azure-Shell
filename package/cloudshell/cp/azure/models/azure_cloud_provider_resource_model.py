@@ -1,9 +1,9 @@
 class AzureCloudProviderResourceModel(object):
     def __init__(self):
-        self.azure_client_id = ''  # type: str
+        self.azure_application_id = ''  # type: str
         self.azure_mgmt_network_d = ''  # type: str
         self.azure_mgmt_nsg_id = ''  # type: str
-        self.azure_secret = ''  # type: str
+        self.azure_application_key = ''  # type: str
         self.region = ''  # type: str
         self.vm_size = ''  # type: str
         self.keypairs_location = ''  # type: str

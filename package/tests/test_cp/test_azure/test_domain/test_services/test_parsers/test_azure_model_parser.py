@@ -2,15 +2,15 @@ from unittest import TestCase
 
 import mock
 
-from cloudshell.cp.azure.domain.services.parsers.azure_model_parser import AzureModelsParser
+from cloudshell.cp.azure.common.parsers.azure_model_parser import AzureModelsParser
 
 
 class TestAzureModelsParser(TestCase):
     def setUp(self):
         self.tested_class = AzureModelsParser
 
-    @mock.patch("cloudshell.cp.azure.domain.services.parsers.azure_model_parser.jsonpickle")
-    @mock.patch("cloudshell.cp.azure.domain.services.parsers.azure_model_parser.DeployDataHolder")
+    @mock.patch("cloudshell.cp.azure.common.parsers.azure_model_parser.jsonpickle")
+    @mock.patch("cloudshell.cp.azure.common.parsers.azure_model_parser.DeployDataHolder")
     def test_convert_app_resource_to_deployed_app(self, deploy_data_holder_class, jsonpickle):
         """Check that method will convert string to DeployDataHolder model"""
         resource = mock.MagicMock()
@@ -26,9 +26,9 @@ class TestAzureModelsParser(TestCase):
         deploy_data_holder_class.assert_called_once_with(decoded_data)
         self.assertEqual(result, deployed_app)
 
-    @mock.patch("cloudshell.cp.azure.domain.services.parsers.azure_model_parser.DeployAzureVMResourceModel")
-    @mock.patch("cloudshell.cp.azure.domain.services.parsers.azure_model_parser.jsonpickle")
-    @mock.patch("cloudshell.cp.azure.domain.services.parsers.azure_model_parser.DeployDataHolder")
+    @mock.patch("cloudshell.cp.azure.common.parsers.azure_model_parser.DeployAzureVMResourceModel")
+    @mock.patch("cloudshell.cp.azure.common.parsers.azure_model_parser.jsonpickle")
+    @mock.patch("cloudshell.cp.azure.common.parsers.azure_model_parser.DeployDataHolder")
     def test_convert_to_deploy_azure_vm_resource_model(self, deploy_data_holder_class, jsonpickle,
                                                        deploy_azure_vm_model_class):
         """Check that method returns DeployAzureVMResourceModel instance with attrs from DeployDataHolder"""
@@ -58,8 +58,8 @@ class TestAzureModelsParser(TestCase):
             self.assertEqual(result.image_sku, data_holder.ami_params.image_sku)
             self.assertEqual(result.image_version, data_holder.ami_params.image_version)
 
-    @mock.patch("cloudshell.cp.azure.domain.services.parsers.azure_model_parser.jsonpickle")
-    @mock.patch("cloudshell.cp.azure.domain.services.parsers.azure_model_parser.DeployDataHolder")
+    @mock.patch("cloudshell.cp.azure.common.parsers.azure_model_parser.jsonpickle")
+    @mock.patch("cloudshell.cp.azure.common.parsers.azure_model_parser.DeployDataHolder")
     def test_set_base_deploy_azure_vm_model_params_empty_password(self, deploy_data_holder_class, jsonpickle):
         """Check that method set basic params for the deploy VM model from DeployDataHolder"""
         data_holder = mock.MagicMock()
@@ -92,8 +92,8 @@ class TestAzureModelsParser(TestCase):
         self.assertEqual(deploy_azure_vm_model.extension_script_configurations,
                          data_holder.ami_params.extension_script_configurations)
 
-    @mock.patch("cloudshell.cp.azure.domain.services.parsers.azure_model_parser.jsonpickle")
-    @mock.patch("cloudshell.cp.azure.domain.services.parsers.azure_model_parser.DeployDataHolder")
+    @mock.patch("cloudshell.cp.azure.common.parsers.azure_model_parser.jsonpickle")
+    @mock.patch("cloudshell.cp.azure.common.parsers.azure_model_parser.DeployDataHolder")
     def test_set_base_deploy_azure_vm_model_params_with_password(self, deploy_data_holder_class, jsonpickle):
         """Check that method set basic params for the deploy VM model from DeployDataHolder"""
         data_holder = mock.MagicMock()
@@ -129,10 +129,10 @@ class TestAzureModelsParser(TestCase):
         self.assertEqual(deploy_azure_vm_model.extension_script_configurations,
                          data_holder.ami_params.extension_script_configurations)
 
-    @mock.patch("cloudshell.cp.azure.domain.services.parsers.azure_model_parser"
+    @mock.patch("cloudshell.cp.azure.common.parsers.azure_model_parser"
                 ".DeployAzureVMFromCustomImageResourceModel")
-    @mock.patch("cloudshell.cp.azure.domain.services.parsers.azure_model_parser.jsonpickle")
-    @mock.patch("cloudshell.cp.azure.domain.services.parsers.azure_model_parser.DeployDataHolder")
+    @mock.patch("cloudshell.cp.azure.common.parsers.azure_model_parser.jsonpickle")
+    @mock.patch("cloudshell.cp.azure.common.parsers.azure_model_parser.DeployDataHolder")
     def test_convert_to_deploy_azure_vm_from_custom_image_resource_model(self,
                                                                          deploy_data_holder_class,
                                                                          jsonpickle,
@@ -162,15 +162,15 @@ class TestAzureModelsParser(TestCase):
             self.assertEqual(result.image_urn, data_holder.ami_params.image_urn)
             self.assertEqual(result.image_os_type, data_holder.ami_params.image_os_type)
 
-    @mock.patch("cloudshell.cp.azure.domain.services.parsers.azure_model_parser.AzureCloudProviderResourceModel")
+    @mock.patch("cloudshell.cp.azure.common.parsers.azure_model_parser.AzureCloudProviderResourceModel")
     def test_convert_to_cloud_provider_resource_model(self, azure_cp_model_class):
         """Check that method returns AzureCloudProviderResourceModel instance with attrs from context"""
         azure_cp_model = mock.MagicMock()
         azure_cp_model_class.return_value = azure_cp_model
         test_resource = mock.Mock()
         test_resource.attributes = {}
-        test_resource.attributes["Azure Client ID"] = test_azure_client_id = mock.MagicMock()
-        test_resource.attributes["Azure Secret"] = test_azure_secret = mock.MagicMock()
+        test_resource.attributes["Azure Application ID"] = test_azure_application_id = mock.MagicMock()
+        test_resource.attributes["Azure Application Key"] = test_azure_application_key = mock.MagicMock()
         test_resource.attributes["Additional Mgmt Networks"] = " mgmt_network1, mgmt_network2"
         test_resource.attributes["Azure Subscription ID"] = test_azure_subscription_id = mock.MagicMock()
         test_resource.attributes["Azure Tenant ID"] = test_azure_tenant = mock.MagicMock()
@@ -178,9 +178,10 @@ class TestAzureModelsParser(TestCase):
         test_resource.attributes["Networks In Use"] = "network1,  network2 "
         test_resource.attributes["Region"] = "East Canada"
         test_resource.attributes["Management Group Name"] = test_mgmt_group_name = mock.MagicMock()
+        test_resource.attributes["Execution Server Selector"] = ""
         cloudshell_session = mock.MagicMock()
-        decrypted_azure_secret = mock.MagicMock()
-        cloudshell_session.DecryptPassword.return_value = decrypted_azure_secret
+        decrypted_azure_application_key = mock.MagicMock()
+        cloudshell_session.DecryptPassword.return_value = decrypted_azure_application_key
 
         # Act
         result = self.tested_class.convert_to_cloud_provider_resource_model(resource=test_resource,
@@ -188,7 +189,7 @@ class TestAzureModelsParser(TestCase):
 
         # Verify
         self.assertIs(result, azure_cp_model)
-        self.assertEqual(result.azure_client_id, test_azure_client_id)
+        self.assertEqual(result.azure_application_id, test_azure_application_id)
         self.assertEqual(result.azure_subscription_id, test_azure_subscription_id)
         self.assertEqual(result.azure_tenant, test_azure_tenant)
         self.assertEqual(result.vm_size, test_vm_size)
@@ -196,7 +197,7 @@ class TestAzureModelsParser(TestCase):
         self.assertEqual(result.region, "eastcanada")
         self.assertEqual(result.management_group_name, test_mgmt_group_name)
         self.assertEqual(result.additional_mgmt_networks, ["mgmt_network1", "mgmt_network2"])
-        self.assertEqual(result.azure_secret, decrypted_azure_secret.Value)
+        self.assertEqual(result.azure_application_key, decrypted_azure_application_key.Value)
 
     def test_convert_list_attribute(self):
         """Check that method will convert sting attribute into the list"""
@@ -208,7 +209,7 @@ class TestAzureModelsParser(TestCase):
         # Verify
         self.assertEqual(result, ["param1", "param2", "param3"])
 
-    @mock.patch("cloudshell.cp.azure.domain.services.parsers.azure_model_parser.ReservationModel")
+    @mock.patch("cloudshell.cp.azure.common.parsers.azure_model_parser.ReservationModel")
     def test_convert_to_reservation_model(self, reservation_model_class):
         """Check that method will return ReservationModel instance from given context"""
         reservation_model = mock.MagicMock()

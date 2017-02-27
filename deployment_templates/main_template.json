@@ -16,11 +16,11 @@
 		},	
 		"CloudshellSSHUserName": {
             "type": "string",
-			"metadata": {"description": "The CloudShell SSH user to be used to access CloudShell components in the Management VNet. For example, QualiX Server and TestShell Execution Server."}
+			"metadata": {"description": "Create a user name and password to be used to connect to the QualiX and TestShell Execution Server that will be created in Azure. Make sure you save these credentials for future use."}
         },
         "CloudshellSSHPassword": {
             "type": "securestring",
-			"metadata": {"description": "The CloudShell SSH user’s password."}
+			"metadata": {"description": "Create a password to be used with the CloudShell SSH User Name. Password must contain 12-72 characters and include 1 lower case character, 1 upper case character and 1 special character."}
         },			
 		"ManagementVnetCIDR": {
 			"defaultValue": "192.168.120.0/24",
@@ -63,9 +63,9 @@
 	},
 	"variables": {
 		"storageAccountType": "Standard_LRS",
-		"virtualNetworks_mgmt_vnet_name": "CloudShell-Management-Vnet",
-		"virtualNetworks_sandbox_vnet_name": "CloudShell-Sandbox-Vnet",
-		"nsg_management_name" : "ExecutionServer-Security-Group",
+		"virtualNetworks_mgmt_vnet_name": "CloudShell-Management-VNet",
+		"virtualNetworks_sandbox_vnet_name": "CloudShell-Sandbox-VNet",
+		"nsg_management_name" : "Execution-Server-NSG",
 	    "apiVersion": "2016-06-01",
 		"storageAccountName": "[concat('storage',uniquestring(resourceGroup().id))]",
 		"vNet1": {
@@ -78,15 +78,17 @@
         "gatewaySubnetRef": "[concat(variables('vnetID'),'/subnets/','GatewaySubnet')]",
         "SubnetRef": "[concat(variables('vnetID'),'/subnets/','default')]",
 		"location": "[resourceGroup().location]",
-		"es_nic_name":"ExecutionServer-VM-NIC",
-		"virtualMachineEsName": "ExecutionServer-VM",
+		"es_nic_name":"Execution-Server-NIC",
+		"virtualMachineEsName": "Execution-Server-VM",
 		"virtualMachineEsNameInVM": "[concat('azure',variables('location'))]",
 		"qx_template_location":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/develop/deployment_templates/",
 		"vpn_template_location":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/develop/deployment_templates/",
 		"scriptUrl":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/develop/deployment_templates/guacamole-quali-install.sh",
 		"commandToExe":"sh guacamole-quali-install.sh",
+		"scriptName": "QualiX-Script",
 		"scriptUrlES":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/develop/deployment_templates/cloudshell_es_install_script.sh",
 		"commandToExeES":"[concat('sh cloudshell_es_install_script.sh ', parameters('CloudshellServerIP'),' ',parameters('CloudshellAdmin'),' ', parameters('CloudshellAdminPassword'),' ',variables('virtualMachineEsNameInVM') )]",
+		"scriptNameEs": "Execution-Server-Script",
 		"vmSize":"Standard_A3"
 	},
 	"resources": [
@@ -95,6 +97,10 @@
 		"type": "Microsoft.Compute/virtualMachines",
 		"apiVersion": "2015-06-15",
 		"location": "[variables('location')]",
+		"tags": {
+			"CreatedBy": "CloudShell",
+			"Role": "Management"
+		},
 		"dependsOn": [
 			"[concat('Microsoft.Network/networkInterfaces/', variables('es_nic_name'))]",
 			"[concat('Microsoft.Storage/storageAccounts/', variables('storageAccountName'))]"
@@ -137,9 +143,13 @@
 	
 	{
 	  "type": "Microsoft.Compute/virtualMachines/extensions",
-	  "name": "[concat(variables('virtualMachineEsName'),'/ExecutionServerScript')]",
+	  "name": "[concat(variables('virtualMachineEsName'), '/', variables('scriptNameEs'))]",
 	  "apiVersion": "2015-06-15",
 	  "location": "[resourceGroup().location]",
+	  "tags": {
+		"CreatedBy": "CloudShell",
+		"Role": "Management"
+	  },
 	  "dependsOn": ["[concat('Microsoft.Compute/virtualMachines/', variables('virtualMachineEsName'))]"],
 	  "properties": {
 		"publisher": "Microsoft.Azure.Extensions",
@@ -160,7 +170,11 @@
             "name": "[variables('es_nic_name')]",
             "type": "Microsoft.Network/networkInterfaces",
             "apiVersion": "2016-09-01",
-            "location": "[resourceGroup().location]",			
+            "location": "[resourceGroup().location]",
+			"tags": {
+				"CreatedBy": "CloudShell",
+				"Role": "Management"
+			},
             "dependsOn": [
                 "[concat('Microsoft.Network/virtualNetworks/', variables('virtualNetworks_mgmt_vnet_name'))]",
 				"[concat('Microsoft.Network/networkSecurityGroups/', variables('nsg_management_name'))]"
@@ -201,7 +215,7 @@
 	
     {
       "apiVersion": "2015-01-01",
-      "name": "qxDeployment",
+      "name": "QualiX-Deployment",
       "type": "Microsoft.Resources/deployments",
 	  "dependsOn": [
 		"[concat('Microsoft.Storage/storageAccounts/', variables('storageAccountName'))]",
@@ -222,6 +236,7 @@
 		  "storageBlob":{"value":"[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"},
 		  "SubnetRef":{"value":"[variables('SubnetRef')]"},
 		  "scriptUrl":{"value":"[variables('scriptUrl')]"},
+		  "scriptName":{"value":"[variables('scriptName')]"},
 		  "commandToExe":{"value":"[variables('commandToExe')]"},
 		  "vmSize":{"value":"[variables('vmSize')]"}
         }
@@ -231,7 +246,7 @@
 	
     {
       "apiVersion": "2015-01-01",
-      "name": "vpnDeployment",
+      "name": "CloudShell-VPN-Deployment",
       "type": "Microsoft.Resources/deployments",
 	  "dependsOn": [	  
 	  "[concat('Microsoft.Network/virtualNetworks/', variables('virtualNetworks_mgmt_vnet_name'))]"
@@ -356,7 +371,11 @@
       "type": "Microsoft.Network/networkSecurityGroups",
       "name": "[variables('nsg_management_name')]",
       "location": "[resourceGroup().location]",
-      "properties": {"securityRules": []}
+      "properties": {"securityRules": []},
+	  "tags": {
+		  "CreatedBy": "CloudShell",
+		  "Role": "Management"
+	  }
     }	
 	]
 }

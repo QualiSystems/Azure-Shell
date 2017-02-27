@@ -1,7 +1,7 @@
 from cloudshell.cp.azure.common.exceptions.quali_timeout_exception import QualiTimeoutException, \
     QualiScriptExecutionTimeoutException
 from cloudshell.cp.azure.models.deploy_result_model import DeployResult
-from cloudshell.cp.azure.domain.services.parsers.rules_attribute_parser import RulesAttributeParser
+from cloudshell.cp.azure.common.parsers.rules_attribute_parser import RulesAttributeParser
 from cloudshell.cp.azure.models.reservation_model import ReservationModel
 from cloudshell.cp.azure.models.deploy_azure_vm_resource_models import \
     DeployAzureVMFromCustomImageResourceModel, BaseDeployAzureVMResourceModel, DeployAzureVMResourceModel
@@ -419,15 +419,19 @@ class DeployAzureVMOperation(object):
 
             return ip_address
 
-    def _prepare_computer_name(self, name):
+    def _prepare_computer_name(self, name, postfix, os_type):
         """
         Prepare computer name for the VM
 
-        :param name: (str) app_name name
-        :return: (str) computer name
+        :param str name: app_name name
+        :param str postfix: postfix to add to the app name
+        :param OperatingSystemTypes os_type: The os type dictated the lenght of the computer name. Max length for windows is 15.
+        Max length for linux is 64.
+        :return: computer name
         """
         # max length for the Windows computer name must 15
-        return self.name_provider_service.generate_name(name, length=15)
+        length = 15 if os_type == OperatingSystemTypes.windows else 64
+        return self.name_provider_service.generate_name(name=name, postfix=postfix, max_length=length)
 
     def _prepare_vm_size(self, azure_vm_deployment_model, cloud_provider_model):
         """
@@ -637,13 +641,18 @@ class DeployAzureVMOperation(object):
         data.purchase_plan = image_data_model.purchase_plan
 
         # normalize the app name to a valid Azure vm name
-        data.app_name = deployment_model.app_name.lower().replace(" ", "")
+        data.app_name = self.name_provider_service.normalize_name(deployment_model.app_name)
 
-        random_name = self.name_provider_service.generate_name(data.app_name)
-        data.interface_name = random_name
-        data.ip_name = random_name
-        data.computer_name = self._prepare_computer_name(random_name)
-        data.vm_name = random_name
+        resource_postfix = self.name_provider_service.generate_short_unique_string()
+        unique_resource_name = self.name_provider_service.generate_name(name=data.app_name,
+                                                                        postfix=resource_postfix,
+                                                                        max_length=64)
+        data.interface_name = unique_resource_name
+        data.ip_name = unique_resource_name
+        data.vm_name = unique_resource_name
+        data.computer_name = self._prepare_computer_name(name=data.app_name,
+                                                         postfix=resource_postfix,
+                                                         os_type=data.os_type)
 
         data.vm_size = self._prepare_vm_size(azure_vm_deployment_model=deployment_model,
                                              cloud_provider_model=cloud_provider_model)
@@ -676,7 +685,7 @@ class DeployAzureVMOperation(object):
             self.subnet = None  # type: Subnet
             self.storage_account_name = ''  # type: str
             self.tags = {}  # type: dict
-            self.os_type = ''  # type: str
+            self.os_type = ''  # type: OperatingSystemTypes
             self.purchase_plan = None  # type: PurchasePlan
             self.nic = None  # type: NetworkInterface
             self.vm_credentials = None  # type: VMCredentials

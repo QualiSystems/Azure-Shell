@@ -1,12 +1,17 @@
 import traceback
+from functools import partial
 from multiprocessing.pool import ThreadPool
 from threading import Lock
 
 from azure.mgmt.network.models import SecurityRuleProtocol, SecurityRule, SecurityRuleAccess
+from msrestazure.azure_exceptions import CloudError
+from azure.mgmt.network.models import VirtualNetwork
 
 from cloudshell.cp.azure.common.exceptions.virtual_network_not_found_exception import VirtualNetworkNotFoundException
 from cloudshell.cp.azure.domain.services.network_service import NetworkService
 from cloudshell.cp.azure.models.prepare_connectivity_action_result import PrepareConnectivityActionResult
+from cloudshell.cp.azure.models.azure_cloud_provider_resource_model import AzureCloudProviderResourceModel
+from cloudshell.cp.azure.common.parsers.azure_resource_id_parser import AzureResourceIdParser
 
 INVALID_REQUEST_ERROR = 'Invalid request: {0}'
 
@@ -22,7 +27,8 @@ class PrepareConnectivityOperation(object):
                  cryptography_service,
                  name_provider_service,
                  cancellation_service,
-                 subnet_locker):
+                 subnet_locker,
+                 resource_id_parser):
         """
 
         :param cloudshell.cp.azure.domain.services.virtual_machine_service.VirtualMachineService vm_service:
@@ -35,6 +41,7 @@ class PrepareConnectivityOperation(object):
         :param cloudshell.cp.azure.domain.services.name_provider.NameProviderService name_provider_service:
         :param cloudshell.cp.azure.domain.services.command_cancellation.CommandCancellationService cancellation_service:
         :param threading.Lock subnet_locker:
+        :param AzureResourceIdParser resource_id_parser:
         :return:
         """
 
@@ -48,6 +55,7 @@ class PrepareConnectivityOperation(object):
         self.name_provider_service = name_provider_service
         self.cancellation_service = cancellation_service
         self.subnet_locker = subnet_locker
+        self.resource_id_parser = resource_id_parser
 
     def prepare_connectivity(self,
                              reservation,
@@ -82,7 +90,7 @@ class PrepareConnectivityOperation(object):
                                               region=cloud_provider_model.region, tags=tags)
 
         self.cancellation_service.check_if_cancelled(cancellation_context)
-        storage_account_name = self.name_provider_service.generate_name(reservation_id)
+        storage_account_name = self._prepare_storage_account_name(reservation_id)
 
         # 2+3. create storage account and keypairs (async)
         pool = ThreadPool()
@@ -91,43 +99,43 @@ class PrepareConnectivityOperation(object):
                                         tags, cancellation_context, action_result))
 
         logger.info("Retrieving MGMT vNet from resource group {} by tag {}={}".format(
-            cloud_provider_model.management_group_name,
-            NetworkService.NETWORK_TYPE_TAG_NAME,
-            NetworkService.MGMT_NETWORK_TAG_VALUE))
+                cloud_provider_model.management_group_name,
+                NetworkService.NETWORK_TYPE_TAG_NAME,
+                NetworkService.MGMT_NETWORK_TAG_VALUE))
 
         virtual_networks = self.network_service.get_virtual_networks(network_client=network_client,
                                                                      group_name=cloud_provider_model.management_group_name)
 
         self.cancellation_service.check_if_cancelled(cancellation_context)
-        
-        management_vnet = self.network_service.get_virtual_network_by_tag(        
-            virtual_networks=virtual_networks,        
-            tag_key=NetworkService.NETWORK_TYPE_TAG_NAME,
-            tag_value=NetworkService.MGMT_NETWORK_TAG_VALUE)
+
+        management_vnet = self.network_service.get_virtual_network_by_tag(
+                virtual_networks=virtual_networks,
+                tag_key=NetworkService.NETWORK_TYPE_TAG_NAME,
+                tag_value=NetworkService.MGMT_NETWORK_TAG_VALUE)
 
         self._validate_management_vnet(management_vnet)
 
         logger.info("Retrieving sandbox vNet from resource group {} by tag {}={}".format(
-            cloud_provider_model.management_group_name,
-            NetworkService.NETWORK_TYPE_TAG_NAME,
-            NetworkService.SANDBOX_NETWORK_TAG_VALUE))
+                cloud_provider_model.management_group_name,
+                NetworkService.NETWORK_TYPE_TAG_NAME,
+                NetworkService.SANDBOX_NETWORK_TAG_VALUE))
 
         sandbox_vnet = self.network_service.get_virtual_network_by_tag(
-            virtual_networks=virtual_networks,
-            tag_key=NetworkService.NETWORK_TYPE_TAG_NAME,
-            tag_value=NetworkService.SANDBOX_NETWORK_TAG_VALUE)
+                virtual_networks=virtual_networks,
+                tag_key=NetworkService.NETWORK_TYPE_TAG_NAME,
+                tag_value=NetworkService.SANDBOX_NETWORK_TAG_VALUE)
 
         self._validate_sandbox_vnet(sandbox_vnet)
 
         # 4. Create the NSG object
-        security_group_name = self.name_provider_service.generate_name(reservation_id)
+        security_group_name = reservation_id
         logger.info("Creating a network security group '{}' .".format(security_group_name))
         network_security_group = self.security_group_service.create_network_security_group(
-            network_client=network_client,
-            group_name=group_name,
-            security_group_name=security_group_name,
-            region=cloud_provider_model.region,
-            tags=tags)
+                network_client=network_client,
+                group_name=group_name,
+                security_group_name=security_group_name,
+                region=cloud_provider_model.region,
+                tags=tags)
 
         self.cancellation_service.check_if_cancelled(cancellation_context)
 
@@ -137,13 +145,13 @@ class PrepareConnectivityOperation(object):
         logger.info("Creating NSG management rules...")
         # 5. Set rules on NSG to create a sandbox
         self._create_management_rules(
-            group_name=group_name,
-            management_vnet=management_vnet,
-            network_client=network_client,
-            sandbox_vnet_cidr=cidr,
-            security_group_name=security_group_name,
-            additional_mgmt_networks=cloud_provider_model.additional_mgmt_networks,
-            logger=logger)
+                group_name=group_name,
+                management_vnet=management_vnet,
+                network_client=network_client,
+                sandbox_vnet_cidr=cidr,
+                security_group_name=security_group_name,
+                additional_mgmt_networks=cloud_provider_model.additional_mgmt_networks,
+                logger=logger)
 
         self.cancellation_service.check_if_cancelled(cancellation_context)
 
@@ -152,6 +160,7 @@ class PrepareConnectivityOperation(object):
                             cloud_provider_model=cloud_provider_model,
                             logger=logger,
                             network_client=network_client,
+                            resource_client=resource_client,
                             network_security_group=network_security_group,
                             sandbox_vnet=sandbox_vnet,
                             subnet_name=subnet_name)
@@ -167,6 +176,16 @@ class PrepareConnectivityOperation(object):
         action_result.subnet_name = subnet_name
         result.append(action_result)
         return result
+
+    def _prepare_storage_account_name(self, reservation_id):
+        """ Storage account name in azure must be between 3-24 chars. Dashes are not allowed as well.
+        :param str reservation_id:
+        :rtype: str
+        """
+        reservation_id = reservation_id.replace("-", "")
+        # we need to set a static postfix because we want to ensure we get the same storage account name if
+        # prepare connectivity will run more than once
+        return self.name_provider_service.generate_name(name=reservation_id, postfix="cs", max_length=24).replace("-", "")
 
     def _create_storage_and_keypairs(self, logger, storage_client, storage_account_name, group_name,
                                      cloud_provider_model, tags, cancellation_context, action_result):
@@ -214,24 +233,95 @@ class PrepareConnectivityOperation(object):
                                             key_pair=key_pair)
         return key_pair
 
-    def _create_subnet(self, cidr, cloud_provider_model, logger, network_client, network_security_group, sandbox_vnet,
+    def _create_subnet(self, cidr, cloud_provider_model, logger, network_client, resource_client,
+                       network_security_group, sandbox_vnet,
                        subnet_name):
         """
         This method is atomic because we have to sync subnet creation for the entire sandbox vnet
+        :param VirtualNetwork sandbox_vnet:
+        :param AzureCloudProviderResourceModel cloud_provider_model:
         """
+
         with self.subnet_locker:
             logger.info(
-                "Creating a subnet {0} under: {1}/{2}.".format(subnet_name,
-                                                               cloud_provider_model.management_group_name,
-                                                               sandbox_vnet.name))
-            self.network_service.create_subnet(network_client=network_client,
+                    "Creating a subnet {0} under: {1}/{2}.".format(subnet_name,
+                                                                   cloud_provider_model.management_group_name,
+                                                                   sandbox_vnet.name))
+            create_subnet_command = partial(self.network_service.create_subnet,
+                                            network_client=network_client,
+                                            resource_group_name=cloud_provider_model.management_group_name,
+                                            subnet_name=subnet_name,
+                                            subnet_cidr=cidr,
+                                            virtual_network=sandbox_vnet,
+                                            region=cloud_provider_model.region,
+                                            network_security_group=network_security_group,
+                                            wait_for_result=True)
+            try:
+                create_subnet_command()
+            except CloudError as e:
+                if "NetcfgInvalidSubnet" not in str(e.error):
+                    raise
+                # try to cleanup stale subnet
+                logger.info(
+                        "Subnet with cidr {0} exist in vnet with a different name. Will try to cleanup the stale data."
+                        .format(cidr))
+                self._cleanup_stale_data(network_client=network_client,
+                                         resource_client=resource_client,
+                                         cloud_provider_model=cloud_provider_model,
+                                         sandbox_vnet=sandbox_vnet,
+                                         subnet_cidr=cidr,
+                                         logger=logger)
+                # try to create subnet again
+                create_subnet_command()
+
+    def _cleanup_stale_data(self, network_client, resource_client, cloud_provider_model, sandbox_vnet, subnet_cidr,
+                            logger):
+        """
+        :param AzureCloudProviderResourceModel cloud_provider_model:
+        :param VirtualNetwork sandbox_vnet:
+        :param str subnet_cidr:
+        :param logging.Logger logger:
+        :return:
+        """
+        stale_subnets = filter(lambda x: x.address_prefix == subnet_cidr, sandbox_vnet.subnets)
+        if len(stale_subnets) == 0:
+            logger.info("Stale subnet with cidr {0} not found".format(subnet_cidr))
+            return
+        subnet = stale_subnets[0]
+
+        if subnet.network_security_group is not None:
+            logger.info("Detaching NSG from subnet {}".format(subnet.id))
+
+            subnet.network_security_group = None
+            self.network_service.update_subnet(network_client=network_client,
                                                resource_group_name=cloud_provider_model.management_group_name,
-                                               subnet_name=subnet_name,
-                                               subnet_cidr=cidr,
-                                               virtual_network=sandbox_vnet,
-                                               region=cloud_provider_model.region,
-                                               network_security_group=network_security_group,
-                                               wait_for_result=True)
+                                               virtual_network_name=sandbox_vnet.name,
+                                               subnet_name=subnet.name,
+                                               subnet=subnet)
+            logger.info("NSG from subnet {} was successfully detached".format(subnet.id))
+
+        resource_groups = []
+        if subnet.ip_configurations is not None:
+            for ip_conf in subnet.ip_configurations:
+                resource_group = self.resource_id_parser.get_resource_group_name(resource_id=ip_conf.id)
+                resource_groups.append(resource_group)
+
+        for resource_group in set(resource_groups):
+            logger.info("Resource group {} of the connected to subnet resource is not in the active state. "
+                        "Deleting resource group ".format(resource_group))
+
+            self.vm_service.delete_resource_group(resource_management_client=resource_client,
+                                                  group_name=resource_group)
+
+            logger.info("Resource group {} was successfully deleted".format(resource_group))
+
+        logger.info("Deleting Subnet {}...".format(subnet.id))
+        self.network_service.delete_subnet(network_client=network_client,
+                                           group_name=cloud_provider_model.management_group_name,
+                                           vnet_name=sandbox_vnet.name,
+                                           subnet_name=subnet.name)
+
+        logger.info("Subnet {} was successfully deleted".format(subnet.id))
 
     def _create_management_rules(self, group_name, management_vnet, sandbox_vnet_cidr, network_client,
                                  security_group_name, additional_mgmt_networks, logger):
@@ -255,20 +345,20 @@ class PrepareConnectivityOperation(object):
                     .format(priority))
 
         operation_poller = self.security_group_service.create_network_security_group_custom_rule(
-            network_client=network_client,
-            group_name=group_name,
-            security_group_name=security_group_name,
-            rule=SecurityRule(
-                access=SecurityRuleAccess.allow,
-                direction="Inbound",
-                source_address_prefix=sandbox_vnet_cidr,
-                source_port_range=all_symbol,
-                name="rule_{}".format(priority),
-                destination_address_prefix=sandbox_vnet_cidr,
-                destination_port_range=all_symbol,
-                priority=priority,
-                protocol=all_symbol),
-            async=True)
+                network_client=network_client,
+                group_name=group_name,
+                security_group_name=security_group_name,
+                rule=SecurityRule(
+                        access=SecurityRuleAccess.allow,
+                        direction="Inbound",
+                        source_address_prefix=sandbox_vnet_cidr,
+                        source_port_range=all_symbol,
+                        name="rule_{}".format(priority),
+                        destination_address_prefix=sandbox_vnet_cidr,
+                        destination_port_range=all_symbol,
+                        priority=priority,
+                        protocol=all_symbol),
+                async=True)
 
         # can't create next rule while previous is in the deploying state
         operation_poller.wait()
@@ -280,20 +370,20 @@ class PrepareConnectivityOperation(object):
                     .format(priority))
 
         operation_poller = self.security_group_service.create_network_security_group_custom_rule(
-            network_client=network_client,
-            group_name=group_name,
-            security_group_name=security_group_name,
-            rule=SecurityRule(
-                access=SecurityRuleAccess.deny,
-                direction="Inbound",
-                source_address_prefix='VirtualNetwork',
-                source_port_range=all_symbol,
-                name="rule_{}".format(priority),
-                destination_address_prefix=all_symbol,
-                destination_port_range=all_symbol,
-                priority=priority,
-                protocol=all_symbol),
-            async=True)
+                network_client=network_client,
+                group_name=group_name,
+                security_group_name=security_group_name,
+                rule=SecurityRule(
+                        access=SecurityRuleAccess.deny,
+                        direction="Inbound",
+                        source_address_prefix='VirtualNetwork',
+                        source_port_range=all_symbol,
+                        name="rule_{}".format(priority),
+                        destination_address_prefix=all_symbol,
+                        destination_port_range=all_symbol,
+                        priority=priority,
+                        protocol=all_symbol),
+                async=True)
 
         # can't create next rule while previous is in the deploying state
         operation_poller.wait()
@@ -305,20 +395,20 @@ class PrepareConnectivityOperation(object):
         logger.info("Creating (async) NSG rule to allow management subnet traffic with priority {}".format(priority))
 
         operation_poller = self.security_group_service.create_network_security_group_custom_rule(
-            network_client=network_client,
-            group_name=group_name,
-            security_group_name=security_group_name,
-            rule=SecurityRule(
-                access=SecurityRuleAccess.allow,
-                direction="Inbound",
-                source_address_prefix=source_address_prefix,
-                source_port_range=all_symbol,
-                name="rule_{}".format(priority),
-                destination_address_prefix=all_symbol,
-                destination_port_range=all_symbol,
-                priority=priority,
-                protocol=all_symbol),
-            async=True)
+                network_client=network_client,
+                group_name=group_name,
+                security_group_name=security_group_name,
+                rule=SecurityRule(
+                        access=SecurityRuleAccess.allow,
+                        direction="Inbound",
+                        source_address_prefix=source_address_prefix,
+                        source_port_range=all_symbol,
+                        name="rule_{}".format(priority),
+                        destination_address_prefix=all_symbol,
+                        destination_port_range=all_symbol,
+                        priority=priority,
+                        protocol=all_symbol),
+                async=True)
         operation_poller.wait()
 
         # free priorities for additional NSG rules
@@ -330,20 +420,20 @@ class PrepareConnectivityOperation(object):
             logger.info("Creating NSG rule for additional management network {} with priority {} ..."
                         .format(additional_network, priority))
             self.security_group_service.create_network_security_group_custom_rule(
-                network_client=network_client,
-                group_name=group_name,
-                security_group_name=security_group_name,
-                rule=SecurityRule(
-                    access=SecurityRuleAccess.allow,
-                    direction="Inbound",
-                    source_address_prefix=additional_network,
-                    source_port_range=all_symbol,
-                    name="rule_{}".format(priority),
-                    destination_address_prefix=all_symbol,
-                    destination_port_range=all_symbol,
-                    priority=priority,
-                    protocol=all_symbol),
-                async=False)
+                    network_client=network_client,
+                    group_name=group_name,
+                    security_group_name=security_group_name,
+                    rule=SecurityRule(
+                            access=SecurityRuleAccess.allow,
+                            direction="Inbound",
+                            source_address_prefix=additional_network,
+                            source_port_range=all_symbol,
+                            name="rule_{}".format(priority),
+                            destination_address_prefix=all_symbol,
+                            destination_port_range=all_symbol,
+                            priority=priority,
+                            protocol=all_symbol),
+                    async=False)
 
     @staticmethod
     def _validate_management_vnet(management_vnet):

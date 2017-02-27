@@ -16,14 +16,14 @@ class TesAzureClientsManager(TestCase):
         """Check that __init__ method sets correct params for the instance"""
         cloud_provider = mock.MagicMock()
         subscription_id = mock.MagicMock()
-        client_id = mock.MagicMock()
-        secret = mock.MagicMock()
+        application_id = mock.MagicMock()
+        application_key = mock.MagicMock()
         tenant = mock.MagicMock()
         service_credentials = mock.MagicMock()
 
         with mock.patch.object(AzureClientsManager, "_get_subscription", return_value=subscription_id):
-            with mock.patch.object(AzureClientsManager, "_get_azure_client_id", return_value=client_id):
-                with mock.patch.object(AzureClientsManager, "_get_azure_secret", return_value=secret):
+            with mock.patch.object(AzureClientsManager, "_get_azure_application_id", return_value=application_id):
+                with mock.patch.object(AzureClientsManager, "_get_azure_application_key", return_value=application_key):
                     with mock.patch.object(AzureClientsManager, "_get_azure_tenant", return_value=tenant):
                         with mock.patch.object(AzureClientsManager, "_get_service_credentials",
                                                return_value=service_credentials):
@@ -32,8 +32,8 @@ class TesAzureClientsManager(TestCase):
 
                             # Verify
                             self.assertEqual(azure_clients_manager._subscription_id, subscription_id)
-                            self.assertEqual(azure_clients_manager._client_id, client_id)
-                            self.assertEqual(azure_clients_manager._secret, secret)
+                            self.assertEqual(azure_clients_manager._application_id, application_id)
+                            self.assertEqual(azure_clients_manager._application_key, application_key)
                             self.assertEqual(azure_clients_manager._tenant, tenant)
                             self.assertEqual(azure_clients_manager._service_credentials, service_credentials)
                             self.assertIsNone(azure_clients_manager._compute_client)
@@ -70,8 +70,8 @@ class TesAzureClientsManager(TestCase):
         service_credentials = self.azure_clients_manager._get_service_credentials()
 
         # Verify
-        service_credentials_class.assert_called_once_with(client_id=self.azure_clients_manager._client_id,
-                                                          secret=self.azure_clients_manager._secret,
+        service_credentials_class.assert_called_once_with(client_id=self.azure_clients_manager._application_id,
+                                                          secret=self.azure_clients_manager._application_key,
                                                           tenant=self.azure_clients_manager._tenant)
         self.assertIs(service_credentials, mocked_service_credentials)
 
@@ -82,19 +82,19 @@ class TesAzureClientsManager(TestCase):
         # Verify
         self.assertEqual(subscription, self.cloud_provider.azure_subscription_id)
 
-    def test_get_azure_client_id(self):
+    def test_get_azure_application_id(self):
         """"""
         # Act
-        azure_client_id = self.azure_clients_manager._get_azure_client_id(self.cloud_provider)
+        azure_application_id = self.azure_clients_manager._get_azure_application_id(self.cloud_provider)
         # Verify
-        self.assertEqual(azure_client_id, self.cloud_provider.azure_client_id)
+        self.assertEqual(azure_application_id, self.cloud_provider.azure_application_id)
 
-    def test_get_azure_secret(self):
+    def test_get_azure_application_key(self):
         """"""
         # Act
-        azure_secret = self.azure_clients_manager._get_azure_secret(self.cloud_provider)
+        azure_application_key = self.azure_clients_manager._get_azure_application_key(self.cloud_provider)
         # Verify
-        self.assertEqual(azure_secret, self.cloud_provider.azure_secret)
+        self.assertEqual(azure_application_key, self.cloud_provider.azure_application_key)
 
     def test_get_azure_tenant(self):
         """"""
@@ -166,3 +166,18 @@ class TesAzureClientsManager(TestCase):
         self.assertIs(storage_client, self.azure_clients_manager._storage_client)
         storage_client_class.assert_called_once_with(self.azure_clients_manager._service_credentials,
                                                      self.azure_clients_manager._subscription_id)
+
+    @mock.patch("cloudshell.cp.azure.common.azure_clients.SubscriptionClient")
+    def test_subscription_client(self, subscription_client_class):
+        """Check that property will get SubscriptionClient client and initialize client only once"""
+        mocked_subscription_client = mock.MagicMock()
+        subscription_client_class.return_value = mocked_subscription_client
+        # Act
+        subscription_client = self.azure_clients_manager.subscription_client
+        # repeat property call to verify that method will not create one more instance
+        subscription_client = self.azure_clients_manager.subscription_client
+
+        # Verify
+        self.assertIs(subscription_client, mocked_subscription_client)
+        self.assertIs(subscription_client, self.azure_clients_manager._subscription_client)
+        subscription_client_class.assert_called_once_with(self.azure_clients_manager._service_credentials)

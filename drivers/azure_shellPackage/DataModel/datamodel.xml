@@ -1,12 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <DataModelInfo xmlns="http://schemas.qualisystems.com/ResourceManagement/DataModelSchema.xsd">
   <Attributes>
-    <AttributeInfo Name="Cloud Provider" DefaultValue="" Description="The name of the cloud provider resource in CloudShell." IsReadOnly="false" Type="String">
-      <Rules>
-        <Rule Name="Configuration" />
-        <Rule Name="Setting" />
-      </Rules>
-    </AttributeInfo>
     <AttributeInfo Name="Autoload" DefaultValue="true" Description="Determines if the Autoload process runs for Apps deployed manually or during the reservation's setup." IsReadOnly="false" Type="Boolean">
       <Rules>
         <Rule Name="Configuration" />
@@ -82,6 +76,13 @@
         <Rule Name="Setting" />
       </Rules>
     </AttributeInfo>
+     <AttributeInfo DefaultValue="" Description="This attribute points to a pre-define group of execution servers. Usually used for different sites or domains." IsReadOnly="false" Name="Execution Server Selector" Type="String">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+        <Rule Name="Execution Server Selector" />
+      </Rules>
+    </AttributeInfo>
 
     <!--Cloud Provider new Attributes-->
     <AttributeInfo Name="Azure Subscription ID"  DefaultValue="" Description="The Subscription ID of the Azure user." IsReadOnly="false" Type="String">
@@ -90,19 +91,19 @@
         <Rule Name="Setting" />
       </Rules>
     </AttributeInfo>
-    <AttributeInfo Name="Azure Tenant ID"  DefaultValue="" Description="The Azure tenant Id that is associated with your Azure Active Directory (AAD) instance. For example: ccd13026-98e3-4e90-01f4-28e2afdf3213. This GUID can be retrieved using Azure CLI." IsReadOnly="false" Type="String">
+    <AttributeInfo Name="Azure Tenant ID"  DefaultValue="" Description="The Azure Tenant Id that is associated with your Azure Active Directory (AAD) instance. For example: ccd13026-98e3-4e90-01f4-28e2afdf3213. The Tenant ID is created for the Active Directory and can be retrieved when creating the Azure API web application or retrieved from Azure CLI. For more information, see the “Configure Azure API to work with CloudShell” article in the CloudShell online help." IsReadOnly="false" Type="String">
       <Rules>
         <Rule Name="Configuration" />
         <Rule Name="Setting" />
       </Rules>
     </AttributeInfo>
-    <AttributeInfo Name="Azure Secret"  DefaultValue="" Description="Secret key associated with the Azure API web application. The secret key allows CloudShell to access the Azure API and is generated as part of the web application’s configuration process. For more information, see the “Configure Azure API to work with CloudShell” article in the CloudShell online help." IsReadOnly="false" Type="Password">
+    <AttributeInfo Name="Azure Application Key"  DefaultValue="" Description="Application key associated with the Azure API application. The application key allows CloudShell to access the Azure API and is generated as part of the Azure application’s configuration process. For more information, see the “Configure Azure API to work with CloudShell” article in the CloudShell online help." IsReadOnly="false" Type="Password">
       <Rules>
         <Rule Name="Configuration" />
         <Rule Name="Setting" />
       </Rules>
     </AttributeInfo>
-    <AttributeInfo Name="Azure Client ID"  DefaultValue="" Description="Client ID associated with the Azure API web application. The client ID allows CloudShell to access the Azure API and is generated as part of the web application’s configuration process. For more information, see Configure Azure API to work with CloudShell." IsReadOnly="false" Type="String">
+    <AttributeInfo Name="Azure Application ID"  DefaultValue="" Description="Application Id associated with the Azure API application. The application ID allows CloudShell to access the Azure API and is generated as part of the web application’s configuration process. For more information, see the “Configure Azure API to work with CloudShell” article in the CloudShell online help." IsReadOnly="false" Type="String">
       <Rules>
         <Rule Name="Configuration" />
         <Rule Name="Setting" />
@@ -114,7 +115,7 @@
         <Rule Name="Setting" />
       </Rules>
     </AttributeInfo>
-    <AttributeInfo Name="Additional Mgmt Networks"  DefaultValue="" Description="List of comma-separated networks in a CIDR manner that will be allowed to interact with all Sandbox instances. This is used for allowing connectivity to resource outside the CloudShell Mgmt network that should be available to the Sandbox Instances." IsReadOnly="false" Type="String">
+    <AttributeInfo Name="Additional Mgmt Networks"  DefaultValue="" Description="Networks to be allowed to interact with all sandboxes. This is used for allowing connectivity to Azure resources outside the CloudShell Management VNet that should be available to CloudShell sandboxes. The syntax is comma separated CIDRs." IsReadOnly="false" Type="String">
       <Rules>
         <Rule Name="Configuration" />
         <Rule Name="Setting" />
@@ -122,7 +123,7 @@
     </AttributeInfo>
 
     <!--New Azure Deployment Option Attributes -->
-    <AttributeInfo Name="Public IP Type"  DefaultValue="" Description="Static Public IP Type will guarantee that the VM always uses the same public IP. By default, Public IPs are dynamic and the address associated to them may change when the VM is deleted." IsReadOnly="false" Type="String">
+    <AttributeInfo Name="Public IP Type"  DefaultValue="" Description="Static Public IP Type ensures that the VM always uses the same public IP. By default, Public IPs are dynamic and their address may change when the VM is powered off." IsReadOnly="false" Type="String">
       <Rules>
         <Rule Name="Configuration" />
         <Rule Name="Setting" />
@@ -187,13 +188,16 @@
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Azure Tenant ID">
               <AllowedValues />
             </AttachedAttribute>
-            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Azure Secret">
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Azure Application Key">
               <AllowedValues />
             </AttachedAttribute>
-            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Azure Client ID">
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Azure Application ID">
               <AllowedValues />
             </AttachedAttribute>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Management Group Name">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Execution Server Selector">
               <AllowedValues />
             </AttachedAttribute>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Additional Mgmt Networks">
@@ -233,37 +237,11 @@
       </Models>
       <Categories />
     </ResourceFamily>
-    <ResourceFamily Description="" IsService="true" Name="Installation Options" ServiceType="Installation">
-      <AttachedAttributes />
-      <AttributeValues />
-      <Models>
-        <ResourceModel Description="" Name="Generic Installation Option" SupportsConcurrentCommands="false">
-          <AttachedAttributes>
-            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Generic Input" UserInput="true">
-              <AllowedValues />
-            </AttachedAttribute>
-          </AttachedAttributes>
-          <AttributeValues>
-            <AttributeValue Name="Generic Input" Value="" />
-          </AttributeValues>
-          <ParentModels />
-          <Drivers>
-            <DriverName>Generic Driver</DriverName>
-          </Drivers>
-          <Scripts />
-        </ResourceModel>
-      </Models>
-      <Categories>
-      </Categories>
-    </ResourceFamily>
     <ResourceFamily Description="" IsService="true" Name="Deployment Options" ServiceType="Deployment">
       <AttachedAttributes />
       <AttributeValues />
       <Models>
         <ResourceModel Description="" Name="Azure VM From Marketplace" ImagePath="AzureMarketplaceImage.png" SupportsConcurrentCommands="false">          <AttachedAttributes>
-            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Cloud Provider" UserInput="true">
-              <AllowedValues />
-            </AttachedAttribute>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="VM Size" UserInput="true">
               <AllowedValues />
             </AttachedAttribute>
@@ -314,9 +292,6 @@
         </ResourceModel>
         <ResourceModel Description="" Name="Azure VM From Custom Image" ImagePath="AzureCustomImage.png" SupportsConcurrentCommands="false">
           <AttachedAttributes>
-            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Cloud Provider" UserInput="true">
-              <AllowedValues />
-            </AttachedAttribute>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="VM Size" UserInput="true">
               <AllowedValues />
             </AttachedAttribute>

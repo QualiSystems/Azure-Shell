@@ -60,11 +60,25 @@ setup_supervisor() {
 	# create config file
 	echo_supervisord_conf > /etc/supervisord.conf
 	echo -e '\n[program:cloudshell_execution_server]\ndirectory='$ES_INSTALL_PATH'\ncommand=/bin/bash -c "/usr/bin/mono QsExecutionServerConsoleConfig.exe /s:'$cs_server_host' /u:'$cs_server_user' /p:'$cs_server_pass' /esn:'$es_name' /i:'$ES_NUMBER_OF_SLOTS' && /usr/bin/mono QsExecutionServer.exe console"\nenvironment=MONO_IOMAP=all\n' >> /etc/supervisord.conf
+	setenforce 0
+	systemctl enable supervisord.service
 }
 
 # Install Python pip
 yum-complete-transaction -y --cleanup-only
-yes | yum install epel-release
+yum clean all
+yum makecache
+
+yum -y install epel-release
+# previous command failed
+if [ $? -ne 0 ]
+then
+    echo "Epel-release installation failed"
+    sed -i "s~#baseurl=~baseurl=~g" /etc/yum.repos.d/epel.repo
+    sed -i "s~mirrorlist=~#mirrorlist=~g" /etc/yum.repos.d/epel.repo
+    yum -y install epel-release
+fi
+
 yes | yum -y install python-pip
 yes | pip install -U pip
 
@@ -73,7 +87,7 @@ mkdir -p $ES_INSTALL_PATH
 
 # download ES
 wget $ES_DOWNLOAD_LINK -O es.tar
-tar -xf es.tar -C $ES_INSTALL_PATH --strip-components=1
+tar -xf es.tar -C $ES_INSTALL_PATH
 
 if [command_exists mono]
 	then

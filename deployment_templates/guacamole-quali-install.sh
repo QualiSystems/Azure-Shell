@@ -18,11 +18,23 @@ KEYSTORE_PASS="123123"
 
 #Make sure all yum transaction are complete
 yum-complete-transaction -y --cleanup-only
+yum clean all
+yum makecache
 
 #source https://deviantengineer.com/2015/02/guacamole-centos7/
 
 #Prerequisite
-yum -y install epel-release wget
+yum -y install epel-release
+# previous command failed
+if [ $? -ne 0 ]
+then
+    echo "Epel-release installation failed"
+    sed -i "s~#baseurl=~baseurl=~g" /etc/yum.repos.d/epel.repo
+    sed -i "s~mirrorlist=~#mirrorlist=~g" /etc/yum.repos.d/epel.repo
+    yum -y install epel-release
+fi
+
+yum -y install wget
 
 wget -O /etc/yum.repos.d/home:felfert.repo http://download.opensuse.org/repositories/home:/felfert/Fedora_19/home:felfert.repo
 

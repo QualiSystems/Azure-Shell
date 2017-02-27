@@ -15,10 +15,11 @@
                 <Attribute Value="" Name="Networks In Use"/>
                 <Attribute Value="" Name="Azure Subscription ID"/>
                 <Attribute Value="" Name="Azure Tenant ID"/>
-                <Attribute Value="" Name="Azure Secret"/>
-                <Attribute Value="" Name="Azure Client ID"/>
+                <Attribute Value="" Name="Azure Application Key"/>
+                <Attribute Value="" Name="Azure Application ID"/>
                 <Attribute Value="" Name="Management Group Name"/>
                 <Attribute Value="" Name="Additional Mgmt Networks"/>
+                <Attribute Value="" Name="Execution Server Selector"/>
             </Attributes>
         </ResourceTemplate>
     </ResourceTemplates>

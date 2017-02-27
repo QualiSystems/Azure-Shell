@@ -1,6 +1,7 @@
 from azure.mgmt.compute import ComputeManagementClient
 from azure.mgmt.network import NetworkManagementClient
 from azure.mgmt.resource import ResourceManagementClient
+from azure.mgmt.resource import SubscriptionClient
 from azure.mgmt.storage import StorageManagementClient
 from msrestazure.azure_active_directory import ServicePrincipalCredentials
 
@@ -18,14 +19,14 @@ class AzureClientsManager(AbstractComparableInstance):
         :return: (bool) True/False whether attributes are same or not
         """
         subscription_id = self._get_subscription(cloud_provider)
-        client_id = self._get_azure_client_id(cloud_provider)
-        secret = self._get_azure_secret(cloud_provider)
+        application_id = self._get_azure_application_id(cloud_provider)
+        application_key = self._get_azure_application_key(cloud_provider)
         tenant = self._get_azure_tenant(cloud_provider)
 
         return all([
             subscription_id == self._subscription_id,
-            client_id == self._client_id,
-            secret == self._secret,
+            application_id == self._application_id,
+            application_key == self._application_key,
             tenant == self._tenant])
 
     def __init__(self, cloud_provider):
@@ -34,26 +35,27 @@ class AzureClientsManager(AbstractComparableInstance):
         :return
         """
         self._subscription_id = self._get_subscription(cloud_provider)
-        self._client_id = self._get_azure_client_id(cloud_provider)
-        self._secret = self._get_azure_secret(cloud_provider)
+        self._application_id = self._get_azure_application_id(cloud_provider)
+        self._application_key = self._get_azure_application_key(cloud_provider)
         self._tenant = self._get_azure_tenant(cloud_provider)
         self._service_credentials = self._get_service_credentials()
         self._compute_client = None
         self._network_client = None
         self._storage_client = None
         self._resource_client = None
+        self._subscription_client = None
 
     def _get_service_credentials(self):
-        return ServicePrincipalCredentials(client_id=self._client_id, secret=self._secret, tenant=self._tenant)
+        return ServicePrincipalCredentials(client_id=self._application_id, secret=self._application_key, tenant=self._tenant)
 
     def _get_subscription(self, cloud_provider_model):
         return cloud_provider_model.azure_subscription_id
 
-    def _get_azure_client_id(self, cloud_provider_model):
-        return cloud_provider_model.azure_client_id
+    def _get_azure_application_id(self, cloud_provider_model):
+        return cloud_provider_model.azure_application_id
 
-    def _get_azure_secret(self, cloud_provider_model):
-        return cloud_provider_model.azure_secret
+    def _get_azure_application_key(self, cloud_provider_model):
+        return cloud_provider_model.azure_application_key
 
     def _get_azure_tenant(self, cloud_provider_model):
         return cloud_provider_model.azure_tenant
@@ -93,3 +95,12 @@ class AzureClientsManager(AbstractComparableInstance):
                     self._resource_client = ResourceManagementClient(self._service_credentials, self._subscription_id)
 
         return self._resource_client
+
+    @property
+    def subscription_client(self):
+        if self._subscription_client is None:
+            with SingletonByArgsMeta.lock:
+                if self._subscription_client is None:
+                    self._subscription_client = SubscriptionClient(self._service_credentials)
+
+        return self._subscription_client

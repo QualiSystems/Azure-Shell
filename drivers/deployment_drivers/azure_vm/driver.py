@@ -1,6 +1,6 @@
 import jsonpickle
 
-from cloudshell.cp.azure.common.converters.resource_context import ResourceContextConverter
+from cloudshell.cp.azure.common.parsers.resource_context import ResourceContextConverter
 from cloudshell.core.context.error_handling_context import ErrorHandlingContext
 from cloudshell.shell.core.resource_driver_interface import ResourceDriverInterface
 from cloudshell.shell.core.session.cloudshell_session import CloudShellSessionContext
