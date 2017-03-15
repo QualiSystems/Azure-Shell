@@ -2,8 +2,7 @@ from unittest import TestCase
 
 import mock
 from azure.mgmt.storage.models import StorageAccountCreateParameters
-from mock import MagicMock
-from mock import Mock
+from mock import MagicMock, Mock
 from msrestazure.azure_operation import AzureOperationPoller
 
 from cloudshell.cp.azure.domain.services.storage_service import StorageService
@@ -32,16 +31,18 @@ class TestStorageService(TestCase):
         kind_storage_value = MagicMock()
         # Act
 
-        self.storage_service.create_storage_account(storage_client, group_name, region, account_name, tags)
+        with mock.patch("cloudshell.cp.azure.domain.services.storage_service.StorageAccountCreateParameters") as stcp:
+            self.storage_service.create_storage_account(storage_client, group_name, region, account_name, tags)
 
-        # Verify
-        storage_client.storage_accounts.create.assert_called_with(group_name, account_name,
-                                                                  StorageAccountCreateParameters(
-                                                                      sku=MagicMock(),
-                                                                      kind=kind_storage_value,
-                                                                      location=region,
-                                                                      tags=tags),
-                                                                  raw=False)
+            # Verify
+            storage_client.storage_accounts.create.assert_called_with(group_name,
+                                                                      account_name,
+                                                                      stcp(
+                                                                          sku=MagicMock(),
+                                                                          kind=kind_storage_value,
+                                                                          location=region,
+                                                                          tags=tags),
+                                                                      raw=False)
 
     def test_create_storage_account_wait_for_result(self):
         # Arrange
