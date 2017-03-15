@@ -94,7 +94,7 @@ class DeleteAzureVMOperation(object):
         subnet = self._find_sandbox_subnet(resource_group_name, sandbox_virtual_network)
         if subnet is None:
             logger.warning("Could not find subnet {} in resource group {} to detach NSG".format(
-                resource_group_name, management_group_name))
+                    resource_group_name, management_group_name))
             return
 
         subnet.network_security_group = None
@@ -117,14 +117,14 @@ class DeleteAzureVMOperation(object):
 
         logger.info("Retrieving sandbox vNet from MGMT group {}".format(cloud_provider_model.management_group_name))
         sandbox_virtual_network = self.network_service.get_sandbox_virtual_network(
-            network_client=network_client,
-            group_name=cloud_provider_model.management_group_name)
+                network_client=network_client,
+                group_name=cloud_provider_model.management_group_name)
 
         subnet = self._find_sandbox_subnet(resource_group_name, sandbox_virtual_network)
 
         if subnet is None:
             logger.warning("Could not find subnet {} in resource group {} to delete it".format(
-                resource_group_name, cloud_provider_model.management_group_name))
+                    resource_group_name, cloud_provider_model.management_group_name))
             return
 
         with self.subnet_locker:
@@ -165,12 +165,51 @@ class DeleteAzureVMOperation(object):
                                                           lock=lock,
                                                           logger=logger)
 
+    def _delete_vm_disk(self, logger, storage_client, compute_client, group_name, vm):
+        """Delete the VM data disk. Will delete VHD or Managed Disk of the VM.
+
+        :param logging.Logger logger:
+        :param azure.mgmt.storage.StorageManagementClient storage_client:
+        :param azure.mgmt.compute.ComputeManagementClient compute_client:
+        :param str group_name:
+        :param azure.mgmt.compute.models.VirtualMachine vm:
+        :return:
+        """
+        if vm.storage_profile.os_disk.vhd:
+            self._delete_vhd_disk(storage_client=storage_client,
+                                  group_name=group_name,
+                                  logger=logger,
+                                  vhd_url=vm.storage_profile.os_disk.vhd.uri)
+        elif vm.storage_profile.os_disk.managed_disk:
+            self._delete_managed_disk(logger=logger,
+                                      compute_client=compute_client,
+                                      group_name=group_name,
+                                      managed_disk_name=vm.storage_profile.os_disk.name)
+        else:
+            raise ValueError("Supported os data disk not found in VM {0} so cannot delete data disk".format(vm.name))
+
+    def _delete_managed_disk(self, logger, compute_client, group_name, managed_disk_name):
+        """ Will delete the provided managed disk
+
+        :param logging.Logger logger:
+        :param azure.mgmt.compute.ComputeManagementClient compute_client:
+        :param str group_name:
+        :param str managed_disk_name:
+        :return:
+        """
+        logger.info("Deleting managed Disk {0} in resource group {1}...".format(managed_disk_name, group_name))
+        result = self.vm_service.delete_managed_disk(compute_management_client=compute_client,
+                                                     resource_group=group_name,
+                                                     disk_name=managed_disk_name)
+        logger.debug("{}", result)
+
     def _delete_vhd_disk(self, storage_client, group_name, vhd_url, logger):
         """Delete VHD Disk Blob resource on the azure for given VM
 
-        :param group_name: (str) The name of the resource group
-        :param vhd_url: (str) Blob VHD Disk URL
-        :param logger: logging.Logger instance
+        :param azure.mgmt.storage.StorageManagementClient storage_client:
+        :param str group_name: The name of the resource group
+        :param str vhd_url: Blob VHD Disk URL
+        :param logging.Logger logger:
         :return:
         """
         logger.info("Deleting VHD Disk {}...".format(vhd_url))
@@ -227,9 +266,9 @@ class DeleteAzureVMOperation(object):
     def delete(self, compute_client, network_client, storage_client, group_name, vm_name, logger):
         """Delete VM and all related resources
 
-        :param compute_client: azure.mgmt.compute.ComputeManagementClient instance
-        :param network_client: azure.mgmt.network.NetworkManagementClient instance
-        :param storage_client: azure.mgmt.storage.StorageManagementClient instance
+        :param azure.mgmt.compute.ComputeManagementClient compute_client:
+        :param azure.mgmt.network.NetworkManagementClient network_client:
+        :param azure.mgmt.storage.StorageManagementClient storage_client:
         :param group_name: (str) The name of the resource group
         :param vm_name: (str) the same as ip_name and interface_name
         :param logger: logging.Logger instance
@@ -268,11 +307,12 @@ class DeleteAzureVMOperation(object):
         except CloudError:
             logger.warning("Can't get VM to retrieve its VHD URL", exc_info=1)
         else:
-            delete_vhd_disk_command = partial(self._delete_vhd_disk,
+            delete_vhd_disk_command = partial(self._delete_vm_disk,
+                                              logger=logger,
                                               storage_client=storage_client,
+                                              compute_client=compute_client,
                                               group_name=group_name,
-                                              vhd_url=vm.storage_profile.os_disk.vhd.uri,
-                                              logger=logger)
+                                              vm=vm)
 
             commands.append(delete_vhd_disk_command)
 
