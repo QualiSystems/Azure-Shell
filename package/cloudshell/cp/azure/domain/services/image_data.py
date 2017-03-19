@@ -40,7 +40,7 @@ class ImageDataFactory(object):
         :rtype: ImageDataModel
         """
         # get os type
-        image_os_type = self.vm_service.prepare_image_os_type(deployment_model.image_os_type)
+        image_os_type = self.vm_service.prepare_image_os_type(deployment_model.image_resource_group)
         logger.info("Operation system type for the VM is {}".format(image_os_type))
         return ImageDataModel(image_os_type, None)
 

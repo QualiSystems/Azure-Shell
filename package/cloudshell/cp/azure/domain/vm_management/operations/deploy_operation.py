@@ -249,24 +249,22 @@ class DeployAzureVMOperation(object):
         :rtype: azure.mgmt.compute.models.VirtualMachine
         """
 
-        # copy custom image blob to sandbox storage account
-        image_urn = self._copy_blob(cancellation_context, cloud_provider_model, data, deployment_model, logger,
-                                    storage_client)
-
         self.cancellation_service.check_if_cancelled(cancellation_context)
 
         # create VM
-        logger.info("Start creating VM {} From custom image {}".format(data.vm_name, image_urn))
+        logger.info("Start creating VM {} From custom image {} from resource group {}"
+                    .format(data.vm_name, deployment_model.image_name, deployment_model.image_resource_group))
+
         return self.vm_service.create_vm_from_custom_image(
             compute_management_client=compute_client,
-            image_urn=image_urn,
-            image_os_type=data.os_type,
+            image_name=deployment_model.image_name,
+            image_resource_group=deployment_model.image_resource_group,
+            disk_size=deployment_model.disk_size,
             vm_credentials=data.vm_credentials,
             computer_name=data.computer_name,
             group_name=data.group_name,
             nic_id=data.nic.id,
             region=cloud_provider_model.region,
-            storage_name=data.storage_account_name,
             vm_name=data.vm_name,
             tags=data.tags,
             vm_size=data.vm_size,
@@ -448,27 +446,6 @@ class DeployAzureVMOperation(object):
                             'Deployment model nor on the Cloud Provider one')
 
         return vm_size
-
-    def _copy_blob(self, cancellation_context, cloud_provider_model, data, deployment_model, logger, storage_client):
-        blob_url_model = self.storage_service.parse_blob_url(deployment_model.image_urn)
-        container_name_copy_to = "{}{}".format(self.CUSTOM_IMAGES_CONTAINER_PREFIX, blob_url_model.container_name)
-
-        logger.info("Copy custom image to the sandbox account")
-
-        image_urn = self.storage_service.copy_blob(
-            storage_client=storage_client,
-            group_name_copy_to=data.group_name,
-            storage_name_copy_to=data.storage_account_name,
-            container_name_copy_to=container_name_copy_to,
-            blob_name_copy_to=blob_url_model.blob_name,
-            source_copy_from=deployment_model.image_urn,
-            group_name_copy_from=cloud_provider_model.management_group_name,
-            cancellation_context=cancellation_context,
-            logger=logger)
-
-        self.cancellation_service.check_if_cancelled(cancellation_context)
-
-        return image_urn
 
     def _create_vm_custom_script_extension(self, deployment_model, cloud_provider_model, compute_client, data,
                                            logger, cancellation_context):

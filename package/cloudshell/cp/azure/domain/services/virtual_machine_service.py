@@ -134,14 +134,14 @@ class VirtualMachineService(object):
 
     def create_vm_from_custom_image(self,
                                     compute_management_client,
-                                    image_urn,
-                                    image_os_type,
+                                    image_name,
+                                    image_resource_group,
+                                    disk_size,
                                     vm_credentials,
                                     computer_name,
                                     group_name,
                                     nic_id,
                                     region,
-                                    storage_name,
                                     vm_name,
                                     tags,
                                     vm_size,
@@ -149,58 +149,47 @@ class VirtualMachineService(object):
         """Create VM from custom image URN
 
         :param cancellation_context:
-        :param vm_size: (str) Azure instance type
-        :param compute_management_client: azure.mgmt.compute.ComputeManagementClient instance
-        :param image_urn: Azure custom image URL
-        :param image_os_type: azure.mgmt.compute.models.OperatingSystemTypes OS type (linux/windows)
-        :param vm_credentials: cloudshell.cp.azure.models.vm_credentials.VMCredentials instance
-        :param computer_name: computer name
-        :param group_name: Azure resource group name (reservation id)
-        :param nic_id: Azure network id
-        :param region: Azure region
-        :param storage_name: Azure storage name
-        :param vm_name: name for VM
+        :param str vm_size: Azure instance type
+        :param azure.mgmt.compute.ComputeManagementClient compute_management_client: instance
+        :param str image_name: Azure custom image name
+        :param str image_resource_group: Azure resource group
+        :param int disk_size:
+        :param cloudshell.cp.azure.models.vm_credentials.VMCredentials vm_credentials:
+        :param str computer_name: computer name
+        :param str group_name: Azure resource group name (reservation id)
+        :param str nic_id: Azure network id
+        :param str region: Azure region
+        :param str vm_name: name for VM
         :param tags: Azure tags
         :return:
         :rtype: azure.mgmt.compute.models.VirtualMachine
         """
         os_profile = self._prepare_os_profile(vm_credentials=vm_credentials,
                                               computer_name=computer_name)
-
         hardware_profile = HardwareProfile(vm_size=vm_size)
         network_profile = NetworkProfile(network_interfaces=[NetworkInterfaceReference(id=nic_id)])
 
-        vhd = self._prepare_vhd(storage_name, vm_name)
-        image = VirtualHardDisk(uri=image_urn)
+        os_disk = OSDisk(create_option=DiskCreateOptionTypes.from_image,
+                         disk_size_gb=disk_size,
+                         managed_disk=ManagedDiskParameters(
+                                 storage_account_type=StorageAccountTypes.premium_lrs))
 
-        os_disk = OSDisk(os_type=image_os_type,
-                         caching=CachingTypes.none,
-                         create_option=DiskCreateOptionTypes.from_image,
-                         name=storage_name,
-                         vhd=vhd,
-                         image=image)
+        image = compute_management_client.images.get(resource_group_name=image_resource_group, image_name=image_name)
+        storage_profile = StorageProfile(
+                os_disk=os_disk,
+                image_reference=ImageReference(id=image.id))
 
-        storage_profile = StorageProfile(os_disk=os_disk)
-
-        try:
-            return self._create_vm(
-                    compute_management_client=compute_management_client,
-                    region=region,
-                    group_name=group_name,
-                    vm_name=vm_name,
-                    hardware_profile=hardware_profile,
-                    network_profile=network_profile,
-                    os_profile=os_profile,
-                    storage_profile=storage_profile,
-                    cancellation_context=cancellation_context,
-                    tags=tags)
-        except CloudError as exc:
-            error = str(exc)
-            if "OSProvisioningTimedOut".lower() in error.lower():
-                raise Exception(error + "\r\n"
-                                        "You may have a mismatch between the selected 'Image OS Type' and the "
-                                        "operation system provided in the 'Image URN'.")
-            raise
+        return self._create_vm(
+                compute_management_client=compute_management_client,
+                region=region,
+                group_name=group_name,
+                vm_name=vm_name,
+                hardware_profile=hardware_profile,
+                network_profile=network_profile,
+                os_profile=os_profile,
+                storage_profile=storage_profile,
+                cancellation_context=cancellation_context,
+                tags=tags)
 
     def create_vm_from_marketplace(self,
                                    compute_management_client,

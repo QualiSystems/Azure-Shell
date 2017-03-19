@@ -98,8 +98,9 @@ class AzureModelsParser(object):
         data = jsonpickle.decode(deployment_request)
         data_holder = DeployDataHolder(data)
         deployment_resource_model = DeployAzureVMFromCustomImageResourceModel()
-        deployment_resource_model.image_urn = data_holder.ami_params.image_urn
-        deployment_resource_model.image_os_type = data_holder.ami_params.image_os_type
+        deployment_resource_model.image_name = data_holder.ami_params.image_name
+        deployment_resource_model.image_resource_group = data_holder.ami_params.image_resource_group
+        deployment_resource_model.disk_size = int(data_holder.ami_params.disk_size)
         AzureModelsParser._set_base_deploy_azure_vm_model_params(deployment_resource_model=deployment_resource_model,
                                                                  data_holder=data_holder,
                                                                  cloudshell_session=cloudshell_session,

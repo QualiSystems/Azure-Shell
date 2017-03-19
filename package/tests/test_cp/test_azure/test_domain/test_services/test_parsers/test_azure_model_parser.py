@@ -159,8 +159,8 @@ class TestAzureModelsParser(TestCase):
                     data_holder=data_holder,
                     cloudshell_session=cloudshell_session,
                     logger=logger)
-            self.assertEqual(result.image_urn, data_holder.ami_params.image_urn)
-            self.assertEqual(result.image_os_type, data_holder.ami_params.image_os_type)
+            self.assertEqual(result.image_name, data_holder.ami_params.image_urn)
+            self.assertEqual(result.image_resource_group, data_holder.ami_params.image_os_type)
 
     @mock.patch("cloudshell.cp.azure.common.parsers.azure_model_parser.AzureCloudProviderResourceModel")
     def test_convert_to_cloud_provider_resource_model(self, azure_cp_model_class):
