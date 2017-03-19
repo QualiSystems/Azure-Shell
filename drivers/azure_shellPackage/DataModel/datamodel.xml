@@ -323,10 +323,7 @@
               <AllowedValues />
             </AttachedAttribute>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Azure Resource Group" UserInput="true">
-              <AllowedValues>
-                <AllowedValue>Linux</AllowedValue>
-                <AllowedValue>Windows</AllowedValue>
-              </AllowedValues>
+              <AllowedValues />
             </AttachedAttribute>
           </AttachedAttributes>
           <AttributeValues>
