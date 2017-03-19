@@ -313,6 +313,9 @@ class TestDeployAzureVMOperation(TestCase):
         """Check deploy from custom Image operation"""
         # Arrange
         azure_vm_deployment_model = MagicMock()
+        azure_vm_deployment_model.image_name = "some_image"
+        azure_vm_deployment_model.image_resource_group = "image_group"
+
         cloud_provider_model = MagicMock()
         logger = MagicMock()
         compute_client = Mock()
@@ -320,13 +323,7 @@ class TestDeployAzureVMOperation(TestCase):
         cancellation_context = MagicMock()
         data = Mock()
         data.group_name = "group"
-        data.storage_account_name = "storage_account"
 
-        image_urn = "image_urn"
-        self.storage_service.copy_blob = Mock(return_value=image_urn)
-        blob_url = Mock()
-        blob_url.container_name = "container"
-        self.storage_service.parse_blob_url = Mock(return_value=blob_url)
         self.vm_service.create_vm_from_custom_image = Mock()
 
         # Act
@@ -340,29 +337,17 @@ class TestDeployAzureVMOperation(TestCase):
                 logger=logger)
 
         # Verify
-        self.storage_service.copy_blob.assert_called_once_with(
-                storage_client=storage_client,
-                group_name_copy_to=data.group_name,
-                storage_name_copy_to=data.storage_account_name,
-                container_name_copy_to="customimages-container",
-                blob_name_copy_to=blob_url.blob_name,
-                source_copy_from=azure_vm_deployment_model.image_urn,
-                group_name_copy_from=cloud_provider_model.management_group_name,
-                cancellation_context=cancellation_context,
-                logger=logger)
-        self.storage_service.parse_blob_url.assert_called_once_with(azure_vm_deployment_model.image_urn)
         self.cancellation_service.check_if_cancelled.assert_called_with(cancellation_context)
-        self.assertEquals(self.cancellation_service.check_if_cancelled.call_count, 2)
+        self.cancellation_service.check_if_cancelled.assert_called()
         self.vm_service.create_vm_from_custom_image.assert_called_once_with(
                 compute_management_client=compute_client,
-                image_urn=image_urn,
-                image_os_type=data.os_type,
+                image_name=azure_vm_deployment_model.image_name,
+                image_resource_group=azure_vm_deployment_model.image_resource_group,
                 vm_credentials=data.vm_credentials,
                 computer_name=data.computer_name,
                 group_name=data.group_name,
                 nic_id=data.nic.id,
                 region=cloud_provider_model.region,
-                storage_name=data.storage_account_name,
                 vm_name=data.vm_name,
                 tags=data.tags,
                 vm_size=data.vm_size,

@@ -39,10 +39,8 @@ class ImageDataFactory(object):
         :return:
         :rtype: ImageDataModel
         """
-        # get os type
-        image_os_type = self.vm_service.prepare_image_os_type(deployment_model.image_resource_group)
-        logger.info("Operation system type for the VM is {}".format(image_os_type))
-        return ImageDataModel(image_os_type, None)
+        # Image data for custom image is redundant with managed disks
+        return ImageDataModel(None, None)
 
     def _get_marketplace_image_data(self, deployment_model, cloud_provider_model, compute_client, logger):
         """
