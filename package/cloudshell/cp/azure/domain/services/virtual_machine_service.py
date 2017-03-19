@@ -170,7 +170,7 @@ class VirtualMachineService(object):
         network_profile = NetworkProfile(network_interfaces=[NetworkInterfaceReference(id=nic_id)])
 
         os_disk = OSDisk(create_option=DiskCreateOptionTypes.from_image,
-                         disk_size_gb=disk_size,
+                         disk_size_gb=self._get_disk_size(disk_size),
                          managed_disk=ManagedDiskParameters(
                                  storage_account_type=StorageAccountTypes.premium_lrs))
 
@@ -190,6 +190,14 @@ class VirtualMachineService(object):
                 storage_profile=storage_profile,
                 cancellation_context=cancellation_context,
                 tags=tags)
+
+    def _get_disk_size(self, disk_size):
+        """
+        Return None if the disk_size param is less than 1GB, otherwise returns the disk_size param value
+        :param int disk_size:
+        :rtype: int
+        """
+        return disk_size if disk_size > 0 else None
 
     def create_vm_from_marketplace(self,
                                    compute_management_client,
