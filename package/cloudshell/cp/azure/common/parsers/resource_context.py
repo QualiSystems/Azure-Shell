@@ -50,8 +50,8 @@ class ResourceContextConverter(object):
         """
         deployed_resource = DeployAzureVMFromCustomImageResourceModel()
         self._set_base_deploy_azure_vm_model_params(deployed_resource=deployed_resource, resource=resource)
-        deployed_resource.image_urn = resource.attributes['Image URN']
-        deployed_resource.image_os_type = resource.attributes['Image OS Type']
+        deployed_resource.image_name = resource.attributes['Azure Image']
+        deployed_resource.image_resource_group = resource.attributes['Azure Resource Group']
 
         return deployed_resource
 

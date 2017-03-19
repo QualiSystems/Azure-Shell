@@ -28,5 +28,5 @@ class DeployAzureVMResourceModel(BaseDeployAzureVMResourceModel):
 class DeployAzureVMFromCustomImageResourceModel(BaseDeployAzureVMResourceModel):
     def __init__(self):
         super(DeployAzureVMFromCustomImageResourceModel, self).__init__()
-        self.image_urn = ""
-        self.image_os_type = ""
+        self.image_name = ""
+        self.image_resource_group = ""

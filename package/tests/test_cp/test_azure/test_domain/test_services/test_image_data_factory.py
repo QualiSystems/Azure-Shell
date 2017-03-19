@@ -73,8 +73,7 @@ class TestImageDataFactory(TestCase):
                                                                 logger=self.logger)
 
         # assert
-        self.vm_service.prepare_image_os_type.assert_called_once_with(deployment_model.image_os_type)
-        self.assertEquals(result.os_type, "linux")
+        self.assertEquals(result.os_type, None)
         self.assertEquals(result.purchase_plan, None)
 
     def test_get_marketplace_image_data(self):
