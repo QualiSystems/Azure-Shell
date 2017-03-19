@@ -367,3 +367,43 @@ class TestVirtualMachineService(TestCase):
         # Verify
         compute_client.virtual_machine_sizes.list.assert_called_once_with(location=location)
         self.assertEqual(result, expected_vm_sizes)
+
+    def test_prepare_os_profile_with_accesskey(self):
+        # Arrange
+        computer_name = "name"
+        vm_credentials = Mock()
+        vm_credentials.ssh_key = "key"
+        vm_credentials.admin_username = "admin_user"
+
+        linux_configuration = Mock()
+        self.vm_service._prepare_linux_configuration = Mock(return_value=linux_configuration)
+
+        # Act
+        os_profile = self.vm_service._prepare_os_profile(vm_credentials=vm_credentials, computer_name=computer_name)
+
+        # Assert
+        self.vm_service._prepare_linux_configuration.assert_called_once_with(vm_credentials.ssh_key)
+        self.assertEquals(os_profile.admin_username, vm_credentials.admin_username)
+        self.assertEquals(os_profile.admin_password, vm_credentials.admin_password)
+        self.assertEquals(os_profile.linux_configuration, linux_configuration)
+        self.assertEquals(os_profile.computer_name, computer_name)
+
+    def test_prepare_os_profile_no_accesskey(self):
+        # Arrange
+        computer_name = "name"
+        vm_credentials = Mock()
+        vm_credentials.ssh_key = None
+        vm_credentials.admin_username = "admin_user"
+        vm_credentials.admin_username = "pass"
+
+        self.vm_service._prepare_linux_configuration = Mock()
+
+        # Act
+        os_profile = self.vm_service._prepare_os_profile(vm_credentials=vm_credentials, computer_name=computer_name)
+
+        # Assert
+        self.vm_service._prepare_linux_configuration.assert_not_called()
+        self.assertEquals(os_profile.admin_username, vm_credentials.admin_username)
+        self.assertEquals(os_profile.admin_password, vm_credentials.admin_password)
+        self.assertEquals(os_profile.linux_configuration, None)
+        self.assertEquals(os_profile.computer_name, computer_name)

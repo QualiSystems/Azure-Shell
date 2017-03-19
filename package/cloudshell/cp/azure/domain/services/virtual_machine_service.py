@@ -96,9 +96,10 @@ class VirtualMachineService(object):
     def _prepare_os_profile(self, vm_credentials, computer_name):
         """Prepare OS profile object for the VM
 
-        :param vm_credentials: cloudshell.cp.azure.models.vm_credentials.VMCredentials instance
-        :param computer_name: (str) computer name
-        :return: azure.mgmt.compute.models.OSProfile instance
+        :param cloudshell.cp.azure.models.vm_credentials.VMCredentials vm_credentials:
+        :param str computer_name: computer name
+        :return: OSProfile instance
+        :rtype: azure.mgmt.compute.models.OSProfile
         """
         if vm_credentials.ssh_key:
             linux_configuration = self._prepare_linux_configuration(vm_credentials.ssh_key)
@@ -109,16 +110,6 @@ class VirtualMachineService(object):
                          admin_password=vm_credentials.admin_password,
                          linux_configuration=linux_configuration,
                          computer_name=computer_name)
-
-    def _prepare_vhd(self, storage_name, vm_name):
-        """Prepare VHD object for the VM
-
-        :param storage_name: (str) storage account name
-        :param vm_name: (str) VM name
-        :return: azure.mgmt.compute.models.VirtualHardDisk instance
-        """
-        vhd_format = 'https://{}.blob.core.windows.net/vhds/{}.vhd'.format(storage_name, vm_name)
-        return VirtualHardDisk(uri=vhd_format)
 
     def prepare_image_os_type(self, image_os_type):
         """Prepare Image OS Type object for the VM
@@ -165,6 +156,7 @@ class VirtualMachineService(object):
         """
         os_profile = self._prepare_os_profile(vm_credentials=vm_credentials,
                                               computer_name=computer_name)
+
         hardware_profile = HardwareProfile(vm_size=vm_size)
         network_profile = NetworkProfile(network_interfaces=[NetworkInterfaceReference(id=nic_id)])
 
