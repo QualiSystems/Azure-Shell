@@ -147,19 +147,19 @@
         <Rule Name="Setting" />
       </Rules>
     </AttributeInfo>
-    <AttributeInfo Name="Image URN"  DefaultValue="" Description="URL of the image disk file in the storage container blob. For example: https://xxxxxxxxxxxxxx.blob.core.windows.net/system/Microsoft.Compute/Images/vhds/MyVHDNamePrefix-osDisk.vhd Note: The image file must reside in a blob of type Page blob." IsReadOnly="false" Type="String">
-      <Rules>
-        <Rule Name="Configuration" />
-        <Rule Name="Setting" />
-      </Rules>
-    </AttributeInfo>
-    <AttributeInfo Name="Image OS Type"  DefaultValue="" Description="Operating system type to be installed on the VM. (Linux or Windows)" IsReadOnly="false" Type="String">
-      <Rules>
-        <Rule Name="Configuration" />
-        <Rule Name="Setting" />
-      </Rules>
-    </AttributeInfo>
     <AttributeInfo Name="Image Version" DefaultValue="latest" Description="" IsReadOnly="false" Type="String">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo Name="Azure Image" DefaultValue="" Description="Name of the custom image to be used to create a VM." IsReadOnly="false" Type="String">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo Name="Azure Resource Group" DefaultValue="" Description="Name of the Azure resource group that the image belongs to." IsReadOnly="false" Type="String">
       <Rules>
         <Rule Name="Configuration" />
         <Rule Name="Setting" />
@@ -319,10 +319,10 @@
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Inbound Ports" UserInput="true">
               <AllowedValues />
             </AttachedAttribute>
-            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Image URN" UserInput="true">
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Azure Image" UserInput="true">
               <AllowedValues />
             </AttachedAttribute>
-            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Image OS Type" UserInput="true">
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Azure Resource Group" UserInput="true">
               <AllowedValues>
                 <AllowedValue>Linux</AllowedValue>
                 <AllowedValue>Windows</AllowedValue>
@@ -331,7 +331,6 @@
           </AttachedAttributes>
           <AttributeValues>
             <AttributeValue Name="Public IP Type" Value="Dynamic" />
-            <AttributeValue Name="Image OS Type" Value="Linux" />
           </AttributeValues>
           <ParentModels />
           <Drivers>

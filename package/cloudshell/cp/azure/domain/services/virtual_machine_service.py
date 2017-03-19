@@ -136,7 +136,6 @@ class VirtualMachineService(object):
                                     compute_management_client,
                                     image_name,
                                     image_resource_group,
-                                    disk_size,
                                     vm_credentials,
                                     computer_name,
                                     group_name,
@@ -170,9 +169,8 @@ class VirtualMachineService(object):
         network_profile = NetworkProfile(network_interfaces=[NetworkInterfaceReference(id=nic_id)])
 
         os_disk = OSDisk(create_option=DiskCreateOptionTypes.from_image,
-                         disk_size_gb=disk_size,
                          managed_disk=ManagedDiskParameters(
-                                 storage_account_type=StorageAccountTypes.premium_lrs))
+                                 storage_account_type=StorageAccountTypes.standard_lrs))
 
         image = compute_management_client.images.get(resource_group_name=image_resource_group, image_name=image_name)
         storage_profile = StorageProfile(

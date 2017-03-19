@@ -50,9 +50,8 @@ class ResourceContextConverter(object):
         """
         deployed_resource = DeployAzureVMFromCustomImageResourceModel()
         self._set_base_deploy_azure_vm_model_params(deployed_resource=deployed_resource, resource=resource)
-        deployed_resource.image_name = resource.attributes['Azure Image Name']
-        deployed_resource.image_resource_group = resource.attributes['Azure Image Group']
-        deployed_resource.disk_size = resource.attributes['Azure Disk Size']
+        deployed_resource.image_name = resource.attributes['Azure Image']
+        deployed_resource.image_resource_group = resource.attributes['Azure Resource Group']
 
         return deployed_resource
 

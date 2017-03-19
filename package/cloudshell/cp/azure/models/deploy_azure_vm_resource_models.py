@@ -30,4 +30,3 @@ class DeployAzureVMFromCustomImageResourceModel(BaseDeployAzureVMResourceModel):
         super(DeployAzureVMFromCustomImageResourceModel, self).__init__()
         self.image_name = ""
         self.image_resource_group = ""
-        self.disk_size = 0

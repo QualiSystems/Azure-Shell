@@ -259,7 +259,6 @@ class DeployAzureVMOperation(object):
             compute_management_client=compute_client,
             image_name=deployment_model.image_name,
             image_resource_group=deployment_model.image_resource_group,
-            disk_size=deployment_model.disk_size,
             vm_credentials=data.vm_credentials,
             computer_name=data.computer_name,
             group_name=data.group_name,
