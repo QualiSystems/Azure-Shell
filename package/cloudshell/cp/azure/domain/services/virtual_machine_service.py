@@ -127,6 +127,7 @@ class VirtualMachineService(object):
                                     compute_management_client,
                                     image_name,
                                     image_resource_group,
+                                    disk_type,
                                     vm_credentials,
                                     computer_name,
                                     group_name,
@@ -143,7 +144,7 @@ class VirtualMachineService(object):
         :param azure.mgmt.compute.ComputeManagementClient compute_management_client: instance
         :param str image_name: Azure custom image name
         :param str image_resource_group: Azure resource group
-        :param int disk_size:
+        :param str disk_type: Disk type (HDD/SDD)
         :param cloudshell.cp.azure.models.vm_credentials.VMCredentials vm_credentials:
         :param str computer_name: computer name
         :param str group_name: Azure resource group name (reservation id)
@@ -160,13 +161,9 @@ class VirtualMachineService(object):
         hardware_profile = HardwareProfile(vm_size=vm_size)
         network_profile = NetworkProfile(network_interfaces=[NetworkInterfaceReference(id=nic_id)])
 
-        os_disk = OSDisk(create_option=DiskCreateOptionTypes.from_image,
-                         managed_disk=ManagedDiskParameters(
-                                 storage_account_type=StorageAccountTypes.standard_lrs))
-
         image = compute_management_client.images.get(resource_group_name=image_resource_group, image_name=image_name)
         storage_profile = StorageProfile(
-                os_disk=os_disk,
+                os_disk=self._prepare_os_disk(disk_type),
                 image_reference=ImageReference(id=image.id))
 
         return self._create_vm(
@@ -181,18 +178,32 @@ class VirtualMachineService(object):
                 cancellation_context=cancellation_context,
                 tags=tags)
 
+    def _get_storage_type(self, disk_type):
+        """
+        Converts disk_type string value (HDD/SSD) to the azure storage type
+        :param str disk_type:
+        :return:
+        :rtype: StorageAccountTypes
+        """
+        disk_type = disk_type.upper().strip()
+        if disk_type == "HDD":
+            return StorageAccountTypes.standard_lrs
+        if disk_type == "SSD":
+            return StorageAccountTypes.premium_lrs
+        return None  # return None so that default azure api value will be used
+
     def create_vm_from_marketplace(self,
                                    compute_management_client,
                                    image_offer,
                                    image_publisher,
                                    image_sku,
                                    image_version,
+                                   disk_type,
                                    vm_credentials,
                                    computer_name,
                                    group_name,
                                    nic_id,
                                    region,
-                                   storage_name,
                                    vm_name,
                                    tags,
                                    vm_size,
@@ -206,12 +217,12 @@ class VirtualMachineService(object):
         :param image_publisher: (str) image publisher
         :param image_sku: (str) image SKU
         :param image_version: (str) image version
+        :param str disk_type: Disk type (HDD/SDD)
         :param vm_credentials: cloudshell.cp.azure.models.vm_credentials.VMCredentials instance
         :param computer_name: computer name
         :param group_name: Azure resource group name (reservation id)
         :param nic_id: Azure network id
         :param region: Azure region
-        :param storage_name: Azure storage name
         :param vm_name: name for VM
         :param tags: Azure tags
         :param purchase_plan: PurchasePlan
@@ -225,8 +236,8 @@ class VirtualMachineService(object):
 
         network_profile = NetworkProfile(network_interfaces=[NetworkInterfaceReference(id=nic_id)])
 
-        # os_disk - this is optional now and when its not used a Managed Disk will be created
         storage_profile = StorageProfile(
+                os_disk=self._prepare_os_disk(disk_type),
                 image_reference=ImageReference(publisher=image_publisher,
                                                offer=image_offer,
                                                sku=image_sku,
@@ -248,6 +259,17 @@ class VirtualMachineService(object):
                 cancellation_context=cancellation_context,
                 tags=tags,
                 vm_plan=vm_plan)
+
+    def _prepare_os_disk(self, disk_type):
+        """
+        :param str disk_type:
+        :return:
+        :rtype: OSDisk
+        """
+        return \
+            OSDisk(create_option=DiskCreateOptionTypes.from_image,
+                   managed_disk=ManagedDiskParameters(
+                           storage_account_type=self._get_storage_type(disk_type)))
 
     @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def create_resource_group(self, resource_management_client, group_name, region, tags):

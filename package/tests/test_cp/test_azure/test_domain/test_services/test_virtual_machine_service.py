@@ -75,6 +75,7 @@ class TestVirtualMachineService(TestCase):
         image_sku = MagicMock()
         image_offer = MagicMock()
         image_publisher = MagicMock()
+        disk_type = Mock()
 
         plan = Plan(name=image_sku, publisher=image_publisher, product=image_offer)
 
@@ -84,12 +85,12 @@ class TestVirtualMachineService(TestCase):
                                                    image_publisher=image_publisher,
                                                    image_sku=image_sku,
                                                    image_version=MagicMock(),
+                                                   disk_type=disk_type,
                                                    vm_credentials=MagicMock(),
                                                    computer_name=MagicMock(),
                                                    group_name=group_name,
                                                    nic_id=MagicMock(),
                                                    region=region,
-                                                   storage_name=MagicMock(),
                                                    vm_name=vm_name,
                                                    tags=tags,
                                                    vm_size=MagicMock(),
@@ -109,16 +110,55 @@ class TestVirtualMachineService(TestCase):
                                                            vm_plan=plan,
                                                            cancellation_context=cancellation_context)
 
+    def test_get_storage_type_premium(self):
+        # Arrange
+        disk_type = "SSD"
+
+        # Act
+        storage_type = self.vm_service._get_storage_type(disk_type=disk_type)
+
+        # Assert
+        self.assertEquals(storage_type, StorageAccountTypes.premium_lrs)
+
+    def test_get_storage_type_standard(self):
+        # Arrange
+        disk_type = "HDD"
+
+        # Act
+        storage_type = self.vm_service._get_storage_type(disk_type=disk_type)
+
+        # Assert
+        self.assertEquals(storage_type, StorageAccountTypes.standard_lrs)
+
+
+    @patch("cloudshell.cp.azure.domain.services.virtual_machine_service.OSDisk")
+    @patch("cloudshell.cp.azure.domain.services.virtual_machine_service.ManagedDiskParameters")
+    def test_prepare_os_disk(self, managed_disk_parameters_class, os_disk_class):
+        # Arrange
+        disk_type = "SSD"
+        managed_disk_parameters = Mock()
+        managed_disk_parameters_class.return_value = managed_disk_parameters
+        os_disk = Mock()
+        os_disk_class.return_value = os_disk
+        storage_type = Mock()
+        self.vm_service._get_storage_type = Mock(return_value=storage_type)
+
+        # Act
+        os_disk = self.vm_service._prepare_os_disk(disk_type=disk_type)
+
+        # Assert
+        self.vm_service._get_storage_type.assert_called_once_with(disk_type)
+        managed_disk_parameters_class.assert_called_once_with(storage_account_type=storage_type)
+        os_disk_class.assert_called_once_with(create_option=DiskCreateOptionTypes.from_image,
+                                              managed_disk=managed_disk_parameters)
+
     @patch("cloudshell.cp.azure.domain.services.virtual_machine_service.NetworkInterfaceReference")
     @patch("cloudshell.cp.azure.domain.services.virtual_machine_service.ImageReference")
-    @patch("cloudshell.cp.azure.domain.services.virtual_machine_service.ManagedDiskParameters")
-    @patch("cloudshell.cp.azure.domain.services.virtual_machine_service.OSDisk")
     @patch("cloudshell.cp.azure.domain.services.virtual_machine_service.StorageProfile")
     @patch("cloudshell.cp.azure.domain.services.virtual_machine_service.NetworkProfile")
     @patch("cloudshell.cp.azure.domain.services.virtual_machine_service.HardwareProfile")
     def test_create_vm_from_custom_image(self, hardware_profile_class, network_profile_class, storage_profile_class,
-                                         os_disk_class, managed_disk_parameters_class, image_reference_class,
-                                         network_interface_class):
+                                         image_reference_class, network_interface_class):
         """Check that method will prepare all required parameters and call _create_vm method"""
         image_mock = Mock()
         image_mock.id = "id"
@@ -133,11 +173,14 @@ class TestVirtualMachineService(TestCase):
         nic_id = "nic_id"
         vm_size = "vm_size"
         tags = MagicMock()
+        disk_type = "SSD"
         cancellation_context = MagicMock()
 
         os_profile = MagicMock()
+        os_disk = Mock()
         self.vm_service._create_vm = MagicMock()
-        self.vm_service._prepare_os_profile = MagicMock(return_value=os_profile)
+        self.vm_service._prepare_os_profile = Mock(return_value=os_profile)
+        self.vm_service._prepare_os_disk = Mock(return_value=os_disk)
 
         network_profile = Mock()
         network_profile_class.return_value = network_profile
@@ -145,10 +188,6 @@ class TestVirtualMachineService(TestCase):
         hardware_profile_class.return_value = hardware_profile
         storage_profile = Mock()
         storage_profile_class.return_value = storage_profile
-        os_disk = Mock()
-        os_disk_class.return_value = os_disk
-        managed_disk_parameters = Mock()
-        managed_disk_parameters_class.return_value = managed_disk_parameters
         image_reference = Mock()
         image_reference_class.return_value = image_reference
         network_interface = Mock()
@@ -158,6 +197,7 @@ class TestVirtualMachineService(TestCase):
         self.vm_service.create_vm_from_custom_image(compute_management_client=compute_management_client,
                                                     image_name=image_name,
                                                     image_resource_group=image_resource_group,
+                                                    disk_type=disk_type,
                                                     vm_credentials=MagicMock(),
                                                     computer_name=MagicMock(),
                                                     group_name=group_name,
@@ -175,9 +215,7 @@ class TestVirtualMachineService(TestCase):
         compute_management_client.images.get.assert_called_once_with(resource_group_name=image_resource_group,
                                                                      image_name=image_name)
         image_reference_class.assert_called_once_with(id=image_mock.id)
-        managed_disk_parameters_class.assert_called_once_with(storage_account_type=StorageAccountTypes.standard_lrs)
-        os_disk_class.assert_called_once_with(create_option=DiskCreateOptionTypes.from_image,
-                                              managed_disk=managed_disk_parameters)
+        self.vm_service._prepare_os_disk.assert_called_once_with(disk_type)
         storage_profile_class.assert_called_once_with(
                 os_disk=os_disk,
                 image_reference=image_reference)
