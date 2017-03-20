@@ -165,7 +165,7 @@
         <Rule Name="Setting" />
       </Rules>
     </AttributeInfo>
-    <AttributeInfo Name="Disk Type" DefaultValue="" Description="" IsReadOnly="false" Type="String">
+    <AttributeInfo Name="Disk Type" DefaultValue="" Description="Type of disk to use (HDD / SSD). Default is HDD" IsReadOnly="false" Type="String">
       <Rules>
         <Rule Name="Configuration" />
         <Rule Name="Setting" />
