@@ -165,6 +165,12 @@
         <Rule Name="Setting" />
       </Rules>
     </AttributeInfo>
+    <AttributeInfo Name="Disk Type" DefaultValue="" Description="" IsReadOnly="false" Type="String">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
   </Attributes>
   <ResourceFamilies>
     <ResourceFamily Description="" IsAdminOnly="true" IsSearchable="true" Name="Cloud Provider">
@@ -281,9 +287,16 @@
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Image Version" UserInput="false">
               <AllowedValues />
             </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Disk Type" UserInput="true">
+              <AllowedValues>
+                <AllowedValue>HDD</AllowedValue>
+                <AllowedValue>SSD</AllowedValue>
+              </AllowedValues>
+            </AttachedAttribute>
           </AttachedAttributes>
           <AttributeValues>
             <AttributeValue Name="Public IP Type" Value="Dynamic" />
+            <AttributeValue Name="Disk Type" Value="HDD" />
           </AttributeValues>
           <ParentModels />
           <Drivers>
@@ -325,9 +338,16 @@
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Azure Resource Group" UserInput="true">
               <AllowedValues />
             </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Disk Type" UserInput="true">
+              <AllowedValues>
+                <AllowedValue>HDD</AllowedValue>
+                <AllowedValue>SSD</AllowedValue>
+              </AllowedValues>
+            </AttachedAttribute>
           </AttachedAttributes>
           <AttributeValues>
             <AttributeValue Name="Public IP Type" Value="Dynamic" />
+            <AttributeValue Name="Disk Type" Value="HDD" />
           </AttributeValues>
           <ParentModels />
           <Drivers>

@@ -14,6 +14,7 @@ class BaseDeployAzureVMResourceModel(object):
         self.extension_script_file = ''
         self.extension_script_configurations = ''
         self.extension_script_timeout = 0  # type: int
+        self.disk_type = ''  # type: str
 
 
 class DeployAzureVMResourceModel(BaseDeployAzureVMResourceModel):
