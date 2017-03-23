@@ -12,8 +12,10 @@ class TestVirtualMachineService(TestCase):
     def setUp(self):
         self.vm_service = VirtualMachineService(MagicMock())
 
+    @patch("cloudshell.cp.azure.domain.services.virtual_machine_service.BootDiagnostics")
+    @patch("cloudshell.cp.azure.domain.services.virtual_machine_service.DiagnosticsProfile")
     @patch("cloudshell.cp.azure.domain.services.virtual_machine_service.VirtualMachine")
-    def test__create_vm(self, virtual_machine_class):
+    def test__create_vm(self, virtual_machine_class, diagnostics_profile_class, boot_diag_class):
         """Check that method will create VirtualMachine instance and execute create_or_update request"""
         compute_management_client = MagicMock()
         region = "test_region"
@@ -28,6 +30,10 @@ class TestVirtualMachineService(TestCase):
         virtual_machine_class.return_value = vm
         plan = MagicMock()
         cancellation_context = MagicMock()
+        boot_diag = MagicMock()
+        boot_diag_class.return_value = boot_diag
+        diagnostics_profile = MagicMock()
+        diagnostics_profile_class.return_value = diagnostics_profile
 
         # Act
         self.vm_service._create_vm(compute_management_client=compute_management_client,
@@ -43,13 +49,15 @@ class TestVirtualMachineService(TestCase):
                                    vm_plan=plan)
 
         # Verify
+        boot_diag_class.assert_called_once_with(enabled=False)
         compute_management_client.virtual_machines.create_or_update.assert_called_with(group_name, vm_name, vm)
-        virtual_machine_class.assert_called_once_with(hardware_profile=hardware_profile,
-                                                      location=region,
+        virtual_machine_class.assert_called_once_with(location=region,
+                                                      tags=tags,
+                                                      hardware_profile=hardware_profile,
                                                       network_profile=network_profile,
                                                       os_profile=os_profile,
                                                       storage_profile=storage_profile,
-                                                      tags=tags,
+                                                      diagnostics_profile=diagnostics_profile,
                                                       plan=plan)
 
     @patch("cloudshell.cp.azure.domain.services.virtual_machine_service.StorageProfile")

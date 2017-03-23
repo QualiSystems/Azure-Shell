@@ -1,6 +1,7 @@
 from azure.mgmt.compute.models import OSProfile, HardwareProfile, NetworkProfile, \
     NetworkInterfaceReference, CachingTypes, DiskCreateOptionTypes, VirtualHardDisk, ImageReference, OSDisk, \
-    VirtualMachine, StorageProfile, Plan, DataDisk, ManagedDiskParameters, StorageAccountTypes
+    VirtualMachine, StorageProfile, Plan, DataDisk, ManagedDiskParameters, StorageAccountTypes, DiagnosticsProfile, \
+    BootDiagnostics
 from azure.mgmt.compute.models.linux_configuration import LinuxConfiguration
 from azure.mgmt.compute.models.ssh_configuration import SshConfiguration
 from azure.mgmt.resource.resources.models import ResourceGroup
@@ -85,6 +86,8 @@ class VirtualMachineService(object):
                                          hardware_profile=hardware_profile,
                                          network_profile=network_profile,
                                          storage_profile=storage_profile,
+                                         diagnostics_profile=DiagnosticsProfile(
+                                             boot_diagnostics=BootDiagnostics(enabled=False)),
                                          plan=vm_plan)
 
         operation_poller = compute_management_client.virtual_machines.create_or_update(group_name, vm_name,
