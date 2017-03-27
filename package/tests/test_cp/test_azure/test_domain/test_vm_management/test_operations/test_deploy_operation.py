@@ -392,7 +392,7 @@ class TestDeployAzureVMOperation(TestCase):
                 vm_name=data.vm_name,
                 tags=data.tags,
                 vm_size=data.vm_size,
-                purchase_plan=data.purchase_plan,
+                purchase_plan=data.image_model.purchase_plan,
                 cancellation_context=cancellation_context)
 
     def test_deploy_vm_generic_delete_all_resources_on_error(self):
@@ -673,8 +673,7 @@ class TestDeployAzureVMOperation(TestCase):
         self.deploy_operation.tags_service.get_tags()
         self.assertEquals(data.reservation_id, reservation_id)
         self.assertEquals(data.group_name, reservation_id)
-        self.assertEquals(data.os_type, image_data_model.os_type)
-        self.assertEquals(data.purchase_plan, image_data_model.purchase_plan)
+        self.assertEquals(data.image_model, image_data_model)
         self.name_provider_service.normalize_name.assert_called_once_with(deployment_model.app_name)
         self.assertEquals(data.app_name, "cool-app")
         self.assertEquals(data.interface_name, "random_name")
@@ -734,7 +733,7 @@ class TestDeployAzureVMOperation(TestCase):
                 cancellation_context=cancellation_context,
                 logger=logger)
         self.deploy_operation.vm_credentials_service.prepare_credentials.assert_called_once_with(
-                os_type=data.os_type,
+                os_type=data.image_model.os_type,
                 username=deployment_model.username,
                 password=deployment_model.password,
                 storage_service=self.storage_service,
@@ -797,7 +796,7 @@ class TestDeployAzureVMOperation(TestCase):
                 location=cloud_provider_model.region,
                 group_name=data.group_name,
                 vm_name=data.vm_name,
-                image_os_type=data.os_type,
+                image_os_type=data.image_model.os_type,
                 script_file=deployment_model.extension_script_file,
                 script_configurations=deployment_model.extension_script_configurations,
                 tags=data.tags,
