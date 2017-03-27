@@ -10,6 +10,7 @@ from azure.mgmt.network.models import Subnet, NetworkInterface
 from azure.mgmt.compute.models import OperatingSystemTypes, PurchasePlan
 from cloudshell.shell.core.driver_context import CancellationContext
 from cloudshell.cp.azure.models.vm_credentials import VMCredentials
+from cloudshell.cp.azure.models.image_data import ImageDataModelBase
 from cloudshell.api.cloudshell_api import CloudShellAPISession
 
 
@@ -298,7 +299,7 @@ class DeployAzureVMOperation(object):
             vm_name=data.vm_name,
             tags=data.tags,
             vm_size=data.vm_size,
-            purchase_plan=data.purchase_plan,
+            purchase_plan=data.image_model.purchase_plan,  # type should be MarketplaceImageDataModel
             cancellation_context=cancellation_context)
 
     def _process_nsg_rules(self, network_client, group_name, azure_vm_deployment_model, nic,
@@ -475,7 +476,7 @@ class DeployAzureVMOperation(object):
                 location=cloud_provider_model.region,
                 group_name=data.group_name,
                 vm_name=data.vm_name,
-                image_os_type=data.os_type,
+                image_os_type=data.image_model.os_type,
                 script_file=deployment_model.extension_script_file,
                 script_configurations=deployment_model.extension_script_configurations,
                 tags=data.tags,
@@ -541,7 +542,7 @@ class DeployAzureVMOperation(object):
         # 3. Prepare credentials for VM
         logger.info("Prepare credentials for the VM {}".format(data.vm_name))
         data.vm_credentials = self.vm_credentials_service.prepare_credentials(
-            os_type=data.os_type,
+            os_type=data.image_model.os_type,
             username=deployment_model.username,
             password=deployment_model.password,
             storage_service=self.storage_service,
@@ -614,8 +615,7 @@ class DeployAzureVMOperation(object):
 
         data.reservation_id = str(reservation.reservation_id)
         data.group_name = str(reservation.reservation_id)
-        data.os_type = image_data_model.os_type
-        data.purchase_plan = image_data_model.purchase_plan
+        data.image_model = image_data_model
 
         # normalize the app name to a valid Azure vm name
         data.app_name = self.name_provider_service.normalize_name(deployment_model.app_name)
@@ -629,7 +629,7 @@ class DeployAzureVMOperation(object):
         data.vm_name = unique_resource_name
         data.computer_name = self._prepare_computer_name(name=data.app_name,
                                                          postfix=resource_postfix,
-                                                         os_type=data.os_type)
+                                                         os_type=data.image_model.os_type)
 
         data.vm_size = self._prepare_vm_size(azure_vm_deployment_model=deployment_model,
                                              cloud_provider_model=cloud_provider_model)
@@ -662,8 +662,8 @@ class DeployAzureVMOperation(object):
             self.subnet = None  # type: Subnet
             self.storage_account_name = ''  # type: str
             self.tags = {}  # type: dict
+            self.image_model = None  # type: ImageDataModelBase
             self.os_type = ''  # type: OperatingSystemTypes
-            self.purchase_plan = None  # type: PurchasePlan
             self.nic = None  # type: NetworkInterface
             self.vm_credentials = None  # type: VMCredentials
             self.private_ip_address = ''  # type: str
