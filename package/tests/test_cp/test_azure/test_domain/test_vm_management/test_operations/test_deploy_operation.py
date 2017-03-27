@@ -191,7 +191,6 @@ class TestDeployAzureVMOperation(TestCase):
                 cloud_provider_model=cloud_provider_model,
                 data=updated_data,
                 compute_client=compute_client,
-                storage_client=storage_client,
                 cancellation_context=cancellation_context,
                 logger=logger)
         self.deploy_operation._create_vm_custom_script_extension.assert_called_once_with(
@@ -319,7 +318,6 @@ class TestDeployAzureVMOperation(TestCase):
         cloud_provider_model = MagicMock()
         logger = MagicMock()
         compute_client = Mock()
-        storage_client = Mock()
         cancellation_context = MagicMock()
         data = Mock()
         data.group_name = "group"
@@ -329,7 +327,6 @@ class TestDeployAzureVMOperation(TestCase):
         # Act
         self.deploy_operation._create_vm_custom_image_action(
                 compute_client=compute_client,
-                storage_client=storage_client,
                 deployment_model=azure_vm_deployment_model,
                 cloud_provider_model=cloud_provider_model,
                 data=data,
@@ -361,7 +358,6 @@ class TestDeployAzureVMOperation(TestCase):
         cloud_provider_model = MagicMock()
         logger = MagicMock()
         compute_client = Mock()
-        storage_client = Mock()
         cancellation_context = MagicMock()
         data = Mock()
         self.vm_service.create_vm_from_marketplace = Mock()
@@ -369,7 +365,6 @@ class TestDeployAzureVMOperation(TestCase):
         # Act
         self.deploy_operation._create_vm_marketplace_action(
                 compute_client=compute_client,
-                storage_client=storage_client,
                 deployment_model=azure_vm_deployment_model,
                 cloud_provider_model=cloud_provider_model,
                 data=data,
