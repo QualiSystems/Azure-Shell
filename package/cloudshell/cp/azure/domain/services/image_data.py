@@ -1,7 +1,7 @@
 from cloudshell.cp.azure.domain.services.virtual_machine_service import VirtualMachineService
 from cloudshell.cp.azure.models.deploy_azure_vm_resource_models import \
     DeployAzureVMFromCustomImageResourceModel, BaseDeployAzureVMResourceModel, DeployAzureVMResourceModel
-from cloudshell.cp.azure.models.image_data import ImageDataModel
+from cloudshell.cp.azure.models.image_data import *
 
 
 class ImageDataFactory(object):
@@ -19,10 +19,12 @@ class ImageDataFactory(object):
         :param azure.mgmt.compute.compute_management_client.ComputeManagementClient compute_client:
         :param logging.Logger logger:
         :return:
-        :rtype: ImageDataModel
+        :rtype: ImageDataModelBase
         """
         if isinstance(deployment_model, DeployAzureVMFromCustomImageResourceModel):
-            return self._get_custom_image_data(deployment_model=deployment_model, logger=logger)
+            return self._get_custom_image_data(deployment_model=deployment_model,
+                                               compute_client=compute_client,
+                                               logger=logger)
 
         elif isinstance(deployment_model, DeployAzureVMResourceModel):
             return self._get_marketplace_image_data(deployment_model=deployment_model,
@@ -32,15 +34,17 @@ class ImageDataFactory(object):
 
         raise Exception("Unsupported deployment_model type")
 
-    def _get_custom_image_data(self, deployment_model, logger):
+    def _get_custom_image_data(self, deployment_model, compute_client, logger):
         """
         :param DeployAzureVMFromCustomImageResourceModel deployment_model:
+        :param azure.mgmt.compute.compute_management_client.ComputeManagementClient compute_client:
         :param logging.Logger logger:
         :return:
-        :rtype: ImageDataModel
+        :rtype: CustomImageDataModel
         """
-        # Image data for custom image is redundant with managed disks
-        return ImageDataModel(None, None)
+        image = compute_client.images.get(resource_group_name=deployment_model.image_resource_group,
+                                          image_name=deployment_model.image_name)
+        return CustomImageDataModel(image_id=image.id, os_type=image.storage_profile.os_disk.os_type)
 
     def _get_marketplace_image_data(self, deployment_model, cloud_provider_model, compute_client, logger):
         """
@@ -49,7 +53,7 @@ class ImageDataFactory(object):
         :param azure.mgmt.compute.compute_management_client.ComputeManagementClient compute_client:
         :param logging.Logger logger:
         :return:
-        :rtype: ImageDataModel
+        :rtype: MarketplaceImageDataModel
         """
         logger.info("Retrieving operation system type for the VM Image {}:{}:{}".format(
                 deployment_model.image_publisher,
@@ -67,5 +71,4 @@ class ImageDataFactory(object):
 
         logger.info("Operation system type for the VM is {}".format(os_type))
 
-        return ImageDataModel(os_type, virtual_machine_image.plan)
-
+        return MarketplaceImageDataModel(os_type, virtual_machine_image.plan)

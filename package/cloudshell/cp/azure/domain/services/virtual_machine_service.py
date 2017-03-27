@@ -1,13 +1,12 @@
 from azure.mgmt.compute.models import OSProfile, HardwareProfile, NetworkProfile, \
-    NetworkInterfaceReference, CachingTypes, DiskCreateOptionTypes, VirtualHardDisk, ImageReference, OSDisk, \
-    VirtualMachine, StorageProfile, Plan, DataDisk, ManagedDiskParameters, StorageAccountTypes, DiagnosticsProfile, \
+    NetworkInterfaceReference, DiskCreateOptionTypes, ImageReference, OSDisk, \
+    VirtualMachine, StorageProfile, Plan, ManagedDiskParameters, StorageAccountTypes, DiagnosticsProfile, \
     BootDiagnostics
+from azure.mgmt.compute.models import OperatingSystemTypes, VirtualMachineImage
 from azure.mgmt.compute.models.linux_configuration import LinuxConfiguration
 from azure.mgmt.compute.models.ssh_configuration import SshConfiguration
-from azure.mgmt.resource.resources.models import ResourceGroup
 from azure.mgmt.compute.models.ssh_public_key import SshPublicKey
-from azure.mgmt.compute.models import OperatingSystemTypes, VirtualMachineImage
-from msrestazure.azure_exceptions import CloudError
+from azure.mgmt.resource.resources.models import ResourceGroup
 from retrying import retry
 
 from cloudshell.cp.azure.common.helpers.retrying_helpers import retry_if_connection_error
