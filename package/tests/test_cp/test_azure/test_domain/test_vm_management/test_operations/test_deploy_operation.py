@@ -191,7 +191,6 @@ class TestDeployAzureVMOperation(TestCase):
                 cloud_provider_model=cloud_provider_model,
                 data=updated_data,
                 compute_client=compute_client,
-                storage_client=storage_client,
                 cancellation_context=cancellation_context,
                 logger=logger)
         self.deploy_operation._create_vm_custom_script_extension.assert_called_once_with(
@@ -313,26 +312,21 @@ class TestDeployAzureVMOperation(TestCase):
         """Check deploy from custom Image operation"""
         # Arrange
         azure_vm_deployment_model = MagicMock()
+        azure_vm_deployment_model.image_name = "some_image"
+        azure_vm_deployment_model.image_resource_group = "image_group"
+
         cloud_provider_model = MagicMock()
         logger = MagicMock()
         compute_client = Mock()
-        storage_client = Mock()
         cancellation_context = MagicMock()
         data = Mock()
         data.group_name = "group"
-        data.storage_account_name = "storage_account"
 
-        image_urn = "image_urn"
-        self.storage_service.copy_blob = Mock(return_value=image_urn)
-        blob_url = Mock()
-        blob_url.container_name = "container"
-        self.storage_service.parse_blob_url = Mock(return_value=blob_url)
         self.vm_service.create_vm_from_custom_image = Mock()
 
         # Act
         self.deploy_operation._create_vm_custom_image_action(
                 compute_client=compute_client,
-                storage_client=storage_client,
                 deployment_model=azure_vm_deployment_model,
                 cloud_provider_model=cloud_provider_model,
                 data=data,
@@ -340,29 +334,18 @@ class TestDeployAzureVMOperation(TestCase):
                 logger=logger)
 
         # Verify
-        self.storage_service.copy_blob.assert_called_once_with(
-                storage_client=storage_client,
-                group_name_copy_to=data.group_name,
-                storage_name_copy_to=data.storage_account_name,
-                container_name_copy_to="customimages-container",
-                blob_name_copy_to=blob_url.blob_name,
-                source_copy_from=azure_vm_deployment_model.image_urn,
-                group_name_copy_from=cloud_provider_model.management_group_name,
-                cancellation_context=cancellation_context,
-                logger=logger)
-        self.storage_service.parse_blob_url.assert_called_once_with(azure_vm_deployment_model.image_urn)
         self.cancellation_service.check_if_cancelled.assert_called_with(cancellation_context)
-        self.assertEquals(self.cancellation_service.check_if_cancelled.call_count, 2)
+        self.cancellation_service.check_if_cancelled.assert_called()
         self.vm_service.create_vm_from_custom_image.assert_called_once_with(
                 compute_management_client=compute_client,
-                image_urn=image_urn,
-                image_os_type=data.os_type,
+                image_name=azure_vm_deployment_model.image_name,
+                image_resource_group=azure_vm_deployment_model.image_resource_group,
+                disk_type=azure_vm_deployment_model.disk_type,
                 vm_credentials=data.vm_credentials,
                 computer_name=data.computer_name,
                 group_name=data.group_name,
                 nic_id=data.nic.id,
                 region=cloud_provider_model.region,
-                storage_name=data.storage_account_name,
                 vm_name=data.vm_name,
                 tags=data.tags,
                 vm_size=data.vm_size,
@@ -375,7 +358,6 @@ class TestDeployAzureVMOperation(TestCase):
         cloud_provider_model = MagicMock()
         logger = MagicMock()
         compute_client = Mock()
-        storage_client = Mock()
         cancellation_context = MagicMock()
         data = Mock()
         self.vm_service.create_vm_from_marketplace = Mock()
@@ -383,7 +365,6 @@ class TestDeployAzureVMOperation(TestCase):
         # Act
         self.deploy_operation._create_vm_marketplace_action(
                 compute_client=compute_client,
-                storage_client=storage_client,
                 deployment_model=azure_vm_deployment_model,
                 cloud_provider_model=cloud_provider_model,
                 data=data,
@@ -397,16 +378,16 @@ class TestDeployAzureVMOperation(TestCase):
                 image_publisher=azure_vm_deployment_model.image_publisher,
                 image_sku=azure_vm_deployment_model.image_sku,
                 image_version=azure_vm_deployment_model.image_version,
+                disk_type=azure_vm_deployment_model.disk_type,
                 vm_credentials=data.vm_credentials,
                 computer_name=data.computer_name,
                 group_name=data.group_name,
                 nic_id=data.nic.id,
                 region=cloud_provider_model.region,
-                storage_name=data.storage_account_name,
                 vm_name=data.vm_name,
                 tags=data.tags,
                 vm_size=data.vm_size,
-                purchase_plan=data.purchase_plan,
+                purchase_plan=data.image_model.purchase_plan,
                 cancellation_context=cancellation_context)
 
     def test_deploy_vm_generic_delete_all_resources_on_error(self):
@@ -687,8 +668,7 @@ class TestDeployAzureVMOperation(TestCase):
         self.deploy_operation.tags_service.get_tags()
         self.assertEquals(data.reservation_id, reservation_id)
         self.assertEquals(data.group_name, reservation_id)
-        self.assertEquals(data.os_type, image_data_model.os_type)
-        self.assertEquals(data.purchase_plan, image_data_model.purchase_plan)
+        self.assertEquals(data.image_model, image_data_model)
         self.name_provider_service.normalize_name.assert_called_once_with(deployment_model.app_name)
         self.assertEquals(data.app_name, "cool-app")
         self.assertEquals(data.interface_name, "random_name")
@@ -748,7 +728,7 @@ class TestDeployAzureVMOperation(TestCase):
                 cancellation_context=cancellation_context,
                 logger=logger)
         self.deploy_operation.vm_credentials_service.prepare_credentials.assert_called_once_with(
-                os_type=data.os_type,
+                os_type=data.image_model.os_type,
                 username=deployment_model.username,
                 password=deployment_model.password,
                 storage_service=self.storage_service,
@@ -811,7 +791,7 @@ class TestDeployAzureVMOperation(TestCase):
                 location=cloud_provider_model.region,
                 group_name=data.group_name,
                 vm_name=data.vm_name,
-                image_os_type=data.os_type,
+                image_os_type=data.image_model.os_type,
                 script_file=deployment_model.extension_script_file,
                 script_configurations=deployment_model.extension_script_configurations,
                 tags=data.tags,

@@ -39,7 +39,7 @@ class TestImageDataFactory(TestCase):
 
         self.assertEquals(result, expected_result)
         self.image_data_factory._get_custom_image_data.assert_called_once_with(
-                deployment_model=deployment_model, logger=self.logger)
+                deployment_model=deployment_model, compute_client=self.compute_client, logger=self.logger)
         self.image_data_factory._get_marketplace_image_data.assert_not_called()
 
     def test_get_image_data_model_for_marketplace_image(self):
@@ -66,16 +66,17 @@ class TestImageDataFactory(TestCase):
     def test_get_custom_image_data(self):
         # arrange
         deployment_model = Mock()
-        self.vm_service.prepare_image_os_type = Mock(return_value="linux")
+        image_mock = Mock()
+        self.compute_client.images.get = Mock(return_value=image_mock)
 
         # act
         result = self.image_data_factory._get_custom_image_data(deployment_model=deployment_model,
+                                                                compute_client=self.compute_client,
                                                                 logger=self.logger)
 
         # assert
-        self.vm_service.prepare_image_os_type.assert_called_once_with(deployment_model.image_os_type)
-        self.assertEquals(result.os_type, "linux")
-        self.assertEquals(result.purchase_plan, None)
+        self.assertEquals(result.os_type, image_mock.storage_profile.os_disk.os_type)
+        self.assertEquals(result.image_id, image_mock.id)
 
     def test_get_marketplace_image_data(self):
         # arrange

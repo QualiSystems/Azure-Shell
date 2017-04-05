@@ -14,6 +14,7 @@ class BaseDeployAzureVMResourceModel(object):
         self.extension_script_file = ''
         self.extension_script_configurations = ''
         self.extension_script_timeout = 0  # type: int
+        self.disk_type = ''  # type: str
 
 
 class DeployAzureVMResourceModel(BaseDeployAzureVMResourceModel):
@@ -28,5 +29,5 @@ class DeployAzureVMResourceModel(BaseDeployAzureVMResourceModel):
 class DeployAzureVMFromCustomImageResourceModel(BaseDeployAzureVMResourceModel):
     def __init__(self):
         super(DeployAzureVMFromCustomImageResourceModel, self).__init__()
-        self.image_urn = ""
-        self.image_os_type = ""
+        self.image_name = ""
+        self.image_resource_group = ""

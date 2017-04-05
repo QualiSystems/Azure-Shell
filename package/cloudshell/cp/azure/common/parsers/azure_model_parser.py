@@ -36,8 +36,10 @@ class AzureModelsParser(object):
         deployment_resource_model.username = data_holder.ami_params.username
         deployment_resource_model.password = data_holder.ami_params.password
         deployment_resource_model.extension_script_file = data_holder.ami_params.extension_script_file
-        deployment_resource_model.extension_script_configurations = (data_holder.ami_params.extension_script_configurations)
-        deployment_resource_model.extension_script_timeout= (int(data_holder.ami_params.extension_script_timeout))
+        deployment_resource_model.extension_script_configurations = (
+        data_holder.ami_params.extension_script_configurations)
+        deployment_resource_model.extension_script_timeout = (int(data_holder.ami_params.extension_script_timeout))
+        deployment_resource_model.disk_type = data_holder.ami_params.disk_type
 
         if deployment_resource_model.password:
             logger.info('Decrypting Azure VM password...')
@@ -98,14 +100,28 @@ class AzureModelsParser(object):
         data = jsonpickle.decode(deployment_request)
         data_holder = DeployDataHolder(data)
         deployment_resource_model = DeployAzureVMFromCustomImageResourceModel()
-        deployment_resource_model.image_urn = data_holder.ami_params.image_urn
-        deployment_resource_model.image_os_type = data_holder.ami_params.image_os_type
+        deployment_resource_model.image_name = data_holder.ami_params.image_name
+        deployment_resource_model.image_resource_group = data_holder.ami_params.image_resource_group
         AzureModelsParser._set_base_deploy_azure_vm_model_params(deployment_resource_model=deployment_resource_model,
                                                                  data_holder=data_holder,
                                                                  cloudshell_session=cloudshell_session,
                                                                  logger=logger)
 
+        AzureModelsParser.validate_custom_image_model(deployment_resource_model)
+
         return deployment_resource_model
+
+    @staticmethod
+    def validate_custom_image_model(model):
+        """
+        :param DeployAzureVMFromCustomImageResourceModel model:
+        :return:
+        """
+        if not model.image_name:
+            raise ValueError("Azure Image attribute is mandatory and cannot be empty")
+
+        if not model.image_resource_group:
+            raise ValueError("Azure Resource Group attribute is mandatory and cannot be empty")
 
     @staticmethod
     def convert_to_cloud_provider_resource_model(resource, cloudshell_session):
@@ -124,10 +140,10 @@ class AzureModelsParser(object):
         azure_resource_model.management_group_name = resource_context['Management Group Name']
 
         azure_resource_model.networks_in_use = AzureModelsParser._convert_list_attribute(
-            resource_context['Networks In Use'])
+                resource_context['Networks In Use'])
 
         azure_resource_model.additional_mgmt_networks = AzureModelsParser._convert_list_attribute(
-            resource_context['Additional Mgmt Networks'])
+                resource_context['Additional Mgmt Networks'])
 
         encrypted_azure_application_key = resource_context['Azure Application Key']
         azure_application_key = cloudshell_session.DecryptPassword(encrypted_azure_application_key)

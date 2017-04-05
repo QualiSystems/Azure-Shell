@@ -1,12 +1,12 @@
 from azure.mgmt.compute.models import OSProfile, HardwareProfile, NetworkProfile, \
-    NetworkInterfaceReference, CachingTypes, DiskCreateOptionTypes, VirtualHardDisk, ImageReference, OSDisk, \
-    VirtualMachine, StorageProfile, Plan
+    NetworkInterfaceReference, DiskCreateOptionTypes, ImageReference, OSDisk, \
+    VirtualMachine, StorageProfile, Plan, ManagedDiskParameters, StorageAccountTypes, DiagnosticsProfile, \
+    BootDiagnostics
+from azure.mgmt.compute.models import OperatingSystemTypes, VirtualMachineImage
 from azure.mgmt.compute.models.linux_configuration import LinuxConfiguration
 from azure.mgmt.compute.models.ssh_configuration import SshConfiguration
-from azure.mgmt.resource.resources.models import ResourceGroup
 from azure.mgmt.compute.models.ssh_public_key import SshPublicKey
-from azure.mgmt.compute.models import OperatingSystemTypes, VirtualMachineImage
-from msrestazure.azure_exceptions import CloudError
+from azure.mgmt.resource.resources.models import ResourceGroup
 from retrying import retry
 
 from cloudshell.cp.azure.common.helpers.retrying_helpers import retry_if_connection_error
@@ -85,6 +85,8 @@ class VirtualMachineService(object):
                                          hardware_profile=hardware_profile,
                                          network_profile=network_profile,
                                          storage_profile=storage_profile,
+                                         diagnostics_profile=DiagnosticsProfile(
+                                             boot_diagnostics=BootDiagnostics(enabled=False)),
                                          plan=vm_plan)
 
         operation_poller = compute_management_client.virtual_machines.create_or_update(group_name, vm_name,
@@ -96,9 +98,10 @@ class VirtualMachineService(object):
     def _prepare_os_profile(self, vm_credentials, computer_name):
         """Prepare OS profile object for the VM
 
-        :param vm_credentials: cloudshell.cp.azure.models.vm_credentials.VMCredentials instance
-        :param computer_name: (str) computer name
-        :return: azure.mgmt.compute.models.OSProfile instance
+        :param cloudshell.cp.azure.models.vm_credentials.VMCredentials vm_credentials:
+        :param str computer_name: computer name
+        :return: OSProfile instance
+        :rtype: azure.mgmt.compute.models.OSProfile
         """
         if vm_credentials.ssh_key:
             linux_configuration = self._prepare_linux_configuration(vm_credentials.ssh_key)
@@ -109,16 +112,6 @@ class VirtualMachineService(object):
                          admin_password=vm_credentials.admin_password,
                          linux_configuration=linux_configuration,
                          computer_name=computer_name)
-
-    def _prepare_vhd(self, storage_name, vm_name):
-        """Prepare VHD object for the VM
-
-        :param storage_name: (str) storage account name
-        :param vm_name: (str) VM name
-        :return: azure.mgmt.compute.models.VirtualHardDisk instance
-        """
-        vhd_format = 'https://{}.blob.core.windows.net/vhds/{}.vhd'.format(storage_name, vm_name)
-        return VirtualHardDisk(uri=vhd_format)
 
     def prepare_image_os_type(self, image_os_type):
         """Prepare Image OS Type object for the VM
@@ -134,14 +127,14 @@ class VirtualMachineService(object):
 
     def create_vm_from_custom_image(self,
                                     compute_management_client,
-                                    image_urn,
-                                    image_os_type,
+                                    image_name,
+                                    image_resource_group,
+                                    disk_type,
                                     vm_credentials,
                                     computer_name,
                                     group_name,
                                     nic_id,
                                     region,
-                                    storage_name,
                                     vm_name,
                                     tags,
                                     vm_size,
@@ -149,17 +142,17 @@ class VirtualMachineService(object):
         """Create VM from custom image URN
 
         :param cancellation_context:
-        :param vm_size: (str) Azure instance type
-        :param compute_management_client: azure.mgmt.compute.ComputeManagementClient instance
-        :param image_urn: Azure custom image URL
-        :param image_os_type: azure.mgmt.compute.models.OperatingSystemTypes OS type (linux/windows)
-        :param vm_credentials: cloudshell.cp.azure.models.vm_credentials.VMCredentials instance
-        :param computer_name: computer name
-        :param group_name: Azure resource group name (reservation id)
-        :param nic_id: Azure network id
-        :param region: Azure region
-        :param storage_name: Azure storage name
-        :param vm_name: name for VM
+        :param str vm_size: Azure instance type
+        :param azure.mgmt.compute.ComputeManagementClient compute_management_client: instance
+        :param str image_name: Azure custom image name
+        :param str image_resource_group: Azure resource group
+        :param str disk_type: Disk type (HDD/SDD)
+        :param cloudshell.cp.azure.models.vm_credentials.VMCredentials vm_credentials:
+        :param str computer_name: computer name
+        :param str group_name: Azure resource group name (reservation id)
+        :param str nic_id: Azure network id
+        :param str region: Azure region
+        :param str vm_name: name for VM
         :param tags: Azure tags
         :return:
         :rtype: azure.mgmt.compute.models.VirtualMachine
@@ -170,37 +163,36 @@ class VirtualMachineService(object):
         hardware_profile = HardwareProfile(vm_size=vm_size)
         network_profile = NetworkProfile(network_interfaces=[NetworkInterfaceReference(id=nic_id)])
 
-        vhd = self._prepare_vhd(storage_name, vm_name)
-        image = VirtualHardDisk(uri=image_urn)
+        image = compute_management_client.images.get(resource_group_name=image_resource_group, image_name=image_name)
+        storage_profile = StorageProfile(
+                os_disk=self._prepare_os_disk(disk_type),
+                image_reference=ImageReference(id=image.id))
 
-        os_disk = OSDisk(os_type=image_os_type,
-                         caching=CachingTypes.none,
-                         create_option=DiskCreateOptionTypes.from_image,
-                         name=storage_name,
-                         vhd=vhd,
-                         image=image)
+        return self._create_vm(
+                compute_management_client=compute_management_client,
+                region=region,
+                group_name=group_name,
+                vm_name=vm_name,
+                hardware_profile=hardware_profile,
+                network_profile=network_profile,
+                os_profile=os_profile,
+                storage_profile=storage_profile,
+                cancellation_context=cancellation_context,
+                tags=tags)
 
-        storage_profile = StorageProfile(os_disk=os_disk)
-
-        try:
-            return self._create_vm(
-                    compute_management_client=compute_management_client,
-                    region=region,
-                    group_name=group_name,
-                    vm_name=vm_name,
-                    hardware_profile=hardware_profile,
-                    network_profile=network_profile,
-                    os_profile=os_profile,
-                    storage_profile=storage_profile,
-                    cancellation_context=cancellation_context,
-                    tags=tags)
-        except CloudError as exc:
-            error = str(exc)
-            if "OSProvisioningTimedOut".lower() in error.lower():
-                raise Exception(error + "\r\n"
-                                        "You may have a mismatch between the selected 'Image OS Type' and the "
-                                        "operation system provided in the 'Image URN'.")
-            raise
+    def _get_storage_type(self, disk_type):
+        """
+        Converts disk_type string value (HDD/SSD) to the azure storage type
+        :param str disk_type:
+        :return:
+        :rtype: StorageAccountTypes
+        """
+        disk_type = disk_type.upper().strip()
+        if disk_type == "HDD":
+            return StorageAccountTypes.standard_lrs
+        if disk_type == "SSD":
+            return StorageAccountTypes.premium_lrs
+        return None  # return None so that default azure api value will be used
 
     def create_vm_from_marketplace(self,
                                    compute_management_client,
@@ -208,12 +200,12 @@ class VirtualMachineService(object):
                                    image_publisher,
                                    image_sku,
                                    image_version,
+                                   disk_type,
                                    vm_credentials,
                                    computer_name,
                                    group_name,
                                    nic_id,
                                    region,
-                                   storage_name,
                                    vm_name,
                                    tags,
                                    vm_size,
@@ -227,12 +219,12 @@ class VirtualMachineService(object):
         :param image_publisher: (str) image publisher
         :param image_sku: (str) image SKU
         :param image_version: (str) image version
+        :param str disk_type: Disk type (HDD/SDD)
         :param vm_credentials: cloudshell.cp.azure.models.vm_credentials.VMCredentials instance
         :param computer_name: computer name
         :param group_name: Azure resource group name (reservation id)
         :param nic_id: Azure network id
         :param region: Azure region
-        :param storage_name: Azure storage name
         :param vm_name: name for VM
         :param tags: Azure tags
         :param purchase_plan: PurchasePlan
@@ -246,17 +238,12 @@ class VirtualMachineService(object):
 
         network_profile = NetworkProfile(network_interfaces=[NetworkInterfaceReference(id=nic_id)])
 
-        vhd = self._prepare_vhd(storage_name, vm_name)
-
-        os_disk = OSDisk(caching=CachingTypes.none,
-                         create_option=DiskCreateOptionTypes.from_image,
-                         name=storage_name,
-                         vhd=vhd)
-
-        image_reference = ImageReference(publisher=image_publisher, offer=image_offer, sku=image_sku,
-                                         version=image_version)
-
-        storage_profile = StorageProfile(os_disk=os_disk, image_reference=image_reference)
+        storage_profile = StorageProfile(
+                os_disk=self._prepare_os_disk(disk_type),
+                image_reference=ImageReference(publisher=image_publisher,
+                                               offer=image_offer,
+                                               sku=image_sku,
+                                               version=image_version))
 
         vm_plan = None
         if purchase_plan is not None:
@@ -274,6 +261,17 @@ class VirtualMachineService(object):
                 cancellation_context=cancellation_context,
                 tags=tags,
                 vm_plan=vm_plan)
+
+    def _prepare_os_disk(self, disk_type):
+        """
+        :param str disk_type:
+        :return:
+        :rtype: OSDisk
+        """
+        return \
+            OSDisk(create_option=DiskCreateOptionTypes.from_image,
+                   managed_disk=ManagedDiskParameters(
+                           storage_account_type=self._get_storage_type(disk_type)))
 
     @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def create_resource_group(self, resource_management_client, group_name, region, tags):
@@ -377,3 +375,15 @@ class VirtualMachineService(object):
         :return: azure.mgmt.compute.models.VirtualMachineSizePaged instance
         """
         return compute_management_client.virtual_machine_sizes.list(location=location)
+
+    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
+    def delete_managed_disk(self, compute_management_client, resource_group, disk_name):
+        """ Will delete the provided managed disk
+
+        :param azure.mgmt.compute.ComputeManagementClient compute_management_client:
+        :param str resource_group:
+        :param str disk_name:
+        :return:
+        """
+        operation = compute_management_client.disks.delete(resource_group_name=resource_group, disk_name=disk_name)
+        return operation.result()
