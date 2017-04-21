@@ -5,3 +5,4 @@
 
 [![Throughput Graph](https://graphs.waffle.io/QualiSystems/Azure-Shell/throughput.svg)](https://waffle.io/QualiSystems/Azure-Shell/metrics/throughput)
 
+[![Deploy to Azure](http://azuredeploy.net/deploybutton.png)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FQualiSystems%2FAzure-Shell%2Ffeature%2Fgil_es_qs_combine%2Fdeployment_templates%2Fcentos_windows_vm_templates%2Fmain_template.json)

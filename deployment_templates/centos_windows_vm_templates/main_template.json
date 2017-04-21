@@ -1,0 +1,314 @@
+{
+	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"adminUsername": {
+            "type": "string"			
+        },
+        "adminPassword": {
+            "type": "securestring"
+        },			
+		"management_vnet_CIDR": {
+			"defaultValue": "192.168.120.0/24",
+			"type": "String"
+		},
+		"management_vnet_subnet_CIDR": {
+			"defaultValue": "192.168.120.0/28",
+			"type": "String"
+		},		
+		"management_vnet_default_subnet_CIDR": {
+			"defaultValue": "192.168.120.16/28",
+			"type": "String"
+		},			
+		"externalMode":{
+			"type":"string",
+			"defaultValue":"External",
+			"allowedValues":["External","Internal"]
+		}		
+	},
+	"variables": {
+		"storageAccountType": "Standard_LRS",		
+		"virtualNetworks_mgmt_vnet_name": "management_vnet",
+		"virtualNetworks_sandbox_vnet_name": "sandbox_vnet",
+		"nsg_management_name" : "nsg_Quali",
+	    "apiVersion": "2016-06-01",
+		"storageAccountName": "[concat('storage',uniquestring(resourceGroup().id))]",
+		"vNet1": {
+			"peeringName": "vNet_mgmt-to-vNet_sndbx"
+		},
+		"vNet2": {
+			"peeringName": "vNet_sndbx-to-vNet_mgmt"
+		},	
+		"vnetID": "[resourceId('Microsoft.Network/virtualNetworks',variables('virtualNetworks_mgmt_vnet_name'))]",
+        "SubnetRef": "[concat(variables('vnetID'),'/subnets/','default')]",
+		"location": "[resourceGroup().location]",
+		"es_nic_name":"QualiNic",
+		"virtualMachineEsName": "Quali-vm",
+		"qx_template_location":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/feature/gil_es_qs_combine/deployment_templates/centos_windows_vm_templates/",
+		"qualixscriptUrl":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/develop/deployment_templates/guacamole-quali-install.sh",
+		"commandToExe":"sh guacamole-quali-install.sh",
+		"vmSize":"Standard_A3",
+		"qualiVMSize": "Standard_A2",
+		"publicIpAddressNameQualiVM": "quali_ip"
+	},
+	"resources": [
+	{
+		"name": "[variables('virtualMachineEsName')]",
+		"type": "Microsoft.Compute/virtualMachines",
+		"apiVersion": "2015-06-15",
+		"location": "[variables('location')]",
+		"dependsOn": [
+			"[concat('Microsoft.Network/networkInterfaces/', variables('es_nic_name'))]",
+			"[concat('Microsoft.Storage/storageAccounts/', variables('storageAccountName'))]"
+		],
+		"properties": {
+			"osProfile": {
+				"computerName": "[variables('virtualMachineEsName')]",
+				"adminUsername": "[parameters('adminUsername')]",
+				"adminPassword": "[parameters('adminPassword')]"
+			},
+			"hardwareProfile": {
+				"vmSize": "[variables('vmSize')]"
+			},
+			"storageProfile": {
+				"imageReference": {
+					"publisher": "MicrosoftWindowsServer",
+					"offer": "WindowsServer",
+					"sku": "2012-R2-Datacenter",
+					"version": "latest"
+				},
+				"osDisk": {
+					"name": "[variables('virtualMachineEsName')]",
+					"vhd": {
+						"uri": "[concat(concat(reference(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), '2015-06-15').primaryEndpoints['blob'], 'vhds/'), variables('virtualMachineEsName'), '2016102316823.vhd')]"
+					},
+					"createOption": "fromImage"
+				},
+				"dataDisks": []
+			},
+			"networkProfile": {
+				"networkInterfaces": [
+					{
+						"id": "[resourceId('Microsoft.Network/networkInterfaces', variables('es_nic_name'))]"
+					}
+				]
+			}
+		}
+	},	
+				
+	{
+            "name": "[variables('es_nic_name')]",
+            "type": "Microsoft.Network/networkInterfaces",
+            "apiVersion": "2016-09-01",
+            "location": "[resourceGroup().location]",			
+            "dependsOn": [
+                "[concat('Microsoft.Network/virtualNetworks/', variables('virtualNetworks_mgmt_vnet_name'))]",
+				"[concat('Microsoft.Network/networkSecurityGroups/', variables('nsg_management_name'))]",
+				"[concat('Microsoft.Network/publicIpAddresses/', variables('publicIpAddressNameQualiVM'))]"
+            ],
+            "properties": {
+				"networkSecurityGroup": {
+						  "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsg_management_name'))]"
+					},
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "subnet": {  
+								"id":"[variables('SubnetRef')]"
+                            },
+                            "privateIPAllocationMethod": "Dynamic",
+							"publicIpAddress": {
+										"id": "[resourceId('Microsoft.Network/publicIpAddresses', variables('publicIpAddressNameQualiVM'))]"
+							}
+                        }
+                    }
+                ]
+            }
+	},
+
+	{
+		"name": "[variables('publicIpAddressNameQualiVM')]",
+		"type": "Microsoft.Network/publicIpAddresses",
+		"apiVersion": "2016-09-01",
+		"location": "[resourceGroup().location]",
+		"properties": {
+			"publicIPAllocationMethod": "Static"
+		}
+	},
+
+    {
+      "apiVersion": "2015-01-01",
+      "name": "qxDeployment",
+      "type": "Microsoft.Resources/deployments",
+	  "dependsOn": [
+		"[concat('Microsoft.Storage/storageAccounts/', variables('storageAccountName'))]",
+		"[concat('Microsoft.Network/virtualNetworks/', variables('virtualNetworks_mgmt_vnet_name'))]"
+		
+	  ],
+      "properties": {
+        "mode": "incremental",
+        "templateLink": {
+          "uri": "[concat(variables('qx_template_location'),'qx',parameters('externalMode'),'Mode.json')]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {          
+          "adminUsername": { "value": "[parameters('adminUsername')]" },
+          "adminPassword": { "value": "[parameters('adminPassword')]" },
+          "virtualNetworks_mgmt_vnet_name": { "value": "[variables('virtualNetworks_mgmt_vnet_name')]" },
+		  "storageAccountName":{"value":"[variables('storageAccountName')]"},
+		  "storageBlob":{"value":"[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"},
+		  "SubnetRef":{"value":"[variables('SubnetRef')]"},
+		  "scriptUrl":{"value":"[variables('qualixscriptUrl')]"},
+		  "commandToExe":{"value":"[variables('commandToExe')]"},
+		  "vmSize":{"value":"[variables('qualiVMSize')]"}
+        }
+      }
+    },	
+	
+	{
+		"type": "Microsoft.Network/virtualNetworks",
+		"name": "[variables('virtualNetworks_mgmt_vnet_name')]",
+		"apiVersion": "[variables('apiVersion')]",
+		"location": "[variables('location')]",
+		"tags": {
+			"network_type": "mgmt"
+		},
+		"properties": {
+			"addressSpace": {
+				"addressPrefixes": ["[parameters('management_vnet_CIDR')]"]
+			},
+			"subnets": [					
+					{
+						"name": "default",
+						"properties": {
+							"addressPrefix": "[parameters('management_vnet_default_subnet_CIDR')]"
+						}
+					}
+			]
+		},
+		"resources": [{
+			"apiVersion": "[variables('apiVersion')]",
+			"type": "virtualNetworkPeerings",
+			"name": "[variables('vNet1').peeringName]",
+			"location": "[resourceGroup().location]",
+			"dependsOn": ["[concat('Microsoft.Network/virtualNetworks/', variables('virtualNetworks_mgmt_vnet_name'))]",
+			"[concat('Microsoft.Network/virtualNetworks/', variables('virtualNetworks_sandbox_vnet_name'))]"],
+			"comments": "This is the peering from vNet Management to vNet Sandbox",
+			"properties": {
+				"allowVirtualNetworkAccess": "true",
+				"allowForwardedTraffic": "false",
+				"allowGatewayTransit": "false",
+				"useRemoteGateways": "false",
+				"remoteVirtualNetwork": {
+					"id": "[resourceId('Microsoft.Network/virtualNetworks',variables('virtualNetworks_sandbox_vnet_name'))]"
+				}
+			}
+		}],
+		"dependsOn": []
+	},
+	{
+		"type": "Microsoft.Network/virtualNetworks",
+		"name": "[variables('virtualNetworks_sandbox_vnet_name')]",
+		"apiVersion": "[variables('apiVersion')]",
+		"location": "[variables('location')]",
+		"tags": {
+			"network_type": "sandbox"
+		},
+		"properties": {
+			"addressSpace": {
+				"addressPrefixes": ["10.0.0.0/8"]
+			},
+			"subnets": [{
+				"name": "default",
+				"properties": {
+					"addressPrefix": "10.0.0.0/24"
+				}
+			}]
+		},
+		"resources": [{
+			"apiVersion": "[variables('apiVersion')]",
+			"type": "virtualNetworkPeerings",
+			"name": "[variables('vNet2').peeringName]",
+			"location": "[resourceGroup().location]",
+			"dependsOn": ["[concat('Microsoft.Network/virtualNetworks/', variables('virtualNetworks_sandbox_vnet_name'))]",
+			"[concat('Microsoft.Network/virtualNetworks/', variables('virtualNetworks_mgmt_vnet_name'))]"],
+			"comments": "This is the peering from vNet Sandbox to vNet Management",
+			"properties": {
+				"allowVirtualNetworkAccess": "true",
+				"allowForwardedTraffic": "false",
+				"allowGatewayTransit": "false",
+				"useRemoteGateways": "false",
+				"remoteVirtualNetwork": {
+					"id": "[resourceId('Microsoft.Network/virtualNetworks',variables('virtualNetworks_mgmt_vnet_name'))]"
+				}
+			}
+		}],
+		"dependsOn": []
+	},
+	{
+		"type": "Microsoft.Storage/storageAccounts",
+		"name": "[variables('storageAccountName')]",
+		"apiVersion": "2016-05-01",
+		"location": "[resourceGroup().location]",
+		"sku": {
+			"name": "[variables('storageAccountType')]"
+		},
+		"kind": "Storage",
+		"properties": {}
+	},
+	{
+      "apiVersion": "[variables('apiVersion')]",
+      "type": "Microsoft.Network/networkSecurityGroups",
+      "name": "[variables('nsg_management_name')]",
+      "location": "[resourceGroup().location]",
+      "properties": {	  	  
+		"securityRules": [
+		  {
+			"name": "first_rule",
+			"properties": {
+			  "description": "This is the first rule",
+			  "protocol": "Tcp",
+			  "sourcePortRange": "*",
+			  "destinationPortRange": "443",
+			  "sourceAddressPrefix": "*",
+			  "destinationAddressPrefix": "*",
+			  "access": "Allow",
+			  "priority": 1000,
+			  "direction": "Inbound"
+			}
+		  },
+		  {
+			"name": "second_rule",
+			"properties": {
+			  "description": "This is the second rule",
+			  "protocol": "Tcp",
+			  "sourcePortRange": "*",
+			  "destinationPortRange": "80",
+			  "sourceAddressPrefix": "*",
+			  "destinationAddressPrefix": "*",
+			  "access": "Allow",
+			  "priority": 1010,
+			  "direction": "Inbound"
+			}
+		  },
+		  {
+			"name": "third_rule",
+			"properties": {
+			  "description": "This is the third rule",
+			  "protocol": "Tcp",
+			  "sourcePortRange": "*",
+			  "destinationPortRange": "3389",
+			  "sourceAddressPrefix": "*",
+			  "destinationAddressPrefix": "*",
+			  "access": "Allow",
+			  "priority": 1020,
+			  "direction": "Inbound"
+			}
+		  }
+
+		]
+	  }
+    }	
+	]
+}
