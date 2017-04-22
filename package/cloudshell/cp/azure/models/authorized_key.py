@@ -6,4 +6,7 @@ class AuthorizedKey(object):
         """
         self.path_to_key = path_to_key
         self.key_data = key_data
+        
+        
+        
 
