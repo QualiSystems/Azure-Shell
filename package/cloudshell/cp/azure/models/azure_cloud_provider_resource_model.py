@@ -13,3 +13,4 @@ class AzureCloudProviderResourceModel(object):
         self.storage_type = ''  # type: str
         self.management_group_name = ''  # type: str
         self.additional_mgmt_networks = ''  # type: str
+        self.cloud_provider_name = ''  # type: str

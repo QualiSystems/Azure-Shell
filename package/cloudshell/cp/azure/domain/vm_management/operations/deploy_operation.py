@@ -233,7 +233,7 @@ class DeployAzureVMOperation(object):
 
         return DeployResult(vm_name=data.vm_name,
                             vm_uuid=vm.vm_id,
-                            cloud_provider_resource_name=deployment_model.cloud_provider,
+                            cloud_provider_resource_name=cloud_provider_model.cloud_provider_name,
                             autoload=deployment_model.autoload,
                             inbound_ports=deployment_model.inbound_ports,
                             deployed_app_attributes=deployed_app_attributes,
