@@ -193,6 +193,7 @@ class AzureShell(object):
                             deployment_request=deployment_request,
                             cloudshell_session=cloudshell_session,
                             logger=logger)
+
                     cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(
                             resource=command_context.resource,
                             cloudshell_session=cloudshell_session)

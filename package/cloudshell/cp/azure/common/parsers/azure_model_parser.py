@@ -35,12 +35,16 @@ class AzureModelsParser(object):
         deployment_resource_model.extension_script_configurations = data_attributes['Extension Script Configurations']
         deployment_resource_model.extension_script_timeout = (int(data_attributes['Extension Script Timeout']))
         deployment_resource_model.disk_type = data_attributes['Disk Type']
+        deployment_resource_model.app_name = data_holder['AppName']
+        logical_resource = data_holder['LogicalResourceRequestAttributes']
 
-        deployment_resource_model.group_name = data_holder.group_name  # not in att
-        deployment_resource_model.vm_name = data_holder.vm_name  # not in att
-        deployment_resource_model.app_name = data_holder.app_name  # not in att
-        deployment_resource_model.username = data_holder['LogicalResourceRequestAttributes']['User']  # not in att
-        deployment_resource_model.password = data_holder['LogicalResourceRequestAttributes']['Password']  # not in att
+        keys = logical_resource.keys()
+
+        username_key = 'User'
+        deployment_resource_model.username = logical_resource[username_key] if username_key in keys else None
+
+        password_key = 'Password'
+        deployment_resource_model.password = logical_resource[password_key] if password_key in keys else None
 
         if deployment_resource_model.password:
             logger.info('Decrypting Azure VM password...')
@@ -101,10 +105,10 @@ class AzureModelsParser(object):
         data = jsonpickle.decode(deployment_request)
         data_attributes = data['Attributes']
         deployment_resource_model = DeployAzureVMFromCustomImageResourceModel()
-        deployment_resource_model.image_name = data_attributes['Image name']
-        deployment_resource_model.image_resource_group = data_attributes['Image Resource Group']
+        deployment_resource_model.image_name = data_attributes['Azure Image']
+        deployment_resource_model.image_resource_group = data_attributes['Azure Resource Group']
         AzureModelsParser._set_base_deploy_azure_vm_model_params(deployment_resource_model=deployment_resource_model,
-                                                                 data_holder=data_attributes,
+                                                                 data_holder=data,
                                                                  cloudshell_session=cloudshell_session,
                                                                  logger=logger)
 

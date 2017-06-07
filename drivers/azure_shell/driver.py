@@ -7,9 +7,9 @@ class AzureShellDriver(ResourceDriverInterface):
         """
         ctor must be without arguments, it is created with reflection at run time
         """
-        # all_deployments = AllDeployments("some data")
         self.deployments = dict()
         self.deployments['Azure VM From Marketplace'] = self.deploy_vm
+        self.deployments['Azure VM From Custom Image'] = self.deploy_vm_from_custom_image
         self.azure_shell = AzureShell()
 
     def Deploy(self, context, Name=None, request=None, cancelation_context=None):
