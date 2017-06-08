@@ -17,7 +17,7 @@ class AzureShellDriver(ResourceDriverInterface):
         deployment_name = app_request['DeploymentServiceName']
         if deployment_name in self.deployments.keys():
             deploy_method = self.deployments[deployment_name]
-            deploy_method(context,request,cancelation_context)
+            return deploy_method(context,request,cancelation_context)
         else:
             raise Exception('Could not find the deployment')
 

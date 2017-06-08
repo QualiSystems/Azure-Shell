@@ -174,17 +174,9 @@ class AzureShell(object):
                     cloudshell_session=cloudshell_session)
 
                 logger.info('End deploying Azure VM')
-                result = self.command_result_parser.set_command_result(deploy_data)
+                return self.command_result_parser.set_command_result(deploy_data)
 
-                return self._wrap_command_result(logger, result)
 
-    @staticmethod
-    def _wrap_command_result(logger, result):
-        if isinstance(result, CommandExecutionCancelledResultInfo):
-            logger.info("Command cancelled: {}".format(result.Message))
-            return result.Message
-        else:
-            return result.Output
 
     def deploy_vm_from_custom_image(self, command_context, deployment_request, cancellation_context):
         """Deploy Azure Image from given Image URN
@@ -224,8 +216,8 @@ class AzureShell(object):
 
                 logger.info('End deploying Azure VM From Custom Image')
 
-                result = self.command_result_parser.set_command_result(deploy_data)
-                return self._wrap_command_result(logger, result)
+                return self.command_result_parser.set_command_result(deploy_data)
+
 
     def prepare_connectivity(self, context, request, cancellation_context):
         """
