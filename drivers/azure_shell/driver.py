@@ -12,12 +12,12 @@ class AzureShellDriver(ResourceDriverInterface):
         self.deployments['Azure VM From Custom Image'] = self.deploy_vm_from_custom_image
         self.azure_shell = AzureShell()
 
-    def Deploy(self, context, request=None, cancelation_context=None):
+    def Deploy(self, context, request=None, cancellation_context=None):
         app_request = jsonpickle.decode(request)
         deployment_name = app_request['DeploymentServiceName']
         if deployment_name in self.deployments.keys():
             deploy_method = self.deployments[deployment_name]
-            return deploy_method(context,request,cancelation_context)
+            return deploy_method(context,request,cancellation_context)
         else:
             raise Exception('Could not find the deployment')
 
