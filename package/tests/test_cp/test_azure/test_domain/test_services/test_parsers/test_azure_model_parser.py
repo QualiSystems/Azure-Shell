@@ -58,44 +58,6 @@ class TestAzureModelsParser(TestCase):
 
 
 
-    @mock.patch("cloudshell.cp.azure.common.parsers.azure_model_parser.jsonpickle")
-    @mock.patch("cloudshell.cp.azure.common.parsers.azure_model_parser.DeployDataHolder")
-    def test_set_base_deploy_azure_vm_model_params_with_password(self, deploy_data_holder_class, jsonpickle):
-        """Check that method set basic params for the deploy VM model from DeployDataHolder"""
-        data_holder = {'Attributes': mock.MagicMock(),
-                       'AppName': mock.MagicMock(),
-                       'LogicalResourceRequestAttributes': mock.MagicMock()}
-
-        jsonpickle.decode.return_value = data_holder
-        # data_holder.ami_params = mock.MagicMock()
-        # data_holder.ami_params.password = "secure"
-        deploy_data_holder_class.return_value = data_holder
-        deploy_azure_vm_model = mock.MagicMock()
-        logger = mock.Mock()
-        decrypt_result = mock.Mock()
-        decrypt_result.Value = "not_secure"
-        cloudshell_session = mock.Mock()
-        cloudshell_session.DecryptPassword = mock.Mock(return_value=decrypt_result)
-
-        # Act
-        self.tested_class._set_base_deploy_azure_vm_model_params(deployment_resource_model=deploy_azure_vm_model,
-                                                                 data_holder=data_holder,
-                                                                 cloudshell_session=cloudshell_session,
-                                                                 logger=logger)
-
-        # Verify
-        data_attributes = data_holder['Attributes']
-        self.assertEqual(deploy_azure_vm_model.add_public_ip, data_attributes['Add Public IP'])
-        self.assertEqual(deploy_azure_vm_model.autoload, data_attributes['Autoload'])
-        self.assertEqual(deploy_azure_vm_model.inbound_ports, data_attributes['Inbound Ports'])
-        self.assertEqual(deploy_azure_vm_model.vm_size, data_attributes['Inbound Ports'])
-        self.assertEqual(deploy_azure_vm_model.public_ip_type, data_attributes['Public IP Type'])
-        self.assertEqual(deploy_azure_vm_model.password, None)
-        self.assertEqual(deploy_azure_vm_model.app_name, data_holder['AppName'])
-        self.assertEqual(deploy_azure_vm_model.extension_script_file, data_attributes['Extension Script file'])
-        self.assertEqual(deploy_azure_vm_model.extension_script_configurations,
-                         data_attributes['Extension Script Configurations'])
-        self.assertEqual(deploy_azure_vm_model.username, None)
 
     @mock.patch("cloudshell.cp.azure.common.parsers.azure_model_parser.DeployAzureVMFromCustomImageResourceModel")
     @mock.patch("cloudshell.cp.azure.common.parsers.azure_model_parser.jsonpickle")
