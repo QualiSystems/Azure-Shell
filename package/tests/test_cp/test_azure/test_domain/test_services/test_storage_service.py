@@ -6,6 +6,7 @@ from mock import MagicMock
 from mock import Mock
 from msrestazure.azure_operation import AzureOperationPoller
 
+
 from cloudshell.cp.azure.domain.services.storage_service import StorageService
 from cloudshell.cp.azure.common.exceptions.cancellation_exception import CancellationException
 from tests.helpers.test_helper import TestHelper
