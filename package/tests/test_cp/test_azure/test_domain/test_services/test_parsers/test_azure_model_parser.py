@@ -56,36 +56,7 @@ class TestAzureModelsParser(TestCase):
             self.assertEqual(result.image_sku, data_attributes['Image SKU'])
             self.assertEqual(result.image_version, data_attributes['Image Version'])
 
-    @mock.patch("cloudshell.cp.azure.common.parsers.azure_model_parser.jsonpickle")
-    # @mock.patch("cloudshell.cp.azure.common.parsers.azure_model_parser.DeployDataHolder")
-    def test_set_base_deploy_azure_vm_model_params_empty_password(self,  jsonpickle):
-        """Check that method set basic params for the deploy VM model from DeployDataHolder"""
-        data_holder = {'Attributes': mock.MagicMock(), 'AppName': mock.MagicMock(),
-                       'LogicalResourceRequestAttributes': mock.MagicMock()}
-        jsonpickle.decode.return_value=data_holder
-        # deploy_data_holder_class.return_value = data_holder
-        deploy_azure_vm_model = mock.MagicMock()
-        logger = mock.Mock()
-        cloudshell_session = mock.Mock()
 
-
-        # Act
-        self.tested_class._set_base_deploy_azure_vm_model_params(deployment_resource_model=deploy_azure_vm_model,
-                                                                 data_holder=data_holder,
-                                                                 cloudshell_session=cloudshell_session,
-                                                                 logger=logger)
-
-        # Verify
-        attributes = data_holder['Attributes']
-        self.assertEqual(deploy_azure_vm_model.add_public_ip, attributes['Add Public IP'])
-        self.assertEqual(deploy_azure_vm_model.autoload, attributes['Autoload'])
-        self.assertEqual(deploy_azure_vm_model.inbound_ports, attributes['Inbounds Ports'])
-        self.assertEqual(deploy_azure_vm_model.vm_size, attributes['VM Size'])
-        self.assertEqual(deploy_azure_vm_model.public_ip_type, attributes['Public IP Type'])
-        self.assertEqual(deploy_azure_vm_model.app_name, data_holder['AppName'])
-        self.assertEqual(deploy_azure_vm_model.extension_script_file, attributes['Extension Script file'])
-        self.assertEqual(deploy_azure_vm_model.extension_script_configurations,
-                         attributes['Extension Script Configurations'])
 
     @mock.patch("cloudshell.cp.azure.common.parsers.azure_model_parser.jsonpickle")
     @mock.patch("cloudshell.cp.azure.common.parsers.azure_model_parser.DeployDataHolder")

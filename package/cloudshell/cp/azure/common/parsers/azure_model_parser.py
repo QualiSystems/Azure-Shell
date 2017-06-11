@@ -50,6 +50,7 @@ class AzureModelsParser(object):
             logger.info('Decrypting Azure VM password...')
             decrypted_pass = cloudshell_session.DecryptPassword(deployment_resource_model.password)
             deployment_resource_model.password = decrypted_pass.Value
+        return deployment_resource_model
 
     @staticmethod
     def _convert_list_attribute(attribute):
