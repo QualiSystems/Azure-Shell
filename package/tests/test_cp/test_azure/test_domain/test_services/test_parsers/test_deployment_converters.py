@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from mock import mock
+import mock
 
 from cloudshell.cp.azure.common.parsers.azure_model_parser import AzureModelsParser
 
