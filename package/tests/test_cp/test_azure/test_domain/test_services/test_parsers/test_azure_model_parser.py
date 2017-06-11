@@ -37,7 +37,7 @@ class TestAzureModelsParser(TestCase):
         deploy_data_holder_class.return_value = data_holder
         deployment_request = mock.MagicMock()
         deploy_azure_vm_model_class.return_value = deploy_azure_vm_model
-        jsonpickle.decode.return_value=data_holder
+        jsonpickle.decode.return_value = data_holder
         logger = mock.Mock()
         cloudshell_session = mock.Mock()
 
@@ -57,15 +57,17 @@ class TestAzureModelsParser(TestCase):
             self.assertEqual(result.image_version, data_attributes['Image Version'])
 
     @mock.patch("cloudshell.cp.azure.common.parsers.azure_model_parser.jsonpickle")
-    @mock.patch("cloudshell.cp.azure.common.parsers.azure_model_parser.DeployDataHolder")
-    def test_set_base_deploy_azure_vm_model_params_empty_password(self, deploy_data_holder_class, jsonpickle):
+    # @mock.patch("cloudshell.cp.azure.common.parsers.azure_model_parser.DeployDataHolder")
+    def test_set_base_deploy_azure_vm_model_params_empty_password(self,  jsonpickle):
         """Check that method set basic params for the deploy VM model from DeployDataHolder"""
         data_holder = {'Attributes': mock.MagicMock(), 'AppName': mock.MagicMock(),
                        'LogicalResourceRequestAttributes': mock.MagicMock()}
-        deploy_data_holder_class.return_value = data_holder
+        jsonpickle.decode.return_value=data_holder
+        # deploy_data_holder_class.return_value = data_holder
         deploy_azure_vm_model = mock.MagicMock()
         logger = mock.Mock()
         cloudshell_session = mock.Mock()
+
 
         # Act
         self.tested_class._set_base_deploy_azure_vm_model_params(deployment_resource_model=deploy_azure_vm_model,
@@ -89,9 +91,13 @@ class TestAzureModelsParser(TestCase):
     @mock.patch("cloudshell.cp.azure.common.parsers.azure_model_parser.DeployDataHolder")
     def test_set_base_deploy_azure_vm_model_params_with_password(self, deploy_data_holder_class, jsonpickle):
         """Check that method set basic params for the deploy VM model from DeployDataHolder"""
-        data_holder = mock.MagicMock()
-        data_holder.ami_params = mock.MagicMock()
-        data_holder.ami_params.password = "secure"
+        data_holder = {'Attributes': mock.MagicMock(),
+                       'AppName': mock.MagicMock(),
+                       'LogicalResourceRequestAttributes': mock.MagicMock()}
+
+        jsonpickle.decode.return_value = data_holder
+        # data_holder.ami_params = mock.MagicMock()
+        # data_holder.ami_params.password = "secure"
         deploy_data_holder_class.return_value = data_holder
         deploy_azure_vm_model = mock.MagicMock()
         logger = mock.Mock()
