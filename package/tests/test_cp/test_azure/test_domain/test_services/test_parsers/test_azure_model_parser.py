@@ -32,11 +32,12 @@ class TestAzureModelsParser(TestCase):
     def test_convert_to_deploy_azure_vm_resource_model(self, deploy_data_holder_class, jsonpickle,
                                                        deploy_azure_vm_model_class):
         """Check that method returns DeployAzureVMResourceModel instance with attrs from DeployDataHolder"""
-        data_holder = mock.MagicMock()
+        data_holder = {'Attributes': mock.MagicMock(), 'AppName': mock.MagicMock()}
         deploy_azure_vm_model = mock.MagicMock()
         deploy_data_holder_class.return_value = data_holder
         deployment_request = mock.MagicMock()
         deploy_azure_vm_model_class.return_value = deploy_azure_vm_model
+        jsonpickle.decode.return_value=data_holder
         logger = mock.Mock()
         cloudshell_session = mock.Mock()
 
@@ -48,21 +49,19 @@ class TestAzureModelsParser(TestCase):
 
             # Verify
             self.assertIs(result, deploy_azure_vm_model)
-            set_base_params.assert_called_once_with(deployment_resource_model=deploy_azure_vm_model,
-                                                    data_holder=data_holder,
-                                                    cloudshell_session=cloudshell_session,
-                                                    logger=logger)
 
-            self.assertEqual(result.image_offer, data_holder.ami_params.image_offer)
-            self.assertEqual(result.image_publisher, data_holder.ami_params.image_publisher)
-            self.assertEqual(result.image_sku, data_holder.ami_params.image_sku)
-            self.assertEqual(result.image_version, data_holder.ami_params.image_version)
+            data_attributes = data_holder['Attributes']
+            self.assertEqual(result.image_offer, data_attributes['Image Offer'])
+            self.assertEqual(result.image_publisher, data_attributes['Image Publisher'])
+            self.assertEqual(result.image_sku, data_attributes['Image SKU'])
+            self.assertEqual(result.image_version, data_attributes['Image Version'])
 
     @mock.patch("cloudshell.cp.azure.common.parsers.azure_model_parser.jsonpickle")
     @mock.patch("cloudshell.cp.azure.common.parsers.azure_model_parser.DeployDataHolder")
     def test_set_base_deploy_azure_vm_model_params_empty_password(self, deploy_data_holder_class, jsonpickle):
         """Check that method set basic params for the deploy VM model from DeployDataHolder"""
-        data_holder = {'Attributes':mock.MagicMock(),'AppName':mock.MagicMock(),'LogicalResourceRequestAttributes':mock.MagicMock()}
+        data_holder = {'Attributes': mock.MagicMock(), 'AppName': mock.MagicMock(),
+                       'LogicalResourceRequestAttributes': mock.MagicMock()}
         deploy_data_holder_class.return_value = data_holder
         deploy_azure_vm_model = mock.MagicMock()
         logger = mock.Mock()
@@ -83,7 +82,8 @@ class TestAzureModelsParser(TestCase):
         self.assertEqual(deploy_azure_vm_model.public_ip_type, attributes['Public IP Type'])
         self.assertEqual(deploy_azure_vm_model.app_name, data_holder['AppName'])
         self.assertEqual(deploy_azure_vm_model.extension_script_file, attributes['Extension Script file'])
-        self.assertEqual(deploy_azure_vm_model.extension_script_configurations,attributes['Extension Script Configurations'])
+        self.assertEqual(deploy_azure_vm_model.extension_script_configurations,
+                         attributes['Extension Script Configurations'])
 
     @mock.patch("cloudshell.cp.azure.common.parsers.azure_model_parser.jsonpickle")
     @mock.patch("cloudshell.cp.azure.common.parsers.azure_model_parser.DeployDataHolder")
@@ -128,7 +128,7 @@ class TestAzureModelsParser(TestCase):
                                                                          jsonpickle,
                                                                          deploy_azure_vm_model_class):
         """Check that method returns DeployAzureVMFromCustomImageResourceModel with attrs from DeployDataHolder"""
-        data_holder = {'Attributes':mock.MagicMock()}
+        data_holder = {'Attributes': mock.MagicMock()}
         deploy_azure_vm_model = mock.MagicMock()
         deploy_data_holder_class.return_value = data_holder
         deployment_request = mock.MagicMock()
@@ -152,7 +152,7 @@ class TestAzureModelsParser(TestCase):
             cloudshell_session=cloudshell_session,
             logger=logger)
 
-        att=data_holder['Attributes']
+        att = data_holder['Attributes']
         self.assertEqual(result.image_name, att['Azure Image'])
         self.assertEqual(result.image_resource_group, att['Azure Resource Group'])
 
