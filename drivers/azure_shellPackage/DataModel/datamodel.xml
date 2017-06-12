@@ -298,8 +298,8 @@
             <AttributeValue Name="Public IP Type" Value="Dynamic" />
             <AttributeValue Name="Disk Type" Value="HDD" />
           </AttributeValues>
-          <Drivers/>
           <ParentModels />
+          <Drivers/>
         </ResourceModel>
         <ResourceModel Description="" Name="Azure VM From Custom Image" ImagePath="AzureCustomImage.png" SupportsConcurrentCommands="false">
           <AttachedAttributes>
