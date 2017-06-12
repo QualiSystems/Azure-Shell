@@ -47,8 +47,8 @@ class TestStorageService(TestCase):
 
     def test_create_storage_account_wait_for_result(self):
         # Arrange
-        storage_accounts_create = AzureOperationPoller(Mock(), Mock(), Mock())
-        storage_accounts_create.wait = Mock()
+        storage_accounts_create = Mock(return_value=mock.MagicMock())
+        storage_accounts_create.wait = MagicMock()
         storage_client = MagicMock()
         storage_client.storage_accounts.create = Mock(return_value=storage_accounts_create)
         region = "a region"
