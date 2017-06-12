@@ -24,27 +24,33 @@ class AzureModelsParser(object):
         :param cloudshell.api.cloudshell_api.CloudShellAPISession cloudshell_session: instance
         :param logging.Logger logger:
         """
-        deployment_resource_model.add_public_ip = data_holder.ami_params.add_public_ip
-        deployment_resource_model.autoload = data_holder.ami_params.autoload
-        deployment_resource_model.cloud_provider = data_holder.ami_params.cloud_provider
-        deployment_resource_model.group_name = data_holder.ami_params.group_name
-        deployment_resource_model.inbound_ports = data_holder.ami_params.inbound_ports
-        deployment_resource_model.vm_size = data_holder.ami_params.vm_size
-        deployment_resource_model.public_ip_type = data_holder.ami_params.public_ip_type
-        deployment_resource_model.vm_name = data_holder.ami_params.vm_name
-        deployment_resource_model.app_name = data_holder.app_name
-        deployment_resource_model.username = data_holder.ami_params.username
-        deployment_resource_model.password = data_holder.ami_params.password
-        deployment_resource_model.extension_script_file = data_holder.ami_params.extension_script_file
-        deployment_resource_model.extension_script_configurations = (
-        data_holder.ami_params.extension_script_configurations)
-        deployment_resource_model.extension_script_timeout = (int(data_holder.ami_params.extension_script_timeout))
-        deployment_resource_model.disk_type = data_holder.ami_params.disk_type
+
+        data_attributes = data_holder['Attributes']
+        deployment_resource_model.add_public_ip = data_attributes['Add Public IP']
+        deployment_resource_model.autoload = data_attributes['Autoload']
+        deployment_resource_model.inbound_ports = data_attributes['Inbound Ports']
+        deployment_resource_model.vm_size = data_attributes['VM Size']
+        deployment_resource_model.public_ip_type = data_attributes['Public IP Type']
+        deployment_resource_model.extension_script_file = data_attributes['Extension Script file']
+        deployment_resource_model.extension_script_configurations = data_attributes['Extension Script Configurations']
+        deployment_resource_model.extension_script_timeout = (int(data_attributes['Extension Script Timeout']))
+        deployment_resource_model.disk_type = data_attributes['Disk Type']
+        deployment_resource_model.app_name = data_holder['AppName']
+        logical_resource = data_holder['LogicalResourceRequestAttributes']
+
+        keys = logical_resource.keys()
+
+        username_key = 'User'
+        deployment_resource_model.username = logical_resource[username_key] if username_key in keys else None
+
+        password_key = 'Password'
+        deployment_resource_model.password = logical_resource[password_key] if password_key in keys else None
 
         if deployment_resource_model.password:
             logger.info('Decrypting Azure VM password...')
             decrypted_pass = cloudshell_session.DecryptPassword(deployment_resource_model.password)
             deployment_resource_model.password = decrypted_pass.Value
+        return deployment_resource_model
 
     @staticmethod
     def _convert_list_attribute(attribute):
@@ -73,14 +79,14 @@ class AzureModelsParser(object):
         :rtype: DeployAzureVMResourceModel
         """
         data = jsonpickle.decode(deployment_request)
-        data_holder = DeployDataHolder(data)
         deployment_resource_model = DeployAzureVMResourceModel()
-        deployment_resource_model.image_offer = data_holder.ami_params.image_offer
-        deployment_resource_model.image_publisher = data_holder.ami_params.image_publisher
-        deployment_resource_model.image_sku = data_holder.ami_params.image_sku
-        deployment_resource_model.image_version = data_holder.ami_params.image_version
+        data_attributes = data['Attributes']
+        deployment_resource_model.image_offer = data_attributes['Image Offer']
+        deployment_resource_model.image_publisher = data_attributes['Image Publisher']
+        deployment_resource_model.image_sku = data_attributes['Image SKU']
+        deployment_resource_model.image_version = data_attributes['Image Version']
         AzureModelsParser._set_base_deploy_azure_vm_model_params(deployment_resource_model=deployment_resource_model,
-                                                                 data_holder=data_holder,
+                                                                 data_holder=data,
                                                                  cloudshell_session=cloudshell_session,
                                                                  logger=logger)
 
@@ -98,12 +104,12 @@ class AzureModelsParser(object):
         :rtype: DeployAzureVMFromCustomImageResourceModel
         """
         data = jsonpickle.decode(deployment_request)
-        data_holder = DeployDataHolder(data)
+        data_attributes = data['Attributes']
         deployment_resource_model = DeployAzureVMFromCustomImageResourceModel()
-        deployment_resource_model.image_name = data_holder.ami_params.image_name
-        deployment_resource_model.image_resource_group = data_holder.ami_params.image_resource_group
+        deployment_resource_model.image_name = data_attributes['Azure Image']
+        deployment_resource_model.image_resource_group = data_attributes['Azure Resource Group']
         AzureModelsParser._set_base_deploy_azure_vm_model_params(deployment_resource_model=deployment_resource_model,
-                                                                 data_holder=data_holder,
+                                                                 data_holder=data,
                                                                  cloudshell_session=cloudshell_session,
                                                                  logger=logger)
 
@@ -140,10 +146,10 @@ class AzureModelsParser(object):
         azure_resource_model.management_group_name = resource_context['Management Group Name']
 
         azure_resource_model.networks_in_use = AzureModelsParser._convert_list_attribute(
-                resource_context['Networks In Use'])
+            resource_context['Networks In Use'])
 
         azure_resource_model.additional_mgmt_networks = AzureModelsParser._convert_list_attribute(
-                resource_context['Additional Mgmt Networks'])
+            resource_context['Additional Mgmt Networks'])
 
         encrypted_azure_application_key = resource_context['Azure Application Key']
         azure_application_key = cloudshell_session.DecryptPassword(encrypted_azure_application_key)

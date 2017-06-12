@@ -1,8 +1,5 @@
 class BaseDeployAzureVMResourceModel(object):
     def __init__(self):
-        self.group_name = ''  # type: str
-        self.vm_name = ''  # type: str
-        self.cloud_provider = ''  # type: str
         self.vm_size = ''  # type: str
         self.autoload = False  # type: bool
         self.add_public_ip = False  # type: bool
