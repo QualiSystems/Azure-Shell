@@ -299,9 +299,7 @@
             <AttributeValue Name="Disk Type" Value="HDD" />
           </AttributeValues>
           <ParentModels />
-          <Drivers>
-            <DriverName>Azure Deploy VM Driver</DriverName>
-          </Drivers>
+          <Drivers/>
         </ResourceModel>
         <ResourceModel Description="" Name="Azure VM From Custom Image" ImagePath="AzureCustomImage.png" SupportsConcurrentCommands="false">
           <AttachedAttributes>
