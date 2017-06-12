@@ -9,7 +9,6 @@
 #     def setUp(self):
 #         self.parser = AzureModelsParser()
 #
-
 #     def test_set_base_deploy_azure_vm_model_params_empty_password(self):
 #         """Check that method set basic params for the deploy VM model from DeployDataHolder"""
 #         attributes = dict()
