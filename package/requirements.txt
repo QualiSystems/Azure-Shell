@@ -1,4 +1,4 @@
-requests==2.14.1
+requests
 azure-mgmt-resource~=0.31.0
 azure-mgmt-compute~=0.33.0
 azure-mgmt-network~=0.30.0
