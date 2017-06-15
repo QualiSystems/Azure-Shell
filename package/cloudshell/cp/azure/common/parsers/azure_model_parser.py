@@ -7,6 +7,8 @@ from cloudshell.cp.azure.common.deploy_data_holder import DeployDataHolder
 from cloudshell.cp.azure.models.reservation_model import ReservationModel
 
 
+
+
 class AzureModelsParser(object):
     @staticmethod
     def convert_app_resource_to_deployed_app(resource):
@@ -26,8 +28,8 @@ class AzureModelsParser(object):
         """
 
         data_attributes = data_holder['Attributes']
-        deployment_resource_model.add_public_ip = data_attributes['Add Public IP']
-        deployment_resource_model.autoload = data_attributes['Autoload']
+        deployment_resource_model.add_public_ip = AzureModelsParser.convert_to_boolean(data_attributes['Add Public IP'])
+        deployment_resource_model.autoload = AzureModelsParser.convert_to_boolean(data_attributes['Autoload'])
         deployment_resource_model.inbound_ports = data_attributes['Inbound Ports']
         deployment_resource_model.vm_size = data_attributes['VM Size']
         deployment_resource_model.public_ip_type = data_attributes['Public IP Type']
@@ -51,6 +53,10 @@ class AzureModelsParser(object):
             decrypted_pass = cloudshell_session.DecryptPassword(deployment_resource_model.password)
             deployment_resource_model.password = decrypted_pass.Value
         return deployment_resource_model
+
+    @staticmethod
+    def convert_to_boolean( value):
+        return value.lower() in ['1', 'true']
 
     @staticmethod
     def _convert_list_attribute(attribute):
@@ -187,3 +193,5 @@ class AzureModelsParser(object):
             return resource_context.remote_endpoints[0].fullname
         else:
             raise ValueError('Could not find resource fullname on the deployed app.')
+
+
