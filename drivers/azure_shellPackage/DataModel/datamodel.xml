@@ -173,7 +173,7 @@
     </AttributeInfo>
   </Attributes>
   <ResourceFamilies>
-    <ResourceFamily Description="" IsAdminOnly="true" IsSearchable="true" Name="Cloud Provider">
+    <ResourceFamily Description="" IsAdminOnly="true" IsSearchable="true" Name="Cloud Provider" AllowRemoteConnection="false">
       <AttachedAttributes />
       <AttributeValues />
       <Models>
@@ -299,9 +299,7 @@
             <AttributeValue Name="Disk Type" Value="HDD" />
           </AttributeValues>
           <ParentModels />
-          <Drivers>
-            <DriverName>Azure Deploy VM Driver</DriverName>
-          </Drivers>
+          <Drivers/>
         </ResourceModel>
         <ResourceModel Description="" Name="Azure VM From Custom Image" ImagePath="AzureCustomImage.png" SupportsConcurrentCommands="false">
           <AttachedAttributes>
@@ -350,9 +348,7 @@
             <AttributeValue Name="Disk Type" Value="HDD" />
           </AttributeValues>
           <ParentModels />
-          <Drivers>
-            <DriverName>Azure Deploy VM From Custom Image Driver</DriverName>
-          </Drivers>
+          <Drivers/>
         </ResourceModel>
       </Models>
       <Categories>

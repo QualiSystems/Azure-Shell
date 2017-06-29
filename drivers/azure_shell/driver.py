@@ -1,14 +1,25 @@
-from cloudshell.shell.core.resource_driver_interface import ResourceDriverInterface
-
+import jsonpickle
 from cloudshell.cp.azure.azure_shell import AzureShell
-
+from cloudshell.shell.core.resource_driver_interface import ResourceDriverInterface
 
 class AzureShellDriver(ResourceDriverInterface):
     def __init__(self):
         """
         ctor must be without arguments, it is created with reflection at run time
         """
+        self.deployments = dict()
+        self.deployments['Azure VM From Marketplace'] = self.deploy_vm
+        self.deployments['Azure VM From Custom Image'] = self.deploy_vm_from_custom_image
         self.azure_shell = AzureShell()
+
+    def Deploy(self, context, request=None, cancellation_context=None):
+        app_request = jsonpickle.decode(request)
+        deployment_name = app_request['DeploymentServiceName']
+        if deployment_name in self.deployments.keys():
+            deploy_method = self.deployments[deployment_name]
+            return deploy_method(context,request,cancellation_context)
+        else:
+            raise Exception('Could not find the deployment')
 
     def initialize(self, context):
         pass
@@ -55,5 +66,3 @@ class AzureShellDriver(ResourceDriverInterface):
 
     def GetAccessKey(self, context, ports):
         return self.azure_shell.get_access_key(context)
-
-

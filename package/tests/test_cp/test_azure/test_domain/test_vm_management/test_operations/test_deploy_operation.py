@@ -215,7 +215,6 @@ class TestDeployAzureVMOperation(TestCase):
         self.assertEquals(updated_data.public_ip_address, "pub_ip_address")
         self.assertEquals(result.vm_name, updated_data.vm_name)
         self.assertEquals(result.vm_uuid, vm.vm_id)
-        self.assertEquals(result.cloud_provider_resource_name, resource_model.cloud_provider)
         self.assertEquals(result.autoload, resource_model.autoload)
         self.assertEquals(result.inbound_ports, resource_model.inbound_ports)
         self.assertEquals(result.deployed_app_attributes, deployed_app_attributes)
