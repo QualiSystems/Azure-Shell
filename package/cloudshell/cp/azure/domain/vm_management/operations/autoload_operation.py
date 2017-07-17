@@ -235,9 +235,7 @@ class AutoloadOperation(object):
                                    region=cloud_provider_model.region,
                                    vm_size=cloud_provider_model.vm_size)
 
-        self._validate_networks_in_use(sandbox_vnet=sandbox_vnet,
-                                       networks_in_use=cloud_provider_model.networks_in_use,
-                                       logger=logger)
+        # Note - removed _validate_networks_in_use from main flow following bug #162008
 
         self._validate_additional_mgmt_networks(additional_mgmt_networks=cloud_provider_model.additional_mgmt_networks,
                                                 logger=logger)
