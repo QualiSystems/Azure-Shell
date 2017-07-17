@@ -7,18 +7,18 @@
         <ResourceTemplate Name="Microsoft Azure" Model="Microsoft Azure" Driver="Azure Shell Driver" AddressRequired="false">
             <Description>Azure template will create a Azure resource in CloudShell. Once the Azure is modeled correctly in CloudShell it will be possible to deploy Apps on Microsoft Azure.</Description>
             <AutoLoad Enable="true">
-                <Description>After filling in all the inputs click Start Discovery to complete the cloud provider creation process</Description>
+                <Description>After filling in all the inputs click Continue to complete the cloud provider creation process.</Description>
             </AutoLoad>
             <Attributes>
                 <Attribute Name="Region" Value="" />
-                <Attribute Value="Standard_A3" Name="VM Size"/>
-                <Attribute Value="" Name="Networks In Use"/>
                 <Attribute Value="" Name="Azure Subscription ID"/>
                 <Attribute Value="" Name="Azure Tenant ID"/>
                 <Attribute Value="" Name="Azure Application Key"/>
                 <Attribute Value="" Name="Azure Application ID"/>
                 <Attribute Value="" Name="Management Group Name"/>
+                <Attribute Value="Standard_A3" Name="VM Size"/>
                 <Attribute Value="" Name="Additional Mgmt Networks"/>
+                <Attribute Value="10.0.0.0/24" Name="Networks In Use"/>
                 <Attribute Value="" Name="Execution Server Selector"/>
             </Attributes>
         </ResourceTemplate>
