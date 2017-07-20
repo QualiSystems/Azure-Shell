@@ -175,7 +175,8 @@ class AzureModelsParser(object):
     def get_public_ip_from_connected_resource_details(resource_context):
         public_ip = ""
         if resource_context.remote_endpoints is not None:
-            public_ip = resource_context.remote_endpoints[0].attributes.get("Public IP", public_ip)
+            attributes = resource_context.remote_endpoints[0].attributes
+            public_ip = AzureModelsParser.get_attribute_value_by_name_ignoring_namespace(attributes, "Public IP")
 
         return public_ip
 
@@ -193,5 +194,20 @@ class AzureModelsParser(object):
             return resource_context.remote_endpoints[0].fullname
         else:
             raise ValueError('Could not find resource fullname on the deployed app.')
+
+    @staticmethod
+    def get_attribute_value_by_name_ignoring_namespace(attributes, name):
+        """
+        Finds the attribute value by name ignoring attribute namespaces.
+        :param dict attributes: Attributes key value dict to search on.
+        :param str name: Attribute name to search for.
+        :return: Attribute str value. None if not found.
+        :rtype: str
+        """
+        for key, val in attributes.iteritems():
+            last_part = key.split(".")[-1]  # get last part of namespace.
+            if name == last_part:
+                return val
+        return None
 
 

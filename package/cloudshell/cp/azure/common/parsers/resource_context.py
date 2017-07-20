@@ -1,5 +1,6 @@
 import jsonpickle
 
+from cloudshell.cp.azure.common.parsers.azure_model_parser import AzureModelsParser
 from cloudshell.cp.azure.models.deploy_azure_vm_resource_models import DeployAzureVMResourceModel
 from cloudshell.cp.azure.models.deploy_azure_vm_resource_models import DeployAzureVMFromCustomImageResourceModel
 
@@ -39,8 +40,8 @@ class ResourceContextConverter(object):
 
         app_request = jsonpickle.decode(resource.app_context.app_request_json)
         attrs = app_request["logicalResource"]["attributes"]
-        deployed_resource.username = self._get_attribute_by_name("User", attrs)
-        deployed_resource.password = self._get_attribute_by_name("Password", attrs)
+        deployed_resource.username = AzureModelsParser.get_attribute_value_by_name_ignoring_namespace(attrs, "User")
+        deployed_resource.password = AzureModelsParser.get_attribute_value_by_name_ignoring_namespace(attrs, "Password")
 
     def resource_context_to_deploy_azure_vm_from_custom_image_model(self, resource, deployment_credentials):
         """Converts context to a DeployAzureVMFromCustomImageResourceModel model
