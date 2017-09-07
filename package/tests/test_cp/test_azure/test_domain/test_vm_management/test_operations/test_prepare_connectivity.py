@@ -53,14 +53,14 @@ class TestPrepareConnectivity(TestCase):
         self.cryptography_service.encrypt = MagicMock()
 
         req = MagicMock()
-        action = MagicMock()
-        att = MagicMock()
-        att.attributeName = 'Network'
-        att.attributeValue = [1]
-        action.customActionAttributes = [att]
-        req.actions = [action]
+        network_action = Mock(type="prepareNetwork")
+        network_action.connectionParams = Mock()
+        network_action.connectionParams.cidr = "10.0.0.0/24"
+        subnet_action = Mock(type="prepareSubnet")
+        subnet_action.connectionParams = Mock()
+        subnet_action.connectionParams.cidr = "10.0.0.0/24"
+        req.actions = [network_action, subnet_action]
         prepare_connectivity_request = req
-        # Act
         result = Mock()
         result.wait = Mock()
 
@@ -74,6 +74,7 @@ class TestPrepareConnectivity(TestCase):
         cancellation_context = MagicMock()
         self.prepare_connectivity_operation._cleanup_stale_data = MagicMock()
 
+        # Act
         self.prepare_connectivity_operation.prepare_connectivity(
             reservation=MagicMock(),
             cloud_provider_model=MagicMock(),
@@ -114,16 +115,13 @@ class TestPrepareConnectivity(TestCase):
 
     def test_extract_cidr_throws_error(self):
         action = Mock()
-        att = Mock()
-        att.attributeName = 'Network'
-        att.attributeValue = ''
-        action.customActionAttributes = [att]
+        action.connectionParams.cidr = None
 
         request = Mock()
         request.actions = [action]
 
         self.assertRaises(ValueError,
-                          self.prepare_connectivity_operation._extract_cidr,
+                          self.prepare_connectivity_operation._validate_request_and_extract_cidr,
                           request)
 
     def test_prepare_connectivity_throes_exception_on_unavailable_VNETs(self):

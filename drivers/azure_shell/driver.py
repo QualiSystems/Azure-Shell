@@ -56,7 +56,7 @@ class AzureShellDriver(ResourceDriverInterface):
         return self.azure_shell.prepare_connectivity(context, request, cancellation_context)
 
     def CleanupConnectivity(self, context, request):
-        return self.azure_shell.cleanup_connectivity(command_context=context)
+        return self.azure_shell.cleanup_connectivity(command_context=context, request=request)
 
     def GetApplicationPorts(self, context, ports):
         return self.azure_shell.get_application_ports(command_context=context)
