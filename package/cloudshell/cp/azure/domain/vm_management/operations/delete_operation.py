@@ -32,8 +32,10 @@ class DeleteAzureVMOperation(object):
         self.subnet_locker = subnet_locker
         self.generic_lock_provider = generic_lock_provider
 
-    def cleanup_connectivity(self, network_client, resource_client, cloud_provider_model, resource_group_name, logger):
+    def cleanup_connectivity(self, network_client, resource_client, cloud_provider_model,
+                             resource_group_name, request, logger):
         """
+        :param request:
         :param logger:
         :param network_client:
         :param resource_client:
@@ -41,7 +43,8 @@ class DeleteAzureVMOperation(object):
         :param resource_group_name:
         """
         logger.info("Start Cleanup Connectivity operation")
-        result = {'success': True}
+        result = {'success': True,
+                  'actionId': next(iter(filter(lambda x: x.type == "cleanupNetwork", request.actions))).actionId}
 
         remove_nsg_from_subnet_command = partial(self.remove_nsg_from_subnet,
                                                  network_client=network_client,

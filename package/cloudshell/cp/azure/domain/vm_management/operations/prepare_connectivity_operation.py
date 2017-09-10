@@ -9,7 +9,8 @@ from azure.mgmt.network.models import VirtualNetwork
 
 from cloudshell.cp.azure.common.exceptions.virtual_network_not_found_exception import VirtualNetworkNotFoundException
 from cloudshell.cp.azure.domain.services.network_service import NetworkService
-from cloudshell.cp.azure.models.prepare_connectivity_action_result import PrepareConnectivityActionResult
+from cloudshell.cp.azure.models.prepare_connectivity_action_result import PrepareNetworkActionResult, \
+    PrepareSubnetActionResult
 from cloudshell.cp.azure.models.azure_cloud_provider_resource_model import AzureCloudProviderResourceModel
 from cloudshell.cp.azure.common.parsers.azure_resource_id_parser import AzureResourceIdParser
 
@@ -77,12 +78,14 @@ class PrepareConnectivityOperation(object):
         :param cancellation_context cloudshell.shell.core.driver_context.CancellationContext instance
         :return:
         """
+        cidr = self._validate_request_and_extract_cidr(request)
+        logger.info("Received CIDR {0} from server".format(cidr))
+
         reservation_id = reservation.reservation_id
         group_name = str(reservation_id)
         subnet_name = group_name
         tags = self.tags_service.get_tags(reservation=reservation)
-        result = []
-        action_result = PrepareConnectivityActionResult()
+        network_action_result = PrepareNetworkActionResult()
 
         # 1. Create a resource group
         logger.info("Creating a resource group: {0} .".format(group_name))
@@ -96,7 +99,7 @@ class PrepareConnectivityOperation(object):
         pool = ThreadPool()
         storage_res = pool.apply_async(self._create_storage_and_keypairs,
                                        (logger, storage_client, storage_account_name, group_name, cloud_provider_model,
-                                        tags, cancellation_context, action_result))
+                                        tags, cancellation_context, network_action_result))
 
         logger.info("Retrieving MGMT vNet from resource group {} by tag {}={}".format(
                 cloud_provider_model.management_group_name,
@@ -139,9 +142,6 @@ class PrepareConnectivityOperation(object):
 
         self.cancellation_service.check_if_cancelled(cancellation_context)
 
-        cidr = self._extract_cidr(request)
-        logger.info("Received CIDR {0} from server".format(cidr))
-
         logger.info("Creating NSG management rules...")
         # 5. Set rules on NSG to create a sandbox
         self._create_management_rules(
@@ -172,10 +172,13 @@ class PrepareConnectivityOperation(object):
         pool.join()
         storage_res.get(timeout=900)  # will wait for 15 min and raise exception if storage account creation failed
 
-        action_result.storage_name = storage_account_name
-        action_result.subnet_name = subnet_name
-        result.append(action_result)
-        return result
+        return self._prepare_results(network_action_result, request)
+
+    def _prepare_results(self, network_action_result, request):
+        network_action_result.actionId = filter(lambda x: x.type == 'prepareNetwork', request.actions)[0].actionId
+        subnet_action_result = PrepareSubnetActionResult(
+                action_id=filter(lambda x: x.type == 'prepareSubnet', request.actions)[0].actionId)
+        return [network_action_result, subnet_action_result]
 
     def _prepare_storage_account_name(self, reservation_id):
         """ Storage account name in azure must be between 3-24 chars. Dashes are not allowed as well.
@@ -446,16 +449,15 @@ class PrepareConnectivityOperation(object):
             raise VirtualNetworkNotFoundException("Could not find Sandbox Virtual Network in Azure.")
 
     @staticmethod
-    def _extract_cidr(request):
-        # get first or default
-        action = next(iter(request.actions or []), None)
-        if action is None:
-            raise ValueError("Action is missing in request. Request: {}".format(request))
+    def _validate_request_and_extract_cidr(request):
+        cidr = None
+        for action in request.actions:
+            if not cidr:
+                cidr = action.connectionParams.cidr
+            elif cidr != action.connectionParams.cidr:
+                raise ValueError("Multi subnet mode is not supported in AzureShell")
 
-        cidrs = next((custom_attribute.attributeValue
-                      for custom_attribute in action.customActionAttributes
-                      if custom_attribute.attributeName == 'Network'), None)
-
-        if not cidrs or len(cidrs) == 0:
+        if not cidr:
             raise ValueError(INVALID_REQUEST_ERROR.format('CIDR is missing'))
-        return cidrs
+
+        return cidr

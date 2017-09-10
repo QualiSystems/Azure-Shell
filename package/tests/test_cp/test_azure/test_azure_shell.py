@@ -185,12 +185,14 @@ class TestAzureShell(TestCase):
         self.azure_shell.command_result_parser.set_command_result.assert_called_once_with(
             {'driverResponse': {'actionResults': prepare_connectivity_result}})
 
+    @mock.patch("cloudshell.cp.azure.azure_shell.jsonpickle")
+    @mock.patch("cloudshell.cp.azure.azure_shell.DeployDataHolder")
     @mock.patch("cloudshell.cp.azure.azure_shell.CloudShellSessionContext")
     @mock.patch("cloudshell.cp.azure.azure_shell.AzureClientsManager")
     @mock.patch("cloudshell.cp.azure.azure_shell.LoggingSessionContext")
     @mock.patch("cloudshell.cp.azure.azure_shell.ErrorHandlingContext")
     def test_cleanup_connectivity(self, error_handling_class, logging_context_class, azure_clients_manager_class,
-                                  cloudshell_session_context_class):
+                                  cloudshell_session_context_class, deploy_data_holder_class, jsonpickle):
         """Check that method uses ErrorHandlingContext and delete_azure_vm_operation"""
         # mock Cloudshell Session
         cloudshell_session = mock.MagicMock()
@@ -205,12 +207,16 @@ class TestAzureShell(TestCase):
         azure_clients_manager = mock.MagicMock()
         azure_clients_manager_class.return_value = azure_clients_manager
 
+        deploy_data_holder = mock.MagicMock()
+        deploy_data_holder_class.return_value = deploy_data_holder
+        request = mock.MagicMock()
+
         command_context = mock.MagicMock(reservation=mock.MagicMock(reservation_id=self.group_name))
         cloud_provider_model = mock.MagicMock()
         self.azure_shell.model_parser.convert_to_cloud_provider_resource_model.return_value = cloud_provider_model
 
         # Act
-        self.azure_shell.cleanup_connectivity(command_context=command_context)
+        self.azure_shell.cleanup_connectivity(command_context=command_context, request=request)
 
         # Verify
         error_handling.__enter__.assert_called_once_with()
@@ -221,6 +227,7 @@ class TestAzureShell(TestCase):
             resource_client=azure_clients_manager.resource_client,
             cloud_provider_model=cloud_provider_model,
             resource_group_name=self.group_name,
+            request=deploy_data_holder.driverRequest,
             logger=self.logger)
 
     @mock.patch("cloudshell.cp.azure.azure_shell.CloudShellSessionContext")
