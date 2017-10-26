@@ -260,7 +260,7 @@ class AzureShell(object):
                 logger.info('End Preparing Connectivity for Azure VM')
                 return self.command_result_parser.set_command_result({'driverResponse': {'actionResults': result}})
 
-    def cleanup_connectivity(self, command_context):
+    def cleanup_connectivity(self, command_context, request):
         with LoggingSessionContext(command_context) as logger:
             with ErrorHandlingContext(logger):
                 logger.info('Teardown...')
@@ -273,11 +273,15 @@ class AzureShell(object):
                 azure_clients = AzureClientsManager(cloud_provider_model)
                 resource_group_name = command_context.reservation.reservation_id
 
+                cleanup_connectivity_request = getattr(DeployDataHolder(jsonpickle.decode(request)),
+                                                       'driverRequest', None)
+
                 result = self.delete_azure_vm_operation.cleanup_connectivity(
                     network_client=azure_clients.network_client,
                     resource_client=azure_clients.resource_client,
                     cloud_provider_model=cloud_provider_model,
                     resource_group_name=resource_group_name,
+                    request=cleanup_connectivity_request,
                     logger=logger)
 
                 logger.info('End Teardown')

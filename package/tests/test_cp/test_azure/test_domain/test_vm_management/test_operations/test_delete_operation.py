@@ -42,6 +42,7 @@ class TestDeleteOperation(TestCase):
                                                             resource_client=Mock(),
                                                             cloud_provider_model=Mock(),
                                                             resource_group_name=Mock(),
+                                                            request=Mock(actions=[Mock(type="cleanupNetwork")]),
                                                             logger=self.logger)
 
         # Verify
@@ -72,59 +73,15 @@ class TestDeleteOperation(TestCase):
         reservation.reservation_id = tested_group_name
         self.network_service.get_sandbox_virtual_network = Mock(return_value=vnet)
 
-        # Act
-        self.delete_operation.cleanup_connectivity(network_client=network_client,
-                                                   resource_client=resource_client,
-                                                   cloud_provider_model=cloud_provider_model,
-                                                   resource_group_name=tested_group_name,
-                                                   logger=self.logger)
-
-        # Verify
-        self.delete_operation.remove_nsg_from_subnet.assert_called_once_with(network_client=network_client,
-                                                                             cloud_provider_model=cloud_provider_model,
-                                                                             resource_group_name=tested_group_name,
-                                                                             logger=self.logger)
-
-        self.delete_operation.delete_sandbox_subnet.assert_called_once_with(network_client=network_client,
-                                                                            cloud_provider_model=cloud_provider_model,
-                                                                            resource_group_name=tested_group_name,
-                                                                            logger=self.logger)
-
-        self.delete_operation.delete_resource_group.assert_called_once_with(resource_client=resource_client,
-                                                                            group_name=tested_group_name,
-                                                                            logger=self.logger)
-
-        self.delete_operation.delete_resource_group.assert_called_with(resource_client=resource_client,
-                                                                       logger=self.logger,
-                                                                       group_name=tested_group_name)
-
-    def test_cleanup(self):
-        """
-        :return:
-        """
-
-        # Arrange
-        self.delete_operation.remove_nsg_from_subnet = Mock()
-        self.delete_operation.delete_resource_group = Mock()
-        self.delete_operation.delete_sandbox_subnet = Mock()
-        tested_group_name = "test_group"
-        resource_client = Mock()
-        network_client = Mock()
-        cloud_provider_model = Mock()
-
-        vnet = Mock()
-        subnet = Mock()
-        subnet.name = tested_group_name
-        vnet.subnets = [subnet]
-        reservation = Mock()
-        reservation.reservation_id = tested_group_name
-        self.network_service.get_sandbox_virtual_network = Mock(return_value=vnet)
+        action = Mock(type="cleanupNetwork")
+        request = Mock(actions=[action])
 
         # Act
         self.delete_operation.cleanup_connectivity(network_client=network_client,
                                                    resource_client=resource_client,
                                                    cloud_provider_model=cloud_provider_model,
                                                    resource_group_name=tested_group_name,
+                                                   request=request,
                                                    logger=self.logger)
 
         # Verify
