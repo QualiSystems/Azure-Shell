@@ -83,7 +83,7 @@
 		"virtualMachineEsNameInVM": "[concat('azure',variables('location'))]",
 		"qx_template_location":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/develop/deployment_templates/",
 		"vpn_template_location":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/develop/deployment_templates/",
-		"scriptUrl":"https://s3.amazonaws.com/quali-prod-binaries/guacamole-quali-install.sh",
+		"scriptUrl":"https://s3.amazonaws.com/alex-az/guacamole-quali-install.sh",
 		"commandToExe":"sh guacamole-quali-install.sh",
 		"scriptName": "QualiX-Script",
 		"scriptUrlES":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/develop/deployment_templates/cloudshell_es_install_script.sh",
