@@ -28,6 +28,7 @@ class TestDeployAzureVMOperation(TestCase):
         self.generic_lock_provider = MagicMock()
         self.cancellation_service = MagicMock()
         self.image_data_factory = MagicMock()
+        self.vm_details_provider = MagicMock()
 
         self.deploy_operation = DeployAzureVMOperation(vm_service=self.vm_service,
                                                        network_service=self.network_service,
@@ -40,7 +41,8 @@ class TestDeployAzureVMOperation(TestCase):
                                                        vm_extension_service=self.vm_extension_service,
                                                        generic_lock_provider=self.generic_lock_provider,
                                                        cancellation_service=self.cancellation_service,
-                                                       image_data_factory=self.image_data_factory)
+                                                       image_data_factory=self.image_data_factory,
+                                                       vm_details_provider=self.vm_details_provider)
 
     def test_get_sandbox_subnet(self):
         """Check that method will call network service to get sandbox vNet and will return it's subnet by given name"""

@@ -17,6 +17,12 @@ class AzureModelsParser(object):
         return data_holder
 
     @staticmethod
+    def convert_app_resource_to_request(resource):
+        json_str = jsonpickle.decode(resource.app_context.app_request_json)
+        data_holder = DeployDataHolder(json_str)
+        return data_holder
+
+    @staticmethod
     def _set_base_deploy_azure_vm_model_params(deployment_resource_model, data_holder, cloudshell_session, logger):
         """
         Set base parameters to the Azure Deploy model
