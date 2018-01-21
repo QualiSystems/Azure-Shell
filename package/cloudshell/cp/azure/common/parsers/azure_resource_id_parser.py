@@ -23,3 +23,16 @@ class AzureResourceIdParser(object):
         """
         match_groups = re.match(r".*resourcegroups/(?P<group_name>[^/]*)/.*", resource_id, flags=re.IGNORECASE)
         return match_groups.group("group_name")
+
+    @staticmethod
+    def get_image_name(resource_id):
+        """Get image name from the Azure image reference id
+
+        :param str resource_id: Azure image reference id
+        :return: Azure image name
+        :rtype: str
+        """
+        match_images = re.match(r".*images/(?P<image_name>[^/]*).*", resource_id, flags=re.IGNORECASE)
+        if match_images:
+            return match_images.group("image_name")
+        return ""

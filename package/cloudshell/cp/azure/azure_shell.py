@@ -67,7 +67,7 @@ class AzureShell(object):
         self.vm_service = VirtualMachineService(task_waiter_service=self.task_waiter_service)
         self.generic_lock_provider = GenericLockProvider()
         self.subnet_locker = Lock()
-        self.vm_details_provider = VmDetailsProvider(self.network_service)
+        self.vm_details_provider = VmDetailsProvider(self.network_service, self.resource_id_parser)
         self.image_data_factory = ImageDataFactory(vm_service=self.vm_service)
 
         self.autoload_operation = AutoloadOperation(subscription_service=self.subscription_service,
