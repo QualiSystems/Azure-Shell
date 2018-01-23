@@ -21,7 +21,7 @@ class VmDetailsProvider(object):
         :return:
         """
 
-        vm_details = VmDetails()
+        vm_details = VmDetails(instance.name)
 
         if is_market_place:
             vm_details.vm_instance_data = self._get_vm_instance_data_for_market_place(instance)
@@ -92,7 +92,9 @@ class VmDetailsProvider(object):
 
 
 class VmDetails(object):
-    def __init__(self):
+    def __init__(self, app_name):
+        self.app_name = app_name
+        self.error = None
         self.vm_instance_data = {}  # type: dict
         self.vm_network_data = []  # type: list[VmNetworkData]
 
