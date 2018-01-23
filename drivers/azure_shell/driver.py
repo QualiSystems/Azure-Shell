@@ -67,5 +67,5 @@ class AzureShellDriver(ResourceDriverInterface):
     def GetAccessKey(self, context, ports):
         return self.azure_shell.get_access_key(context)
 
-    def GetVmDetails(self, context, ports):
-        return self.azure_shell.get_vm_details(context)
+    def GetVmDetails(self, context, cancellation_context, requests):
+        return self.azure_shell.get_vm_details(context, cancellation_context, requests)
