@@ -43,4 +43,4 @@ class PowerAzureVMOperation(object):
         :param vm_name: The name of the virtual machine.
         :return
         """
-        return self.vm_service.stop_vm(compute_client, resource_group_name, vm_name)
+        self.vm_service.stop_vm(compute_client, resource_group_name, vm_name)
