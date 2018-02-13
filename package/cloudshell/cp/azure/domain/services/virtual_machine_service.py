@@ -331,10 +331,10 @@ class VirtualMachineService(object):
         :param async: (bool) whether wait for VM operation result or not
         :return:
         """
-        operation_poller = compute_management_client.virtual_machines.power_off(resource_group_name=group_name,
-                                                                                vm_name=vm_name)
+        async_vm_deallocate = compute_management_client.virtual_machines.deallocate(resource_group_name=group_name,
+                                                                                    vm_name=vm_name)
         if not async:
-            return operation_poller.result()
+            async_vm_deallocate.wait()
 
     @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def get_virtual_machine_image(self, compute_management_client, location, publisher_name, offer, skus):
