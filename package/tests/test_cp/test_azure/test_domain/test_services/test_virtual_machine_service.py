@@ -1,11 +1,8 @@
 from unittest import TestCase
 
-from azure.mgmt.compute.models import Plan, DiskCreateOptionTypes, OSDisk, ManagedDiskParameters, StorageAccountTypes, \
-    ImageReference
-from mock import MagicMock, Mock, patch
-from msrestazure.azure_exceptions import CloudError
-
+from azure.mgmt.compute.models import Plan, DiskCreateOptionTypes, StorageAccountTypes
 from cloudshell.cp.azure.domain.services.virtual_machine_service import VirtualMachineService
+from mock import MagicMock, Mock, patch
 
 
 class TestVirtualMachineService(TestCase):

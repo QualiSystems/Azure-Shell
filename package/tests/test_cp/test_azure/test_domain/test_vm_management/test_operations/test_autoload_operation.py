@@ -32,7 +32,6 @@ class TestAutoloadOperation(TestCase):
         self.autoload_operation._validate_mgmt_resource_group = mock.MagicMock()
         self.autoload_operation._validate_vnet = mock.MagicMock()
         self.autoload_operation._validate_vm_size = mock.MagicMock()
-        self.autoload_operation._validate_networks_in_use = mock.MagicMock()
         self.autoload_operation._validate_additional_mgmt_networks = mock.MagicMock()
 
         # Act
@@ -46,7 +45,6 @@ class TestAutoloadOperation(TestCase):
         self.autoload_operation._validate_mgmt_resource_group.assert_called_once()
         self.autoload_operation._validate_vnet.assert_called()
         self.autoload_operation._validate_vm_size.assert_called_once()
-        self.autoload_operation._validate_networks_in_use.assert_called_once()
         self.autoload_operation._validate_additional_mgmt_networks.assert_called_once()
 
     @mock.patch("cloudshell.cp.azure.domain.vm_management.operations.autoload_operation.AzureClientsManager")
