@@ -2,6 +2,8 @@ import jsonpickle
 from threading import Lock
 
 from cloudshell.api.cloudshell_api import CommandExecutionCancelledResultInfo
+from cloudshell.cp.azure.domain.common.vm_details_provider import VmDetailsProvider
+from cloudshell.cp.azure.domain.vm_management.operations.vm_details_operation import VmDetailsOperation
 from cloudshell.shell.core.driver_context import ResourceCommandContext, CancellationContext
 from cloudshell.core.context.error_handling_context import ErrorHandlingContext
 
@@ -65,6 +67,7 @@ class AzureShell(object):
         self.vm_service = VirtualMachineService(task_waiter_service=self.task_waiter_service)
         self.generic_lock_provider = GenericLockProvider()
         self.subnet_locker = Lock()
+        self.vm_details_provider = VmDetailsProvider(self.network_service, self.resource_id_parser)
         self.image_data_factory = ImageDataFactory(vm_service=self.vm_service)
 
         self.autoload_operation = AutoloadOperation(subscription_service=self.subscription_service,
@@ -99,7 +102,8 @@ class AzureShell(object):
             vm_extension_service=self.vm_extension_service,
             cancellation_service=self.cancellation_service,
             generic_lock_provider=self.generic_lock_provider,
-            image_data_factory=self.image_data_factory)
+            image_data_factory=self.image_data_factory,
+            vm_details_provider=self.vm_details_provider)
 
         self.power_vm_operation = PowerAzureVMOperation(vm_service=self.vm_service,
                                                         vm_custom_params_extractor=self.vm_custom_params_extractor)
@@ -118,6 +122,9 @@ class AzureShell(object):
 
         self.deployed_app_ports_operation = DeployedAppPortsOperation(
             vm_custom_params_extractor=self.vm_custom_params_extractor)
+
+        self.vm_details_operation = VmDetailsOperation(vm_service=self.vm_service,
+                                                       vm_details_provider=self.vm_details_provider)
 
     def get_inventory(self, command_context):
         """Validate Cloud Provider
@@ -176,8 +183,6 @@ class AzureShell(object):
                 logger.info('End deploying Azure VM')
                 return self.command_result_parser.set_command_result(deploy_data)
 
-
-
     def deploy_vm_from_custom_image(self, command_context, deployment_request, cancellation_context):
         """Deploy Azure Image from given Image URN
 
@@ -217,7 +222,6 @@ class AzureShell(object):
                 logger.info('End deploying Azure VM From Custom Image')
 
                 return self.command_result_parser.set_command_result(deploy_data)
-
 
     def prepare_connectivity(self, context, request, cancellation_context):
         """
@@ -450,3 +454,44 @@ class AzureShell(object):
 
                 return self.deployed_app_ports_operation.get_formated_deployed_app_ports(
                     data_holder.vmdetails.vmCustomParams)
+
+    def get_vm_details(self, command_context, cancellation_context, requests_json):
+        """Get vm details for specific deployed app
+
+        :param requests_json:
+        :param cancellation_context:
+        :param command_context: ResourceRemoteCommandContext
+        """
+
+        with LoggingSessionContext(command_context) as logger:
+            with ErrorHandlingContext(logger):
+                logger.info("Starting get_vm_details operation...")
+
+                requests = DeployDataHolder(jsonpickle.decode(requests_json)).items
+
+                group_name = self.model_parser.convert_to_reservation_model(command_context.reservation) \
+                    .reservation_id
+
+                # resource = command_context.remote_endpoints[0]
+                # data_holder = self.model_parser.convert_app_resource_to_deployed_app(resource)
+                # vm_name = data_holder.name
+
+                # data_holder_request = self.model_parser.convert_app_resource_to_request(resource)
+                # deployment_service = data_holder_request.deploymentService
+                # is_market_place = filter(lambda x: x.name == "Image SKU", deployment_service.attributes)
+
+                with CloudShellSessionContext(command_context) as cloudshell_session:
+                    cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(
+                        resource=command_context.resource,
+                        cloudshell_session=cloudshell_session)
+
+                azure_clients = AzureClientsManager(cloud_provider_model)
+
+                vm_details = self.vm_details_operation.get_vm_details(compute_client=azure_clients.compute_client,
+                                                                      group_name=group_name,
+                                                                      requests=requests,
+                                                                      logger=logger,
+                                                                      network_client=azure_clients.network_client,
+                                                                      model_parser=self.model_parser,
+                                                                      cancellation_context=cancellation_context)
+                return self.command_result_parser.set_command_result(vm_details)

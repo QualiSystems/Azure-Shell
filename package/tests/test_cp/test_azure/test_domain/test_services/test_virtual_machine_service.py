@@ -271,16 +271,22 @@ class TestVirtualMachineService(TestCase):
 
     def test_stop_vm(self):
         """Check that method calls azure client to stop VM action and returns it result"""
-        compute_management_client = MagicMock()
+        # arrange
+        compute_management_client = Mock()
+        compute_management_client.virtual_machines = Mock()
+        vm_deallocate_mock = Mock()
+        vm_deallocate_mock.wait = Mock()
+        compute_management_client.virtual_machines.deallocate = Mock(return_value=vm_deallocate_mock)
         group_name = "test_group_name"
         vm_name = "test_group_name"
 
-        res = self.vm_service.stop_vm(compute_management_client, group_name, vm_name)
+        # act
+        self.vm_service.stop_vm(compute_management_client, group_name, vm_name, False)
 
-        compute_management_client.virtual_machines.power_off.assert_called_with(resource_group_name=group_name,
-                                                                                vm_name=vm_name)
-
-        self.assertEqual(res, compute_management_client.virtual_machines.power_off().result())
+        # assert
+        compute_management_client.virtual_machines.deallocate.assert_called_once_with(resource_group_name=group_name,
+                                                                                      vm_name=vm_name)
+        vm_deallocate_mock.wait.assert_called_once()
 
     def test_start_vm_with_async_mode_true(self):
         """Check that method calls azure client to start VM action and doesn't wait for it result"""

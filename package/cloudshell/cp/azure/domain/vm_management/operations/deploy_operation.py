@@ -1,6 +1,7 @@
 import re
-from msrestazure.azure_exceptions import CloudError
 
+from cloudshell.cp.azure.domain.common.vm_details_provider import VmDetailsProvider
+from msrestazure.azure_exceptions import CloudError
 from cloudshell.cp.azure.common.exceptions.quali_timeout_exception import QualiTimeoutException, \
     QualiScriptExecutionTimeoutException
 from cloudshell.cp.azure.models.deploy_result_model import DeployResult
@@ -13,7 +14,7 @@ from azure.mgmt.network.models import Subnet, NetworkInterface
 from azure.mgmt.compute.models import OperatingSystemTypes, PurchasePlan
 from cloudshell.shell.core.driver_context import CancellationContext
 from cloudshell.cp.azure.models.vm_credentials import VMCredentials
-from cloudshell.cp.azure.models.image_data import ImageDataModelBase
+from cloudshell.cp.azure.models.image_data import ImageDataModelBase, MarketplaceImageDataModel
 from cloudshell.api.cloudshell_api import CloudShellAPISession
 
 
@@ -32,7 +33,8 @@ class DeployAzureVMOperation(object):
                  vm_extension_service,
                  cancellation_service,
                  generic_lock_provider,
-                 image_data_factory):
+                 image_data_factory,
+                 vm_details_provider):
         """
 
         :param cloudshell.cp.azure.domain.services.virtual_machine_service.VirtualMachineService vm_service:
@@ -47,8 +49,10 @@ class DeployAzureVMOperation(object):
         :param cloudshell.cp.azure.domain.services.command_cancellation.CommandCancellationService cancellation_service:
         :param cloudshell.cp.azure.domain.services.lock_service.GenericLockProvider generic_lock_provider:
         :param cloudshell.cp.azure.domain.services.image_data.ImageDataFactory image_data_factory:
+        :param cloudshell.cp.azure.domain.common.vm_details_provider.VmDetailsProvider vm_details_provider:
         :return:
         """
+
         self.image_data_factory = image_data_factory
         self.generic_lock_provider = generic_lock_provider
         self.vm_service = vm_service
@@ -61,6 +65,7 @@ class DeployAzureVMOperation(object):
         self.name_provider_service = name_provider_service
         self.vm_extension_service = vm_extension_service
         self.cancellation_service = cancellation_service
+        self.vm_details_provider = vm_details_provider
 
     def deploy_from_custom_image(self, deployment_model,
                                  cloud_provider_model,
@@ -231,6 +236,10 @@ class DeployAzureVMOperation(object):
                 admin_password=data.vm_credentials.admin_password,
                 public_ip=data.public_ip_address)
 
+        # check if CustomImageDataModel or MarketplaceImageDataModel, no more options
+        is_market_place = type(data.image_model) is MarketplaceImageDataModel
+        vm_details_data = self.vm_details_provider.create(vm, is_market_place, logger, network_client, data.group_name)
+
         return DeployResult(vm_name=data.vm_name,
                             vm_uuid=vm.vm_id,
                             cloud_provider_resource_name=cloud_provider_model.cloud_provider_name,
@@ -240,7 +249,8 @@ class DeployAzureVMOperation(object):
                             deployed_app_address=data.private_ip_address,
                             public_ip=data.public_ip_address,
                             resource_group=data.reservation_id,
-                            extension_time_out=extension_time_out)
+                            extension_time_out=extension_time_out,
+                            vm_details_data=vm_details_data)
 
     def _expand_cloud_error_message(self, exc, deployment_model):
         """

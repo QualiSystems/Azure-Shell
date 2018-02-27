@@ -1,7 +1,7 @@
 class DeployResult(object):
     def __init__(self, vm_name, vm_uuid, cloud_provider_resource_name, autoload,
                  inbound_ports, deployed_app_attributes, deployed_app_address,
-                 public_ip, resource_group, extension_time_out):
+                 public_ip, resource_group, extension_time_out, vm_details_data):
         """
         :param str vm_name: The name of the virtual machine
         :param uuid uuid: The UUID
@@ -28,3 +28,4 @@ class DeployResult(object):
         self.deployed_app_address = deployed_app_address
         self.public_ip = public_ip
         self.extension_time_out = extension_time_out
+        self.vm_details_data = vm_details_data
