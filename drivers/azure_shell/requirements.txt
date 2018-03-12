@@ -2,9 +2,5 @@ cloudshell-automation-api>=8.0.0.0,<8.1.0.0
 cloudshell-shell-core>=3.1.0,<3.2.0
 jsonpickle==0.9.3
 cloudshell-cp-azure>=1.1.0,<1.2.0
-azure-mgmt-resource~=0.31.0
-azure-mgmt-compute~=0.33.0
-azure-mgmt-network~=0.30.0
-azure-mgmt-storage~=0.30.0
 azure-storage==0.33.0
 pycrypto==2.6.1
