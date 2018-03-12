@@ -1,4 +1,4 @@
-<Driver Description="Deploy Azure VM" MainClass="driver.DeployAzureVM" Name="Deploy Azure VM" Version="1.1.0">
+<Driver Description="Deploy Azure VM" MainClass="driver.DeployAzureVM" Name="Deploy Azure VM" Version="1.1.1">
     <Layout>
         <Category Name="App Management">
             <Command Description="" DisplayName="Deploy" Name="Deploy" Tags="allow_shared" />
