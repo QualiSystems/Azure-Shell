@@ -58,7 +58,7 @@
 					"imageReference": {
 						"publisher": "OpenLogic",
 						"offer": "CentOS",
-						"sku": "7.2",
+						"sku": "7.4",
 						"version": "latest"
 					},
 					"osDisk": {
