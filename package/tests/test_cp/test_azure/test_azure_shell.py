@@ -358,9 +358,6 @@ class TestAzureShell(TestCase):
             resource_group_name=self.group_name,
             vm_name=self.vm_name)
 
-        cloudshell_session.SetResourceLiveStatus.assert_called_once_with(
-            command_context.remote_endpoints[0].fullname, "Offline", "Powered Off")
-
     @mock.patch("cloudshell.cp.azure.azure_shell.CloudShellSessionContext")
     @mock.patch("cloudshell.cp.azure.azure_shell.AzureClientsManager")
     @mock.patch("cloudshell.cp.azure.azure_shell.LoggingSessionContext")

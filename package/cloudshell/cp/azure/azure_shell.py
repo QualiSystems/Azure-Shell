@@ -380,8 +380,6 @@ class AzureShell(object):
 
                 logger.info('Azure VM {} was successfully powered off'.format(vm_name))
 
-                with CloudShellSessionContext(command_context) as cloudshell_session:
-                    cloudshell_session.SetResourceLiveStatus(resource.fullname, "Offline", "Powered Off")
 
     def refresh_ip(self, command_context):
         """Refresh private and public IPs on the Cloudshell resource
