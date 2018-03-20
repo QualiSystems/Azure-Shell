@@ -275,13 +275,13 @@
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Inbound Ports" UserInput="true">
               <AllowedValues />
             </AttachedAttribute>
-            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Image Publisher" UserInput="true">
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Image Publisher" UserInput="true" EditableOnlyInAppTemplate="true">
               <AllowedValues />
             </AttachedAttribute>
-            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Image Offer" UserInput="true">
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Image Offer" UserInput="true" EditableOnlyInAppTemplate="true">
               <AllowedValues />
             </AttachedAttribute>
-            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Image SKU" UserInput="true">
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Image SKU" UserInput="true" EditableOnlyInAppTemplate="true">
               <AllowedValues />
             </AttachedAttribute>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Image Version" UserInput="false">
@@ -330,10 +330,10 @@
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Inbound Ports" UserInput="true">
               <AllowedValues />
             </AttachedAttribute>
-            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Azure Image" UserInput="true">
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Azure Image" UserInput="true" EditableOnlyInAppTemplate="true">
               <AllowedValues />
             </AttachedAttribute>
-            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Azure Resource Group" UserInput="true">
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Azure Resource Group" UserInput="true" EditableOnlyInAppTemplate="true">
               <AllowedValues />
             </AttachedAttribute>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Disk Type" UserInput="true">
