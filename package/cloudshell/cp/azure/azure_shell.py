@@ -36,8 +36,8 @@ from cloudshell.cp.azure.domain.services.subscription import SubscriptionService
 from cloudshell.cp.azure.domain.vm_management.operations.deploy_operation import DeployAzureVMOperation
 from cloudshell.cp.azure.domain.vm_management.operations.power_operation import PowerAzureVMOperation
 from cloudshell.cp.azure.domain.vm_management.operations.refresh_ip_operation import RefreshIPOperation
-from cloudshell.cp.azure.domain.vm_management.operations.prepare_connectivity_operation import \
-    PrepareConnectivityOperation
+from cloudshell.cp.azure.domain.vm_management.operations.PrepareSandboxInfraOperation import \
+    PrepareSandboxInfraOperation
 from cloudshell.cp.azure.common.azure_clients import AzureClientsManager
 from cloudshell.cp.azure.common.parsers.custom_param_extractor import VmCustomParamsExtractor
 from cloudshell.cp.azure.domain.vm_management.operations.app_ports_operation import DeployedAppPortsOperation
@@ -77,7 +77,7 @@ class AzureShell(object):
         self.access_key_operation = AccessKeyOperation(key_pair_service=self.key_pair_service,
                                                        storage_service=self.storage_service)
 
-        self.prepare_connectivity_operation = PrepareConnectivityOperation(
+        self.prepare_connectivity_operation = PrepareSandboxInfraOperation(
             vm_service=self.vm_service,
             network_service=self.network_service,
             storage_service=self.storage_service,

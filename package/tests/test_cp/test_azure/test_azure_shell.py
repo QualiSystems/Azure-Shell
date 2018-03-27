@@ -17,7 +17,7 @@ class TestAzureShell(TestCase):
     @mock.patch("cloudshell.cp.azure.azure_shell.TagService")
     @mock.patch("cloudshell.cp.azure.azure_shell.KeyPairService")
     @mock.patch("cloudshell.cp.azure.azure_shell.SecurityGroupService")
-    @mock.patch("cloudshell.cp.azure.azure_shell.PrepareConnectivityOperation")
+    @mock.patch("cloudshell.cp.azure.azure_shell.PrepareSandboxInfraOperation")
     @mock.patch("cloudshell.cp.azure.azure_shell.DeployAzureVMOperation")
     @mock.patch("cloudshell.cp.azure.azure_shell.PowerAzureVMOperation")
     @mock.patch("cloudshell.cp.azure.azure_shell.RefreshIPOperation")

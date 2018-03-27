@@ -10,12 +10,12 @@ from cloudshell.cp.azure.domain.services.cryptography_service import Cryptograph
 from cloudshell.cp.azure.domain.services.key_pair import KeyPairService
 from cloudshell.cp.azure.domain.services.security_group import SecurityGroupService
 from cloudshell.cp.azure.domain.services.tags import TagService
-from cloudshell.cp.azure.domain.vm_management.operations.prepare_connectivity_operation import \
-    PrepareConnectivityOperation
+from cloudshell.cp.azure.domain.vm_management.operations.PrepareSandboxInfraOperation import \
+    PrepareSandboxInfraOperation
 from tests.helpers.test_helper import TestHelper
 
 
-class TestPrepareConnectivity(TestCase):
+class TestPrepareSandboxInfra(TestCase):
     def setUp(self):
         self.storage_service = MagicMock()
         self.cancellation_service = MagicMock()
@@ -30,7 +30,7 @@ class TestPrepareConnectivity(TestCase):
         self.name_provider_service = MagicMock()
         self.resource_id_parser = MagicMock()
 
-        self.prepare_connectivity_operation = PrepareConnectivityOperation(
+        self.prepare_connectivity_operation = PrepareSandboxInfraOperation(
             vm_service=self.vm_service,
             network_service=self.network_service,
             storage_service=self.storage_service,
