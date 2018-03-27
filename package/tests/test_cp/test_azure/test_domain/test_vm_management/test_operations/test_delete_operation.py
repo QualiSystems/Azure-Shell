@@ -48,7 +48,7 @@ class TestDeleteOperation(TestCase):
         # Verify
         self.assertFalse(result['success'])
         self.assertEqual(result['errorMessage'],
-                         "CleanupConnectivity ended with the error(s): ['lalala']".format(test_exception_message))
+                         "CleanupSandboxInfra ended with the error(s): ['lalala']".format(test_exception_message))
         self.logger.exception.assert_called()
 
     def test_cleanup(self):

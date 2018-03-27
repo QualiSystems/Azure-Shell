@@ -17,7 +17,7 @@ from cloudshell.cp.azure.common.parsers.azure_resource_id_parser import AzureRes
 INVALID_REQUEST_ERROR = 'Invalid request: {0}'
 
 
-class PrepareConnectivityOperation(object):
+class PrepareSandboxInfraOperation(object):
     def __init__(self,
                  vm_service,
                  network_service,

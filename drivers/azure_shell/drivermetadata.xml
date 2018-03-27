@@ -7,12 +7,12 @@
         <Category Name="Connectivity">
             <Command Description="" DisplayName="Refresh IP" EnableCancellation="true" Name="remote_refresh_ip" Tags="remote_connectivity,allow_shared" />
             <Command Description="" DisplayName="Get Application Ports" EnableCancellation="true" Name="GetApplicationPorts" Tags="remote_connectivity,allow_shared" />
-            <Command Description="" DisplayName="Prepare Connectivity" EnableCancellation="true" Name="PrepareConnectivity" Tags="allow_unreserved" />
-            <Command Description="" DisplayName="Cleanup Connectivity" Name="CleanupConnectivity" Tags="allow_unreserved" />
+            <Command Description="" DisplayName="Prepare Connectivity" EnableCancellation="true" Name="PrepareSandboxInfra" Tags="allow_unreserved" />
+            <Command Description="" DisplayName="Cleanup Connectivity" Name="CleanupSandboxInfra" Tags="allow_unreserved" />
         </Category>
         <Category Name="Hidden Commands">
             <Command Description="" DisplayName="Power Cycle" Name="PowerCycle" Tags="power" />
-            <Command Description="" DisplayName="Delete VM Only" Name="destroy_vm_only" Tags="remote_app_management,allow_shared" />
+            <Command Description="" DisplayName="Delete VM Only" Name="DeleteInstance" Tags="remote_app_management,allow_shared" />
             <Command Description="" DisplayName="GetAccessKey" Name="GetAccessKey" Tags="remote_app_management" />
             <Command Description="" DisplayName="Deploy" Name="Deploy" Tags="allow_unreserved" />
             <Command Description="" DisplayName="Get VmDetails" EnableCancellation="true" Name="GetVmDetails" Tags="allow_unreserved" />
