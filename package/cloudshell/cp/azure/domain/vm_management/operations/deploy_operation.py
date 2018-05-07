@@ -16,6 +16,7 @@ from cloudshell.shell.core.driver_context import CancellationContext
 from cloudshell.cp.azure.models.vm_credentials import VMCredentials
 from cloudshell.cp.azure.models.image_data import ImageDataModelBase, MarketplaceImageDataModel
 from cloudshell.api.cloudshell_api import CloudShellAPISession
+from cloudshell.cp.core import DeployAppResult, Attribute
 
 
 class DeployAzureVMOperation(object):
@@ -150,7 +151,7 @@ class DeployAzureVMOperation(object):
         :param CancellationContext cancellation_context:
         :param logging.Logger logger:
         :param cloudshell.api.cloudshell_api.CloudShellAPISession cloudshell_session:
-        :return:
+        :return: cloudshell.cp.core.models.DeployAppResult
         """
         logger.info("Start Deploy Azure VM operation")
         extension_time_out = False
@@ -240,17 +241,13 @@ class DeployAzureVMOperation(object):
         is_market_place = type(data.image_model) is MarketplaceImageDataModel
         vm_details_data = self.vm_details_provider.create(vm, is_market_place, logger, network_client, data.group_name)
 
-        return DeployResult(vm_name=data.vm_name,
-                            vm_uuid=vm.vm_id,
-                            cloud_provider_resource_name=cloud_provider_model.cloud_provider_name,
-                            autoload=deployment_model.autoload,
-                            inbound_ports=deployment_model.inbound_ports,
-                            deployed_app_attributes=deployed_app_attributes,
-                            deployed_app_address=data.private_ip_address,
-                            public_ip=data.public_ip_address,
-                            resource_group=data.reservation_id,
-                            extension_time_out=extension_time_out,
-                            vm_details_data=vm_details_data)
+        deploy_result = DeployAppResult(vmUuid=vm.vm_id,
+                                        vmName=data.vm_name,
+                                        deployedAppAddress=data.private_ip_address,
+                                        deployedAppAttributes=deployed_app_attributes,
+                                        vmDetailsData=vm_details_data)
+
+        return deploy_result
 
     def _expand_cloud_error_message(self, exc, deployment_model):
         """
@@ -610,7 +607,9 @@ class DeployAzureVMOperation(object):
         :return: dict
         """
 
-        deployed_app_attr = {'Password': admin_password, 'User': admin_username, 'Public IP': public_ip}
+        deployed_app_attr = [Attribute('Password', admin_password),
+                             Attribute('User', admin_username),
+                             Attribute('Public IP', public_ip)]
 
         return deployed_app_attr
 
