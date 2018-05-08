@@ -1,23 +1,29 @@
-import jsonpickle
 from cloudshell.cp.azure.azure_shell import AzureShell
 from cloudshell.shell.core.resource_driver_interface import ResourceDriverInterface
+from cloudshell.cp.core import DriverRequestParser, DeployApp, DriverResponse, single
+
 
 class AzureShellDriver(ResourceDriverInterface):
     def __init__(self):
         """
         ctor must be without arguments, it is created with reflection at run time
         """
+        self.request_parser = DriverRequestParser()
         self.deployments = dict()
         self.deployments['Azure VM From Marketplace'] = self.deploy_vm
         self.deployments['Azure VM From Custom Image'] = self.deploy_vm_from_custom_image
         self.azure_shell = AzureShell()
 
     def Deploy(self, context, request=None, cancellation_context=None):
-        app_request = jsonpickle.decode(request)
-        deployment_name = app_request['DeploymentServiceName']
+        actions = self.request_parser.convert_driver_request_to_actions(request)
+        deploy_action = single(actions, lambda x: isinstance(x, DeployApp))
+        deployment_name = deploy_action.actionParams.deployment.deploymentPath
+
         if deployment_name in self.deployments.keys():
             deploy_method = self.deployments[deployment_name]
-            return deploy_method(context,request,cancellation_context)
+            result = deploy_method(context, deploy_action, cancellation_context)
+            result.actionId = deploy_action.actionId
+            return DriverResponse([result]).to_driver_response_json()
         else:
             raise Exception('Could not find the deployment')
 
@@ -27,14 +33,14 @@ class AzureShellDriver(ResourceDriverInterface):
     def cleanup(self):
         pass
 
-    def deploy_vm(self, context, request, cancellation_context):
+    def deploy_vm(self, context, action, cancellation_context):
         return self.azure_shell.deploy_azure_vm(command_context=context,
-                                                deployment_request=request,
+                                                deploy_action=action,
                                                 cancellation_context=cancellation_context)
 
-    def deploy_vm_from_custom_image(self, context, request, cancellation_context):
+    def deploy_vm_from_custom_image(self, context, action, cancellation_context):
         return self.azure_shell.deploy_vm_from_custom_image(command_context=context,
-                                                            deployment_request=request,
+                                                            deploy_action=action,
                                                             cancellation_context=cancellation_context)
 
     def PowerOn(self, context, ports):
@@ -53,7 +59,9 @@ class AzureShellDriver(ResourceDriverInterface):
         self.azure_shell.delete_azure_vm(command_context=context)
 
     def PrepareSandboxInfra(self, context, request, cancellation_context):
-        return self.azure_shell.prepare_connectivity(context, request, cancellation_context)
+        actions = self.request_parser.convert_driver_request_to_actions(request)
+        results = self.azure_shell.prepare_connectivity(context, actions, cancellation_context)
+        return DriverResponse(results).to_driver_response_json()
 
     def CleanupSandboxInfra(self, context, request):
         return self.azure_shell.cleanup_connectivity(command_context=context, request=request)

@@ -13,6 +13,7 @@ from cloudshell.cp.azure.domain.services.tags import TagService
 from cloudshell.cp.azure.domain.vm_management.operations.PrepareSandboxInfraOperation import \
     PrepareSandboxInfraOperation
 from tests.helpers.test_helper import TestHelper
+from cloudshell.cp.core import PrepareCloudInfra, PrepareSubnet, CreateKeys
 
 
 class TestPrepareSandboxInfra(TestCase):
@@ -52,15 +53,18 @@ class TestPrepareSandboxInfra(TestCase):
         self.vm_service.create_resource_group = MagicMock()
         self.cryptography_service.encrypt = MagicMock()
 
-        req = MagicMock()
-        network_action = Mock(type="prepareNetwork")
-        network_action.connectionParams = Mock()
-        network_action.connectionParams.cidr = "10.0.0.0/24"
-        subnet_action = Mock(type="prepareSubnet")
-        subnet_action.connectionParams = Mock()
-        subnet_action.connectionParams.cidr = "10.0.0.0/24"
-        req.actions = [network_action, subnet_action]
-        prepare_connectivity_request = req
+        network_action = Mock(spec=PrepareCloudInfra)
+        network_action.actionParams = Mock()
+        network_action.actionParams.cidr = "10.0.0.0/24"
+        network_action.actionId = '1'
+        subnet_action = Mock(spec=PrepareSubnet)
+        subnet_action.actionParams = Mock()
+        subnet_action.actionParams.cidr = "10.0.0.0/24"
+        subnet_action.actionId = '1'
+        create_keys_action = Mock(spec=CreateKeys)
+        create_keys_action.actionId = '3'
+
+        actions = [network_action, subnet_action, create_keys_action]
         result = Mock()
         result.wait = Mock()
 
@@ -82,7 +86,7 @@ class TestPrepareSandboxInfra(TestCase):
             resource_client=MagicMock(),
             network_client=network_client,
             logger=self.logger,
-            request=prepare_connectivity_request,
+            actions=actions,
             cancellation_context=cancellation_context)
 
         # Verify
@@ -117,12 +121,11 @@ class TestPrepareSandboxInfra(TestCase):
         action = Mock()
         action.connectionParams.cidr = None
 
-        request = Mock()
-        request.actions = [action]
+        actions = [action]
 
         self.assertRaises(ValueError,
                           self.prepare_connectivity_operation._validate_request_and_extract_cidr,
-                          request)
+                          actions)
 
     def test_prepare_connectivity_throes_exception_on_unavailable_VNETs(self):
         # Arrange
@@ -136,14 +139,19 @@ class TestPrepareSandboxInfra(TestCase):
         self.network_service.get_virtual_network_by_tag.side_effect = [None, Mock()]
         self.cryptography_service.encrypt = MagicMock()
 
-        req = MagicMock()
-        action = MagicMock()
-        att = MagicMock()
-        att.attributeName = 'Network'
-        att.attributeValue = '10.0.0.0/12'
-        action.customActionAttributes = [att]
-        req.actions = [action]
-        prepare_connectivity_request = req
+        network_action = Mock(spec=PrepareCloudInfra)
+        network_action.actionParams = Mock()
+        network_action.actionParams.cidr = "10.0.0.0/24"
+        network_action.actionId = '1'
+        subnet_action = Mock(spec=PrepareSubnet)
+        subnet_action.actionParams = Mock()
+        subnet_action.actionParams.cidr = "10.0.0.0/24"
+        subnet_action.actionId = '1'
+        create_keys_action = Mock(spec=CreateKeys)
+        create_keys_action.actionId = '3'
+
+        actions = [network_action, subnet_action, create_keys_action]
+
         reservation = MagicMock()
         reservation.reservation_id = str(uuid.uuid4())
         cancellation_context = MagicMock()
@@ -157,7 +165,7 @@ class TestPrepareSandboxInfra(TestCase):
                           resource_client=MagicMock(),
                           network_client=MagicMock(),
                           logger=self.logger,
-                          request=prepare_connectivity_request,
+                          actions=actions,
                           cancellation_context=cancellation_context)
 
         self.network_service.get_virtual_network_by_tag = Mock(return_value=None)
@@ -171,7 +179,7 @@ class TestPrepareSandboxInfra(TestCase):
                           resource_client=MagicMock(),
                           network_client=MagicMock(),
                           logger=self.logger,
-                          request=prepare_connectivity_request,
+                          actions=actions,
                           cancellation_context=cancellation_context)
 
     def test_cleanup_stale_data(self):

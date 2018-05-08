@@ -32,25 +32,26 @@ class TestAzureModelsParser(TestCase):
     def test_convert_to_deploy_azure_vm_resource_model(self, deploy_data_holder_class, jsonpickle,
                                                        deploy_azure_vm_model_class):
         """Check that method returns DeployAzureVMResourceModel instance with attrs from DeployDataHolder"""
-        data_holder = {'Attributes': mock.MagicMock(), 'AppName': mock.MagicMock()}
+        deploy_action = mock.MagicMock()
+        deploy_action.actionParams = mock.MagicMock()
+        deploy_action.actionParams.deployment = mock.MagicMock()
+        deploy_action.actionParams.deployment.attributes = mock.MagicMock()
         deploy_azure_vm_model = mock.MagicMock()
-        deploy_data_holder_class.return_value = data_holder
-        deployment_request = mock.MagicMock()
+        deploy_action = mock.MagicMock()
         deploy_azure_vm_model_class.return_value = deploy_azure_vm_model
-        jsonpickle.decode.return_value = data_holder
         logger = mock.Mock()
         cloudshell_session = mock.Mock()
 
         # Act
         with mock.patch.object(self.tested_class, "_set_base_deploy_azure_vm_model_params") as set_base_params:
-            result = self.tested_class.convert_to_deploy_azure_vm_resource_model(deployment_request,
+            result = self.tested_class.convert_to_deploy_azure_vm_resource_model(deploy_action,
                                                                                  cloudshell_session,
                                                                                  logger)
 
             # Verify
             self.assertIs(result, deploy_azure_vm_model)
 
-            data_attributes = data_holder['Attributes']
+            data_attributes = deploy_action.actionParams.deployment.attributes
             self.assertEqual(result.image_offer, data_attributes['Image Offer'])
             self.assertEqual(result.image_publisher, data_attributes['Image Publisher'])
             self.assertEqual(result.image_sku, data_attributes['Image SKU'])
@@ -67,19 +68,19 @@ class TestAzureModelsParser(TestCase):
                                                                          jsonpickle,
                                                                          deploy_azure_vm_model_class):
         """Check that method returns DeployAzureVMFromCustomImageResourceModel with attrs from DeployDataHolder"""
-        data_holder = {'Attributes': mock.MagicMock()}
+        deploy_action = mock.MagicMock()
+        deploy_action.actionParams = mock.MagicMock()
+        deploy_action.actionParams.deployment = mock.MagicMock()
+        deploy_action.actionParams.deployment.attributes = mock.MagicMock()
         deploy_azure_vm_model = mock.MagicMock()
-        deploy_data_holder_class.return_value = data_holder
-        deployment_request = mock.MagicMock()
         deploy_azure_vm_model_class.return_value = deploy_azure_vm_model
         logger = mock.Mock()
         cloudshell_session = mock.Mock()
-        jsonpickle.decode.return_value = data_holder
 
         # Act
         self.tested_class._set_base_deploy_azure_vm_model_params = mock.MagicMock()
         # with mock.patch.object(self.tested_class, "_set_base_deploy_azure_vm_model_params") as set_base_params:
-        result = self.tested_class.convert_to_deploy_azure_vm_from_custom_image_resource_model(deployment_request,
+        result = self.tested_class.convert_to_deploy_azure_vm_from_custom_image_resource_model(deploy_action,
                                                                                                cloudshell_session,
                                                                                                logger)
         # Verify
@@ -87,11 +88,11 @@ class TestAzureModelsParser(TestCase):
 
         self.tested_class._set_base_deploy_azure_vm_model_params.assert_called_once_with(
             deployment_resource_model=deploy_azure_vm_model,
-            data_holder=data_holder,
+            deploy_action=deploy_action,
             cloudshell_session=cloudshell_session,
             logger=logger)
 
-        att = data_holder['Attributes']
+        att = deploy_action.actionParams.deployment.attributes
         self.assertEqual(result.image_name, att['Azure Image'])
         self.assertEqual(result.image_resource_group, att['Azure Resource Group'])
 

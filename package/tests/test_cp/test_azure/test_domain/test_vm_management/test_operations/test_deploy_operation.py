@@ -11,6 +11,8 @@ from cloudshell.cp.azure.domain.services.virtual_machine_service import VirtualM
 from cloudshell.cp.azure.domain.vm_management.operations.deploy_operation import DeployAzureVMOperation
 from cloudshell.cp.azure.models.azure_cloud_provider_resource_model import AzureCloudProviderResourceModel
 from cloudshell.cp.azure.models.deploy_azure_vm_resource_models import DeployAzureVMResourceModel
+from cloudshell.cp.core import Attribute
+
 
 
 class TestDeployAzureVMOperation(TestCase):
@@ -215,17 +217,10 @@ class TestDeployAzureVMOperation(TestCase):
                 public_ip=updated_data.public_ip_address
         )
         self.assertEquals(updated_data.public_ip_address, "pub_ip_address")
-        self.assertEquals(result.vm_name, updated_data.vm_name)
-        self.assertEquals(result.vm_uuid, vm.vm_id)
-        self.assertEquals(result.autoload, resource_model.autoload)
-        self.assertEquals(result.inbound_ports, resource_model.inbound_ports)
-        self.assertEquals(result.deployed_app_attributes, deployed_app_attributes)
-        self.assertEquals(result.deployed_app_address, updated_data.private_ip_address)
-        self.assertEquals(result.public_ip, updated_data.public_ip_address)
-        self.assertEquals(result.resource_group, updated_data.reservation_id)
-        self.assertEquals(result.auto_delete, True)
-        self.assertEquals(result.auto_power_off, False)
-        self.assertEquals(result.wait_for_ip, False)
+        self.assertEquals(result.vmName, updated_data.vm_name)
+        self.assertEquals(result.vmUuid, vm.vm_id)
+        self.assertEquals(result.deployedAppAttributes, deployed_app_attributes)
+        self.assertEquals(result.deployedAppAddress, updated_data.private_ip_address)
 
     def test_deploy_from_custom_image(self):
         # Arrange
@@ -830,12 +825,24 @@ class TestDeployAzureVMOperation(TestCase):
             script_file=deployment_model.extension_script_file,
             script_configurations=deployment_model.extension_script_configurations)
 
-
     def test_prepare_deployed_app_attributes(self):
-        expected_res = {'Password': 'pass', 'User': 'admin', 'Public IP': '5.5.5.5'}
+        user = 'admin'
+        password = 'pass'
+        ip = '5.5.5.5'
+
+        expected_res = [Attribute('Password', password),
+                        Attribute('User', user),
+                        Attribute('Public IP', ip)]
 
         res = self.deploy_operation._prepare_deployed_app_attributes(admin_username='admin',
                                                                      admin_password='pass',
                                                                      public_ip='5.5.5.5')
 
-        self.assertEquals(res, expected_res)
+        self.assertEquals(value_for(res, 'User'), value_for(expected_res, 'User'))
+        self.assertEquals(value_for(res, 'Password'), value_for(expected_res, 'Password'))
+        self.assertEquals(value_for(res, 'Public IP'), value_for(expected_res, 'Public IP'))
+        self.assertEquals(len(res), len(expected_res))
+
+
+def value_for(attributes, attribute_name):
+    return next(attribute.attributeValue for attribute in iter(attributes) if attribute.attributeName==attribute_name)

@@ -146,11 +146,11 @@ class AzureShell(object):
                     logger.info("End Autoload Operation...")
                     return result
 
-    def deploy_azure_vm(self, command_context, deployment_request, cancellation_context):
+    def deploy_azure_vm(self, command_context, deploy_action, cancellation_context):
         """ Will deploy Azure Image on the cloud provider
 
         :param ResourceCommandContext command_context:
-        :param str deployment_request: JSON string
+        :param cloudshell.cp.core.models.DeployApp deploy_action: describes the desired deployment
         :param CancellationContext cancellation_context:
         """
         with LoggingSessionContext(command_context) as logger:
@@ -159,7 +159,7 @@ class AzureShell(object):
 
                 with CloudShellSessionContext(command_context) as cloudshell_session:
                     azure_vm_deployment_model = self.model_parser.convert_to_deploy_azure_vm_resource_model(
-                        deployment_request=deployment_request,
+                        deploy_action=deploy_action,
                         cloudshell_session=cloudshell_session,
                         logger=logger)
 
@@ -169,7 +169,7 @@ class AzureShell(object):
 
                 azure_clients = AzureClientsManager(cloud_provider_model)
 
-                deploy_data = self.deploy_azure_vm_operation.deploy_from_marketplace(
+                result = self.deploy_azure_vm_operation.deploy_from_marketplace(
                     deployment_model=azure_vm_deployment_model,
                     cloud_provider_model=cloud_provider_model,
                     reservation=self.model_parser.convert_to_reservation_model(command_context.reservation),
@@ -181,13 +181,13 @@ class AzureShell(object):
                     cloudshell_session=cloudshell_session)
 
                 logger.info('End deploying Azure VM')
-                return self.command_result_parser.set_command_result(deploy_data)
+                return result
 
-    def deploy_vm_from_custom_image(self, command_context, deployment_request, cancellation_context):
+    def deploy_vm_from_custom_image(self, command_context, deploy_action, cancellation_context):
         """Deploy Azure Image from given Image URN
 
         :param ResourceCommandContext command_context: ResourceCommandContext instance
-        :param str deployment_request: (str) JSON string
+        :param cloudshell.cp.core.models.DeployApp deploy_action: describes the desired deployment
         :param CancellationContext cancellation_context:
         :return:
         """
@@ -198,7 +198,7 @@ class AzureShell(object):
                 with CloudShellSessionContext(command_context) as cloudshell_session:
                     azure_vm_deployment_model = self.model_parser. \
                         convert_to_deploy_azure_vm_from_custom_image_resource_model(
-                        deployment_request=deployment_request,
+                        deploy_action=deploy_action,
                         cloudshell_session=cloudshell_session,
                         logger=logger)
 
@@ -208,7 +208,7 @@ class AzureShell(object):
 
                 azure_clients = AzureClientsManager(cloud_provider_model)
 
-                deploy_data = self.deploy_azure_vm_operation.deploy_from_custom_image(
+                result = self.deploy_azure_vm_operation.deploy_from_custom_image(
                     deployment_model=azure_vm_deployment_model,
                     cloud_provider_model=cloud_provider_model,
                     reservation=self.model_parser.convert_to_reservation_model(command_context.reservation),
@@ -221,9 +221,9 @@ class AzureShell(object):
 
                 logger.info('End deploying Azure VM From Custom Image')
 
-                return self.command_result_parser.set_command_result(deploy_data)
+                return result
 
-    def prepare_connectivity(self, context, request, cancellation_context):
+    def prepare_connectivity(self, context, actions, cancellation_context):
         """
         Creates a connectivity for the Sandbox:
         1.Resource group
@@ -233,7 +233,7 @@ class AzureShell(object):
         5.Creating a subnet under the
 
         :param context:
-        :param request:
+        :param actions: list[cloudshell.cp.core.models.RequestActionBase]
         :param cancellation_context cloudshell.shell.core.driver_context.CancellationContext instance
         :return:
         """
@@ -248,9 +248,6 @@ class AzureShell(object):
 
                 azure_clients = AzureClientsManager(cloud_provider_model)
 
-                prepare_connectivity_request = DeployDataHolder(jsonpickle.decode(request))
-                prepare_connectivity_request = getattr(prepare_connectivity_request, 'driverRequest', None)
-
                 result = self.prepare_connectivity_operation.prepare_connectivity(
                     reservation=self.model_parser.convert_to_reservation_model(context.reservation),
                     cloud_provider_model=cloud_provider_model,
@@ -258,11 +255,11 @@ class AzureShell(object):
                     resource_client=azure_clients.resource_client,
                     network_client=azure_clients.network_client,
                     logger=logger,
-                    request=prepare_connectivity_request,
+                    actions=actions,
                     cancellation_context=cancellation_context)
 
                 logger.info('End Preparing Connectivity for Azure VM')
-                return self.command_result_parser.set_command_result({'driverResponse': {'actionResults': result}})
+                return result
 
     def cleanup_connectivity(self, command_context, request):
         with LoggingSessionContext(command_context) as logger:
@@ -379,7 +376,6 @@ class AzureShell(object):
                                                   vm_name=vm_name)
 
                 logger.info('Azure VM {} was successfully powered off'.format(vm_name))
-
 
     def refresh_ip(self, command_context):
         """Refresh private and public IPs on the Cloudshell resource
