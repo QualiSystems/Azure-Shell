@@ -54,7 +54,7 @@ class TestAzureShell(TestCase):
 
         command_context = mock.MagicMock()
         cancellation_context = mock.MagicMock()
-        deployment_request = mock.MagicMock()
+        deploy_action = mock.MagicMock()
         azure_vm_deployment_model = mock.MagicMock()
         cloud_provider_model = mock.MagicMock()
         reservation = mock.MagicMock()
@@ -64,7 +64,7 @@ class TestAzureShell(TestCase):
 
         # Act
         self.azure_shell.deploy_azure_vm(command_context=command_context,
-                                         deployment_request=deployment_request,
+                                         deploy_action=deploy_action,
                                          cancellation_context=cancellation_context)
 
         # Verify
@@ -103,7 +103,7 @@ class TestAzureShell(TestCase):
 
         command_context = mock.MagicMock()
         cancellation_context = mock.MagicMock()
-        deployment_request = mock.MagicMock()
+        deploy_action = mock.MagicMock()
         azure_vm_deployment_model = mock.MagicMock()
         cloud_provider_model = mock.MagicMock()
         reservation = mock.MagicMock()
@@ -113,7 +113,7 @@ class TestAzureShell(TestCase):
 
         # Act
         self.azure_shell.deploy_vm_from_custom_image(command_context=command_context,
-                                                     deployment_request=deployment_request,
+                                                     deploy_action=deploy_action,
                                                      cancellation_context=cancellation_context)
 
         # Verify
@@ -159,14 +159,14 @@ class TestAzureShell(TestCase):
         deploy_data_holder = mock.MagicMock()
         deploy_data_holder_class.return_value = deploy_data_holder
         context = mock.MagicMock()
-        request = mock.MagicMock()
+        actions = [mock.MagicMock()]
         cancellation_context = mock.MagicMock()
-        prepare_connectivity_result = mock.MagicMock()
+        prepare_connectivity_result = [mock.MagicMock()]
         self.azure_shell.prepare_connectivity_operation.prepare_connectivity.return_value = prepare_connectivity_result
 
         # Act
         self.azure_shell.prepare_connectivity(context=context,
-                                              request=request,
+                                              actions=actions,
                                               cancellation_context=cancellation_context)
 
         # Verify
@@ -179,11 +179,8 @@ class TestAzureShell(TestCase):
             resource_client=azure_clients_manager.resource_client,
             network_client=azure_clients_manager.network_client,
             logger=self.logger,
-            request=deploy_data_holder.driverRequest,
+            actions=actions,
             cancellation_context=cancellation_context)
-
-        self.azure_shell.command_result_parser.set_command_result.assert_called_once_with(
-            {'driverResponse': {'actionResults': prepare_connectivity_result}})
 
     @mock.patch("cloudshell.cp.azure.azure_shell.jsonpickle")
     @mock.patch("cloudshell.cp.azure.azure_shell.DeployDataHolder")
