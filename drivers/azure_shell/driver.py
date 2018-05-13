@@ -2,7 +2,7 @@ from cloudshell.cp.azure.azure_shell import AzureShell
 from cloudshell.shell.core.resource_driver_interface import ResourceDriverInterface
 from cloudshell.cp.core import DriverRequestParser
 from cloudshell.cp.core.models import DeployApp, DriverResponse
-from cloudshell.cp.core.utils import singles
+from cloudshell.cp.core.utils import single
 
 
 class AzureShellDriver(ResourceDriverInterface):
