@@ -12,7 +12,7 @@ from cloudshell.cp.azure.domain.services.network_service import NetworkService
 
 from cloudshell.cp.azure.models.azure_cloud_provider_resource_model import AzureCloudProviderResourceModel
 from cloudshell.cp.azure.common.parsers.azure_resource_id_parser import AzureResourceIdParser
-from cloudshell.cp.core import PrepareCloudInfra, PrepareSubnet, CreateKeys, PrepareSubnetActionResult, \
+from cloudshell.cp.core.models import PrepareCloudInfra, PrepareSubnet, CreateKeys, PrepareSubnetActionResult, \
     CreateKeysActionResult, PrepareCloudInfraResult
 
 
