@@ -13,7 +13,7 @@ from cloudshell.cp.azure.domain.services.tags import TagService
 from cloudshell.cp.azure.domain.vm_management.operations.PrepareSandboxInfraOperation import \
     PrepareSandboxInfraOperation
 from tests.helpers.test_helper import TestHelper
-from cloudshell.cp.core import PrepareCloudInfra, PrepareSubnet, CreateKeys
+from cloudshell.cp.core.models import PrepareCloudInfra, PrepareSubnet, CreateKeys
 
 
 class TestPrepareSandboxInfra(TestCase):
