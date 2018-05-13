@@ -16,7 +16,7 @@ from cloudshell.shell.core.driver_context import CancellationContext
 from cloudshell.cp.azure.models.vm_credentials import VMCredentials
 from cloudshell.cp.azure.models.image_data import ImageDataModelBase, MarketplaceImageDataModel
 from cloudshell.api.cloudshell_api import CloudShellAPISession
-from cloudshell.cp.core import DeployAppResult, Attribute
+from cloudshell.cp.core.models import DeployAppResult, Attribute
 
 
 class DeployAzureVMOperation(object):
