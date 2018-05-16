@@ -1,7 +1,6 @@
 import traceback
 
-from cloudshell.cp.azure.domain.common.vm_details_provider import VmDetailsProvider, VmDetails
-from cloudshell.cp.azure.domain.services.virtual_machine_service import VirtualMachineService
+from cloudshell.cp.core.models import VmDetailsData
 
 
 class VmDetailsOperation(object):
@@ -37,11 +36,12 @@ class VmDetailsOperation(object):
             try:
                 vm = self.vm_service.get_vm(compute_client, group_name, vm_name)
                 result = self.vm_details_provider.create(vm, is_market_place, logger, network_client, group_name)
+
             except Exception as e:
                 logger.error("Error getting vm details for '{0}': {1}".format(vm_name, traceback.format_exc()))
-                result = VmDetails(vm_name)
-                result.error = e.message
+                result = VmDetailsData(errorMessage=e.message)
 
+            result.appName = vm_name
             results.append(result)
 
         return results
