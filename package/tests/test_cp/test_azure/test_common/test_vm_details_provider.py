@@ -1,10 +1,7 @@
 from unittest import TestCase
-
 from azure.mgmt.compute.models import StorageAccountTypes
 from mock import Mock, MagicMock
-
 from cloudshell.cp.azure.domain.common.vm_details_provider import VmDetailsProvider
-
 
 class TestVmDetailsProvider(TestCase):
     def setUp(self):
@@ -26,7 +23,7 @@ class TestVmDetailsProvider(TestCase):
         instance.network_interfaces = []
 
         vm_instance_data = self.vm_details_provider.create(instance, True, self.logger, self.network_client,
-                                                           '').vm_instance_data
+                                                           '').vmInstanceData
 
         self.assertTrue(
             self._get_value(vm_instance_data, 'Image Publisher') == instance.storage_profile.image_reference.publisher)
@@ -49,7 +46,7 @@ class TestVmDetailsProvider(TestCase):
         instance.storage_profile.os_disk.managed_disk.storage_account_type = StorageAccountTypes.premium_lrs
 
         vm_instance_data = self.vm_details_provider.create(instance, False, self.logger, self.network_client,
-                                                           resource_group).vm_instance_data
+                                                           resource_group).vmInstanceData
 
         self.assertTrue(self._get_value(vm_instance_data, 'Image') == 'Image Name')
         self.assertTrue(self._get_value(vm_instance_data, 'Image Resource Group') == resource_group)
@@ -87,25 +84,18 @@ class TestVmDetailsProvider(TestCase):
 
         nic = network_interface_objects[0]
 
-        self.assertTrue(nic['interface_id'] == network_interface.resource_guid)
-        self.assertTrue(nic['network_id'] == network_interface.name)
+        self.assertTrue(nic.interfaceId == network_interface.resource_guid)
+        self.assertTrue(nic.networkId == network_interface.name)
 
-        network_data = nic['network_data']
+        network_data = nic.networkData
 
-        ip = filter(lambda x: x['key'] == "IP", network_data)[0]
-        self.assertTrue(ip['value'] == ip_configuration.private_ip_address)
-
-        mac = filter(lambda x: x['key'] == "MAC Address", network_data)[0]
-        self.assertTrue(mac['value'] == network_interface.mac_address)
-
-        public_address = filter(lambda x: x['key'] == "Public IP", network_data)[0]
-        self.assertTrue(public_address['value'] == public_ip.ip_address)
-
-        public_method = filter(lambda x: x['key'] == "Public IP Type", network_data)[0]
-        self.assertTrue(public_method['value'] == public_ip.public_ip_allocation_method)
+        self.assertTrue(self._get_value(network_data, 'IP') == ip_configuration.private_ip_address)
+        self.assertTrue(self._get_value(network_data, 'MAC Address') == network_interface.mac_address)
+        self.assertTrue(self._get_value(network_data, 'Public IP') == public_ip.ip_address)
+        self.assertTrue(self._get_value(network_data, "Public IP Type") == public_ip.public_ip_allocation_method)
 
     def _get_value(self, data, key):
         for item in data:
-            if item['key'] == key:
-                return item['value']
+            if item.key == key:
+                return item.value
         return None
