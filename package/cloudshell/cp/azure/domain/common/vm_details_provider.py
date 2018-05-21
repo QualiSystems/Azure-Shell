@@ -66,8 +66,7 @@ class VmDetailsProvider(object):
 
         for network_interface in instance.network_profile.network_interfaces:
 
-            # get the nic name from the nic id
-            nic_name = network_interface.id.split('/')[-1]
+            nic_name = self.resource_id_parser.get_name_from_resource_id(network_interface.id)
 
             nic = network_client.network_interfaces.get(group_name, nic_name)
             ip_configuration = nic.ip_configurations[0]
