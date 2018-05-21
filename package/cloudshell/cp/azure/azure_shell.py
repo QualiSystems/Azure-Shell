@@ -42,6 +42,7 @@ from cloudshell.cp.azure.common.azure_clients import AzureClientsManager
 from cloudshell.cp.azure.common.parsers.custom_param_extractor import VmCustomParamsExtractor
 from cloudshell.cp.azure.domain.vm_management.operations.app_ports_operation import DeployedAppPortsOperation
 from cloudshell.cp.azure.domain.vm_management.operations.autoload_operation import AutoloadOperation
+from cloudshell.cp.azure.domain.services.parsers.network_actions import NetworkActionsParser
 
 
 class AzureShell(object):
@@ -248,21 +249,29 @@ class AzureShell(object):
 
                 azure_clients = AzureClientsManager(cloud_provider_model)
 
-                prepare_connectivity_request = DeployDataHolder(jsonpickle.decode(request))
-                prepare_connectivity_request = getattr(prepare_connectivity_request, 'driverRequest', None)
+                # parse request
+                connectivity_actions = self._request_str_to_actions_list(request)
 
-                result = self.prepare_connectivity_operation.prepare_connectivity(
+                results = self.prepare_connectivity_operation.prepare_connectivity(
                     reservation=self.model_parser.convert_to_reservation_model(context.reservation),
                     cloud_provider_model=cloud_provider_model,
                     storage_client=azure_clients.storage_client,
                     resource_client=azure_clients.resource_client,
                     network_client=azure_clients.network_client,
                     logger=logger,
-                    request=prepare_connectivity_request,
+                    actions=connectivity_actions,
+                    request=request,
                     cancellation_context=cancellation_context)
 
                 logger.info('End Preparing Connectivity for Azure VM')
-                return self.command_result_parser.set_command_result({'driverResponse': {'actionResults': result}})
+                return self.command_result_parser.set_command_result({'driverResponse': {'actionResults': results}})
+
+    def _request_str_to_actions_list(self, request):
+        decoded_request = jsonpickle.decode(request)
+        if not decoded_request.get('driverRequest') or not decoded_request.get('driverRequest').get('actions'):
+            raise ValueError('Invalid connectivity request')
+
+        return NetworkActionsParser.parse_network_actions_data(decoded_request['driverRequest']['actions'])
 
     def cleanup_connectivity(self, command_context, request):
         with LoggingSessionContext(command_context) as logger:

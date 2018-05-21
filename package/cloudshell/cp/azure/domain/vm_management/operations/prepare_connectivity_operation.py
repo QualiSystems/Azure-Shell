@@ -2,6 +2,7 @@ import traceback
 from functools import partial
 from multiprocessing.pool import ThreadPool
 from threading import Lock
+import jsonpickle
 
 from azure.mgmt.network.models import SecurityRuleProtocol, SecurityRule, SecurityRuleAccess
 from msrestazure.azure_exceptions import CloudError
@@ -13,6 +14,8 @@ from cloudshell.cp.azure.models.prepare_connectivity_action_result import Prepar
     PrepareSubnetActionResult
 from cloudshell.cp.azure.models.azure_cloud_provider_resource_model import AzureCloudProviderResourceModel
 from cloudshell.cp.azure.common.parsers.azure_resource_id_parser import AzureResourceIdParser
+from cloudshell.cp.azure.models.network_actions_models import *
+from cloudshell.cp.azure.models.network_actions_models import PrepareNetworkActionResult, PrepareSubnetActionResult
 
 INVALID_REQUEST_ERROR = 'Invalid request: {0}'
 
@@ -65,11 +68,12 @@ class PrepareConnectivityOperation(object):
                              resource_client,
                              network_client,
                              logger,
+                             actions,
                              request,
                              cancellation_context):
         """
         :param logging.Logger logger:
-        :param request:
+        :param list[NetworkAction] actions: Parsed prepare connectivity actions
         :param network_client:
         :param storage_client:
         :param resource_client:
@@ -78,8 +82,23 @@ class PrepareConnectivityOperation(object):
         :param cancellation_context cloudshell.shell.core.driver_context.CancellationContext instance
         :return:
         """
-        cidr = self._validate_request_and_extract_cidr(request)
-        logger.info("Received CIDR {0} from server".format(cidr))
+        logger.info("PrepareConnectivity actions: {0}".format(','.join([jsonpickle.encode(a) for a in actions])))
+        results = []
+
+        # Execute prepareNetwork action first
+        network_action = next((a for a in actions if isinstance(a.connection_params, PrepareNetworkParams)), None)
+        if not network_action:
+            raise ValueError("Actions list must contain a PrepareNetworkAction.")
+
+        cidr = network_action.connection_params.cidr
+
+        # try:
+        #     result = self._prepare_network(ec2_client, ec2_session, s3_session, reservation, aws_ec2_datamodel,
+        #                                    network_action, cancellation_context, logger)
+        #     results.append(result)
+        # except Exception as e:
+        #     logger.error("Error in prepare connectivity. Error: {0}".format(traceback.format_exc()))
+        #     results.append(self._create_fault_action_result(network_action, e))
 
         reservation_id = reservation.reservation_id
         group_name = str(reservation_id)
@@ -155,15 +174,27 @@ class PrepareConnectivityOperation(object):
 
         self.cancellation_service.check_if_cancelled(cancellation_context)
 
-        # 6. Create a subnet with NSG
-        self._create_subnet(cidr=cidr,
-                            cloud_provider_model=cloud_provider_model,
-                            logger=logger,
-                            network_client=network_client,
-                            resource_client=resource_client,
-                            network_security_group=network_security_group,
-                            sandbox_vnet=sandbox_vnet,
-                            subnet_name=subnet_name)
+        # # 6. Create a subnet with NSG
+        # self._create_subnet(cidr=cidr,
+        #                     cloud_provider_model=cloud_provider_model,
+        #                     logger=logger,
+        #                     network_client=network_client,
+        #                     resource_client=resource_client,
+        #                     network_security_group=network_security_group,
+        #                     sandbox_vnet=sandbox_vnet,
+        #                     subnet_name=subnet_name)
+
+        subnet_actions = [a for a in actions if isinstance(a.connection_params, PrepareSubnetParams)]
+        for subnet in subnet_actions:
+            self._create_subnet(cidr=subnet.connection_params.cidr,
+                                cloud_provider_model=cloud_provider_model,
+                                logger=logger,
+                                network_client=network_client,
+                                resource_client=resource_client,
+                                network_security_group=network_security_group,
+                                sandbox_vnet=sandbox_vnet,
+                                subnet_name=subnet_name + '_' + cidr)
+            results.append(self._create_result(subnet))
 
         self.cancellation_service.check_if_cancelled(cancellation_context)
 
@@ -172,13 +203,17 @@ class PrepareConnectivityOperation(object):
         pool.join()
         storage_res.get(timeout=900)  # will wait for 15 min and raise exception if storage account creation failed
 
-        return self._prepare_results(network_action_result, request)
+        network_action_result.actionId = network_action.id
 
-    def _prepare_results(self, network_action_result, request):
-        network_action_result.actionId = filter(lambda x: x.type == 'prepareNetwork', request.actions)[0].actionId
-        subnet_action_result = PrepareSubnetActionResult(
-                action_id=filter(lambda x: x.type == 'prepareSubnet', request.actions)[0].actionId)
-        return [network_action_result, subnet_action_result]
+        results.append(network_action_result)
+        return results
+
+    def _create_result(self, item):
+        action_result = PrepareSubnetActionResult()
+        action_result.actionId = item.id
+        action_result.success = True
+        action_result.infoMessage = 'PrepareSubnet finished successfully'
+        return action_result
 
     def _prepare_storage_account_name(self, reservation_id):
         """ Storage account name in azure must be between 3-24 chars. Dashes are not allowed as well.
@@ -461,3 +496,11 @@ class PrepareConnectivityOperation(object):
             raise ValueError(INVALID_REQUEST_ERROR.format('CIDR is missing'))
 
         return cidr
+
+    @staticmethod
+    def _create_fault_action_result(action, e):
+        action_result = ConnectivityActionResult()
+        action_result.actionId = action.id
+        action_result.success = False
+        action_result.errorMessage = 'PrepareConnectivity ended with the error: {0}'.format(e)
+        return action_result
