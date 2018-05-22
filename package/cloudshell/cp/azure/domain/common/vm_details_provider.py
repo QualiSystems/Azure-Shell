@@ -64,11 +64,11 @@ class VmDetailsProvider(object):
     def _get_vm_network_data(self, instance, network_client, group_name, logger):
         network_interface_objects = []
 
-        network_interface_names = [ni.id.split('/')[-1] for ni in instance.network_profile.network_interfaces]
+        for network_interface in instance.network_profile.network_interfaces:
 
-        for name in network_interface_names:
-            nic = network_client.network_interfaces.get(group_name, name)
+            nic_name = self.resource_id_parser.get_name_from_resource_id(network_interface.id)
 
+            nic = network_client.network_interfaces.get(group_name, nic_name)
             ip_configuration = nic.ip_configurations[0]
 
             network_interface_object = {

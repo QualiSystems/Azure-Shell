@@ -46,17 +46,17 @@ class DeleteAzureVMOperation(object):
         result = {'success': True,
                   'actionId': next(iter(filter(lambda x: x.type == "cleanupNetwork", request.actions))).actionId}
 
-        remove_nsg_from_subnet_command = partial(self.remove_nsg_from_subnet,
+        remove_nsg_from_subnets_command = partial(self.remove_nsg_from_subnets,
+                                                  network_client=network_client,
+                                                  cloud_provider_model=cloud_provider_model,
+                                                  resource_group_name=resource_group_name,
+                                                  logger=logger)
+
+        delete_sandbox_subnets_command = partial(self.delete_sandbox_subnets,
                                                  network_client=network_client,
                                                  cloud_provider_model=cloud_provider_model,
                                                  resource_group_name=resource_group_name,
                                                  logger=logger)
-
-        delete_sandbox_subnet_command = partial(self.delete_sandbox_subnet,
-                                                network_client=network_client,
-                                                cloud_provider_model=cloud_provider_model,
-                                                resource_group_name=resource_group_name,
-                                                logger=logger)
 
         delete_resource_group_command = partial(self.delete_resource_group,
                                                 resource_client=resource_client,
@@ -70,7 +70,7 @@ class DeleteAzureVMOperation(object):
         3. delete sandbox subnet
         """
         errors = []
-        for command in (remove_nsg_from_subnet_command, delete_resource_group_command, delete_sandbox_subnet_command):
+        for command in (remove_nsg_from_subnets_command, delete_resource_group_command, delete_sandbox_subnets_command):
             try:
                 command()
             except Exception as e:
@@ -86,69 +86,71 @@ class DeleteAzureVMOperation(object):
 
         return result
 
-    def remove_nsg_from_subnet(self, network_client, resource_group_name, cloud_provider_model, logger):
-        logger.info("Removing NSG from the subnet...")
+    def remove_nsg_from_subnets(self, network_client, resource_group_name, cloud_provider_model, logger):
+        logger.info("Removing NSG from the sandbox subnets...")
 
         management_group_name = cloud_provider_model.management_group_name
         logger.info("Retrieving sandbox vNet from MGMT group {}".format(management_group_name))
         sandbox_virtual_network = self.network_service.get_sandbox_virtual_network(network_client=network_client,
                                                                                    group_name=management_group_name)
 
-        subnet = self._find_sandbox_subnet(resource_group_name, sandbox_virtual_network)
-        if subnet is None:
-            logger.warning("Could not find subnet {} in resource group {} to detach NSG".format(
-                    resource_group_name, management_group_name))
+        subnets = self._find_sandbox_subnets(resource_group_name, sandbox_virtual_network)
+        if not subnets:
+            logger.warning("Could not find subnets in sandbox {} to detach NSG".format(resource_group_name))
             return
 
-        subnet.network_security_group = None
-
-        """
-        # This call is atomic because we have to sync subnet updating for the entire sandbox vnet
-        """
-        with self.subnet_locker:
-            logger.info("Updating subnet {} with NSG set to null".format(subnet.name))
-            self.network_service.update_subnet(network_client, management_group_name, sandbox_virtual_network.name,
-                                               subnet.name, subnet)
+        for subnet in subnets:
+            subnet.network_security_group = None
+            """
+            # This call is atomic because we have to sync subnet updating for the entire sandbox vnet
+            """
+            with self.subnet_locker:
+                logger.info("Updating subnet {} with NSG set to null".format(subnet.name))
+                self.network_service.update_subnet(network_client=network_client,
+                                                   resource_group_name=management_group_name,
+                                                   virtual_network_name=sandbox_virtual_network.name,
+                                                   subnet_name=subnet.name,
+                                                   subnet=subnet)
 
     def delete_resource_group(self, resource_client, group_name, logger):
         logger.info("Deleting resource group {0}.".format(group_name))
         self.vm_service.delete_resource_group(resource_management_client=resource_client, group_name=group_name)
         logger.info("Deleted resource group {0}.".format(group_name))
 
-    def delete_sandbox_subnet(self, network_client, cloud_provider_model, resource_group_name, logger):
-        logger.info("Deleting sandbox subnet...")
+    def delete_sandbox_subnets(self, network_client, cloud_provider_model, resource_group_name, logger):
+        logger.info("Deleting sandbox subnets...")
 
         logger.info("Retrieving sandbox vNet from MGMT group {}".format(cloud_provider_model.management_group_name))
         sandbox_virtual_network = self.network_service.get_sandbox_virtual_network(
-                network_client=network_client,
-                group_name=cloud_provider_model.management_group_name)
+            network_client=network_client,
+            group_name=cloud_provider_model.management_group_name)
 
-        subnet = self._find_sandbox_subnet(resource_group_name, sandbox_virtual_network)
+        subnets = self._find_sandbox_subnets(resource_group_name, sandbox_virtual_network)
 
-        if subnet is None:
-            logger.warning("Could not find subnet {} in resource group {} to delete it".format(
-                    resource_group_name, cloud_provider_model.management_group_name))
+        if not subnets:
+            logger.warning("Could not find subnets in vnet {} for sandbox {} to delete it".format(
+                sandbox_virtual_network.name, resource_group_name))
             return
 
-        with self.subnet_locker:
-            logger.info("Deleting subnet {}".format(subnet.name))
-            self.network_service.delete_subnet(network_client=network_client,
-                                               group_name=cloud_provider_model.management_group_name,
-                                               vnet_name=sandbox_virtual_network.name,
-                                               subnet_name=subnet.name)
-            logger.info("Deleted subnet {}".format(subnet.name))
+        for subnet in subnets:
+            with self.subnet_locker:
+                logger.info("Deleting subnet {}".format(subnet.name))
+                self.network_service.delete_subnet(network_client=network_client,
+                                                   group_name=cloud_provider_model.management_group_name,
+                                                   vnet_name=sandbox_virtual_network.name,
+                                                   subnet_name=subnet.name)
+                logger.info("Deleted subnet {}".format(subnet.name))
 
-    def _find_sandbox_subnet(self, resource_group_name, sandbox_virtual_network):
+    def _find_sandbox_subnets(self, resource_group_name, sandbox_virtual_network):
         """
         find the sandbox subnet in the vnet
         :param str resource_group_name:
         :param VirtualNetwork sandbox_virtual_network:
         :return:
-        :rtype: Subnet
+        :rtype: list[Subnet]
         """
-        subnet = next((subnet for subnet in sandbox_virtual_network.subnets if subnet.name == resource_group_name),
-                      None)
-        return subnet
+        return [subnet for subnet in sandbox_virtual_network.subnets
+                if subnet.name.startswith(resource_group_name)]
 
     def _delete_security_rules(self, network_client, group_name, vm_name, logger):
         """
