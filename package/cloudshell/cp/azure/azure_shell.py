@@ -43,6 +43,7 @@ from cloudshell.cp.azure.common.parsers.custom_param_extractor import VmCustomPa
 from cloudshell.cp.azure.domain.vm_management.operations.app_ports_operation import DeployedAppPortsOperation
 from cloudshell.cp.azure.domain.vm_management.operations.autoload_operation import AutoloadOperation
 from cloudshell.cp.azure.domain.services.parsers.network_actions import NetworkActionsParser
+from cloudshell.cp.azure.models.network_actions_models import ConnectToSubnetActionResult
 
 
 class AzureShell(object):
@@ -182,6 +183,14 @@ class AzureShell(object):
                     cloudshell_session=cloudshell_session)
 
                 logger.info('End deploying Azure VM')
+
+                # todo dont always set success?
+                actions = jsonpickle.decode(deployment_request)["NetworkConfigurationsRequest"]["actions"]
+                deploy_data.network_configuration_results = \
+                    [ConnectToSubnetActionResult(action_id=action["actionId"],
+                                                 interface_data='', success=True) for action in actions]\
+                        if actions else None
+
                 return self.command_result_parser.set_command_result(deploy_data)
 
     def deploy_vm_from_custom_image(self, command_context, deployment_request, cancellation_context):

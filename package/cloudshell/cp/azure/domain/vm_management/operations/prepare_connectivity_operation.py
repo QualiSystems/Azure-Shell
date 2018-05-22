@@ -1,3 +1,5 @@
+from debug_utils import debugger
+
 import traceback
 from functools import partial
 from multiprocessing.pool import ThreadPool
@@ -102,7 +104,6 @@ class PrepareConnectivityOperation(object):
 
         reservation_id = reservation.reservation_id
         group_name = str(reservation_id)
-        subnet_name = group_name
         tags = self.tags_service.get_tags(reservation=reservation)
         network_action_result = PrepareNetworkActionResult()
 
@@ -186,6 +187,7 @@ class PrepareConnectivityOperation(object):
 
         subnet_actions = [a for a in actions if isinstance(a.connection_params, PrepareSubnetParams)]
         for subnet in subnet_actions:
+            subnet_name = (group_name + '_' + subnet.connection_params.cidr).replace(' ', '').replace('/', '-')
             self._create_subnet(cidr=subnet.connection_params.cidr,
                                 cloud_provider_model=cloud_provider_model,
                                 logger=logger,
@@ -193,8 +195,8 @@ class PrepareConnectivityOperation(object):
                                 resource_client=resource_client,
                                 network_security_group=network_security_group,
                                 sandbox_vnet=sandbox_vnet,
-                                subnet_name=subnet_name + '_' + cidr)
-            results.append(self._create_result(subnet))
+                                subnet_name=subnet_name)
+            results.append(self._create_result(subnet, subnet_name))
 
         self.cancellation_service.check_if_cancelled(cancellation_context)
 
@@ -206,13 +208,15 @@ class PrepareConnectivityOperation(object):
         network_action_result.actionId = network_action.id
 
         results.append(network_action_result)
+
         return results
 
-    def _create_result(self, item):
+    def _create_result(se, item, subnet_name):
         action_result = PrepareSubnetActionResult()
         action_result.actionId = item.id
         action_result.success = True
         action_result.infoMessage = 'PrepareSubnet finished successfully'
+        action_result.subnetId = subnet_name
         return action_result
 
     def _prepare_storage_account_name(self, reservation_id):

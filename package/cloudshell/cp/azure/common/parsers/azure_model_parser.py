@@ -1,5 +1,6 @@
 import jsonpickle
 
+from cloudshell.cp.azure.domain.services.parsers.network_actions import NetworkActionsParser
 from cloudshell.cp.azure.models.azure_cloud_provider_resource_model import AzureCloudProviderResourceModel
 from cloudshell.cp.azure.models.deploy_azure_vm_resource_models import DeployAzureVMResourceModel
 from cloudshell.cp.azure.models.deploy_azure_vm_resource_models import DeployAzureVMFromCustomImageResourceModel
@@ -58,6 +59,10 @@ class AzureModelsParser(object):
             logger.info('Decrypting Azure VM password...')
             decrypted_pass = cloudshell_session.DecryptPassword(deployment_resource_model.password)
             deployment_resource_model.password = decrypted_pass.Value
+
+        deployment_resource_model.network_configurations = \
+            AzureModelsParser.parse_deploy_networking_configurations(data_holder)
+
         return deployment_resource_model
 
     @staticmethod
@@ -215,5 +220,19 @@ class AzureModelsParser(object):
             if name == last_part:
                 return val
         return None
+
+    @staticmethod
+    def parse_deploy_networking_configurations(deployment_request):
+        """
+        :param deployment_request: request object to parse
+        :return:
+        """
+        if "NetworkConfigurationsRequest" not in deployment_request:
+            return None
+
+        actions = deployment_request["NetworkConfigurationsRequest"]["actions"]
+        # actions = deployment_request["NetworkConfigurationsRequest"]
+
+        return NetworkActionsParser.parse_network_actions_data(actions)
 
 

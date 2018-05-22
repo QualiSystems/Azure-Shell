@@ -15,6 +15,7 @@ from azure.mgmt.compute.models import OperatingSystemTypes, PurchasePlan
 from cloudshell.shell.core.driver_context import CancellationContext
 from cloudshell.cp.azure.models.vm_credentials import VMCredentials
 from cloudshell.cp.azure.models.image_data import ImageDataModelBase, MarketplaceImageDataModel
+from cloudshell.cp.azure.models.network_actions_models import *
 from cloudshell.api.cloudshell_api import CloudShellAPISession
 
 
@@ -216,7 +217,7 @@ class DeployAzureVMOperation(object):
             self._rollback_deployed_resources(compute_client=compute_client,
                                               network_client=network_client,
                                               group_name=data.group_name,
-                                              interface_name=data.interface_name,
+                                              interface_names=data.interface_names,
                                               vm_name=data.vm_name,
                                               ip_name=data.ip_name,
                                               logger=logger)
@@ -250,7 +251,8 @@ class DeployAzureVMOperation(object):
                             public_ip=data.public_ip_address,
                             resource_group=data.reservation_id,
                             extension_time_out=extension_time_out,
-                            vm_details_data=vm_details_data)
+                            vm_details_data=vm_details_data,
+                            network_configuration_results=[])
 
     def _expand_cloud_error_message(self, exc, deployment_model):
         """
@@ -290,7 +292,7 @@ class DeployAzureVMOperation(object):
                 vm_credentials=data.vm_credentials,
                 computer_name=data.computer_name,
                 group_name=data.group_name,
-                nic_id=data.nic.id,
+                nics=data.nics,
                 region=cloud_provider_model.region,
                 vm_name=data.vm_name,
                 tags=data.tags,
@@ -319,7 +321,7 @@ class DeployAzureVMOperation(object):
                 vm_credentials=data.vm_credentials,
                 computer_name=data.computer_name,
                 group_name=data.group_name,
-                nic_id=data.nic.id,
+                nics=data.nics,
                 region=cloud_provider_model.region,
                 vm_name=data.vm_name,
                 tags=data.tags,
@@ -367,7 +369,7 @@ class DeployAzureVMOperation(object):
             logger.info("NSG rules were successfully created for NSG {}".format(network_security_group.name))
             self.cancellation_service.check_if_cancelled(cancellation_context)
 
-    def _get_sandbox_subnet(self, network_client, cloud_provider_model, subnet_name, logger):
+    def _get_subnets(self, network_client, cloud_provider_model, subnet_name, logger, deployment_model):
         """
         Get subnet for for given reservation
 
@@ -381,14 +383,19 @@ class DeployAzureVMOperation(object):
                 network_client=network_client,
                 group_name=cloud_provider_model.management_group_name)
 
+        if deployment_model.network_configurations:
+            subnet_names = [action.connection_params.subnet_id for action in deployment_model.network_configurations]
+        else:
+            return [subnet for subnet in sandbox_virtual_network.subnets if subnet_name in subnet.name]
+
         try:
-            return next(subnet for subnet in sandbox_virtual_network.subnets if subnet.name == subnet_name)
+            return [subnet for subnet in sandbox_virtual_network.subnets if subnet.name in subnet_names]
         except StopIteration:
             logger.error("Subnet {} was not found under the resource group {}".format(
                     subnet_name, cloud_provider_model.management_group_name))
             raise Exception("Could not find a valid subnet.")
 
-    def _rollback_deployed_resources(self, compute_client, network_client, group_name, interface_name, vm_name,
+    def _rollback_deployed_resources(self, compute_client, network_client, group_name, interface_names, vm_name,
                                      ip_name, logger):
         """
         Remove all created resources by Deploy VM operation on any Exception.
@@ -398,7 +405,7 @@ class DeployAzureVMOperation(object):
         :param compute_client: azure.mgmt.compute.compute_management_client.ComputeManagementClient
         :param network_client: azure.mgmt.network.network_management_client.NetworkManagementClient instance
         :param group_name: resource group name (reservation id)
-        :param interface_name: Azure NIC resource name
+        :param interface_names: Azure NICs resource name
         :param vm_name: Azure VM resource name
         :param ip_name: Azure Public IP address resource name
         :param logger: logging.Logger instance
@@ -409,10 +416,11 @@ class DeployAzureVMOperation(object):
                                   group_name=group_name,
                                   vm_name=vm_name)
 
-        logger.info("Delete NIC {} ".format(interface_name))
-        self.network_service.delete_nic(network_client=network_client,
-                                        group_name=group_name,
-                                        interface_name=interface_name)
+        for interface_name in interface_names:
+            logger.info("Delete NIC {} ".format(interface_name))
+            self.network_service.delete_nic(network_client=network_client,
+                                            group_name=group_name,
+                                            interface_name=interface_name)
 
         logger.info("Delete IP {} ".format(ip_name))
         self.network_service.delete_ip(network_client=network_client,
@@ -536,20 +544,24 @@ class DeployAzureVMOperation(object):
         :rtype: DeployAzureVMOperation.DeployDataModel
         """
         # 1. Create network for vm
-        logger.info("Creating NIC '{}'".format(data.interface_name))
-        data.nic = self.network_service.create_network_for_vm(network_client=network_client,
-                                                              group_name=data.group_name,
-                                                              interface_name=data.interface_name,
-                                                              ip_name=data.ip_name,
-                                                              cloud_provider_model=cloud_provider_model,
-                                                              subnet=data.subnet,
-                                                              add_public_ip=deployment_model.add_public_ip,
-                                                              public_ip_type=deployment_model.public_ip_type,
-                                                              tags=data.tags,
-                                                              logger=logger)
+        data.nics = []
+        for i, interface_name in enumerate(data.interface_names):
+            logger.info("Creating NIC '{}'".format(interface_name))
+            nic = self.network_service.create_network_for_vm(network_client=network_client,
+                                                                  group_name=data.group_name,
+                                                                  interface_name=interface_name,
+                                                                  ip_name=data.ip_name,
+                                                                  cloud_provider_model=cloud_provider_model,
+                                                                  subnet=data.subnets[i],
+                                                                  add_public_ip=deployment_model.add_public_ip,
+                                                                  public_ip_type=deployment_model.public_ip_type,
+                                                                  tags=data.tags,
+                                                                  logger=logger)
 
-        data.private_ip_address = data.nic.ip_configurations[0].private_ip_address
-        logger.info("NIC private IP is {}".format(data.private_ip_address))
+            if i == 0:
+                data.private_ip_address = nic.ip_configurations[0].private_ip_address
+            logger.info("NIC private IP is {}".format(data.private_ip_address))
+            data.nics.append(nic)
 
         self.cancellation_service.check_if_cancelled(cancellation_context)
 
@@ -649,7 +661,6 @@ class DeployAzureVMOperation(object):
         unique_resource_name = self.name_provider_service.generate_name(name=data.app_name,
                                                                         postfix=resource_postfix,
                                                                         max_length=64)
-        data.interface_name = unique_resource_name
         data.ip_name = unique_resource_name
         data.vm_name = unique_resource_name
         data.computer_name = self._prepare_computer_name(name=data.app_name,
@@ -660,10 +671,13 @@ class DeployAzureVMOperation(object):
                                              cloud_provider_model=cloud_provider_model)
 
         logger.info("Retrieve sandbox subnet {}".format(data.group_name))
-        data.subnet = self._get_sandbox_subnet(network_client=network_client,
-                                               cloud_provider_model=cloud_provider_model,
-                                               subnet_name=data.group_name,
-                                               logger=logger)
+        data.subnets = self._get_subnets(network_client=network_client,
+                                                cloud_provider_model=cloud_provider_model,
+                                                subnet_name=data.group_name,
+                                                logger=logger,
+                                                deployment_model=deployment_model)
+
+        data.interface_names = [unique_resource_name + str(i) for i, subnet in enumerate(data.subnets)]
 
         logger.info("Retrieve sandbox storage account name by resource group {}".format(data.group_name))
         data.storage_account_name = self.storage_service.get_sandbox_storage_account_name(storage_client=storage_client,

@@ -64,29 +64,32 @@ class VmDetailsProvider(object):
     def _get_vm_network_data(self, instance, network_client, group_name, logger):
         network_interface_objects = []
 
-        nic = network_client.network_interfaces.get(group_name, instance.name)
+        network_interface_names = [ni.id.split('/')[-1] for ni in instance.network_profile.network_interfaces]
 
-        ip_configuration = nic.ip_configurations[0]
+        for name in network_interface_names:
+            nic = network_client.network_interfaces.get(group_name, name)
 
-        network_interface_object = {
-            "interface_id": nic.resource_guid,
-            "network_id": nic.name,
-            "network_data": [AdditionalData("IP", ip_configuration.private_ip_address)],
-            "is_primary": nic.primary
-        }
+            ip_configuration = nic.ip_configurations[0]
 
-        if ip_configuration.public_ip_address:
-            public_ip = self.network_service.get_public_ip(network_client=network_client,
-                                                           group_name=group_name,
-                                                           ip_name=instance.name)
-            network_interface_object["network_data"].append(AdditionalData("Public IP", public_ip.ip_address))
-            network_interface_object["network_data"].append(AdditionalData("Public IP Type", public_ip.public_ip_allocation_method))
-            logger.info("VM {} was created with public IP '{}'.".format(instance.name,
-                                                                        ip_configuration.public_ip_address.ip_address))
+            network_interface_object = {
+                "interface_id": nic.resource_guid,
+                "network_id": nic.name,
+                "network_data": [AdditionalData("IP", ip_configuration.private_ip_address)],
+                "is_primary": nic.primary
+            }
 
-        network_interface_object["network_data"].append(AdditionalData("MAC Address", nic.mac_address))
+            if ip_configuration.public_ip_address:
+                public_ip = self.network_service.get_public_ip(network_client=network_client,
+                                                               group_name=group_name,
+                                                               ip_name=instance.name)
+                network_interface_object["network_data"].append(AdditionalData("Public IP", public_ip.ip_address))
+                network_interface_object["network_data"].append(AdditionalData("Public IP Type", public_ip.public_ip_allocation_method))
+                logger.info("VM {} was created with public IP '{}'.".format(instance.name,
+                                                                            ip_configuration.public_ip_address.ip_address))
 
-        network_interface_objects.append(network_interface_object)
+            network_interface_object["network_data"].append(AdditionalData("MAC Address", nic.mac_address))
+
+            network_interface_objects.append(network_interface_object)
 
         return network_interface_objects
 
