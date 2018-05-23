@@ -65,7 +65,6 @@ class VmDetailsProvider(object):
         network_interface_objects = []
 
         for network_interface in instance.network_profile.network_interfaces:
-
             nic_name = self.resource_id_parser.get_name_from_resource_id(network_interface.id)
 
             nic = network_client.network_interfaces.get(group_name, nic_name)
@@ -73,7 +72,7 @@ class VmDetailsProvider(object):
 
             network_interface_object = {
                 "interface_id": nic.resource_guid,
-                "network_id": nic.name,
+                "network_id": ip_configuration.subnet.id.split('/')[-1],
                 "network_data": [AdditionalData("IP", ip_configuration.private_ip_address)],
                 "is_primary": nic.primary
             }

@@ -133,7 +133,7 @@ class VirtualMachineService(object):
                                     vm_credentials,
                                     computer_name,
                                     group_name,
-                                    nic_id,
+                                    nics,
                                     region,
                                     vm_name,
                                     tags,
@@ -150,7 +150,7 @@ class VirtualMachineService(object):
         :param cloudshell.cp.azure.models.vm_credentials.VMCredentials vm_credentials:
         :param str computer_name: computer name
         :param str group_name: Azure resource group name (reservation id)
-        :param str nic_id: Azure network id
+        :param str nics: list of nics
         :param str region: Azure region
         :param str vm_name: name for VM
         :param tags: Azure tags
@@ -161,7 +161,13 @@ class VirtualMachineService(object):
                                               computer_name=computer_name)
 
         hardware_profile = HardwareProfile(vm_size=vm_size)
-        network_profile = NetworkProfile(network_interfaces=[NetworkInterfaceReference(id=nic_id)])
+
+        network_interfaces = [NetworkInterfaceReference(id=nic.id) for nic in nics]
+        for network_interface in network_interfaces:
+            network_interface.primary = False
+        network_interfaces[0].primary = True
+
+        network_profile = NetworkProfile(network_interfaces=network_interfaces)
 
         image = compute_management_client.images.get(resource_group_name=image_resource_group, image_name=image_name)
         storage_profile = StorageProfile(
@@ -204,7 +210,7 @@ class VirtualMachineService(object):
                                    vm_credentials,
                                    computer_name,
                                    group_name,
-                                   nic_id,
+                                   nics,
                                    region,
                                    vm_name,
                                    tags,
@@ -236,7 +242,11 @@ class VirtualMachineService(object):
 
         hardware_profile = HardwareProfile(vm_size=vm_size)
 
-        network_profile = NetworkProfile(network_interfaces=[NetworkInterfaceReference(id=nic_id)])
+        network_interfaces = [NetworkInterfaceReference(id=nic.id) for nic in nics]
+        for network_interface in network_interfaces:
+            network_interface.primary = False
+        network_interfaces[0].primary = True
+        network_profile = NetworkProfile(network_interfaces=network_interfaces)
 
         storage_profile = StorageProfile(
                 os_disk=self._prepare_os_disk(disk_type),
