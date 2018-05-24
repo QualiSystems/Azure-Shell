@@ -1,6 +1,5 @@
 import re
 
-from cloudshell.cp.azure.domain.common.vm_details_provider import VmDetailsProvider
 from msrestazure.azure_exceptions import CloudError
 from cloudshell.cp.azure.common.exceptions.quali_timeout_exception import QualiTimeoutException, \
     QualiScriptExecutionTimeoutException
@@ -219,18 +218,19 @@ class DeployAzureVMOperation(object):
                                               group_name=data.group_name,
                                               interface_names=data.interface_names,
                                               vm_name=data.vm_name,
-                                              ip_name=data.ip_name,
                                               logger=logger)
             raise
 
         logger.info("VM {} was successfully deployed".format(data.vm_name))
 
-        data.public_ip_address = self._get_public_ip_address(network_client=network_client,
-                                                             azure_vm_deployment_model=deployment_model,
-                                                             group_name=data.group_name,
-                                                             ip_name=data.ip_name,
-                                                             cancellation_context=cancellation_context,
-                                                             logger=logger)
+        if data.interface_names:
+            public_ip_name = get_ip_from_interface_name(data.interface_names[0])
+            data.public_ip_address = self._get_public_ip_address(network_client=network_client,
+                                                                 azure_vm_deployment_model=deployment_model,
+                                                                 group_name=data.group_name,
+                                                                 cancellation_context=cancellation_context,
+                                                                 ip_name=public_ip_name,
+                                                                 logger=logger)
 
         deployed_app_attributes = self._prepare_deployed_app_attributes(
                 admin_username=data.vm_credentials.admin_username,
@@ -396,7 +396,7 @@ class DeployAzureVMOperation(object):
             raise Exception("Could not find a valid subnet.")
 
     def _rollback_deployed_resources(self, compute_client, network_client, group_name, interface_names, vm_name,
-                                     ip_name, logger):
+                                     logger):
         """
         Remove all created resources by Deploy VM operation on any Exception.
         This method doesnt support cancellation because full cleanup is mandatory for successful deletion of subnet
@@ -407,7 +407,6 @@ class DeployAzureVMOperation(object):
         :param group_name: resource group name (reservation id)
         :param interface_names: Azure NICs resource name
         :param vm_name: Azure VM resource name
-        :param ip_name: Azure Public IP address resource name
         :param logger: logging.Logger instance
         :return:
         """
@@ -417,15 +416,16 @@ class DeployAzureVMOperation(object):
                                   vm_name=vm_name)
 
         for interface_name in interface_names:
+            ip_name = get_ip_from_interface_name(interface_name)
             logger.info("Delete NIC {} ".format(interface_name))
             self.network_service.delete_nic(network_client=network_client,
                                             group_name=group_name,
                                             interface_name=interface_name)
 
-        logger.info("Delete IP {} ".format(ip_name))
-        self.network_service.delete_ip(network_client=network_client,
-                                       group_name=group_name,
-                                       ip_name=ip_name)
+            logger.info("Delete IP {} ".format(ip_name))
+            self.network_service.delete_ip(network_client=network_client,
+                                           group_name=group_name,
+                                           ip_name=ip_name)
 
     def _get_public_ip_address(self, network_client, azure_vm_deployment_model, group_name, ip_name,
                                cancellation_context, logger):
@@ -543,25 +543,48 @@ class DeployAzureVMOperation(object):
         :return: Updated DeployDataModel instance
         :rtype: DeployAzureVMOperation.DeployDataModel
         """
+        # 0. Create NSG for VM
+
+        security_group_name = 'NSG_' + data.vm_name
+        tags = self.tags_service.get_tags(data.vm_name, data.reservation)
+        vm_nsg = self.security_group_service.create_network_security_group(network_client, data.group_name,
+                                                                           security_group_name, cloud_provider_model.region,
+                                                                           tags)
+
         # 1. Create network for vm
         data.nics = []
         for i, interface_name in enumerate(data.interface_names):
             logger.info("Creating NIC '{}'".format(interface_name))
+            ip_name = get_ip_from_interface_name(interface_name)
             nic = self.network_service.create_network_for_vm(network_client=network_client,
-                                                                  group_name=data.group_name,
-                                                                  interface_name=interface_name,
-                                                                  ip_name=data.ip_name,
-                                                                  cloud_provider_model=cloud_provider_model,
-                                                                  subnet=data.subnets[i],
-                                                                  add_public_ip=deployment_model.add_public_ip,
-                                                                  public_ip_type=deployment_model.public_ip_type,
-                                                                  tags=data.tags,
-                                                                  logger=logger)
+                                                             group_name=data.group_name,
+                                                             interface_name=interface_name,
+                                                             ip_name=ip_name,
+                                                             cloud_provider_model=cloud_provider_model,
+                                                             subnet=data.subnets[i],
+                                                             add_public_ip=deployment_model.add_public_ip,
+                                                             public_ip_type=deployment_model.public_ip_type,
+                                                             tags=data.tags,
+                                                             logger=logger,
+                                                             network_security_group=vm_nsg)
 
             if i == 0:
                 data.private_ip_address = nic.ip_configurations[0].private_ip_address
             logger.info("NIC private IP is {}".format(data.private_ip_address))
             data.nics.append(nic)
+
+            if deployment_model.inbound_ports:
+                inbound_rules = RulesAttributeParser.parse_port_group_attribute(
+                        ports_attribute=deployment_model.inbound_ports)
+
+                lock = self.generic_lock_provider.get_resource_lock(lock_key=security_group_name, logger=logger)
+
+                self.security_group_service.create_network_security_group_rules(network_client,
+                                                                                data.group_name,
+                                                                                security_group_name,
+                                                                                inbound_rules,
+                                                                                nic.ip_configurations[0].private_ip_address,
+                                                                                lock)
 
         self.cancellation_service.check_if_cancelled(cancellation_context)
 
@@ -651,6 +674,7 @@ class DeployAzureVMOperation(object):
         data = self.DeployDataModel()
 
         data.reservation_id = str(reservation.reservation_id)
+        data.reservation = reservation
         data.group_name = str(reservation.reservation_id)
         data.image_model = image_data_model
 
@@ -661,7 +685,6 @@ class DeployAzureVMOperation(object):
         unique_resource_name = self.name_provider_service.generate_name(name=data.app_name,
                                                                         postfix=resource_postfix,
                                                                         max_length=64)
-        data.ip_name = unique_resource_name
         data.vm_name = unique_resource_name
         data.computer_name = self._prepare_computer_name(name=data.app_name,
                                                          postfix=resource_postfix,
@@ -691,10 +714,10 @@ class DeployAzureVMOperation(object):
     class DeployDataModel(object):
         def __init__(self):
             self.reservation_id = ''  # type: str
+            self.reservation = None # type: ReservationModel
             self.app_name = ''  # type: str
             self.group_name = ''  # type: str
             self.interface_name = ''  # type: str
-            self.ip_name = ''  # type: str
             self.computer_name = ''  # type: str
             self.vm_name = ''  # type: str
             self.vm_size = ''  # type: str
@@ -707,3 +730,8 @@ class DeployAzureVMOperation(object):
             self.vm_credentials = None  # type: VMCredentials
             self.private_ip_address = ''  # type: str
             self.public_ip_address = ''  # type: str
+
+
+def get_ip_from_interface_name(interface_name):
+    ip_name = interface_name + '_PublicIP'
+    return ip_name
