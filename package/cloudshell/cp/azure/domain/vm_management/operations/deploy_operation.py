@@ -588,17 +588,6 @@ class DeployAzureVMOperation(object):
 
         self.cancellation_service.check_if_cancelled(cancellation_context)
 
-        # 2. create NSG rules
-        logger.info("Processing Network Security Group rules")
-        self._process_nsg_rules(network_client=network_client,
-                                group_name=data.group_name,
-                                azure_vm_deployment_model=deployment_model,
-                                nic=data.nic,
-                                cancellation_context=cancellation_context,
-                                logger=logger)
-
-        self.cancellation_service.check_if_cancelled(cancellation_context)
-
         # 3. Prepare credentials for VM
         logger.info("Prepare credentials for the VM {}".format(data.vm_name))
         data.vm_credentials = self.vm_credentials_service.prepare_credentials(
