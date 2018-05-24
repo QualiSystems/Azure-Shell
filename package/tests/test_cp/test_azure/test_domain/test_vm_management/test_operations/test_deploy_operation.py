@@ -673,7 +673,6 @@ class TestDeployAzureVMOperation(TestCase):
         self.name_provider_service.normalize_name.assert_called_once_with(deployment_model.app_name)
         self.assertEquals(data.app_name, "cool-app")
         self.assertEquals(data.interface_name, "random_name")
-        self.assertEquals(data.ip_name, "random_name")
         self.assertEquals(data.computer_name, "computer_name")
         self.assertEquals(data.vm_name, "random_name")
         self.assertEquals(data.vm_size, "vm_size")

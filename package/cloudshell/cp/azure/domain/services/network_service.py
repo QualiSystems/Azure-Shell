@@ -25,9 +25,11 @@ class NetworkService(object):
                               tags,
                               add_public_ip,
                               public_ip_type,
-                              logger):
+                              logger,
+                              network_security_group=None):
         """
         This method creates a an ip address and a nic for the vm
+        :param azure.mgmt.network.models.NetworkSecurityGroup network_security_group:
         :param cloud_provider_model:
         :param public_ip_type:
         :param add_public_ip:
@@ -68,16 +70,18 @@ class NetworkService(object):
                                IPAllocationMethod.static,
                                tags,
                                sandbox_virtual_network.name,
-                               logger)
+                               logger,
+                               network_security_group)
 
     @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def create_nic(self, interface_name, group_name, management_group_name, network_client, public_ip_address, region,
                    subnet,
                    private_ip_allocation_method, tags, virtual_network_name,
-                   logger):
+                   logger, network_security_group=None):
         """
         The method creates or updates network interface.
         Parameter
+        :param azure.mgmt.network.models.NetworkSecurityGroup network_security_group:
         :param logger:
         :param virtual_network_name:
         :param group_name:
@@ -101,22 +105,15 @@ class NetworkService(object):
                                                                           subnet.address_prefix[:-3],
                                                                           logger)
 
+        network_interface = NetworkInterface(location=region, network_security_group=network_security_group,
+                                             ip_configurations=[
+            NetworkInterfaceIPConfiguration(name='default', private_ip_allocation_method=private_ip_allocation_method,
+                                            subnet=subnet, private_ip_address=private_ip_address,
+                                            public_ip_address=public_ip_address ), ], tags=tags)
         operation_poller = network_client.network_interfaces.create_or_update(
                 group_name,
                 interface_name,
-                NetworkInterface(
-                        location=region,
-                        ip_configurations=[
-                            NetworkInterfaceIPConfiguration(
-                                    name='default',
-                                    private_ip_allocation_method=private_ip_allocation_method,
-                                    subnet=subnet,
-                                    private_ip_address=private_ip_address,
-                                    public_ip_address=public_ip_address,
-                            ),
-                        ],
-                        tags=tags
-                ),
+            network_interface,
         )
 
         return operation_poller.result()

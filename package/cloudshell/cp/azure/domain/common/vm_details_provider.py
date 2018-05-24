@@ -1,4 +1,5 @@
 from azure.mgmt.compute.models import StorageAccountTypes
+from cloudshell.cp.azure.domain.vm_management.operations.deploy_operation import get_ip_from_interface_name
 
 
 class VmDetailsProvider(object):
@@ -78,9 +79,10 @@ class VmDetailsProvider(object):
             }
 
             if ip_configuration.public_ip_address:
+                public_ip_name = get_ip_from_interface_name(nic_name)
                 public_ip = self.network_service.get_public_ip(network_client=network_client,
                                                                group_name=group_name,
-                                                               ip_name=instance.name)
+                                                               ip_name=public_ip_name)
                 network_interface_object["network_data"].append(AdditionalData("Public IP", public_ip.ip_address))
                 network_interface_object["network_data"].append(AdditionalData("Public IP Type", public_ip.public_ip_allocation_method))
                 logger.info("VM {} was created with public IP '{}'.".format(instance.name,

@@ -279,6 +279,7 @@ class DeleteAzureVMOperation(object):
         :param logger: logging.Logger instance
         :return:
         """
+
         delete_security_rules_command = partial(self._delete_security_rules,
                                                 network_client=network_client,
                                                 group_name=group_name,
