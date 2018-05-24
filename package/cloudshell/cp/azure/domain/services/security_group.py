@@ -145,15 +145,9 @@ class SecurityGroupService(object):
         network_security_groups = self.list_network_security_group(
             network_client=network_client,
             group_name=group_name)
-        self._validate_network_security_group_is_single_per_group(network_security_groups, group_name)
-        return network_security_groups[0]
-
-    @staticmethod
-    def _validate_network_security_group_is_single_per_group(resources_list, group_name):
-        if len(resources_list) > 1:
-            raise Exception("The resource group {} contains more than one network security group.".format(group_name))
-        if len(resources_list) == 0:
+        if len(network_security_groups) == 0:
             raise Exception("The resource group {} does not contain a network security group.".format(group_name))
+        return network_security_groups[0]
 
     @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def create_network_security_group_rules(self, network_client, group_name, security_group_name,
