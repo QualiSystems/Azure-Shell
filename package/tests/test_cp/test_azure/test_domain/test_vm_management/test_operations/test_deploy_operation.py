@@ -473,7 +473,7 @@ class TestDeployAzureVMOperation(TestCase):
         security_groups_list = MagicMock()
         self.deploy_operation.security_group_service.list_network_security_group.return_value = security_groups_list
         self.deploy_operation._validate_resource_is_single_per_group = MagicMock()
-        self.deploy_operation.security_group_service.get_network_security_group.return_value = security_groups_list[0]
+        self.deploy_operation.security_group_service.get_first_network_security_group.return_value = security_groups_list[0]
         lock = Mock()
         self.generic_lock_provider.get_resource_lock = Mock(return_value=lock)
 
@@ -487,7 +487,7 @@ class TestDeployAzureVMOperation(TestCase):
                 logger=logger)
 
         # Verify
-        self.deploy_operation.security_group_service.get_network_security_group.assert_called_once_with(
+        self.deploy_operation.security_group_service.get_first_network_security_group.assert_called_once_with(
                 network_client=network_client,
                 group_name=group_name)
 

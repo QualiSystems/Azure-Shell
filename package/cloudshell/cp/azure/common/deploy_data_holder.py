@@ -24,3 +24,14 @@ class DeployDataHolder(object):
     def _is_primitive(thing):
         primitive = (int, str, bool, float, unicode)
         return isinstance(thing, primitive)
+
+    @staticmethod
+    def create_obj_by_type(obj):
+        obj_type = type(obj)
+        if obj_type == dict:
+            return DeployDataHolder(obj)
+        if obj_type == list:
+            return [DeployDataHolder.create_obj_by_type(item) for item in obj]
+        if DeployDataHolder._is_primitive(obj):
+            return obj_type(obj)
+        return obj

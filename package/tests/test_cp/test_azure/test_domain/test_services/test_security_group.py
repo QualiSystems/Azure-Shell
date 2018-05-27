@@ -159,7 +159,7 @@ class TestSecurityGroupService(TestCase):
         self.security_group_service._validate_network_security_group_is_single_per_group = MagicMock()
 
         # Act
-        self.security_group_service.get_network_security_group(self.network_client, self.group_name)
+        self.security_group_service.get_first_network_security_group(self.network_client, self.group_name)
 
         # Verify
         self.security_group_service.list_network_security_group.assert_called_once_with(
@@ -183,8 +183,8 @@ class TestSecurityGroupService(TestCase):
         security_rule.destination_address_prefix = private_ip_address
         security_rules = [security_rule]
         security_group.security_rules = security_rules
-        self.security_group_service.get_network_security_group = MagicMock()
-        self.security_group_service.get_network_security_group.return_value = security_group
+        self.security_group_service.get_first_network_security_group = MagicMock()
+        self.security_group_service.get_first_network_security_group.return_value = security_group
         self.network_service.get_private_ip = Mock(return_value=private_ip_address)
 
         contex_enter_mock = Mock()

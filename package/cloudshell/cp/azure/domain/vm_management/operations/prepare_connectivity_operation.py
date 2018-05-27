@@ -92,14 +92,6 @@ class PrepareConnectivityOperation(object):
 
         cidr = network_action.connection_params.cidr
 
-        # try:
-        #     result = self._prepare_network(ec2_client, ec2_session, s3_session, reservation, aws_ec2_datamodel,
-        #                                    network_action, cancellation_context, logger)
-        #     results.append(result)
-        # except Exception as e:
-        #     logger.error("Error in prepare connectivity. Error: {0}".format(traceback.format_exc()))
-        #     results.append(self._create_fault_action_result(network_action, e))
-
         reservation_id = reservation.reservation_id
         group_name = str(reservation_id)
         tags = self.tags_service.get_tags(reservation=reservation)
