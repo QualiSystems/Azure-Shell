@@ -378,7 +378,30 @@ class PrepareConnectivityOperation(object):
         used_priorities = []
         all_symbol = SecurityRuleProtocol.asterisk
 
-        # rule 0
+        # Rule 1:
+        source_address_prefix = management_vnet.address_space.address_prefixes[0]
+        priority = 3900
+        used_priorities.append(priority)
+        logger.info("Creating (async) NSG rule to allow management subnet traffic with priority {}".format(priority))
+
+        operation_poller = self.security_group_service.create_network_security_group_custom_rule(
+            network_client=network_client,
+            group_name=group_name,
+            security_group_name=security_group_name,
+            rule=SecurityRule(
+                access=SecurityRuleAccess.allow,
+                direction="Inbound",
+                source_address_prefix=source_address_prefix,
+                source_port_range=all_symbol,
+                name="rule_{}".format(priority),
+                destination_address_prefix=all_symbol,
+                destination_port_range=all_symbol,
+                priority=priority,
+                protocol=all_symbol),
+            async=True)
+        operation_poller.wait()
+
+        # rule 1
         priority = 3950
         used_priorities.append(priority)
         logger.info("Creating NSG rule to deny inbound traffic from other subnets with priority {}..."
@@ -399,11 +422,10 @@ class PrepareConnectivityOperation(object):
                         priority=priority,
                         protocol=all_symbol),
                 async=True)
-
         # can't create next rule while previous is in the deploying state
         operation_poller.wait()
 
-        # Rule 1
+        # Rule 2
         priority = 4000
         used_priorities.append(priority)
         logger.info("Creating NSG rule to deny inbound traffic from other subnets with priority {}..."
@@ -424,31 +446,32 @@ class PrepareConnectivityOperation(object):
                         priority=priority,
                         protocol=all_symbol),
                 async=True)
-
         # can't create next rule while previous is in the deploying state
         operation_poller.wait()
 
-        # Rule 2:
-        source_address_prefix = management_vnet.address_space.address_prefixes[0]
-        priority = 3900
+        # Rule 3
+        priority = 4010
         used_priorities.append(priority)
-        logger.info("Creating (async) NSG rule to allow management subnet traffic with priority {}".format(priority))
+        # todo - add inbound for internet only for public subnets
+        logger.info("Creating NSG rule allow all inbound traffic from internet {}..."
+                    .format(priority))
 
         operation_poller = self.security_group_service.create_network_security_group_custom_rule(
-                network_client=network_client,
-                group_name=group_name,
-                security_group_name=security_group_name,
-                rule=SecurityRule(
-                        access=SecurityRuleAccess.allow,
-                        direction="Inbound",
-                        source_address_prefix=source_address_prefix,
-                        source_port_range=all_symbol,
-                        name="rule_{}".format(priority),
-                        destination_address_prefix=all_symbol,
-                        destination_port_range=all_symbol,
-                        priority=priority,
-                        protocol=all_symbol),
-                async=True)
+            network_client=network_client,
+            group_name=group_name,
+            security_group_name=security_group_name,
+            rule=SecurityRule(
+                access=SecurityRuleAccess.allow,
+                direction="Inbound",
+                source_address_prefix='Internet',
+                source_port_range=all_symbol,
+                name="rule_{}".format(priority),
+                destination_address_prefix=all_symbol,
+                destination_port_range=all_symbol,
+                priority=priority,
+                protocol=all_symbol),
+            async=True)
+        # can't create next rule while previous is in the deploying state
         operation_poller.wait()
 
         # free priorities for additional NSG rules

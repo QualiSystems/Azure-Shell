@@ -1,6 +1,6 @@
 from threading import Lock
 
-from azure.mgmt.network.models import NetworkSecurityGroup, RouteNextHopType, SecurityRuleProtocol
+from azure.mgmt.network.models import NetworkSecurityGroup, RouteNextHopType, SecurityRuleProtocol, SecurityRuleAccess
 from azure.mgmt.network.models import SecurityRule
 from retrying import retry
 
@@ -192,39 +192,42 @@ class SecurityGroupService(object):
         :return: None
         """
         with lock:
-            deny_all_in = SecurityRule(access='Deny',
-                                     direction='Inbound',
-                                     source_address_prefix='*',
-                                     source_port_range='*',
-                                     name='deny_all_ingoing',
-                                     destination_address_prefix='*',
-                                     destination_port_range='*',
-                                     priority=4000,
-                                     protocol='*')
+            # 1. add rule to allow azure load balancer inbound traffic. It is needed in order to avoid core
+            # azure services interruption
+            allow_azure_lb = SecurityRule(access=SecurityRuleAccess.allow,
+                                          direction='Inbound',
+                                          source_address_prefix='AzureLoadBalancer',
+                                          source_port_range='*',
+                                          name='allow_azure_lb',
+                                          destination_address_prefix='*',
+                                          destination_port_range='*',
+                                          priority=4010,
+                                          protocol='*')
+
+            operation_poller = network_client.security_rules.create_or_update(
+                resource_group_name=group_name,
+                network_security_group_name=security_group_name,
+                security_rule_name=allow_azure_lb.name,
+                security_rule_parameters=allow_azure_lb)
+
+            operation_poller.result()
+
+            # 2. deny all inbound traffic (with higher priority than 'allow_azure_lb' rule
+            deny_all_in = SecurityRule(access=SecurityRuleAccess.deny,
+                                       direction='Inbound',
+                                       source_address_prefix='*',
+                                       source_port_range='*',
+                                       name='deny_all_in',
+                                       destination_address_prefix='*',
+                                       destination_port_range='*',
+                                       priority=4020,
+                                       protocol='*')
 
             operation_poller = network_client.security_rules.create_or_update(
                 resource_group_name=group_name,
                 network_security_group_name=security_group_name,
                 security_rule_name=deny_all_in.name,
                 security_rule_parameters=deny_all_in)
-
-            operation_poller.result()
-
-            deny_all_out = SecurityRule(access='Deny',
-                                     direction='Outbound',
-                                     source_address_prefix='*',
-                                     source_port_range='*',
-                                     name='deny_all_outgoing',
-                                     destination_address_prefix='*',
-                                     destination_port_range='*',
-                                     priority=4000,
-                                     protocol='*')
-
-            operation_poller = network_client.security_rules.create_or_update(
-                resource_group_name=group_name,
-                network_security_group_name=security_group_name,
-                security_rule_name=deny_all_out.name,
-                security_rule_parameters=deny_all_out)
 
             operation_poller.result()
 
