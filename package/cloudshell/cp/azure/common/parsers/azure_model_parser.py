@@ -6,6 +6,7 @@ from cloudshell.cp.azure.models.deploy_azure_vm_resource_models import DeployAzu
 from cloudshell.cp.azure.models.deploy_azure_vm_resource_models import DeployAzureVMFromCustomImageResourceModel
 from cloudshell.cp.azure.common.deploy_data_holder import DeployDataHolder
 from cloudshell.cp.azure.models.reservation_model import ReservationModel
+from cloudshell.cp.azure.domain.services.parsers.connection_params import convert_to_bool
 
 
 
@@ -45,6 +46,9 @@ class AzureModelsParser(object):
         deployment_resource_model.extension_script_timeout = (int(data_attributes['Extension Script Timeout']))
         deployment_resource_model.disk_type = data_attributes['Disk Type']
         deployment_resource_model.app_name = data_holder['AppName']
+        deployment_resource_model.allow_all_sandbox_traffic = convert_to_bool(
+            data_attributes['Allow all Sandbox Traffic'])
+
         logical_resource = data_holder['LogicalResourceRequestAttributes']
 
         keys = logical_resource.keys()

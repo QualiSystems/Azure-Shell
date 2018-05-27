@@ -11,3 +11,6 @@ drivers/killPython.bat
 *.orig
 package/version.txt
 package/dist/
+/drivers/azure_shell.zip
+/drivers/azure_shell/azure_shell.zip
+/drivers/azure_shellPackage/azure_shellPackage.zip

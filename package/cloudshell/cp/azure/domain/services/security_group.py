@@ -179,6 +179,56 @@ class SecurityGroupService(object):
                     priority=next(priority_generator))
 
     @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
+    def create_isolated_network_security_group_rules(self, network_client, group_name, security_group_name, lock):
+        """Create NSG inbound rules on the Azure
+
+        :param network_client: azure.mgmt.network.NetworkManagementClient instance
+        :param group_name: resource group name (reservation id)
+        :param security_group_name: NSG name from the Azure
+        :param inbound_rules: list[cloudshell.cp.azure.models.rule_data.RuleData]
+        :param destination_addr: Destination IP address/CIDR
+        :param threading.Lock lock: The locker object to use to sync between concurrent operations on the NSG
+        :param start_from: (int) rule priority number to start from
+        :return: None
+        """
+        with lock:
+            deny_all_in = SecurityRule(access='Deny',
+                                     direction='Inbound',
+                                     source_address_prefix='*',
+                                     source_port_range='*',
+                                     name='deny_all_ingoing',
+                                     destination_address_prefix='*',
+                                     destination_port_range='*',
+                                     priority=4000,
+                                     protocol='*')
+
+            operation_poller = network_client.security_rules.create_or_update(
+                resource_group_name=group_name,
+                network_security_group_name=security_group_name,
+                security_rule_name=deny_all_in.name,
+                security_rule_parameters=deny_all_in)
+
+            operation_poller.result()
+
+            deny_all_out = SecurityRule(access='Deny',
+                                     direction='Outbound',
+                                     source_address_prefix='*',
+                                     source_port_range='*',
+                                     name='deny_all_outgoing',
+                                     destination_address_prefix='*',
+                                     destination_port_range='*',
+                                     priority=4000,
+                                     protocol='*')
+
+            operation_poller = network_client.security_rules.create_or_update(
+                resource_group_name=group_name,
+                network_security_group_name=security_group_name,
+                security_rule_name=deny_all_out.name,
+                security_rule_parameters=deny_all_out)
+
+            operation_poller.result()
+
+    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def delete_security_rules(self, network_client, resource_group_name, vm_name, lock, logger):
         """
         removes NSG inbound rules for virtual machine (based on private ip address)

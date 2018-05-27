@@ -103,6 +103,12 @@
         <Rule Name="Setting" />
       </Rules>
     </AttributeInfo>
+    <AttributeInfo DefaultValue="true"  Name="Allow all Sandbox Traffic" Description="Whether an app should allow inbound traffic from all other apps in the sandbox. If set to false, access from specific apps or subnets can be defined by an API call." IsReadOnly="false" Type="Boolean">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
     <AttributeInfo Name="Azure Application ID"  DefaultValue="" Description="Application Id associated with the Azure API application. The application ID allows CloudShell to access the Azure API and is generated as part of the web application’s configuration process. For more information, see the “Configure Azure API to work with CloudShell” article in the CloudShell online help." IsReadOnly="false" Type="String">
       <Rules>
         <Rule Name="Configuration" />
@@ -292,6 +298,9 @@
                 <AllowedValue>HDD</AllowedValue>
                 <AllowedValue>SSD</AllowedValue>
               </AllowedValues>
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Allow all Sandbox Traffic" UserInput="true">
+              <AllowedValues />
             </AttachedAttribute>
           </AttachedAttributes>
           <AttributeValues>

@@ -154,7 +154,6 @@ class DeployAzureVMOperation(object):
         """
         logger.info("Start Deploy Azure VM operation")
         extension_time_out = False
-
         # 1. prepare deploy data model object
         data = self._prepare_deploy_data(logger=logger,
                                          reservation=reservation,
@@ -547,9 +546,19 @@ class DeployAzureVMOperation(object):
 
         security_group_name = 'NSG_' + data.vm_name
         tags = self.tags_service.get_tags(data.vm_name, data.reservation)
-        vm_nsg = self.security_group_service.create_network_security_group(network_client, data.group_name,
-                                                                           security_group_name, cloud_provider_model.region,
+        vm_nsg = self.security_group_service.create_network_security_group(network_client,
+                                                                           data.group_name,
+                                                                           security_group_name,
+                                                                           cloud_provider_model.region,
                                                                            tags)
+
+        if not deployment_model.allow_all_sandbox_traffic:
+            self.security_group_service\
+                .create_isolated_network_security_group_rules(network_client,
+                                                              data.group_name,
+                                                              vm_nsg.name,
+                                                              self.generic_lock_provider.get_resource_lock(vm_nsg.name,
+                                                                                                           logger))
 
         # 1. Create network for vm
         data.nics = []
@@ -578,7 +587,6 @@ class DeployAzureVMOperation(object):
                         ports_attribute=deployment_model.inbound_ports)
 
                 lock = self.generic_lock_provider.get_resource_lock(lock_key=security_group_name, logger=logger)
-
                 self.security_group_service.create_network_security_group_rules(network_client,
                                                                                 data.group_name,
                                                                                 security_group_name,
