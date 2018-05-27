@@ -1,6 +1,8 @@
 import jsonpickle
 
+from cloudshell.cp.azure.common.parsers.security_group_parser import SecurityGroupParser
 from cloudshell.cp.azure.domain.services.parsers.network_actions import NetworkActionsParser
+from cloudshell.cp.azure.models.app_security_groups_model import AppSecurityGroupModel, DeployedApp, VmDetails
 from cloudshell.cp.azure.models.azure_cloud_provider_resource_model import AzureCloudProviderResourceModel
 from cloudshell.cp.azure.models.deploy_azure_vm_resource_models import DeployAzureVMResourceModel
 from cloudshell.cp.azure.models.deploy_azure_vm_resource_models import DeployAzureVMFromCustomImageResourceModel
@@ -239,4 +241,30 @@ class AzureModelsParser(object):
 
         return NetworkActionsParser.parse_network_actions_data(actions)
 
+    @staticmethod
+    def get_app_security_groups_from_request(request):
+        json_str = jsonpickle.decode(request)
+        data_holder = DeployDataHolder.create_obj_by_type(json_str)
+        return data_holder
 
+    @staticmethod
+    def convert_to_app_security_group_models(request):
+        """
+        :rtype list[AppSecurityGroupModel]:
+        """
+        security_group_models = []
+
+        security_groups = AzureModelsParser.get_app_security_groups_from_request(request)
+
+        for security_group in security_groups:
+            security_group_model = AppSecurityGroupModel()
+            security_group_model.deployed_app = DeployedApp()
+            security_group_model.deployed_app.name = security_group.deployedApp.name
+            security_group_model.deployed_app.vm_details = VmDetails()
+            security_group_model.deployed_app.vm_details.uid = security_group.deployedApp.vmdetails.uid
+            security_group_model.security_group_configurations = SecurityGroupParser.parse_security_group_configurations(
+                security_group.securityGroupsConfigurations)
+
+            security_group_models.append(security_group_model)
+
+        return security_group_models

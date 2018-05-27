@@ -350,7 +350,7 @@ class DeployAzureVMOperation(object):
             logger.info("Parsed inbound rules {}".format(inbound_rules))
 
             logger.info("Get NSG by group name {}".format(group_name))
-            network_security_group = self.security_group_service.get_network_security_group(
+            network_security_group = self.security_group_service.get_first_network_security_group(
                 network_client=network_client,
                 group_name=group_name)
 

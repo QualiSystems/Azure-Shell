@@ -3,6 +3,7 @@ from threading import Lock
 
 from cloudshell.api.cloudshell_api import CommandExecutionCancelledResultInfo
 from cloudshell.cp.azure.domain.common.vm_details_provider import VmDetailsProvider
+from cloudshell.cp.azure.domain.vm_management.operations.set_app_security_groups import SetAppSecurityGroupsOperation
 from cloudshell.cp.azure.domain.vm_management.operations.vm_details_operation import VmDetailsOperation
 from cloudshell.shell.core.driver_context import ResourceCommandContext, CancellationContext
 from cloudshell.core.context.error_handling_context import ErrorHandlingContext
@@ -33,7 +34,8 @@ from cloudshell.cp.azure.domain.services.vm_extension import VMExtensionService
 from cloudshell.cp.azure.domain.services.task_waiter import TaskWaiterService
 from cloudshell.cp.azure.domain.services.command_cancellation import CommandCancellationService
 from cloudshell.cp.azure.domain.services.subscription import SubscriptionService
-from cloudshell.cp.azure.domain.vm_management.operations.deploy_operation import DeployAzureVMOperation
+from cloudshell.cp.azure.domain.vm_management.operations.deploy_operation import DeployAzureVMOperation, \
+    SetAppSecurityGroupActionResult
 from cloudshell.cp.azure.domain.vm_management.operations.power_operation import PowerAzureVMOperation
 from cloudshell.cp.azure.domain.vm_management.operations.refresh_ip_operation import RefreshIPOperation
 from cloudshell.cp.azure.domain.vm_management.operations.prepare_connectivity_operation import \
@@ -127,6 +129,11 @@ class AzureShell(object):
 
         self.vm_details_operation = VmDetailsOperation(vm_service=self.vm_service,
                                                        vm_details_provider=self.vm_details_provider)
+
+        self.set_app_security_groups_operation = SetAppSecurityGroupsOperation(vm_service=self.vm_service,
+                                                                               resource_id_parser=self.resource_id_parser,
+                                                                               nsg_service=self.security_group_service,
+                                                                               generic_lock_provider=self.generic_lock_provider)
 
     def get_inventory(self, command_context):
         """Validate Cloud Provider
@@ -513,3 +520,37 @@ class AzureShell(object):
                                                                       model_parser=self.model_parser,
                                                                       cancellation_context=cancellation_context)
                 return self.command_result_parser.set_command_result(vm_details)
+
+    def set_app_security_groups(self, command_context, request):
+        """
+        Set security groups (inbound rules only)
+        :param ResourceCommandContext command_context:
+        :param request: The json request
+        :return:
+        """
+        with LoggingSessionContext(command_context) as logger:
+            with ErrorHandlingContext(logger):
+                logger.info("Starting set_app_security_groups operation...")
+
+                app_security_group_models = self.model_parser.convert_to_app_security_group_models(request)
+
+                group_name = self.model_parser.convert_to_reservation_model(command_context.reservation) \
+                    .reservation_id
+
+                with CloudShellSessionContext(command_context) as cloudshell_session:
+                    cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(
+                        resource=command_context.resource,
+                        cloudshell_session=cloudshell_session)
+
+                    azure_clients = AzureClientsManager(cloud_provider_model)
+
+                    result = self.set_app_security_groups_operation.set_apps_security_groups(
+                        logger=logger,
+                        app_security_group_models=app_security_group_models,
+                        compute_client=azure_clients.compute_client,
+                        network_client=azure_clients.network_client,
+                        group_name=group_name)
+
+                    json_result = SetAppSecurityGroupActionResult.to_json(result)
+
+                    return json_result

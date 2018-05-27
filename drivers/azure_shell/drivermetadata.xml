@@ -1,4 +1,4 @@
-<Driver Description="This driver orchestrate all the command that will be executed on Azure" MainClass="driver.AzureShellDriver" Name="Azure Shell Driver" Version="1.6.1">
+<Driver Description="This driver orchestrate all the command that will be executed on Azure" MainClass="driver.AzureShellDriver" Name="Azure Shell Driver" Version="1.6.11">
     <Layout>
         <Category Name="Deployment">
             <Command Description="" DisplayName="Deploy VM" EnableCancellation="true" Name="deploy_vm" Tags="allow_unreserved" />
@@ -15,6 +15,7 @@
             <Command Description="" DisplayName="Delete VM Only" Name="destroy_vm_only" Tags="remote_app_management,allow_shared" />
             <Command Description="" DisplayName="GetAccessKey" Name="GetAccessKey" Tags="remote_app_management" />
             <Command Description="" DisplayName="Deploy" Name="Deploy" Tags="allow_unreserved" />
+            <Command Description="" DisplayName="Set App Security Groups" Name="SetAppSecurityGroups" Tags="allow_unreserved" />
             <Command Description="" DisplayName="Get VmDetails" EnableCancellation="true" Name="GetVmDetails" Tags="allow_unreserved" />
         </Category>
         <Category Name="Power">
