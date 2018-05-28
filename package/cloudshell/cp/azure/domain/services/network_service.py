@@ -286,20 +286,20 @@ class NetworkService(object):
         return nic.ip_configurations[0].private_ip_address
 
     @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
-    def delete_nic(self, network_client, group_name, interface_name):
+    def delete_nics(self, network_client, group_name, interface_names):
         """
 
+        :param interface_names:
         :param azure.mgmt.network.network_management_client.NetworkManagementClient network_client:
         :param group_name:
-        :param interface_name:
         :return:
         """
-        result = network_client.network_interfaces.delete(group_name, interface_name)
-
-        result.wait()
+        for interface_name in interface_names:
+            result = network_client.network_interfaces.delete(group_name, interface_name)
+            result.wait()
 
     @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
-    def delete_ip(self, network_client, group_name, ip_name):
+    def delete_ip(self, network_client, group_name, public_ip_names):
         """
 
         :param azure.mgmt.network.network_management_client.NetworkManagementClient network_client:
@@ -307,8 +307,9 @@ class NetworkService(object):
         :param ip_name: (str) name for Azure Public IP resource
         :return:
         """
-        result = network_client.public_ip_addresses.delete(group_name, ip_name)
-        result.wait()
+        for ip_name in public_ip_names:
+            result = network_client.public_ip_addresses.delete(group_name, ip_name)
+            result.wait()
 
     @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def delete_subnet(self, network_client, group_name, vnet_name, subnet_name):
