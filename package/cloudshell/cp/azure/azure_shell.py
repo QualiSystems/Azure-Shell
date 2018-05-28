@@ -195,7 +195,7 @@ class AzureShell(object):
                 actions = jsonpickle.decode(deployment_request)["NetworkConfigurationsRequest"]["actions"]
                 deploy_data.network_configuration_results = \
                     [ConnectToSubnetActionResult(action_id=action["actionId"],
-                                                 interface_data='', success=True) for action in actions]\
+                                                 interface_data='', success=True) for action in actions] \
                         if actions else None
 
                 return self.command_result_parser.set_command_result(deploy_data)
@@ -473,12 +473,40 @@ class AzureShell(object):
         """
         with LoggingSessionContext(command_context) as logger:
             with ErrorHandlingContext(logger):
-                logger.info('Getting Application Ports...')
-                resource = command_context.remote_endpoints[0]
-                data_holder = self.model_parser.convert_app_resource_to_deployed_app(resource)
+                with CloudShellSessionContext(command_context) as cloudshell_session:
+                    cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(
+                        resource=command_context.resource,
+                        cloudshell_session=cloudshell_session)
 
-                return self.deployed_app_ports_operation.get_formated_deployed_app_ports(
-                    data_holder.vmdetails.vmCustomParams)
+                azure_clients = AzureClientsManager(cloud_provider_model)
+                resource_group_name = \
+                    self.model_parser.convert_to_reservation_model(command_context.remote_reservation).reservation_id
+
+                resource = command_context.remote_endpoints[0]
+                vm_name = resource.fullname
+
+                compute_client = azure_clients.compute_client
+                network_client = azure_clients.network_client
+
+                vm = self.vm_service.get_vm(compute_client, resource_group_name, vm_name)
+
+                first_nic_name = vm.network_profile.network_interfaces[0].id.split('/')[-1]
+                first_nic = network_client.network_interfaces.get(resource_group_name, first_nic_name)
+                vm_nsg_name = first_nic.network_security_group.id.split('/')[-1]
+
+                vm_nsg = azure_clients.network_client.network_security_groups.get(resource_group_name, vm_nsg_name)
+
+                custom_rules_output = [
+                    'Protocol: {4}\t'
+                    'Source Address: {0}\tSource Port Range: {1}\t'
+                    'Destination Address: {2}\tDestination Port Range{3}'.format(rule.source_address_prefix,
+                                                                       rule.source_port_range,
+                                                                       rule.destination_address_prefix,
+                                                                       rule.destination_port_range,
+                                                                       rule.protocol)
+                    for rule in vm_nsg.security_rules if rule.name.startswith('rule_')]
+
+                return '\n'.join(custom_rules_output)
 
     def get_vm_details(self, command_context, cancellation_context, requests_json):
         """Get vm details for specific deployed app
