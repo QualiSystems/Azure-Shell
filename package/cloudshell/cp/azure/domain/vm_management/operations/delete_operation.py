@@ -241,21 +241,22 @@ class DeleteAzureVMOperation(object):
                                   group_name=group_name,
                                   vm_name=vm_name)
 
-    def _delete_nic(self, network_client, group_name, vm_name, logger):
+    def _delete_nic(self, network_client, group_name, vm_name, logger, interface_names):
         """Delete NIC resource on the azure for given VM
 
         :param network_client: azure.mgmt.network.NetworkManagementClient instance
         :param group_name: (str) The name of the resource group
         :param vm_name: (str) the same as ip_name and interface_name
         :param logger: logging.Logger instance
+        :param interface_names: list(str)
         :return:
         """
         logger.info("Deleting Interface {}...".format(vm_name))
-        self.network_service.delete_nic(network_client=network_client,
-                                        group_name=group_name,
-                                        interface_name=vm_name)
+        self.network_service.delete_nics(network_client=network_client,
+                                         group_name=group_name,
+                                         interface_names=interface_names)
 
-    def _delete_public_ip(self, network_client, group_name, vm_name, logger):
+    def _delete_public_ip(self, network_client, group_name, vm_name, logger, public_ip_names):
         """Delete Public IP resource on the azure for given VM
 
         :param network_client: azure.mgmt.network.NetworkManagementClient instance
@@ -267,7 +268,7 @@ class DeleteAzureVMOperation(object):
         logger.info("Deleting Public IP {}...".format(vm_name))
         self.network_service.delete_ip(network_client=network_client,
                                        group_name=group_name,
-                                       ip_name=vm_name)
+                                       public_ip_names=public_ip_names)
 
     def delete(self, compute_client, network_client, storage_client, group_name, vm_name, logger):
         """Delete VM and all related resources
@@ -280,6 +281,17 @@ class DeleteAzureVMOperation(object):
         :param logger: logging.Logger instance
         :return:
         """
+
+        vm = compute_client.virtual_machines.get(group_name, vm_name)
+        network_interface_names = [nir.id.split('/')[-1] for nir in vm.network_profile.network_interfaces]
+        network_interfaces = [network_client.network_interfaces.get(group_name, nin) for nin in network_interface_names]
+        public_ip_names = [ni.ip_configurations[0].public_ip_address.id.split('/')[-1] for ni in network_interfaces
+                           if len(ni.ip_configurations) > 0 and
+                           hasattr(ni.ip_configurations[0], 'public_ip_address') and
+                           ni.ip_configurations[0].public_ip_address is not None]
+
+        first_nic = network_interfaces[0]
+        vm_nsg_name = first_nic.network_security_group.id.split('/')[-1]
 
         delete_security_rules_command = partial(self._delete_security_rules,
                                                 network_client=network_client,
@@ -297,13 +309,15 @@ class DeleteAzureVMOperation(object):
                                      network_client=network_client,
                                      group_name=group_name,
                                      vm_name=vm_name,
-                                     logger=logger)
+                                     logger=logger,
+                                     interface_names=network_interface_names)
 
         delete_public_ip_command = partial(self._delete_public_ip,
                                            network_client=network_client,
                                            group_name=group_name,
                                            vm_name=vm_name,
-                                           logger=logger)
+                                           logger=logger,
+                                           public_ip_names=public_ip_names)
 
         commands = [delete_security_rules_command, delete_vm_command, delete_nic_command, delete_public_ip_command]
 
@@ -311,6 +325,8 @@ class DeleteAzureVMOperation(object):
             vm = self.vm_service.get_vm(compute_management_client=compute_client,
                                         group_name=group_name,
                                         vm_name=vm_name)
+
+
         except CloudError:
             logger.warning("Can't get VM to retrieve its VHD URL", exc_info=1)
         else:
@@ -335,3 +351,6 @@ class DeleteAzureVMOperation(object):
             except Exception:
                 logger.exception('Deleting Azure VM Exception:')
                 raise
+
+        result = network_client.network_security_groups.delete(group_name, vm_nsg_name)
+        result.wait()
