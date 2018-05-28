@@ -46,7 +46,7 @@ class DeleteAzureVMOperation(object):
         result = {'success': True,
                   'actionId': next(iter(filter(lambda x: x.type == "cleanupNetwork", request.actions))).actionId}
 
-        remove_nsg_from_subnets_command = partial(self.remove_nsg_from_subnets,
+        remove_nsg_from_subnets_command = partial(self.remove_nsg_and_routetable_from_subnets,
                                                   network_client=network_client,
                                                   cloud_provider_model=cloud_provider_model,
                                                   resource_group_name=resource_group_name,
@@ -86,7 +86,7 @@ class DeleteAzureVMOperation(object):
 
         return result
 
-    def remove_nsg_from_subnets(self, network_client, resource_group_name, cloud_provider_model, logger):
+    def remove_nsg_and_routetable_from_subnets(self, network_client, resource_group_name, cloud_provider_model, logger):
         logger.info("Removing NSG from the sandbox subnets...")
 
         management_group_name = cloud_provider_model.management_group_name
@@ -101,6 +101,7 @@ class DeleteAzureVMOperation(object):
 
         for subnet in subnets:
             subnet.network_security_group = None
+            subnet.route_table = None
             """
             # This call is atomic because we have to sync subnet updating for the entire sandbox vnet
             """
