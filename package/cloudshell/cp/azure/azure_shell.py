@@ -3,6 +3,7 @@ from threading import Lock
 
 from cloudshell.api.cloudshell_api import CommandExecutionCancelledResultInfo
 from cloudshell.cp.azure.domain.common.vm_details_provider import VmDetailsProvider
+from cloudshell.cp.azure.domain.networking_management.operations.add_route_operation import AddRouteOperation
 from cloudshell.cp.azure.domain.vm_management.operations.set_app_security_groups import SetAppSecurityGroupsOperation
 from cloudshell.cp.azure.domain.vm_management.operations.vm_details_operation import VmDetailsOperation
 from cloudshell.shell.core.driver_context import ResourceCommandContext, CancellationContext
@@ -94,6 +95,8 @@ class AzureShell(object):
             subnet_locker=self.subnet_locker,
             resource_id_parser=self.resource_id_parser)
 
+        self.create_route_operation = AddRouteOperation(self.network_service)
+
         self.deploy_azure_vm_operation = DeployAzureVMOperation(
             vm_service=self.vm_service,
             network_service=self.network_service,
@@ -154,6 +157,39 @@ class AzureShell(object):
 
                     logger.info("End Autoload Operation...")
                     return result
+
+    def deploy_arm_template(self, command_context, template_name, cancellation_context):
+        pass
+
+    def add_route_table_to_subnet(self,command_context, route_table_request, cancellation_context):
+        """ Will deploy Azure Image on the cloud provider
+
+        :param ResourceCommandContext command_context:
+        :param str route_request: JSON string
+        :param CancellationContext cancellation_context:
+        """
+        with LoggingSessionContext(command_context) as logger:
+            with ErrorHandlingContext(logger):
+                logger.info('Deploying Azure VM...')
+
+                with CloudShellSessionContext(command_context) as cloudshell_session:
+                    route_table_request_model = self.model_parser.convert_to_route_table_model(
+                        cloudshell_session=cloudshell_session,
+                        logger=logger, route_table_request=route_table_request)
+
+                    cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(
+                        resource=command_context.resource,
+                        cloudshell_session=cloudshell_session)
+
+                azure_clients = AzureClientsManager(cloud_provider_model)
+
+                self.create_route_operation.create_route_table(network_client=azure_clients.network_client,
+                                                               cloud_provider_model=cloud_provider_model,
+                                                               route_table_request=route_table_request_model,
+                                                               resource_group=command_context.reservation.reservation_id)
+
+
+
 
     def deploy_azure_vm(self, command_context, deployment_request, cancellation_context):
         """ Will deploy Azure Image on the cloud provider

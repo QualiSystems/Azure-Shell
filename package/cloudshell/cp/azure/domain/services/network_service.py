@@ -1,9 +1,12 @@
 import azure
+from azure.mgmt.network import NetworkManagementClient
 from azure.mgmt.network.models import NetworkInterface, NetworkInterfaceIPConfiguration, IPAllocationMethod, \
-    VirtualNetwork
+    VirtualNetwork, RouteTable, Route
+from cloudshell.cp.azure.models.azure_cloud_provider_resource_model import AzureCloudProviderResourceModel
 from retrying import retry
 
 from cloudshell.cp.azure.common.helpers.retrying_helpers import retry_if_connection_error
+from cloudshell.cp.azure.models.deploy_azure_vm_resource_models import RouteTableRequestResourceModel
 
 
 class NetworkService(object):
@@ -14,6 +17,26 @@ class NetworkService(object):
     def __init__(self, ip_service, tags_service):
         self.ip_service = ip_service
         self.tags_service = tags_service
+
+
+    def create_route_table(self, network_client,cloud_provider_model, routetable_request, resource_group_name):
+        """
+        :param NetworkManagementClient network_client: network client
+        :param RouteTableRequestResourceModel routetable_request: route_request
+        :param AzureCloudProviderResourceModel cloud_provider_model: cloud provider
+        :return:
+        """
+
+        routes = []
+        for route_request in routetable_request.routes:
+            routes.append(Route(name=route_request.name, next_hop_ip_address=route_request.next_hope_address,
+                                next_hop_type=route_request.next_hop_type,
+                                address_prefix=route_request.route_address_prefix))
+
+        route_table = RouteTable( location=cloud_provider_model.region,routes=routes)
+        network_client.route_tables.create_or_update(resource_group_name,routetable_request.name,
+                                                     parameters=route_table)
+
 
     def create_network_for_vm(self,
                               network_client,
