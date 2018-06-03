@@ -34,8 +34,9 @@ class NetworkService(object):
                                 address_prefix=route_request.route_address_prefix))
 
         route_table = RouteTable( location=cloud_provider_model.region,routes=routes)
-        network_client.route_tables.create_or_update(resource_group_name,routetable_request.name,
+        poller =  network_client.route_tables.create_or_update(resource_group_name,routetable_request.name,
                                                      parameters=route_table)
+        poller.result()
 
 
     def create_network_for_vm(self,
