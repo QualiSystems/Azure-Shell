@@ -106,12 +106,14 @@ class AzureModelsParser(object):
         data = jsonpickle.decode(route_table_request)
         route_table_model = RouteTableRequestResourceModel()
         route_table_model.name=data['name']
-        route_table_model.create_new=data['create_new']
+        route_table_model.subnets = []
+        if data['subnets']:
+            route_table_model.subnets=data['subnets']
         routes =[]
         for route in data['routes']:
             route_model = RouteResourceModel()
             route_model.name=route['name']
-            route_model.route_address_prefix=route['addres_prefix']
+            route_model.route_address_prefix=route['address_prefix']
             route_model.next_hop_type=route['next_hop_type']
             route_model.next_hope_address=route['next_hop_address']
             routes.append(route_model)
@@ -297,3 +299,6 @@ class AzureModelsParser(object):
             security_group_models.append(security_group_model)
 
         return security_group_models
+
+
+

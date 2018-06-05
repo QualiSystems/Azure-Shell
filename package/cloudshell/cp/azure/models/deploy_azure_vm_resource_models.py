@@ -32,8 +32,8 @@ class RouteResourceModel(object):
 class RouteTableRequestResourceModel(object):
     def __init__(self):
         self.name = None  # type: str
-        self.create_new=''  # type: bool
         self.routes = []  # type: List[RouteResourceModel]
+        self.subnets = []
 
 
 class DeployAzureVMResourceModel(BaseDeployAzureVMResourceModel):

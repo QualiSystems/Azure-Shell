@@ -1,7 +1,7 @@
 import azure
 from azure.mgmt.network import NetworkManagementClient
 from azure.mgmt.network.models import NetworkInterface, NetworkInterfaceIPConfiguration, IPAllocationMethod, \
-    VirtualNetwork, RouteTable, Route
+    VirtualNetwork, RouteTable, Route, Subnet
 from cloudshell.cp.azure.models.azure_cloud_provider_resource_model import AzureCloudProviderResourceModel
 from retrying import retry
 
@@ -19,7 +19,9 @@ class NetworkService(object):
         self.tags_service = tags_service
 
 
-    def create_route_table(self, network_client,cloud_provider_model, routetable_request, resource_group_name):
+    def create_route_table(self, network_client,cloud_provider_model, routetable_request,
+                           sandbox_resource_group
+                           ):
         """
         :param NetworkManagementClient network_client: network client
         :param RouteTableRequestResourceModel routetable_request: route_request
@@ -34,10 +36,28 @@ class NetworkService(object):
                                 address_prefix=route_request.route_address_prefix))
 
         route_table = RouteTable( location=cloud_provider_model.region,routes=routes)
-        poller =  network_client.route_tables.create_or_update(resource_group_name,routetable_request.name,
-                                                     parameters=route_table)
+        poller =  network_client.route_tables.create_or_update(sandbox_resource_group,
+                                                               routetable_request.name,
+                                                               parameters=route_table)
         poller.result()
 
+
+    def add_route_table_to_subnets(self, routes_rg,
+                                   route_table_name, network_client,
+                                   subnets, subnets_rg, subnets_vnet):
+        """
+        :param NetworkManagementClient network_client: network client
+        :param route_table_name:
+        :param subnets:
+        :return:
+        """
+        route_table = network_client.route_tables.get(routes_rg,
+                                                      route_table_name)
+        for subnet in subnets:
+            subnet_obj = network_client.subnets.get(subnets_rg,subnets_vnet,subnet)
+            subnet_obj.route_table=route_table
+            poller = network_client.subnets.create_or_update(subnets_rg,subnets_vnet,subnet,subnet_obj)
+            poller.result()
 
     def create_network_for_vm(self,
                               network_client,

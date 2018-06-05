@@ -27,6 +27,9 @@ class AzureShellDriver(ResourceDriverInterface):
     def cleanup(self):
         pass
 
+    def create_route_table(self,context,request):
+        return self.azure_shell.create_route_table(context,request)
+
     def deploy_vm(self, context, request, cancellation_context):
         return self.azure_shell.deploy_azure_vm(command_context=context,
                                                 deployment_request=request,

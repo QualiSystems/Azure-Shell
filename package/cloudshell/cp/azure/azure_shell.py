@@ -161,7 +161,7 @@ class AzureShell(object):
     def deploy_arm_template(self, command_context, template_name, cancellation_context):
         pass
 
-    def add_route_table_to_subnet(self,command_context, route_table_request, cancellation_context):
+    def create_route_table(self,command_context, route_table_request):
         """ Will deploy Azure Image on the cloud provider
 
         :param ResourceCommandContext command_context:
@@ -173,6 +173,7 @@ class AzureShell(object):
                 logger.info('Deploying Azure VM...')
 
                 with CloudShellSessionContext(command_context) as cloudshell_session:
+
                     route_table_request_model = self.model_parser.convert_to_route_table_model(
                         cloudshell_session=cloudshell_session,
                         logger=logger, route_table_request=route_table_request)
@@ -186,7 +187,9 @@ class AzureShell(object):
                 self.create_route_operation.create_route_table(network_client=azure_clients.network_client,
                                                                cloud_provider_model=cloud_provider_model,
                                                                route_table_request=route_table_request_model,
-                                                               resource_group=command_context.reservation.reservation_id)
+                                                               sandbox_id=command_context.reservation.reservation_id
+                                                                )
+
 
 
 
