@@ -384,12 +384,18 @@ class DeployAzureVMOperation(object):
             group_name=cloud_provider_model.management_group_name)
 
         if deployment_model.network_configurations:
+            deployment_model.network_configurations.sort(key=lambda x: x.connection_params.device_index)
             subnet_names = [action.connection_params.subnet_id for action in deployment_model.network_configurations]
         else:
             return [subnet for subnet in sandbox_virtual_network.subnets if subnet_name in subnet.name]
 
         try:
-            return [subnet for subnet in sandbox_virtual_network.subnets if subnet.name in subnet_names]
+            subnets = []
+            for name in subnet_names:
+                subnet = next((subnet for subnet in sandbox_virtual_network.subnets if subnet.name == name), None)
+                if subnet:
+                    subnets.append(subnet)
+            return subnets
         except StopIteration:
             logger.error("Subnet {} was not found under the resource group {}".format(
                 subnet_name, cloud_provider_model.management_group_name))
