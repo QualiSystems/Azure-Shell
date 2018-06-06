@@ -254,6 +254,8 @@ class TestAzureShell(TestCase):
             reservation_id=self.group_name)
 
         command_context = mock.MagicMock(remote_endpoints=[mock.MagicMock(fullname=self.vm_name)])
+        command_context.remote_reservation = mock.Mock()
+        command_context.remote_reservation.reservation_id = self.group_name
 
         # Act
         self.azure_shell.delete_azure_vm(command_context=command_context)
