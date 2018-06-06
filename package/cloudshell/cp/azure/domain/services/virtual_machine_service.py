@@ -138,7 +138,8 @@ class VirtualMachineService(object):
                                     vm_name,
                                     tags,
                                     vm_size,
-                                    cancellation_context):
+                                    cancellation_context,
+                                    disk_size):
         """Create VM from custom image URN
 
         :param cancellation_context:
@@ -171,7 +172,7 @@ class VirtualMachineService(object):
 
         image = compute_management_client.images.get(resource_group_name=image_resource_group, image_name=image_name)
         storage_profile = StorageProfile(
-                os_disk=self._prepare_os_disk(disk_type),
+                os_disk=self._prepare_os_disk(disk_type, disk_size),
                 image_reference=ImageReference(id=image.id))
 
         return self._create_vm(
@@ -216,7 +217,8 @@ class VirtualMachineService(object):
                                    tags,
                                    vm_size,
                                    purchase_plan,
-                                   cancellation_context):
+                                   cancellation_context,
+                                   disk_size):
         """
 
         :param vm_size: (str) Azure instance type
@@ -249,7 +251,7 @@ class VirtualMachineService(object):
         network_profile = NetworkProfile(network_interfaces=network_interfaces)
 
         storage_profile = StorageProfile(
-                os_disk=self._prepare_os_disk(disk_type),
+                os_disk=self._prepare_os_disk(disk_type, disk_size),
                 image_reference=ImageReference(publisher=image_publisher,
                                                offer=image_offer,
                                                sku=image_sku,
@@ -272,12 +274,20 @@ class VirtualMachineService(object):
                 tags=tags,
                 vm_plan=vm_plan)
 
-    def _prepare_os_disk(self, disk_type):
+    def _prepare_os_disk(self, disk_type, disk_size):
         """
         :param str disk_type:
+        :param str disk_size:
         :return:
         :rtype: OSDisk
         """
+        if disk_size.isdigit():
+            disk_size_num = int(disk_size)
+            if disk_size_num > 1023:
+                raise Exception('Disk size cannot be larger than 1023 GB')
+            return OSDisk(create_option=DiskCreateOptionTypes.from_image,
+                          disk_size_gb=disk_size_num,
+                          managed_disk=ManagedDiskParameters(storage_account_type=self._get_storage_type(disk_type)))
         return \
             OSDisk(create_option=DiskCreateOptionTypes.from_image,
                    managed_disk=ManagedDiskParameters(

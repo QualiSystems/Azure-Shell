@@ -42,6 +42,7 @@ class AzureModelsParser(object):
         deployment_resource_model.autoload = AzureModelsParser.convert_to_boolean(data_attributes['Autoload'])
         deployment_resource_model.inbound_ports = data_attributes['Inbound Ports']
         deployment_resource_model.vm_size = data_attributes['VM Size']
+        deployment_resource_model.disk_size = data_attributes['Disk Size']
         deployment_resource_model.public_ip_type = data_attributes['Public IP Type']
         deployment_resource_model.extension_script_file = data_attributes['Extension Script file']
         deployment_resource_model.extension_script_configurations = data_attributes['Extension Script Configurations']
