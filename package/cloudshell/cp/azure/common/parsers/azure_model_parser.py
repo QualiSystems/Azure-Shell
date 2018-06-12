@@ -117,7 +117,7 @@ class AzureModelsParser(object):
             route_model.next_hop_type=route['next_hop_type']
             route_model.next_hope_address=route['next_hop_address']
             routes.append(route_model)
-
+        route_table_model.routes=routes
 
         return route_table_model
 

@@ -90,7 +90,7 @@ class AzureShell(object):
             key_pair_service=self.key_pair_service,
             security_group_service=self.security_group_service,
             cryptography_service=self.cryptography_service,
-            name_provider_service=self.name_provider_service,
+            name_provider_service=self.name_provideq            r_service,
             cancellation_service=self.cancellation_service,
             subnet_locker=self.subnet_locker,
             resource_id_parser=self.resource_id_parser)
@@ -174,9 +174,16 @@ class AzureShell(object):
 
                 with CloudShellSessionContext(command_context) as cloudshell_session:
 
+
                     route_table_request_model = self.model_parser.convert_to_route_table_model(
                         cloudshell_session=cloudshell_session,
                         logger=logger, route_table_request=route_table_request)
+
+                    cloudshell_session.WriteMessageToReservationOutput(command_context.reservation.reservation_id,
+                                                                       route_table_request)
+
+                    for route in route_table_request_model.routes:
+                        cloudshell_session.WriteMessageToReservationOutput(command_context.reservation.reservation_id, route.name)
 
                     cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(
                         resource=command_context.resource,
@@ -187,8 +194,8 @@ class AzureShell(object):
                 self.create_route_operation.create_route_table(network_client=azure_clients.network_client,
                                                                cloud_provider_model=cloud_provider_model,
                                                                route_table_request=route_table_request_model,
-                                                               sandbox_id=command_context.reservation.reservation_id
-                                                                )
+                                                               sandbox_id=command_context.reservation.reservation_id,
+                                                                subnet_lcoker=self.subnet_locker)
 
 
 

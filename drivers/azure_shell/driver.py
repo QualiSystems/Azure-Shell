@@ -24,7 +24,7 @@ class AzureShellDriver(ResourceDriverInterface):
     def initialize(self, context):
         pass
 
-    def cleanup(self):
+    def cleanup(self):  
         pass
 
     def create_route_table(self,context,request):
