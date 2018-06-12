@@ -2,6 +2,8 @@ import jsonpickle
 from threading import Lock
 
 from cloudshell.api.cloudshell_api import CommandExecutionCancelledResultInfo
+from msrestazure.azure_exceptions import CloudError
+
 from cloudshell.cp.azure.domain.common.vm_details_provider import VmDetailsProvider
 from cloudshell.cp.azure.domain.vm_management.operations.set_app_security_groups import SetAppSecurityGroupsOperation
 from cloudshell.cp.azure.domain.vm_management.operations.vm_details_operation import VmDetailsOperation
@@ -334,13 +336,20 @@ class AzureShell(object):
                 azure_clients = AzureClientsManager(cloud_provider_model)
                 vm_name = command_context.remote_endpoints[0].fullname
 
-                self.delete_azure_vm_operation.delete(
-                    compute_client=azure_clients.compute_client,
-                    network_client=azure_clients.network_client,
-                    storage_client=azure_clients.storage_client,
-                    group_name=resource_group_name,
-                    vm_name=vm_name,
-                    logger=logger)
+                try:
+                    self.delete_azure_vm_operation.delete(
+                        compute_client=azure_clients.compute_client,
+                        network_client=azure_clients.network_client,
+                        storage_client=azure_clients.storage_client,
+                        group_name=resource_group_name,
+                        vm_name=vm_name,
+                        logger=logger)
+                except CloudError as e:
+                    if e.response.reason == "Not Found":
+                        logger.info('Deleting Azure VM Not Found Exception:', exc_info=1)
+                    else:
+                        logger.exception('Deleting Azure VM Exception:')
+                        raise
 
                 logger.info('End Deleting Azure VM')
 
