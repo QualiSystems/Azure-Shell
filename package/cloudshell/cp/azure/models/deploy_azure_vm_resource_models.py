@@ -3,6 +3,7 @@ from typing import Dict, List
 class BaseDeployAzureVMResourceModel(object):
     def __init__(self):
         self.vm_size = ''  # type: str
+        self.disk_size = ''  # type: str
         self.autoload = False  # type: bool
         self.add_public_ip = False  # type: bool
         self.inbound_ports = ''  # type: str

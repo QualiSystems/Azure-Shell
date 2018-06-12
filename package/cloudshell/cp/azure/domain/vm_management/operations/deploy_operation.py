@@ -297,7 +297,8 @@ class DeployAzureVMOperation(object):
             vm_name=data.vm_name,
             tags=data.tags,
             vm_size=data.vm_size,
-            cancellation_context=cancellation_context)
+            cancellation_context=cancellation_context,
+            disk_size=deployment_model.disk_size)
 
     def _create_vm_marketplace_action(self, compute_client, deployment_model, cloud_provider_model,
                                       data, cancellation_context, logger):
@@ -327,7 +328,8 @@ class DeployAzureVMOperation(object):
             tags=data.tags,
             vm_size=data.vm_size,
             purchase_plan=data.image_model.purchase_plan,  # type should be MarketplaceImageDataModel
-            cancellation_context=cancellation_context)
+            cancellation_context=cancellation_context,
+            disk_size=deployment_model.disk_size)
 
     def _process_nsg_rules(self, network_client, group_name, azure_vm_deployment_model, nic,
                            cancellation_context, logger):
