@@ -266,9 +266,9 @@ class DeleteAzureVMOperation(object):
         :return:
         """
         logger.info("Deleting Public IP {}...".format(vm_name))
-        self.network_service.delete_ip(network_client=network_client,
-                                       group_name=group_name,
-                                       public_ip_names=public_ip_names)
+        self.network_service.delete_ips(network_client=network_client,
+                                        group_name=group_name,
+                                        public_ip_names=public_ip_names)
 
     def delete(self, compute_client, network_client, storage_client, group_name, vm_name, logger):
         """Delete VM and all related resources
