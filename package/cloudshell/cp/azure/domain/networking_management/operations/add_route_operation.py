@@ -25,10 +25,9 @@ class AddRouteOperation(object):
         sandbox_vnet = self.network_service.get_sandbox_virtual_network(network_client,
                                                          cloud_provider_model.management_group_name).name
 
-        with subnet_lcoker:
-
-            self.network_service.create_route_table(network_client,cloud_provider_model,
+        self.network_service.create_route_table(network_client,cloud_provider_model,
                                                     route_table_request,sandbox_id)
+        with subnet_lcoker:
 
             self.network_service.add_route_table_to_subnets(sandbox_id,route_table_request.name,
                                                             network_client,route_table_request.subnets,
