@@ -1,0 +1,1 @@
+\Python27amd64\python.exe -m pip uninstall -y azure-mgmt-resource azure-mgmt-compute azure-mgmt-network azure-mgmt-storage azure-mgmt-nspkg azure-nspkg azure-storage azure-common

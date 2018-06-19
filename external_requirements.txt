@@ -3,8 +3,8 @@ requests==2.14.2
 jsonpickle==0.9.3
 enum==0.4.6
 azure-mgmt-resource~=0.31.0
-azure-mgmt-compute~=0.33.0
-azure-mgmt-network~=0.30.0
+azure-mgmt-compute~=1.0.0
+azure-mgmt-network~=1.0.0
 azure-mgmt-storage~=0.30.0
 azure-storage==0.33.0
 pycrypto==2.6.1

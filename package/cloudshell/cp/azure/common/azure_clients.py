@@ -1,3 +1,5 @@
+import os
+from msrestazure.azure_cloud import get_cloud_from_metadata_endpoint
 from azure.mgmt.compute import ComputeManagementClient
 from azure.mgmt.network import NetworkManagementClient
 from azure.mgmt.resource import ResourceManagementClient
@@ -11,6 +13,8 @@ from cloudshell.cp.azure.common.singletons import AbstractComparableInstance
 
 class AzureClientsManager(AbstractComparableInstance):
     __metaclass__ = SingletonByArgsMeta
+
+    azure_stack_dev_base_url = "https://management.local.azurestack.external"
 
     def check_params_equality(self, cloud_provider, *args, **kwargs):
         """Check if instance have the same attributes for initializing Azure session as provided in cloud_provider
@@ -34,10 +38,15 @@ class AzureClientsManager(AbstractComparableInstance):
         :param cloud_provider: AzureCloudProviderResourceModel instance
         :return
         """
+        self.is_azure_stack = os.environ.get('AZURE_STACK', False)
+        if self.is_azure_stack:
+            os.environ['REQUESTS_CA_BUNDLE'] = 'c:\AzureStackRootSelfSignedCert.cer'
+
         self._subscription_id = self._get_subscription(cloud_provider)
         self._application_id = self._get_azure_application_id(cloud_provider)
         self._application_key = self._get_azure_application_key(cloud_provider)
         self._tenant = self._get_azure_tenant(cloud_provider)
+        self.azure_stack_metadata = get_cloud_from_metadata_endpoint(self.azure_stack_dev_base_url) if self.is_azure_stack else None
         self._service_credentials = self._get_service_credentials()
         self._compute_client = None
         self._network_client = None
@@ -46,7 +55,19 @@ class AzureClientsManager(AbstractComparableInstance):
         self._subscription_client = None
 
     def _get_service_credentials(self):
-        return ServicePrincipalCredentials(client_id=self._application_id, secret=self._application_key, tenant=self._tenant)
+        if self.is_azure_stack:
+            temp = os.environ['REQUESTS_CA_BUNDLE']
+            del os.environ['REQUESTS_CA_BUNDLE']
+            sp = ServicePrincipalCredentials(client_id=self._application_id,
+                                             secret=self._application_key,
+                                             tenant=self._tenant,
+                                             cloud_environment=self.azure_stack_metadata)
+            os.environ['REQUESTS_CA_BUNDLE'] = temp
+            return sp
+
+        return ServicePrincipalCredentials(client_id=self._application_id,
+                                           secret=self._application_key,
+                                           tenant=self._tenant)
 
     def _get_subscription(self, cloud_provider_model):
         return cloud_provider_model.azure_subscription_id
@@ -65,7 +86,10 @@ class AzureClientsManager(AbstractComparableInstance):
         if self._compute_client is None:
             with SingletonByArgsMeta.lock:
                 if self._compute_client is None:
-                    self._compute_client = ComputeManagementClient(self._service_credentials, self._subscription_id)
+                    self._compute_client = ComputeManagementClient(self._service_credentials,
+                                                                   self._subscription_id,
+                                                                   base_url=self.azure_stack_metadata.endpoints.resource_manager if self.is_azure_stack else None,
+                                                                   api_version='2016-03-30' if self.is_azure_stack else '2017-03-01')
 
         return self._compute_client
 
@@ -74,7 +98,10 @@ class AzureClientsManager(AbstractComparableInstance):
         if self._network_client is None:
             with SingletonByArgsMeta.lock:
                 if self._network_client is None:
-                    self._network_client = NetworkManagementClient(self._service_credentials, self._subscription_id)
+                    self._network_client = NetworkManagementClient(self._service_credentials,
+                                                                   self._subscription_id,
+                                                                   base_url=self.azure_stack_metadata.endpoints.resource_manager if self.is_azure_stack else None,
+                                                                   api_version='2015-06-15' if self.is_azure_stack else '2017-03-01')
 
         return self._network_client
 
@@ -83,7 +110,9 @@ class AzureClientsManager(AbstractComparableInstance):
         if self._storage_client is None:
             with SingletonByArgsMeta.lock:
                 if self._storage_client is None:
-                    self._storage_client = StorageManagementClient(self._service_credentials, self._subscription_id)
+                    self._storage_client = StorageManagementClient(self._service_credentials,
+                                                                   self._subscription_id,
+                                                                   base_url=self.azure_stack_metadata.endpoints.resource_manager if self.is_azure_stack else None)
 
         return self._storage_client
 
@@ -92,7 +121,9 @@ class AzureClientsManager(AbstractComparableInstance):
         if self._resource_client is None:
             with SingletonByArgsMeta.lock:
                 if self._resource_client is None:
-                    self._resource_client = ResourceManagementClient(self._service_credentials, self._subscription_id)
+                    self._resource_client = ResourceManagementClient(self._service_credentials,
+                                                                     self._subscription_id,
+                                                                     base_url=self.azure_stack_metadata.endpoints.resource_manager if self.is_azure_stack else None)
 
         return self._resource_client
 
@@ -101,6 +132,7 @@ class AzureClientsManager(AbstractComparableInstance):
         if self._subscription_client is None:
             with SingletonByArgsMeta.lock:
                 if self._subscription_client is None:
-                    self._subscription_client = SubscriptionClient(self._service_credentials)
+                    self._subscription_client = SubscriptionClient(self._service_credentials,
+                                                                   base_url=self.azure_stack_metadata.endpoints.resource_manager if self.is_azure_stack else None)
 
         return self._subscription_client

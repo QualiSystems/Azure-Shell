@@ -1,11 +1,8 @@
 from azure.mgmt.compute.models import OSProfile, HardwareProfile, NetworkProfile, \
     NetworkInterfaceReference, DiskCreateOptionTypes, ImageReference, OSDisk, \
     VirtualMachine, StorageProfile, Plan, ManagedDiskParameters, StorageAccountTypes, DiagnosticsProfile, \
-    BootDiagnostics
+    BootDiagnostics, LinuxConfiguration, SshConfiguration, SshPublicKey
 from azure.mgmt.compute.models import OperatingSystemTypes, VirtualMachineImage
-from azure.mgmt.compute.models.linux_configuration import LinuxConfiguration
-from azure.mgmt.compute.models.ssh_configuration import SshConfiguration
-from azure.mgmt.compute.models.ssh_public_key import SshPublicKey
 from azure.mgmt.resource.resources.models import ResourceGroup
 from retrying import retry
 
@@ -55,7 +52,8 @@ class VirtualMachineService(object):
         """Create LinuxConfiguration object with nested SshPublicKey object for Azure client
 
         :param ssh_key: cloudshell.cp.azure.models.authorized_key.AuthorizedKey instance
-        :return: azure.mgmt.compute.models.linux_configuration.LinuxConfiguration instance
+        :return: LinuxConfiguration instance
+        :rtype: LinuxConfiguration
         """
         ssh_public_key = SshPublicKey(path=ssh_key.path_to_key, key_data=ssh_key.key_data)
         ssh_config = SshConfiguration(public_keys=[ssh_public_key])
