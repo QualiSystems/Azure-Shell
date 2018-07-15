@@ -4,7 +4,8 @@ from cloudshell.cp.azure.common.parsers.security_group_parser import SecurityGro
 from cloudshell.cp.azure.domain.services.parsers.network_actions import NetworkActionsParser
 from cloudshell.cp.azure.models.app_security_groups_model import AppSecurityGroupModel, DeployedApp, VmDetails
 from cloudshell.cp.azure.models.azure_cloud_provider_resource_model import AzureCloudProviderResourceModel
-from cloudshell.cp.azure.models.deploy_azure_vm_resource_models import DeployAzureVMResourceModel
+from cloudshell.cp.azure.models.deploy_azure_vm_resource_models import DeployAzureVMResourceModel, \
+    RouteTableRequestResourceModel, RouteResourceModel
 from cloudshell.cp.azure.models.deploy_azure_vm_resource_models import DeployAzureVMFromCustomImageResourceModel
 from cloudshell.cp.azure.common.deploy_data_holder import DeployDataHolder
 from cloudshell.cp.azure.models.reservation_model import ReservationModel
@@ -90,6 +91,36 @@ class AzureModelsParser(object):
             list_attr = []
 
         return list_attr
+
+
+    @staticmethod
+    def convert_to_route_table_model(route_table_request, cloudshell_session, logger):
+        """
+        Convert deployment request JSON to the DeployAzureVMResourceModel model
+
+        :param str deployment_request: JSON string
+        :param cloudshell.api.cloudshell_api.CloudShellAPISession cloudshell_session: instance
+        :param logging.Logger logger:
+        :return: deploy_azure_vm_resource_models.DeployAzureVMResourceModel instance
+        :rtype: RouteTableRequestResourceModel
+        """
+        data = jsonpickle.decode(route_table_request)
+        route_table_model = RouteTableRequestResourceModel()
+        route_table_model.name=data['name']
+        route_table_model.subnets = []
+        if data['subnets']:
+            route_table_model.subnets=data['subnets']
+        routes =[]
+        for route in data['routes']:
+            route_model = RouteResourceModel()
+            route_model.name=route['name']
+            route_model.route_address_prefix=route['address_prefix']
+            route_model.next_hop_type=route['next_hop_type']
+            route_model.next_hope_address=route['next_hop_address']
+            routes.append(route_model)
+        route_table_model.routes=routes
+
+        return route_table_model
 
     @staticmethod
     def convert_to_deploy_azure_vm_resource_model(deployment_request, cloudshell_session, logger):
@@ -269,3 +300,6 @@ class AzureModelsParser(object):
             security_group_models.append(security_group_model)
 
         return security_group_models
+
+
+

@@ -8,6 +8,8 @@
             <Command Description="" DisplayName="Refresh IP" EnableCancellation="true" Name="remote_refresh_ip" Tags="remote_connectivity,allow_shared" />
             <Command Description="" DisplayName="Get Application Ports" EnableCancellation="true" Name="GetApplicationPorts" Tags="remote_connectivity,allow_shared" />
             <Command Description="" DisplayName="Prepare Connectivity" EnableCancellation="true" Name="PrepareConnectivity" Tags="allow_unreserved" />
+            <Command Description="" DisplayName="Create RouteTable" EnableCancellation="false" Name="create_route_table" Tags="allow_unreserved" />
+
             <Command Description="" DisplayName="Cleanup Connectivity" Name="CleanupConnectivity" Tags="allow_unreserved" />
         </Category>
         <Category Name="Hidden Commands">
