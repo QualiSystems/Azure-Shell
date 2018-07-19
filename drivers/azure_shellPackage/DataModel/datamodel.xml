@@ -49,12 +49,6 @@
         <Rule Name="Setting" />
       </Rules>
     </AttributeInfo>
-    <AttributeInfo Name="Auto Power Off"  DefaultValue="False" Description="If set to False the deployment will not wait for the VM to get an ip" IsReadOnly="false" Type="Boolean">
-      <Rules>
-        <Rule Name="Configuration" />
-        <Rule Name="Setting" />
-      </Rules>
-    </AttributeInfo>
     <AttributeInfo Name="Password" DefaultValue="" Description="" IsReadOnly="false" Type="Password">
       <Rules>
         <Rule Name="Configuration" />
@@ -269,9 +263,6 @@
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Wait for IP" UserInput="true">
               <AllowedValues />
             </AttachedAttribute>
-            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Auto Power Off" UserInput="true">
-              <AllowedValues />
-            </AttachedAttribute>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Add Public IP" UserInput="true">
               <AllowedValues />
             </AttachedAttribute>
@@ -316,7 +307,6 @@
             <AttributeValue Name="Public IP Type" Value="Dynamic" />
             <AttributeValue Name="Disk Type" Value="HDD" />
             <AttributeValue Name="Wait for IP" Value="False" />
-            <AttributeValue Name="Auto Power Off" Value="False" />
           </AttributeValues>
           <ParentModels />
           <Drivers/>
@@ -333,9 +323,6 @@
               <AllowedValues />
             </AttachedAttribute>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Wait for IP" UserInput="true">
-              <AllowedValues />
-            </AttachedAttribute>
-            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Auto Power Off" UserInput="true">
               <AllowedValues />
             </AttachedAttribute>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Extension Script file" UserInput="true">
@@ -373,7 +360,6 @@
             <AttributeValue Name="Public IP Type" Value="Dynamic" />
             <AttributeValue Name="Disk Type" Value="HDD" />
             <AttributeValue Name="Wait for IP" Value="False" />
-            <AttributeValue Name="Auto Power Off" Value="False" />
           </AttributeValues>
           <ParentModels />
           <Drivers/>
