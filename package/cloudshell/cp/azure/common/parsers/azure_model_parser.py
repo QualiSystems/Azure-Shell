@@ -1,4 +1,5 @@
 import jsonpickle
+from cloudshell.cp.core.utils import first_or_default
 
 from cloudshell.cp.azure.models.azure_cloud_provider_resource_model import AzureCloudProviderResourceModel
 from cloudshell.cp.azure.models.deploy_azure_vm_resource_models import DeployAzureVMResourceModel
@@ -47,16 +48,22 @@ class AzureModelsParser(object):
         keys = logical_resource.keys()
 
         username_key = 'User'
-        deployment_resource_model.username = logical_resource[username_key] if username_key in keys else None
+        full_username_key = first_or_default(keys, AzureModelsParser._gen2_attributes_lambda(username_key))
+        deployment_resource_model.username = logical_resource[full_username_key] if full_username_key else None
 
         password_key = 'Password'
-        deployment_resource_model.password = logical_resource[password_key] if password_key in keys else None
+        full_password_key = first_or_default(keys, AzureModelsParser._gen2_attributes_lambda(password_key))
+        deployment_resource_model.password = logical_resource[full_password_key] if full_password_key else None
 
         if deployment_resource_model.password:
             logger.info('Decrypting Azure VM password...')
             decrypted_pass = cloudshell_session.DecryptPassword(deployment_resource_model.password)
             deployment_resource_model.password = decrypted_pass.Value
         return deployment_resource_model
+
+    @staticmethod
+    def _gen2_attributes_lambda(attribute_key):
+        return lambda x: x == attribute_key or x.endswith("." + attribute_key)
 
     @staticmethod
     def convert_to_boolean( value):
