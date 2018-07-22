@@ -57,7 +57,7 @@ class TestAzureModelsParser(TestCase):
             self.assertEqual(result.image_sku, data_attributes['Image SKU'])
             self.assertEqual(result.image_version, data_attributes['Image Version'])
 
-    def test_convert_base_hadels_2nd_gen_shell_attributes(self):
+    def test_convert_base_handels_2nd_gen_shell_attributes(self):
         # arrange
         cloudshell_session = mock.Mock()
         cloudshell_session.DecryptPassword = mock.Mock(return_value=mock.Mock(Value='my_pass'))
