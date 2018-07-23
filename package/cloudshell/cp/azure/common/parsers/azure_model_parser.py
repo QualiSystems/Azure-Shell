@@ -49,10 +49,14 @@ class AzureModelsParser(object):
         keys = logical_resource.keys()
 
         username_key = 'User'
-        deployment_resource_model.username = logical_resource[username_key] if username_key in keys else None
+        full_username_key = AzureModelsParser.first_or_default(
+            keys, AzureModelsParser._gen2_attributes_lambda(username_key))
+        deployment_resource_model.username = logical_resource[full_username_key] if full_username_key else None
 
         password_key = 'Password'
-        deployment_resource_model.password = logical_resource[password_key] if password_key in keys else None
+        full_password_key = AzureModelsParser.first_or_default(
+            keys, AzureModelsParser._gen2_attributes_lambda(password_key))
+        deployment_resource_model.password = logical_resource[full_password_key] if full_password_key else None
 
         if deployment_resource_model.password:
             logger.info('Decrypting Azure VM password...')
@@ -61,8 +65,17 @@ class AzureModelsParser(object):
         return deployment_resource_model
 
     @staticmethod
+    def _gen2_attributes_lambda(attribute_key):
+        return lambda x: x == attribute_key or x.endswith("." + attribute_key)
+
+    @staticmethod
     def convert_to_boolean( value):
         return value.lower() in ['1', 'true']
+
+    @staticmethod
+    def first_or_default(lst, predicate):
+        result = filter(predicate, lst)[:1]
+        return result[0] if len(result) == 1 else None
 
     @staticmethod
     def _convert_list_attribute(attribute):

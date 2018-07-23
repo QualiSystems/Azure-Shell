@@ -56,8 +56,34 @@ class TestAzureModelsParser(TestCase):
             self.assertEqual(result.image_sku, data_attributes['Image SKU'])
             self.assertEqual(result.image_version, data_attributes['Image Version'])
 
+    def test_convert_base_hadels_2nd_gen_shell_attributes(self):
+        # arrange
+        cloudshell_session = mock.Mock()
+        cloudshell_session.DecryptPassword = mock.Mock(return_value=mock.Mock(Value='my_pass'))
 
+        logger = mock.Mock()
+        deployment_resource_model = mock.MagicMock()
+        data_holder = mock.MagicMock()
 
+        attributes_dict = {'some_namespace.User': 'my_user',
+                           'some_namespace.Password': 'my_encrypted_pass'}
+        d = {'Attributes': mock.MagicMock(),
+             'AppName': 'some_app_name',
+             'LogicalResourceRequestAttributes': attributes_dict}
+
+        data_holder.__getitem__.side_effect = d.__getitem__
+        data_holder.__iter__.side_effect = d.__iter__
+
+        # act
+        result = AzureModelsParser._set_base_deploy_azure_vm_model_params(
+            deployment_resource_model=deployment_resource_model,
+            data_holder=data_holder,
+            cloudshell_session=cloudshell_session,
+            logger=logger)
+
+        # assert
+        self.assertEqual(result.username, 'my_user')
+        self.assertEqual(result.password, 'my_pass')
 
     @mock.patch("cloudshell.cp.azure.common.parsers.azure_model_parser.DeployAzureVMFromCustomImageResourceModel")
     @mock.patch("cloudshell.cp.azure.common.parsers.azure_model_parser.jsonpickle")
