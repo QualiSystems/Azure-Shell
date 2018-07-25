@@ -33,7 +33,6 @@ class PowerAzureVMOperation(object):
 
         self.vm_service.start_vm(compute_client, resource_group_name, vm_name)
 
-        cloudshell_session.SetResourceLiveStatus(resource_full_name, "Online", "Active")
 
     def power_off(self, compute_client, resource_group_name, vm_name):
         """Power off Azure VM instance

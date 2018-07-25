@@ -43,6 +43,12 @@
             <Rule Name="Setting" />
         </Rules>
     </AttributeInfo>
+    <AttributeInfo Name="Wait for IP"  DefaultValue="" Description="Enables the automatic power off of an app during reservation Teardown." IsReadOnly="false" Type="Boolean">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
     <AttributeInfo Name="Password" DefaultValue="" Description="" IsReadOnly="false" Type="Password">
       <Rules>
         <Rule Name="Configuration" />
@@ -254,6 +260,9 @@
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Autoload" UserInput="false">
               <AllowedValues />
             </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Wait for IP" UserInput="true">
+              <AllowedValues />
+            </AttachedAttribute>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Add Public IP" UserInput="true">
               <AllowedValues />
             </AttachedAttribute>
@@ -275,13 +284,13 @@
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Inbound Ports" UserInput="true">
               <AllowedValues />
             </AttachedAttribute>
-            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Image Publisher" UserInput="true">
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Image Publisher" UserInput="true" EditableOnlyInAppTemplate="true">
               <AllowedValues />
             </AttachedAttribute>
-            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Image Offer" UserInput="true">
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Image Offer" UserInput="true" EditableOnlyInAppTemplate="true">
               <AllowedValues />
             </AttachedAttribute>
-            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Image SKU" UserInput="true">
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Image SKU" UserInput="true" EditableOnlyInAppTemplate="true">
               <AllowedValues />
             </AttachedAttribute>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Image Version" UserInput="false">
@@ -297,6 +306,7 @@
           <AttributeValues>
             <AttributeValue Name="Public IP Type" Value="Dynamic" />
             <AttributeValue Name="Disk Type" Value="HDD" />
+            <AttributeValue Name="Wait for IP" Value="False" />
           </AttributeValues>
           <ParentModels />
           <Drivers/>
@@ -310,6 +320,9 @@
               <AllowedValues />
             </AttachedAttribute>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Add Public IP" UserInput="true">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Wait for IP" UserInput="true">
               <AllowedValues />
             </AttachedAttribute>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Extension Script file" UserInput="true">
@@ -330,10 +343,10 @@
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Inbound Ports" UserInput="true">
               <AllowedValues />
             </AttachedAttribute>
-            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Azure Image" UserInput="true">
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Azure Image" UserInput="true" EditableOnlyInAppTemplate="true">
               <AllowedValues />
             </AttachedAttribute>
-            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Azure Resource Group" UserInput="true">
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Azure Resource Group" UserInput="true" EditableOnlyInAppTemplate="true">
               <AllowedValues />
             </AttachedAttribute>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Disk Type" UserInput="true">
@@ -346,6 +359,7 @@
           <AttributeValues>
             <AttributeValue Name="Public IP Type" Value="Dynamic" />
             <AttributeValue Name="Disk Type" Value="HDD" />
+            <AttributeValue Name="Wait for IP" Value="False" />
           </AttributeValues>
           <ParentModels />
           <Drivers/>

@@ -1,12 +1,11 @@
 import jsonpickle
+from cloudshell.cp.core.utils import first_or_default
 
 from cloudshell.cp.azure.models.azure_cloud_provider_resource_model import AzureCloudProviderResourceModel
 from cloudshell.cp.azure.models.deploy_azure_vm_resource_models import DeployAzureVMResourceModel
 from cloudshell.cp.azure.models.deploy_azure_vm_resource_models import DeployAzureVMFromCustomImageResourceModel
 from cloudshell.cp.azure.common.deploy_data_holder import DeployDataHolder
 from cloudshell.cp.azure.models.reservation_model import ReservationModel
-
-
 
 
 class AzureModelsParser(object):
@@ -23,7 +22,7 @@ class AzureModelsParser(object):
         return data_holder
 
     @staticmethod
-    def _set_base_deploy_azure_vm_model_params(deployment_resource_model, data_holder, cloudshell_session, logger):
+    def _set_base_deploy_azure_vm_model_params(deployment_resource_model, deploy_action, cloudshell_session, logger):
         """
         Set base parameters to the Azure Deploy model
 
@@ -33,7 +32,7 @@ class AzureModelsParser(object):
         :param logging.Logger logger:
         """
 
-        data_attributes = data_holder['Attributes']
+        data_attributes = deploy_action.actionParams.deployment.attributes
         deployment_resource_model.add_public_ip = AzureModelsParser.convert_to_boolean(data_attributes['Add Public IP'])
         deployment_resource_model.autoload = AzureModelsParser.convert_to_boolean(data_attributes['Autoload'])
         deployment_resource_model.inbound_ports = data_attributes['Inbound Ports']
@@ -43,22 +42,28 @@ class AzureModelsParser(object):
         deployment_resource_model.extension_script_configurations = data_attributes['Extension Script Configurations']
         deployment_resource_model.extension_script_timeout = (int(data_attributes['Extension Script Timeout']))
         deployment_resource_model.disk_type = data_attributes['Disk Type']
-        deployment_resource_model.app_name = data_holder['AppName']
-        logical_resource = data_holder['LogicalResourceRequestAttributes']
+        deployment_resource_model.app_name = deploy_action.actionParams.appName
+        logical_resource = deploy_action.actionParams.appResource.attributes  # its not a dictionary!!?@@#@!?#
 
         keys = logical_resource.keys()
 
         username_key = 'User'
-        deployment_resource_model.username = logical_resource[username_key] if username_key in keys else None
+        full_username_key = first_or_default(keys, AzureModelsParser._gen2_attributes_lambda(username_key))
+        deployment_resource_model.username = logical_resource[full_username_key] if full_username_key else None
 
         password_key = 'Password'
-        deployment_resource_model.password = logical_resource[password_key] if password_key in keys else None
+        full_password_key = first_or_default(keys, AzureModelsParser._gen2_attributes_lambda(password_key))
+        deployment_resource_model.password = logical_resource[full_password_key] if full_password_key else None
 
         if deployment_resource_model.password:
             logger.info('Decrypting Azure VM password...')
             decrypted_pass = cloudshell_session.DecryptPassword(deployment_resource_model.password)
             deployment_resource_model.password = decrypted_pass.Value
         return deployment_resource_model
+
+    @staticmethod
+    def _gen2_attributes_lambda(attribute_key):
+        return lambda x: x == attribute_key or x.endswith("." + attribute_key)
 
     @staticmethod
     def convert_to_boolean( value):
@@ -80,48 +85,46 @@ class AzureModelsParser(object):
         return list_attr
 
     @staticmethod
-    def convert_to_deploy_azure_vm_resource_model(deployment_request, cloudshell_session, logger):
+    def convert_to_deploy_azure_vm_resource_model(deploy_action, cloudshell_session, logger):
         """
         Convert deployment request JSON to the DeployAzureVMResourceModel model
 
-        :param str deployment_request: JSON string
+        :param package.cloudshell.cp.core.models.DeployApp deploy_action: describes the desired deployment
         :param cloudshell.api.cloudshell_api.CloudShellAPISession cloudshell_session: instance
         :param logging.Logger logger:
         :return: deploy_azure_vm_resource_models.DeployAzureVMResourceModel instance
         :rtype: DeployAzureVMResourceModel
         """
-        data = jsonpickle.decode(deployment_request)
         deployment_resource_model = DeployAzureVMResourceModel()
-        data_attributes = data['Attributes']
+        data_attributes = deploy_action.actionParams.deployment.attributes
         deployment_resource_model.image_offer = data_attributes['Image Offer']
         deployment_resource_model.image_publisher = data_attributes['Image Publisher']
         deployment_resource_model.image_sku = data_attributes['Image SKU']
         deployment_resource_model.image_version = data_attributes['Image Version']
         AzureModelsParser._set_base_deploy_azure_vm_model_params(deployment_resource_model=deployment_resource_model,
-                                                                 data_holder=data,
+                                                                 deploy_action=deploy_action,
                                                                  cloudshell_session=cloudshell_session,
                                                                  logger=logger)
 
         return deployment_resource_model
 
     @staticmethod
-    def convert_to_deploy_azure_vm_from_custom_image_resource_model(deployment_request, cloudshell_session, logger):
+    def convert_to_deploy_azure_vm_from_custom_image_resource_model(deploy_action, cloudshell_session, logger):
         """
         Convert deployment request JSON to the DeployAzureVMFromCustomImageResourceModel model
 
-        :param str deployment_request: JSON string
+        :param package.cloudshell.cp.core.models.DeployApp deploy_action: describes the desired deployment
         :param cloudshell.api.cloudshell_api.CloudShellAPISession cloudshell_session: instance
         :param logging.Logger logger:
         :return: deploy_azure_vm_resource_models.DeployAzureVMFromCustomImageResourceModel instance
         :rtype: DeployAzureVMFromCustomImageResourceModel
         """
-        data = jsonpickle.decode(deployment_request)
-        data_attributes = data['Attributes']
+        data_attributes = deploy_action.actionParams.deployment.attributes
         deployment_resource_model = DeployAzureVMFromCustomImageResourceModel()
         deployment_resource_model.image_name = data_attributes['Azure Image']
         deployment_resource_model.image_resource_group = data_attributes['Azure Resource Group']
         AzureModelsParser._set_base_deploy_azure_vm_model_params(deployment_resource_model=deployment_resource_model,
-                                                                 data_holder=data,
+                                                                 deploy_action=deploy_action,
                                                                  cloudshell_session=cloudshell_session,
                                                                  logger=logger)
 

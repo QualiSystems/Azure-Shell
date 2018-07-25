@@ -9,15 +9,17 @@ from azure.mgmt.network.models import VirtualNetwork
 
 from cloudshell.cp.azure.common.exceptions.virtual_network_not_found_exception import VirtualNetworkNotFoundException
 from cloudshell.cp.azure.domain.services.network_service import NetworkService
-from cloudshell.cp.azure.models.prepare_connectivity_action_result import PrepareNetworkActionResult, \
-    PrepareSubnetActionResult
+
 from cloudshell.cp.azure.models.azure_cloud_provider_resource_model import AzureCloudProviderResourceModel
 from cloudshell.cp.azure.common.parsers.azure_resource_id_parser import AzureResourceIdParser
+from cloudshell.cp.core.models import PrepareCloudInfra, PrepareSubnet, CreateKeys, PrepareSubnetActionResult, \
+    CreateKeysActionResult, PrepareCloudInfraResult
+
 
 INVALID_REQUEST_ERROR = 'Invalid request: {0}'
 
 
-class PrepareConnectivityOperation(object):
+class PrepareSandboxInfraOperation(object):
     def __init__(self,
                  vm_service,
                  network_service,
@@ -65,11 +67,11 @@ class PrepareConnectivityOperation(object):
                              resource_client,
                              network_client,
                              logger,
-                             request,
+                             actions,
                              cancellation_context):
         """
         :param logging.Logger logger:
-        :param request:
+        :param actions: list[cloudshell.cp.core.models.RequestActionBase]
         :param network_client:
         :param storage_client:
         :param resource_client:
@@ -78,14 +80,14 @@ class PrepareConnectivityOperation(object):
         :param cancellation_context cloudshell.shell.core.driver_context.CancellationContext instance
         :return:
         """
-        cidr = self._validate_request_and_extract_cidr(request)
+        cidr = self._validate_request_and_extract_cidr(actions)
         logger.info("Received CIDR {0} from server".format(cidr))
 
         reservation_id = reservation.reservation_id
         group_name = str(reservation_id)
         subnet_name = group_name
         tags = self.tags_service.get_tags(reservation=reservation)
-        network_action_result = PrepareNetworkActionResult()
+        network_action_result = PrepareCloudInfraResult()
 
         # 1. Create a resource group
         logger.info("Creating a resource group: {0} .".format(group_name))
@@ -172,13 +174,20 @@ class PrepareConnectivityOperation(object):
         pool.join()
         storage_res.get(timeout=900)  # will wait for 15 min and raise exception if storage account creation failed
 
-        return self._prepare_results(network_action_result, request)
+        return self._prepare_results(network_action_result, actions)
 
-    def _prepare_results(self, network_action_result, request):
-        network_action_result.actionId = filter(lambda x: x.type == 'prepareNetwork', request.actions)[0].actionId
-        subnet_action_result = PrepareSubnetActionResult(
-                action_id=filter(lambda x: x.type == 'prepareSubnet', request.actions)[0].actionId)
-        return [network_action_result, subnet_action_result]
+    def _prepare_results(self, network_action_result, actions):
+        network_action_result.actionId = self._get_action_id_by_type(actions, PrepareCloudInfra)
+        subnet_action_results = [PrepareSubnetActionResult(action_id) for action_id in
+                                 self._get_action_ids_by_type(actions, PrepareSubnet)]
+        create_keys_action_result = CreateKeysActionResult(self._get_action_id_by_type(actions, CreateKeys))
+        return [network_action_result, create_keys_action_result] + subnet_action_results
+
+    def _get_action_id_by_type(self, actions, action_class):
+        return next((action.actionId for action in actions if isinstance(action, action_class)))
+
+    def _get_action_ids_by_type(self, actions, action_class):
+        return [action.actionId for action in actions if isinstance(action, action_class)]
 
     def _prepare_storage_account_name(self, reservation_id):
         """ Storage account name in azure must be between 3-24 chars. Dashes are not allowed as well.
@@ -449,15 +458,17 @@ class PrepareConnectivityOperation(object):
             raise VirtualNetworkNotFoundException("Could not find Sandbox Virtual Network in Azure.")
 
     @staticmethod
-    def _validate_request_and_extract_cidr(request):
-        cidr = None
-        for action in request.actions:
-            if not cidr:
-                cidr = action.connectionParams.cidr
-            elif cidr != action.connectionParams.cidr:
-                raise ValueError("Multi subnet mode is not supported in AzureShell")
+    def _validate_request_and_extract_cidr(actions):
+        requested_cidrs = {action.actionParams.cidr for action in actions if action_with_cidr(action)}
 
-        if not cidr:
+        if len(requested_cidrs) == 0:
             raise ValueError(INVALID_REQUEST_ERROR.format('CIDR is missing'))
 
-        return cidr
+        if len(requested_cidrs) > 1:
+            raise ValueError("Multi subnet mode is not supported in AzureShell")
+
+        return requested_cidrs.pop()
+
+
+def action_with_cidr(action):
+    return isinstance(action, PrepareCloudInfra) or isinstance(action, PrepareSubnet)
