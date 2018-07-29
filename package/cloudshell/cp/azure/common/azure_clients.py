@@ -34,11 +34,15 @@ class AzureClientsManager(AbstractComparableInstance):
         :param cloud_provider: AzureCloudProviderResourceModel instance
         :return
         """
+        self._tracking_id = 'pid-54fb557e-404f-466e-9b29-7eecfad42b69'
+
         self._subscription_id = self._get_subscription(cloud_provider)
         self._application_id = self._get_azure_application_id(cloud_provider)
         self._application_key = self._get_azure_application_key(cloud_provider)
         self._tenant = self._get_azure_tenant(cloud_provider)
+
         self._service_credentials = self._get_service_credentials()
+
         self._compute_client = None
         self._network_client = None
         self._storage_client = None
@@ -66,6 +70,7 @@ class AzureClientsManager(AbstractComparableInstance):
             with SingletonByArgsMeta.lock:
                 if self._compute_client is None:
                     self._compute_client = ComputeManagementClient(self._service_credentials, self._subscription_id)
+                    self._compute_client.config.add_user_agent(self._tracking_id)
 
         return self._compute_client
 
@@ -75,6 +80,7 @@ class AzureClientsManager(AbstractComparableInstance):
             with SingletonByArgsMeta.lock:
                 if self._network_client is None:
                     self._network_client = NetworkManagementClient(self._service_credentials, self._subscription_id)
+                    self._network_client.config.add_user_agent(self._tracking_id)
 
         return self._network_client
 
@@ -84,6 +90,7 @@ class AzureClientsManager(AbstractComparableInstance):
             with SingletonByArgsMeta.lock:
                 if self._storage_client is None:
                     self._storage_client = StorageManagementClient(self._service_credentials, self._subscription_id)
+                    self._storage_client.config.add_user_agent(self._tracking_id)
 
         return self._storage_client
 
@@ -93,6 +100,7 @@ class AzureClientsManager(AbstractComparableInstance):
             with SingletonByArgsMeta.lock:
                 if self._resource_client is None:
                     self._resource_client = ResourceManagementClient(self._service_credentials, self._subscription_id)
+                    self._resource_client.config.add_user_agent(self._tracking_id)
 
         return self._resource_client
 
@@ -102,5 +110,6 @@ class AzureClientsManager(AbstractComparableInstance):
             with SingletonByArgsMeta.lock:
                 if self._subscription_client is None:
                     self._subscription_client = SubscriptionClient(self._service_credentials)
+                    self._subscription_client.config.add_user_agent(self._tracking_id)
 
         return self._subscription_client
