@@ -92,6 +92,19 @@
 		"vmSize":"Standard_A3"
 	},
 	"resources": [
+      {
+        "apiVersion": "2017-05-10",
+        "name": "pid-5a91ff6a-52b4-4e6e-92c8-1f47c8e9b9c6",
+        "type": "Microsoft.Resources/deployments",
+        "properties": {
+          "mode": "Incremental",
+          "template": {
+            "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+            "contentVersion": "1.0.0.0",
+            "resources": []
+          }
+        }
+      },
 	{
 		"name": "[variables('virtualMachineEsName')]",
 		"type": "Microsoft.Compute/virtualMachines",
@@ -139,8 +152,6 @@
 			}
 		}
 	},	
-	
-	
 	{
 	  "type": "Microsoft.Compute/virtualMachines/extensions",
 	  "name": "[concat(variables('virtualMachineEsName'), '/', variables('scriptNameEs'))]",
