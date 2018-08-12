@@ -57,19 +57,17 @@
 		"VPNAddress": {
 			"type": "string",
 			"defaultValue": "",
-			"metadata": {"description": "The public IP address of the router on the network in which Quali Server resides."}
+			"metadata": { "description": "The public IP address of the router on the network in which Quali Server resides." }
 		},
 		"SandboxVnetCIDR": {
-		"defaultValue": "10.0.0.0/8",
-		"type": "String",
-		"metadata": {
-			"description": "The IP range (in CIDR notation) to be used for the Sandbox VNet. Example: 10.0.0.0/8"}
+			"defaultValue": "10.0.0.0/8",
+			"type": "String",
+			"metadata": { "description": "The IP range (in CIDR notation) to be used for the Sandbox VNet. Example: 10.0.0.0/8" }
 		},
 		"SandboxVnetSubnetCIDR": {
 			"defaultValue": "10.0.0.0/24",
 			"type": "String",
-			"metadata": {
-				"description": "The IP range (in CIDR notation) of the subnet to be used by the Sandbox VNet. This range must be included in the Management VNet’s range. This subnet is used by CloudShell components such as QualiX Server and TestShell Execution Server. Example: 10.0.0.0/24"}
+			"metadata": { "description": "The IP range (in CIDR notation) of the deafult subnet to be used by the Sandbox VNet. This range must be included in the Sandbox VNet’s range. When creating a VNet in Azure it always creates a default subnet. After the template is deployed you can delete this redundand subnet manually. Example: 10.0.0.0/24" }
 		}
 	},
 	"variables": {
