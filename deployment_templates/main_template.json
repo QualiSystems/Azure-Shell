@@ -15,13 +15,13 @@
 			"metadata": {"description": "The IP address of the Quali Server"}
 		},	
 		"CloudshellSSHUserName": {
-            "type": "string",
+			"type": "string",
 			"metadata": {"description": "Create a user name and password to be used to connect to the QualiX and TestShell Execution Server that will be created in Azure. Make sure you save these credentials for future use."}
-        },
-        "CloudshellSSHPassword": {
-            "type": "securestring",
+		},
+		"CloudshellSSHPassword": {
+			"type": "securestring",
 			"metadata": {"description": "Create a password to be used with the CloudShell SSH User Name. Password must contain 12-72 characters and include 1 lower case character, 1 upper case character and 1 special character."}
-        },			
+		},			
 		"ManagementVnetCIDR": {
 			"defaultValue": "192.168.120.0/24",
 			"type": "String",
@@ -54,12 +54,21 @@
 			"type": "String",
 			"metadata": {"description": "The IP range (in CIDR notation) of the private network in which the Quali Server resides (outside of the Management VNet)."}
 		},
-        "VPNAddress": {
-            "type": "string",
-            "defaultValue": "",
-			"metadata": {"description": "The public IP address of the router on the network in which Quali Server resides."}
-        }
-		
+		"VPNAddress": {
+			"type": "string",
+			"defaultValue": "",
+			"metadata": { "description": "The public IP address of the router on the network in which Quali Server resides." }
+		},
+		"SandboxVnetCIDR": {
+			"defaultValue": "10.0.0.0/8",
+			"type": "String",
+			"metadata": { "description": "The IP range (in CIDR notation) to be used for the Sandbox VNet. Example: 10.0.0.0/8" }
+		},
+		"SandboxVnetSubnetCIDR": {
+			"defaultValue": "10.0.0.0/24",
+			"type": "String",
+			"metadata": { "description": "The IP range (in CIDR notation) of the deafult subnet to be used by the Sandbox VNet. This range must be included in the Sandbox VNet’s range. When creating a VNet in Azure it always creates a default subnet. After the template is deployed you can delete this redundand subnet manually. Example: 10.0.0.0/24" }
+		}
 	},
 	"variables": {
 		"storageAccountType": "Standard_LRS",
@@ -92,6 +101,19 @@
 		"vmSize":"Standard_A3"
 	},
 	"resources": [
+      {
+        "apiVersion": "2017-05-10",
+        "name": "pid-5a91ff6a-52b4-4e6e-92c8-1f47c8e9b9c6",
+        "type": "Microsoft.Resources/deployments",
+        "properties": {
+          "mode": "Incremental",
+          "template": {
+            "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+            "contentVersion": "1.0.0.0",
+            "resources": []
+          }
+        }
+      },
 	{
 		"name": "[variables('virtualMachineEsName')]",
 		"type": "Microsoft.Compute/virtualMachines",
@@ -138,9 +160,7 @@
 				]
 			}
 		}
-	},	
-	
-	
+	},		
 	{
 	  "type": "Microsoft.Compute/virtualMachines/extensions",
 	  "name": "[concat(variables('virtualMachineEsName'), '/', variables('scriptNameEs'))]",
@@ -326,12 +346,12 @@
 		},
 		"properties": {
 			"addressSpace": {
-				"addressPrefixes": ["10.0.0.0/8"]
+				"addressPrefixes": ["[parameters('SandboxVnetCIDR')]"]
 			},
 			"subnets": [{
 				"name": "default",
 				"properties": {
-					"addressPrefix": "10.0.0.0/24"
+					"addressPrefix": "[parameters('SandboxVnetSubnetCIDR')]"
 				}
 			}]
 		},
