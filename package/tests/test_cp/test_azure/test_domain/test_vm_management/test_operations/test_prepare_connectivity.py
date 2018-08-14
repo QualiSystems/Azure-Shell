@@ -6,7 +6,6 @@ from mock import MagicMock, Mock
 from msrestazure.azure_exceptions import CloudError
 
 from cloudshell.cp.azure.common.exceptions.virtual_network_not_found_exception import VirtualNetworkNotFoundException
-from cloudshell.cp.azure.domain.services.cryptography_service import CryptographyService
 from cloudshell.cp.azure.domain.services.key_pair import KeyPairService
 from cloudshell.cp.azure.domain.services.security_group import SecurityGroupService
 from cloudshell.cp.azure.domain.services.tags import TagService
@@ -27,7 +26,6 @@ class TestPrepareSandboxInfra(TestCase):
         self.key_pair_service = KeyPairService(storage_service=self.storage_service)
         self.security_group_service = SecurityGroupService(self.network_service)
         self.logger = MagicMock()
-        self.cryptography_service = CryptographyService()
         self.name_provider_service = MagicMock()
         self.resource_id_parser = MagicMock()
 
@@ -38,7 +36,6 @@ class TestPrepareSandboxInfra(TestCase):
             tags_service=self.tag_service,
             key_pair_service=self.key_pair_service,
             security_group_service=self.security_group_service,
-            cryptography_service=self.cryptography_service,
             name_provider_service=self.name_provider_service,
             subnet_locker=Lock(),
             cancellation_service=self.cancellation_service,
@@ -51,7 +48,6 @@ class TestPrepareSandboxInfra(TestCase):
         self.network_service.get_virtual_network_by_tag = MagicMock()
         self.storage_service.create_storage_account = MagicMock()
         self.vm_service.create_resource_group = MagicMock()
-        self.cryptography_service.encrypt = MagicMock()
 
         network_action = Mock(spec=PrepareCloudInfra)
         network_action.actionParams = Mock()
@@ -137,7 +133,6 @@ class TestPrepareSandboxInfra(TestCase):
         self.network_service.create_subnet = MagicMock()
         self.network_service.get_virtual_network_by_tag = Mock(return_value=None)
         self.network_service.get_virtual_network_by_tag.side_effect = [None, Mock()]
-        self.cryptography_service.encrypt = MagicMock()
 
         network_action = Mock(spec=PrepareCloudInfra)
         network_action.actionParams = Mock()
