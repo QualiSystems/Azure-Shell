@@ -1,47 +1,44 @@
-import jsonpickle
 from threading import Lock
 
-from cloudshell.api.cloudshell_api import CommandExecutionCancelledResultInfo
-from cloudshell.cp.azure.domain.common.vm_details_provider import VmDetailsProvider
-from cloudshell.cp.azure.domain.vm_management.operations.vm_details_operation import VmDetailsOperation
-from cloudshell.shell.core.driver_context import ResourceCommandContext, CancellationContext
+import jsonpickle
 from cloudshell.core.context.error_handling_context import ErrorHandlingContext
-
-from cloudshell.cp.azure.common.helpers.url_helper import URLHelper
-from cloudshell.cp.azure.common.profiler.profiler import profileit
+from cloudshell.shell.core.driver_context import ResourceCommandContext, CancellationContext
 from cloudshell.shell.core.session.cloudshell_session import CloudShellSessionContext
-from cloudshell.cp.azure.common.deploy_data_holder import DeployDataHolder
-from cloudshell.cp.azure.domain.services.cryptography_service import CryptographyService
-from cloudshell.cp.azure.domain.services.image_data import ImageDataFactory
-from cloudshell.cp.azure.domain.services.ip_service import IpService
-from cloudshell.cp.azure.domain.services.lock_service import GenericLockProvider
-from cloudshell.cp.azure.domain.services.tags import TagService
-from cloudshell.cp.azure.domain.vm_management.operations.access_key_operation import AccessKeyOperation
-from cloudshell.cp.azure.domain.vm_management.operations.delete_operation import DeleteAzureVMOperation
 from cloudshell.shell.core.session.logging_session import LoggingSessionContext
-from cloudshell.cp.azure.domain.services.network_service import NetworkService
+
+from cloudshell.cp.azure.common.azure_clients import AzureClientsManager
+from cloudshell.cp.azure.common.deploy_data_holder import DeployDataHolder
+from cloudshell.cp.azure.common.helpers.url_helper import URLHelper
 from cloudshell.cp.azure.common.parsers.azure_model_parser import AzureModelsParser
 from cloudshell.cp.azure.common.parsers.azure_resource_id_parser import AzureResourceIdParser
 from cloudshell.cp.azure.common.parsers.command_result_parser import CommandResultsParser
-from cloudshell.cp.azure.domain.services.virtual_machine_service import VirtualMachineService
-from cloudshell.cp.azure.domain.services.storage_service import StorageService
-from cloudshell.cp.azure.domain.services.vm_credentials_service import VMCredentialsService
-from cloudshell.cp.azure.domain.services.key_pair import KeyPairService
-from cloudshell.cp.azure.domain.services.security_group import SecurityGroupService
-from cloudshell.cp.azure.domain.services.name_provider import NameProviderService
-from cloudshell.cp.azure.domain.services.vm_extension import VMExtensionService
-from cloudshell.cp.azure.domain.services.task_waiter import TaskWaiterService
+from cloudshell.cp.azure.common.parsers.custom_param_extractor import VmCustomParamsExtractor
+from cloudshell.cp.azure.domain.common.vm_details_provider import VmDetailsProvider
 from cloudshell.cp.azure.domain.services.command_cancellation import CommandCancellationService
+from cloudshell.cp.azure.domain.services.image_data import ImageDataFactory
+from cloudshell.cp.azure.domain.services.ip_service import IpService
+from cloudshell.cp.azure.domain.services.key_pair import KeyPairService
+from cloudshell.cp.azure.domain.services.lock_service import GenericLockProvider
+from cloudshell.cp.azure.domain.services.name_provider import NameProviderService
+from cloudshell.cp.azure.domain.services.network_service import NetworkService
+from cloudshell.cp.azure.domain.services.security_group import SecurityGroupService
+from cloudshell.cp.azure.domain.services.storage_service import StorageService
 from cloudshell.cp.azure.domain.services.subscription import SubscriptionService
+from cloudshell.cp.azure.domain.services.tags import TagService
+from cloudshell.cp.azure.domain.services.task_waiter import TaskWaiterService
+from cloudshell.cp.azure.domain.services.virtual_machine_service import VirtualMachineService
+from cloudshell.cp.azure.domain.services.vm_credentials_service import VMCredentialsService
+from cloudshell.cp.azure.domain.services.vm_extension import VMExtensionService
+from cloudshell.cp.azure.domain.vm_management.operations.PrepareSandboxInfraOperation import \
+    PrepareSandboxInfraOperation
+from cloudshell.cp.azure.domain.vm_management.operations.access_key_operation import AccessKeyOperation
+from cloudshell.cp.azure.domain.vm_management.operations.app_ports_operation import DeployedAppPortsOperation
+from cloudshell.cp.azure.domain.vm_management.operations.autoload_operation import AutoloadOperation
+from cloudshell.cp.azure.domain.vm_management.operations.delete_operation import DeleteAzureVMOperation
 from cloudshell.cp.azure.domain.vm_management.operations.deploy_operation import DeployAzureVMOperation
 from cloudshell.cp.azure.domain.vm_management.operations.power_operation import PowerAzureVMOperation
 from cloudshell.cp.azure.domain.vm_management.operations.refresh_ip_operation import RefreshIPOperation
-from cloudshell.cp.azure.domain.vm_management.operations.PrepareSandboxInfraOperation import \
-    PrepareSandboxInfraOperation
-from cloudshell.cp.azure.common.azure_clients import AzureClientsManager
-from cloudshell.cp.azure.common.parsers.custom_param_extractor import VmCustomParamsExtractor
-from cloudshell.cp.azure.domain.vm_management.operations.app_ports_operation import DeployedAppPortsOperation
-from cloudshell.cp.azure.domain.vm_management.operations.autoload_operation import AutoloadOperation
+from cloudshell.cp.azure.domain.vm_management.operations.vm_details_operation import VmDetailsOperation
 
 
 class AzureShell(object):
@@ -59,7 +56,6 @@ class AzureShell(object):
         self.key_pair_service = KeyPairService(storage_service=self.storage_service)
         self.security_group_service = SecurityGroupService(self.network_service)
         self.vm_custom_params_extractor = VmCustomParamsExtractor()
-        self.cryptography_service = CryptographyService()
         self.name_provider_service = NameProviderService()
         self.vm_extension_service = VMExtensionService(URLHelper(), waiter_service)
         self.subscription_service = SubscriptionService()
@@ -84,7 +80,6 @@ class AzureShell(object):
             tags_service=self.tags_service,
             key_pair_service=self.key_pair_service,
             security_group_service=self.security_group_service,
-            cryptography_service=self.cryptography_service,
             name_provider_service=self.name_provider_service,
             cancellation_service=self.cancellation_service,
             subnet_locker=self.subnet_locker,
