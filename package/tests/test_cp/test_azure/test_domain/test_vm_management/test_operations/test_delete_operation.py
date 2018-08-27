@@ -34,8 +34,8 @@ class TestDeleteOperation(TestCase):
     def test_cleanup_on_error(self):
         # Arrange
         test_exception_message = "lalala"
-        self.delete_operation.remove_nsg_from_subnet = Mock(side_effect=Exception(test_exception_message))
-        self.delete_operation.delete_sandbox_subnet = Mock()
+        self.delete_operation.remove_nsg_and_routetable_from_subnets = Mock(side_effect=Exception(test_exception_message))
+        self.delete_operation.delete_sandbox_subnets = Mock()
 
         # Act
         result = self.delete_operation.cleanup_connectivity(network_client=Mock(),
@@ -57,9 +57,9 @@ class TestDeleteOperation(TestCase):
         """
 
         # Arrange
-        self.delete_operation.remove_nsg_from_subnet = Mock()
+        self.delete_operation.remove_nsg_and_routetable_from_subnets = Mock()
         self.delete_operation.delete_resource_group = Mock()
-        self.delete_operation.delete_sandbox_subnet = Mock()
+        self.delete_operation.delete_sandbox_subnets = Mock()
         tested_group_name = "test_group"
         resource_client = Mock()
         network_client = Mock()
@@ -85,15 +85,15 @@ class TestDeleteOperation(TestCase):
                                                    logger=self.logger)
 
         # Verify
-        self.delete_operation.remove_nsg_from_subnet.assert_called_once_with(network_client=network_client,
+        self.delete_operation.remove_nsg_and_routetable_from_subnets.assert_called_once_with(network_client=network_client,
+                                                                                             cloud_provider_model=cloud_provider_model,
+                                                                                             resource_group_name=tested_group_name,
+                                                                                             logger=self.logger)
+
+        self.delete_operation.delete_sandbox_subnets.assert_called_once_with(network_client=network_client,
                                                                              cloud_provider_model=cloud_provider_model,
                                                                              resource_group_name=tested_group_name,
                                                                              logger=self.logger)
-
-        self.delete_operation.delete_sandbox_subnet.assert_called_once_with(network_client=network_client,
-                                                                            cloud_provider_model=cloud_provider_model,
-                                                                            resource_group_name=tested_group_name,
-                                                                            logger=self.logger)
 
         self.delete_operation.delete_resource_group.assert_called_once_with(resource_client=resource_client,
                                                                             group_name=tested_group_name,
@@ -118,7 +118,7 @@ class TestDeleteOperation(TestCase):
 
         # Act
         self.assertRaises(Exception,
-                          self.delete_operation.delete_sandbox_subnet)
+                          self.delete_operation.delete_sandbox_subnets)
 
     def test_delete_operation(self):
         """

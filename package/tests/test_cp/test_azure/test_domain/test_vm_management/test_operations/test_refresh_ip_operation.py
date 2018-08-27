@@ -1,6 +1,7 @@
 from unittest import TestCase
 
 import mock
+from mock import Mock
 
 from cloudshell.cp.azure.domain.vm_management.operations.refresh_ip_operation import RefreshIPOperation
 
@@ -15,18 +16,32 @@ class TestRefreshIPOperation(TestCase):
         self.vm_name = "test_vm_name"
         self.private_ip_on_resource = "10.0.0.1"
         self.public_ip_on_resource = "172.29.128.255"
-        self.vm_service = mock.MagicMock()
+        self.vm_service = Mock()
         self.resource_id_parser = mock.MagicMock()
-        self.logger = mock.MagicMock()
+        self.logger = Mock()
         self.refresh_ip_operation = RefreshIPOperation(vm_service=self.vm_service,
                                                        resource_id_parser=self.resource_id_parser)
 
     def test_refresh_ip(self):
         """Check that method uses network client to get public IP value and updates it on CloudShell"""
+
+        def get_name_from_resource_id_mock(value):
+            if isinstance(value, str):
+                return value.rstrip("/").split("/")[-1]
+            return public_ip_name
+
         self.network_client.public_ip_addresses.get.return_value = public_ip_from_azure = mock.MagicMock()
         self.network_client.network_interfaces.get.return_value = nic = mock.MagicMock()
         public_ip_name = mock.MagicMock()
-        self.resource_id_parser.get_name_from_resource_id.return_value = public_ip_name
+        self.resource_id_parser.get_name_from_resource_id = Mock(side_effect=get_name_from_resource_id_mock)
+
+        nic1 = Mock(primary=False, id='/resource_group/nic1/')
+        nic2 = Mock(primary=True, id='/resource_group/nic2/')
+
+        vm = Mock()
+        vm.network_profile = Mock()
+        vm.network_profile.network_interfaces = [nic1, nic2]
+        self.vm_service.get_active_vm = Mock(return_value=vm)
 
         # Act
         self.refresh_ip_operation.refresh_ip(
@@ -41,6 +56,7 @@ class TestRefreshIPOperation(TestCase):
             logger=self.logger)
 
         # Verify
+        self.network_client.network_interfaces.get.assert_called_once_with(self.resource_group_name, 'nic2')
         self.network_client.public_ip_addresses.get.assert_called_once_with(self.resource_group_name, public_ip_name)
         self.cloudshell_session.SetAttributeValue.assert_called_once_with(self.resource_fullname, "Public IP",
                                                                           public_ip_from_azure.ip_address)
@@ -54,6 +70,12 @@ class TestRefreshIPOperation(TestCase):
         public_ip_name = mock.MagicMock()
         self.network_client.network_interfaces.get.return_value = nic
         self.resource_id_parser.get_name_from_resource_id.return_value = public_ip_name
+
+        nic_ref = Mock(primary=True, id='/resource_group/nic1/')
+        vm = Mock()
+        vm.network_profile = Mock()
+        vm.network_profile.network_interfaces = [nic_ref]
+        self.vm_service.get_active_vm = Mock(return_value=vm)
 
         # Act
         self.refresh_ip_operation.refresh_ip(
@@ -78,6 +100,12 @@ class TestRefreshIPOperation(TestCase):
         self.network_client.public_ip_addresses.get.return_value = mock.MagicMock(ip_address=self.public_ip_on_resource)
         self.network_client.network_interfaces.get.return_value = mock.MagicMock(
             ip_configurations=[mock.MagicMock(private_ip_address=self.private_ip_on_resource)])
+
+        nic_ref = Mock(primary=True, id='/resource_group/nic1/')
+        vm = Mock()
+        vm.network_profile = Mock()
+        vm.network_profile.network_interfaces = [nic_ref]
+        self.vm_service.get_active_vm = Mock(return_value=vm)
 
         # Act
         self.refresh_ip_operation.refresh_ip(

@@ -12,9 +12,6 @@ from cloudshell.cp.azure.domain.services.network_service import NetworkService
 
 from cloudshell.cp.azure.models.azure_cloud_provider_resource_model import AzureCloudProviderResourceModel
 from cloudshell.cp.azure.common.parsers.azure_resource_id_parser import AzureResourceIdParser
-from cloudshell.cp.core.models import PrepareCloudInfra, PrepareSubnet, CreateKeys, PrepareSubnetActionResult, \
-    CreateKeysActionResult, PrepareCloudInfraResult
-
 
 INVALID_REQUEST_ERROR = 'Invalid request: {0}'
 
@@ -64,11 +61,11 @@ class PrepareSandboxInfraOperation(object):
                              resource_client,
                              network_client,
                              logger,
-                             actions,
+                             request,
                              cancellation_context):
         """
         :param logging.Logger logger:
-        :param actions: list[cloudshell.cp.core.models.RequestActionBase]
+        :param request:
         :param network_client:
         :param storage_client:
         :param resource_client:
@@ -77,7 +74,7 @@ class PrepareSandboxInfraOperation(object):
         :param cancellation_context cloudshell.shell.core.driver_context.CancellationContext instance
         :return:
         """
-        cidr = self._validate_request_and_extract_cidr(actions)
+        cidr = self._validate_request_and_extract_cidr(request)
         logger.info("Received CIDR {0} from server".format(cidr))
 
         reservation_id = reservation.reservation_id
@@ -154,15 +151,28 @@ class PrepareSandboxInfraOperation(object):
 
         self.cancellation_service.check_if_cancelled(cancellation_context)
 
-        # 6. Create a subnet with NSG
-        self._create_subnet(cidr=cidr,
-                            cloud_provider_model=cloud_provider_model,
-                            logger=logger,
-                            network_client=network_client,
-                            resource_client=resource_client,
-                            network_security_group=network_security_group,
-                            sandbox_vnet=sandbox_vnet,
-                            subnet_name=subnet_name)
+        # # 6. Create a subnet with NSG
+        # self._create_subnet(cidr=cidr,
+        #                     cloud_provider_model=cloud_provider_model,
+        #                     logger=logger,
+        #                     network_client=network_client,
+        #                     resource_client=resource_client,
+        #                     network_security_group=network_security_group,
+        #                     sandbox_vnet=sandbox_vnet,
+        #                     subnet_name=subnet_name)
+
+        subnet_actions = [a for a in actions if isinstance(a.connection_params, PrepareSubnetParams)]
+        for subnet in subnet_actions:
+            subnet_name = (group_name + '_' + subnet.connection_params.cidr).replace(' ', '').replace('/', '-')
+            self._create_subnet(cidr=subnet.connection_params.cidr,
+                                cloud_provider_model=cloud_provider_model,
+                                logger=logger,
+                                network_client=network_client,
+                                resource_client=resource_client,
+                                network_security_group=network_security_group,
+                                sandbox_vnet=sandbox_vnet,
+                                subnet_name=subnet_name)
+            results.append(self._create_result(subnet, subnet_name))
 
         self.cancellation_service.check_if_cancelled(cancellation_context)
 
@@ -171,23 +181,19 @@ class PrepareSandboxInfraOperation(object):
         pool.join()
         storage_res.get(timeout=900)  # will wait for 15 min and raise exception if storage account creation failed
 
-        return self._prepare_results(create_key_action_result, actions)
+        network_action_result.actionId = network_action.id
 
-    def _prepare_results(self, create_key_action_result, actions):
-        network_action_result = PrepareCloudInfraResult(self._get_action_id_by_type(actions, PrepareCloudInfra))
+        results.append(network_action_result)
 
-        subnet_action_results = [PrepareSubnetActionResult(action_id) for action_id in
-                                 self._get_action_ids_by_type(actions, PrepareSubnet)]
+        return results
 
-        create_key_action_result.actionId = self._get_action_id_by_type(actions, CreateKeys)
-
-        return [network_action_result, create_key_action_result] + subnet_action_results
-
-    def _get_action_id_by_type(self, actions, action_class):
-        return next((action.actionId for action in actions if isinstance(action, action_class)))
-
-    def _get_action_ids_by_type(self, actions, action_class):
-        return [action.actionId for action in actions if isinstance(action, action_class)]
+    def _create_result(se, item, subnet_name):
+        action_result = PrepareSubnetActionResult()
+        action_result.actionId = item.id
+        action_result.success = True
+        action_result.infoMessage = 'PrepareSubnet finished successfully'
+        action_result.subnetId = subnet_name
+        return action_result
 
     def _prepare_storage_account_name(self, reservation_id):
         """ Storage account name in azure must be between 3-24 chars. Dashes are not allowed as well.
@@ -359,7 +365,30 @@ class PrepareSandboxInfraOperation(object):
         used_priorities = []
         all_symbol = SecurityRuleProtocol.asterisk
 
-        # rule 0
+        # Rule 1:
+        source_address_prefix = management_vnet.address_space.address_prefixes[0]
+        priority = 3900
+        used_priorities.append(priority)
+        logger.info("Creating (async) NSG rule to allow management subnet traffic with priority {}".format(priority))
+
+        operation_poller = self.security_group_service.create_network_security_group_custom_rule(
+            network_client=network_client,
+            group_name=group_name,
+            security_group_name=security_group_name,
+            rule=SecurityRule(
+                access=SecurityRuleAccess.allow,
+                direction="Inbound",
+                source_address_prefix=source_address_prefix,
+                source_port_range=all_symbol,
+                name="rule_{}".format(priority),
+                destination_address_prefix=all_symbol,
+                destination_port_range=all_symbol,
+                priority=priority,
+                protocol=all_symbol),
+            async=True)
+        operation_poller.wait()
+
+        # rule 1
         priority = 3950
         used_priorities.append(priority)
         logger.info("Creating NSG rule to deny inbound traffic from other subnets with priority {}..."
@@ -380,11 +409,10 @@ class PrepareSandboxInfraOperation(object):
                         priority=priority,
                         protocol=all_symbol),
                 async=True)
-
         # can't create next rule while previous is in the deploying state
         operation_poller.wait()
 
-        # Rule 1
+        # Rule 2
         priority = 4000
         used_priorities.append(priority)
         logger.info("Creating NSG rule to deny inbound traffic from other subnets with priority {}..."
@@ -409,27 +437,29 @@ class PrepareSandboxInfraOperation(object):
         # can't create next rule while previous is in the deploying state
         operation_poller.wait()
 
-        # Rule 2:
-        source_address_prefix = management_vnet.address_space.address_prefixes[0]
-        priority = 3900
+        # Rule 3
+        priority = 4010
         used_priorities.append(priority)
-        logger.info("Creating (async) NSG rule to allow management subnet traffic with priority {}".format(priority))
+        # todo - add inbound for internet only for public subnets
+        logger.info("Creating NSG rule allow all inbound traffic from internet {}..."
+                    .format(priority))
 
         operation_poller = self.security_group_service.create_network_security_group_custom_rule(
-                network_client=network_client,
-                group_name=group_name,
-                security_group_name=security_group_name,
-                rule=SecurityRule(
-                        access=SecurityRuleAccess.allow,
-                        direction="Inbound",
-                        source_address_prefix=source_address_prefix,
-                        source_port_range=all_symbol,
-                        name="rule_{}".format(priority),
-                        destination_address_prefix=all_symbol,
-                        destination_port_range=all_symbol,
-                        priority=priority,
-                        protocol=all_symbol),
-                async=True)
+            network_client=network_client,
+            group_name=group_name,
+            security_group_name=security_group_name,
+            rule=SecurityRule(
+                access=SecurityRuleAccess.allow,
+                direction="Inbound",
+                source_address_prefix='Internet',
+                source_port_range=all_symbol,
+                name="rule_{}".format(priority),
+                destination_address_prefix=all_symbol,
+                destination_port_range=all_symbol,
+                priority=priority,
+                protocol=all_symbol),
+            async=True)
+        # can't create next rule while previous is in the deploying state
         operation_poller.wait()
 
         # free priorities for additional NSG rules
@@ -478,6 +508,10 @@ class PrepareSandboxInfraOperation(object):
 
         return requested_cidrs.pop()
 
-
-def action_with_cidr(action):
-    return isinstance(action, PrepareCloudInfra) or isinstance(action, PrepareSubnet)
+    @staticmethod
+    def _create_fault_action_result(action, e):
+        action_result = ConnectivityActionResult()
+        action_result.actionId = action.id
+        action_result.success = False
+        action_result.errorMessage = 'PrepareConnectivity ended with the error: {0}'.format(e)
+        return action_result

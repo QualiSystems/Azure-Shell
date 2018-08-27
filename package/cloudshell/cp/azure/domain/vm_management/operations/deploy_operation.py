@@ -1,20 +1,21 @@
 import re
 
-from cloudshell.cp.azure.domain.common.vm_details_provider import VmDetailsProvider
 from msrestazure.azure_exceptions import CloudError
 from cloudshell.cp.azure.common.exceptions.quali_timeout_exception import QualiTimeoutException, \
     QualiScriptExecutionTimeoutException
+from cloudshell.cp.azure.domain.services.network_service import NetworkService
 from cloudshell.cp.azure.models.deploy_result_model import DeployResult
 from cloudshell.cp.azure.common.parsers.rules_attribute_parser import RulesAttributeParser
 from cloudshell.cp.azure.models.reservation_model import ReservationModel
 from cloudshell.cp.azure.models.deploy_azure_vm_resource_models import \
     DeployAzureVMFromCustomImageResourceModel, BaseDeployAzureVMResourceModel, DeployAzureVMResourceModel
 from cloudshell.cp.azure.models.azure_cloud_provider_resource_model import AzureCloudProviderResourceModel
-from azure.mgmt.network.models import Subnet, NetworkInterface
+from azure.mgmt.network.models import Subnet, NetworkInterface, SecurityRule, SecurityRuleAccess
 from azure.mgmt.compute.models import OperatingSystemTypes, PurchasePlan
 from cloudshell.shell.core.driver_context import CancellationContext
 from cloudshell.cp.azure.models.vm_credentials import VMCredentials
 from cloudshell.cp.azure.models.image_data import ImageDataModelBase, MarketplaceImageDataModel
+from cloudshell.cp.azure.models.network_actions_models import *
 from cloudshell.api.cloudshell_api import CloudShellAPISession
 from cloudshell.cp.core.models import DeployAppResult, Attribute
 
@@ -155,7 +156,6 @@ class DeployAzureVMOperation(object):
         """
         logger.info("Start Deploy Azure VM operation")
         extension_time_out = False
-
         # 1. prepare deploy data model object
         data = self._prepare_deploy_data(logger=logger,
                                          reservation=reservation,
@@ -170,13 +170,13 @@ class DeployAzureVMOperation(object):
         try:
             # 2. create NIC + Credentials & update NSG
             data = self._create_vm_common_objects(
-                    logger=logger,
-                    data=data,
-                    deployment_model=deployment_model,
-                    cloud_provider_model=cloud_provider_model,
-                    network_client=network_client,
-                    storage_client=storage_client,
-                    cancellation_context=cancellation_context)
+                logger=logger,
+                data=data,
+                deployment_model=deployment_model,
+                cloud_provider_model=cloud_provider_model,
+                network_client=network_client,
+                storage_client=storage_client,
+                cancellation_context=cancellation_context)
 
             # 3. create VM
             logger.info("Start Deploying VM {}".format(data.vm_name))
@@ -198,12 +198,12 @@ class DeployAzureVMOperation(object):
 
             # 4. create custom script extension
             self._create_vm_custom_script_extension(
-                    deployment_model=deployment_model,
-                    cloud_provider_model=cloud_provider_model,
-                    compute_client=compute_client,
-                    data=data,
-                    logger=logger,
-                    cancellation_context=cancellation_context)
+                deployment_model=deployment_model,
+                cloud_provider_model=cloud_provider_model,
+                compute_client=compute_client,
+                data=data,
+                logger=logger,
+                cancellation_context=cancellation_context)
 
         except QualiScriptExecutionTimeoutException, e:
             logger.info(e.message)
@@ -217,37 +217,43 @@ class DeployAzureVMOperation(object):
             self._rollback_deployed_resources(compute_client=compute_client,
                                               network_client=network_client,
                                               group_name=data.group_name,
-                                              interface_name=data.interface_name,
+                                              interface_names=data.interface_names,
                                               vm_name=data.vm_name,
-                                              ip_name=data.ip_name,
                                               logger=logger)
             raise
 
         logger.info("VM {} was successfully deployed".format(data.vm_name))
 
-        data.public_ip_address = self._get_public_ip_address(network_client=network_client,
-                                                             azure_vm_deployment_model=deployment_model,
-                                                             group_name=data.group_name,
-                                                             ip_name=data.ip_name,
-                                                             cancellation_context=cancellation_context,
-                                                             logger=logger)
+        if data.interface_names:
+            public_ip_name = get_ip_from_interface_name(data.interface_names[0])
+            data.public_ip_address = self._get_public_ip_address(network_client=network_client,
+                                                                 azure_vm_deployment_model=deployment_model,
+                                                                 group_name=data.group_name,
+                                                                 cancellation_context=cancellation_context,
+                                                                 ip_name=public_ip_name,
+                                                                 logger=logger)
 
         deployed_app_attributes = self._prepare_deployed_app_attributes(
-                admin_username=data.vm_credentials.admin_username,
-                admin_password=data.vm_credentials.admin_password,
-                public_ip=data.public_ip_address)
+            admin_username=data.vm_credentials.admin_username,
+            admin_password=data.vm_credentials.admin_password,
+            public_ip=data.public_ip_address)
 
         # check if CustomImageDataModel or MarketplaceImageDataModel, no more options
         is_market_place = type(data.image_model) is MarketplaceImageDataModel
         vm_details_data = self.vm_details_provider.create(vm, is_market_place, logger, network_client, data.group_name)
 
-        deploy_result = DeployAppResult(vmUuid=vm.vm_id,
-                                        vmName=data.vm_name,
-                                        deployedAppAddress=data.private_ip_address,
-                                        deployedAppAttributes=deployed_app_attributes,
-                                        vmDetailsData=vm_details_data)
-
-        return deploy_result
+        return DeployResult(vm_name=data.vm_name,
+                            vm_uuid=vm.vm_id,
+                            cloud_provider_resource_name=cloud_provider_model.cloud_provider_name,
+                            autoload=deployment_model.autoload,
+                            inbound_ports=deployment_model.inbound_ports,
+                            deployed_app_attributes=deployed_app_attributes,
+                            deployed_app_address=data.private_ip_address,
+                            public_ip=data.public_ip_address,
+                            resource_group=data.reservation_id,
+                            extension_time_out=extension_time_out,
+                            vm_details_data=vm_details_data,
+                            network_configuration_results=[])
 
     def _expand_cloud_error_message(self, exc, deployment_model):
         """
@@ -280,19 +286,20 @@ class DeployAzureVMOperation(object):
                     .format(data.vm_name, deployment_model.image_name, deployment_model.image_resource_group))
 
         return self.vm_service.create_vm_from_custom_image(
-                compute_management_client=compute_client,
-                image_name=deployment_model.image_name,
-                image_resource_group=deployment_model.image_resource_group,
-                disk_type=deployment_model.disk_type,
-                vm_credentials=data.vm_credentials,
-                computer_name=data.computer_name,
-                group_name=data.group_name,
-                nic_id=data.nic.id,
-                region=cloud_provider_model.region,
-                vm_name=data.vm_name,
-                tags=data.tags,
-                vm_size=data.vm_size,
-                cancellation_context=cancellation_context)
+            compute_management_client=compute_client,
+            image_name=deployment_model.image_name,
+            image_resource_group=deployment_model.image_resource_group,
+            disk_type=deployment_model.disk_type,
+            vm_credentials=data.vm_credentials,
+            computer_name=data.computer_name,
+            group_name=data.group_name,
+            nics=data.nics,
+            region=cloud_provider_model.region,
+            vm_name=data.vm_name,
+            tags=data.tags,
+            vm_size=data.vm_size,
+            cancellation_context=cancellation_context,
+            disk_size=deployment_model.disk_size)
 
     def _create_vm_marketplace_action(self, compute_client, deployment_model, cloud_provider_model,
                                       data, cancellation_context, logger):
@@ -307,22 +314,23 @@ class DeployAzureVMOperation(object):
         :rtype: azure.mgmt.compute.models.VirtualMachine
         """
         return self.vm_service.create_vm_from_marketplace(
-                compute_management_client=compute_client,
-                image_offer=deployment_model.image_offer,
-                image_publisher=deployment_model.image_publisher,
-                image_sku=deployment_model.image_sku,
-                image_version=deployment_model.image_version,
-                disk_type=deployment_model.disk_type,
-                vm_credentials=data.vm_credentials,
-                computer_name=data.computer_name,
-                group_name=data.group_name,
-                nic_id=data.nic.id,
-                region=cloud_provider_model.region,
-                vm_name=data.vm_name,
-                tags=data.tags,
-                vm_size=data.vm_size,
-                purchase_plan=data.image_model.purchase_plan,  # type should be MarketplaceImageDataModel
-                cancellation_context=cancellation_context)
+            compute_management_client=compute_client,
+            image_offer=deployment_model.image_offer,
+            image_publisher=deployment_model.image_publisher,
+            image_sku=deployment_model.image_sku,
+            image_version=deployment_model.image_version,
+            disk_type=deployment_model.disk_type,
+            vm_credentials=data.vm_credentials,
+            computer_name=data.computer_name,
+            group_name=data.group_name,
+            nics=data.nics,
+            region=cloud_provider_model.region,
+            vm_name=data.vm_name,
+            tags=data.tags,
+            vm_size=data.vm_size,
+            purchase_plan=data.image_model.purchase_plan,  # type should be MarketplaceImageDataModel
+            cancellation_context=cancellation_context,
+            disk_size=deployment_model.disk_size)
 
     def _process_nsg_rules(self, network_client, group_name, azure_vm_deployment_model, nic,
                            cancellation_context, logger):
@@ -340,31 +348,31 @@ class DeployAzureVMOperation(object):
 
         if azure_vm_deployment_model.inbound_ports:
             inbound_rules = RulesAttributeParser.parse_port_group_attribute(
-                    ports_attribute=azure_vm_deployment_model.inbound_ports)
+                ports_attribute=azure_vm_deployment_model.inbound_ports)
 
             logger.info("Parsed inbound rules {}".format(inbound_rules))
 
             logger.info("Get NSG by group name {}".format(group_name))
-            network_security_group = self.security_group_service.get_network_security_group(
-                    network_client=network_client,
-                    group_name=group_name)
+            network_security_group = self.security_group_service.get_first_network_security_group(
+                network_client=network_client,
+                group_name=group_name)
 
             self.cancellation_service.check_if_cancelled(cancellation_context)
 
             logger.info("Create rules for the NSG {}".format(network_security_group.name))
             lock = self.generic_lock_provider.get_resource_lock(lock_key=group_name, logger=logger)
             self.security_group_service.create_network_security_group_rules(
-                    network_client=network_client,
-                    group_name=group_name,
-                    security_group_name=network_security_group.name,
-                    inbound_rules=inbound_rules,
-                    destination_addr=nic.ip_configurations[0].private_ip_address,
-                    lock=lock)
+                network_client=network_client,
+                group_name=group_name,
+                security_group_name=network_security_group.name,
+                inbound_rules=inbound_rules,
+                destination_addr=nic.ip_configurations[0].private_ip_address,
+                lock=lock)
 
             logger.info("NSG rules were successfully created for NSG {}".format(network_security_group.name))
             self.cancellation_service.check_if_cancelled(cancellation_context)
 
-    def _get_sandbox_subnet(self, network_client, cloud_provider_model, subnet_name, logger):
+    def _get_subnets(self, network_client, cloud_provider_model, subnet_name, logger, deployment_model):
         """
         Get subnet for for given reservation
 
@@ -375,18 +383,29 @@ class DeployAzureVMOperation(object):
         :return: azure.mgmt.network.models.Subnet instance
         """
         sandbox_virtual_network = self.network_service.get_sandbox_virtual_network(
-                network_client=network_client,
-                group_name=cloud_provider_model.management_group_name)
+            network_client=network_client,
+            group_name=cloud_provider_model.management_group_name)
+
+        if deployment_model.network_configurations:
+            deployment_model.network_configurations.sort(key=lambda x: x.connection_params.device_index)
+            subnet_names = [action.connection_params.subnet_id for action in deployment_model.network_configurations]
+        else:
+            return [subnet for subnet in sandbox_virtual_network.subnets if subnet_name in subnet.name]
 
         try:
-            return next(subnet for subnet in sandbox_virtual_network.subnets if subnet.name == subnet_name)
+            subnets = []
+            for name in subnet_names:
+                subnet = next((subnet for subnet in sandbox_virtual_network.subnets if subnet.name == name), None)
+                if subnet:
+                    subnets.append(subnet)
+            return subnets
         except StopIteration:
             logger.error("Subnet {} was not found under the resource group {}".format(
-                    subnet_name, cloud_provider_model.management_group_name))
+                subnet_name, cloud_provider_model.management_group_name))
             raise Exception("Could not find a valid subnet.")
 
-    def _rollback_deployed_resources(self, compute_client, network_client, group_name, interface_name, vm_name,
-                                     ip_name, logger):
+    def _rollback_deployed_resources(self, compute_client, network_client, group_name, interface_names, vm_name,
+                                     logger):
         """
         Remove all created resources by Deploy VM operation on any Exception.
         This method doesnt support cancellation because full cleanup is mandatory for successful deletion of subnet
@@ -395,9 +414,8 @@ class DeployAzureVMOperation(object):
         :param compute_client: azure.mgmt.compute.compute_management_client.ComputeManagementClient
         :param network_client: azure.mgmt.network.network_management_client.NetworkManagementClient instance
         :param group_name: resource group name (reservation id)
-        :param interface_name: Azure NIC resource name
+        :param interface_names: Azure NICs resource name
         :param vm_name: Azure VM resource name
-        :param ip_name: Azure Public IP address resource name
         :param logger: logging.Logger instance
         :return:
         """
@@ -406,15 +424,17 @@ class DeployAzureVMOperation(object):
                                   group_name=group_name,
                                   vm_name=vm_name)
 
-        logger.info("Delete NIC {} ".format(interface_name))
-        self.network_service.delete_nic(network_client=network_client,
-                                        group_name=group_name,
-                                        interface_name=interface_name)
+        for interface_name in interface_names:
+            ip_name = get_ip_from_interface_name(interface_name)
+            logger.info("Delete NIC {} ".format(interface_name))
+            self.network_service.delete_nic(network_client=network_client,
+                                            group_name=group_name,
+                                            interface_name=interface_name)
 
-        logger.info("Delete IP {} ".format(ip_name))
-        self.network_service.delete_ip(network_client=network_client,
-                                       group_name=group_name,
-                                       ip_name=ip_name)
+            logger.info("Delete IP {} ".format(ip_name))
+            self.network_service.delete_ip(network_client=network_client,
+                                           group_name=group_name,
+                                           ip_name=ip_name)
 
     def _get_public_ip_address(self, network_client, azure_vm_deployment_model, group_name, ip_name,
                                cancellation_context, logger):
@@ -494,16 +514,16 @@ class DeployAzureVMOperation(object):
 
         try:
             self.vm_extension_service.create_script_extension(
-                    compute_client=compute_client,
-                    location=cloud_provider_model.region,
-                    group_name=data.group_name,
-                    vm_name=data.vm_name,
-                    image_os_type=data.image_model.os_type,
-                    script_file=deployment_model.extension_script_file,
-                    script_configurations=deployment_model.extension_script_configurations,
-                    tags=data.tags,
-                    cancellation_context=cancellation_context,
-                    timeout=deployment_model.extension_script_timeout)
+                compute_client=compute_client,
+                location=cloud_provider_model.region,
+                group_name=data.group_name,
+                vm_name=data.vm_name,
+                image_os_type=data.image_model.os_type,
+                script_file=deployment_model.extension_script_file,
+                script_configurations=deployment_model.extension_script_configurations,
+                tags=data.tags,
+                cancellation_context=cancellation_context,
+                timeout=deployment_model.extension_script_timeout)
 
             logger.info("VM Custom Script Extension for VM {} was successfully deployed".format(data.vm_name))
         except QualiTimeoutException:
@@ -532,50 +552,101 @@ class DeployAzureVMOperation(object):
         :return: Updated DeployDataModel instance
         :rtype: DeployAzureVMOperation.DeployDataModel
         """
-        # 1. Create network for vm
-        logger.info("Creating NIC '{}'".format(data.interface_name))
-        data.nic = self.network_service.create_network_for_vm(network_client=network_client,
+        # 1. Create NSG for VM
+        security_group_name = 'NSG_' + data.vm_name
+        tags = self.tags_service.get_tags(data.vm_name, data.reservation)
+        vm_nsg = self.security_group_service.create_network_security_group(network_client=network_client,
+                                                                           group_name=data.group_name,
+                                                                           security_group_name=security_group_name,
+                                                                           region=cloud_provider_model.region,
+                                                                           tags=tags)
+
+        # 2. set infra rules on VM NSG
+        self._allow_mgmt_network_traffic_on_vm_nsg(cloud_provider_model, data, network_client, vm_nsg)
+
+        if not deployment_model.allow_all_sandbox_traffic:
+            self.security_group_service \
+                .create_isolated_network_security_group_rules(network_client=network_client,
                                                               group_name=data.group_name,
-                                                              interface_name=data.interface_name,
-                                                              ip_name=data.ip_name,
-                                                              cloud_provider_model=cloud_provider_model,
-                                                              subnet=data.subnet,
-                                                              add_public_ip=deployment_model.add_public_ip,
-                                                              public_ip_type=deployment_model.public_ip_type,
-                                                              tags=data.tags,
-                                                              logger=logger)
+                                                              security_group_name=vm_nsg.name,
+                                                              lock=self.generic_lock_provider.get_resource_lock(
+                                                                  vm_nsg.name,
+                                                                  logger))
 
-        data.private_ip_address = data.nic.ip_configurations[0].private_ip_address
-        logger.info("NIC private IP is {}".format(data.private_ip_address))
+        # 3. Create network for vm
+        data.nics = []
+        for i, interface_name in enumerate(data.interface_names):
+            logger.info("Creating NIC '{}'".format(interface_name))
+            ip_name = get_ip_from_interface_name(interface_name)
+            nic = self.network_service.create_network_for_vm(network_client=network_client,
+                                                             group_name=data.group_name,
+                                                             interface_name=interface_name,
+                                                             ip_name=ip_name,
+                                                             cloud_provider_model=cloud_provider_model,
+                                                             subnet=data.subnets[i],
+                                                             add_public_ip=deployment_model.add_public_ip,
+                                                             public_ip_type=deployment_model.public_ip_type,
+                                                             tags=data.tags,
+                                                             logger=logger,
+                                                             network_security_group=vm_nsg)
+
+            if i == 0:
+                data.private_ip_address = nic.ip_configurations[0].private_ip_address
+            logger.info("NIC private IP is {}".format(data.private_ip_address))
+            data.nics.append(nic)
+
+        # 4. open inbound ports requested by app definition
+        if deployment_model.inbound_ports:
+            inbound_rules = RulesAttributeParser.parse_port_group_attribute(
+                ports_attribute=deployment_model.inbound_ports)
+
+            lock = self.generic_lock_provider.get_resource_lock(lock_key=security_group_name, logger=logger)
+            self.security_group_service.create_network_security_group_rules(network_client,
+                                                                            data.group_name,
+                                                                            security_group_name,
+                                                                            inbound_rules,
+                                                                            '*',  # we want to apply 'inbound ports' attribute on all the VM nics
+                                                                            lock)
 
         self.cancellation_service.check_if_cancelled(cancellation_context)
 
-        # 2. create NSG rules
-        logger.info("Processing Network Security Group rules")
-        self._process_nsg_rules(network_client=network_client,
-                                group_name=data.group_name,
-                                azure_vm_deployment_model=deployment_model,
-                                nic=data.nic,
-                                cancellation_context=cancellation_context,
-                                logger=logger)
-
-        self.cancellation_service.check_if_cancelled(cancellation_context)
-
-        # 3. Prepare credentials for VM
+        # 5. Prepare credentials for VM
         logger.info("Prepare credentials for the VM {}".format(data.vm_name))
         data.vm_credentials = self.vm_credentials_service.prepare_credentials(
-                os_type=data.image_model.os_type,
-                username=deployment_model.username,
-                password=deployment_model.password,
-                storage_service=self.storage_service,
-                key_pair_service=self.key_pair_service,
-                storage_client=storage_client,
-                group_name=data.group_name,
-                storage_name=data.storage_account_name)
+            os_type=data.image_model.os_type,
+            username=deployment_model.username,
+            password=deployment_model.password,
+            storage_service=self.storage_service,
+            key_pair_service=self.key_pair_service,
+            storage_client=storage_client,
+            group_name=data.group_name,
+            storage_name=data.storage_account_name)
 
         self.cancellation_service.check_if_cancelled(cancellation_context)
 
         return data
+
+    def _allow_mgmt_network_traffic_on_vm_nsg(self, cloud_provider_model, data, network_client, vm_nsg):
+        virtual_networks = self.network_service.get_virtual_networks(network_client=network_client,
+                                                                     group_name=cloud_provider_model.management_group_name)
+        management_vnet = self.network_service.get_virtual_network_by_tag(
+            virtual_networks=virtual_networks,
+            tag_key=NetworkService.NETWORK_TYPE_TAG_NAME,
+            tag_value=NetworkService.MGMT_NETWORK_TAG_VALUE)
+        self.security_group_service.create_network_security_group_custom_rule(
+            network_client=network_client,
+            group_name=data.group_name,
+            security_group_name=vm_nsg.name,
+            rule=SecurityRule(
+                access=SecurityRuleAccess.allow,
+                direction="Inbound",
+                source_address_prefix=management_vnet.address_space.address_prefixes[0],
+                source_port_range='*',
+                name='allow_mgmt_network',
+                destination_address_prefix='*',
+                destination_port_range='*',
+                priority=4000,
+                protocol='*'))
 
     def _validate_deployment_model(self, vm_deployment_model, os_type):
         """
@@ -587,9 +658,9 @@ class DeployAzureVMOperation(object):
 
         if vm_deployment_model.extension_script_file:
             self.vm_extension_service.validate_script_extension(
-                    image_os_type=os_type,
-                    script_file=vm_deployment_model.extension_script_file,
-                    script_configurations=vm_deployment_model.extension_script_configurations)
+                image_os_type=os_type,
+                script_file=vm_deployment_model.extension_script_file,
+                script_configurations=vm_deployment_model.extension_script_configurations)
 
     def _validate_resource_is_single_per_group(self, resources_list, group_name, resource_name):
         if len(resources_list) > 1:
@@ -628,16 +699,17 @@ class DeployAzureVMOperation(object):
         """
 
         image_data_model = self.image_data_factory.get_image_data_model(
-                cloud_provider_model=cloud_provider_model,
-                deployment_model=deployment_model,
-                compute_client=compute_client,
-                logger=logger)
+            cloud_provider_model=cloud_provider_model,
+            deployment_model=deployment_model,
+            compute_client=compute_client,
+            logger=logger)
 
         self._validate_deployment_model(vm_deployment_model=deployment_model, os_type=image_data_model.os_type)
 
         data = self.DeployDataModel()
 
         data.reservation_id = str(reservation.reservation_id)
+        data.reservation = reservation
         data.group_name = str(reservation.reservation_id)
         data.image_model = image_data_model
 
@@ -648,8 +720,6 @@ class DeployAzureVMOperation(object):
         unique_resource_name = self.name_provider_service.generate_name(name=data.app_name,
                                                                         postfix=resource_postfix,
                                                                         max_length=64)
-        data.interface_name = unique_resource_name
-        data.ip_name = unique_resource_name
         data.vm_name = unique_resource_name
         data.computer_name = self._prepare_computer_name(name=data.app_name,
                                                          postfix=resource_postfix,
@@ -659,10 +729,13 @@ class DeployAzureVMOperation(object):
                                              cloud_provider_model=cloud_provider_model)
 
         logger.info("Retrieve sandbox subnet {}".format(data.group_name))
-        data.subnet = self._get_sandbox_subnet(network_client=network_client,
-                                               cloud_provider_model=cloud_provider_model,
-                                               subnet_name=data.group_name,
-                                               logger=logger)
+        data.subnets = self._get_subnets(network_client=network_client,
+                                         cloud_provider_model=cloud_provider_model,
+                                         subnet_name=data.group_name,
+                                         logger=logger,
+                                         deployment_model=deployment_model)
+
+        data.interface_names = ["{}-{}".format(unique_resource_name, str(i)) for i, subnet in enumerate(data.subnets)]
 
         logger.info("Retrieve sandbox storage account name by resource group {}".format(data.group_name))
         data.storage_account_name = self.storage_service.get_sandbox_storage_account_name(storage_client=storage_client,
@@ -676,14 +749,14 @@ class DeployAzureVMOperation(object):
     class DeployDataModel(object):
         def __init__(self):
             self.reservation_id = ''  # type: str
+            self.reservation = None  # type: ReservationModel
             self.app_name = ''  # type: str
             self.group_name = ''  # type: str
-            self.interface_name = ''  # type: str
-            self.ip_name = ''  # type: str
+            self.interface_names = ''  # type: list[str]
             self.computer_name = ''  # type: str
             self.vm_name = ''  # type: str
             self.vm_size = ''  # type: str
-            self.subnet = None  # type: Subnet
+            self.subnets = None  # type: list[Subnet]
             self.storage_account_name = ''  # type: str
             self.tags = {}  # type: dict
             self.image_model = None  # type: ImageDataModelBase
@@ -692,3 +765,8 @@ class DeployAzureVMOperation(object):
             self.vm_credentials = None  # type: VMCredentials
             self.private_ip_address = ''  # type: str
             self.public_ip_address = ''  # type: str
+
+
+def get_ip_from_interface_name(interface_name):
+    ip_name = interface_name + '_PublicIP'
+    return ip_name

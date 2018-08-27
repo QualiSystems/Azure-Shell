@@ -76,6 +76,12 @@
         <Rule Name="Setting" />
       </Rules>
     </AttributeInfo>
+    <AttributeInfo Name="Disk Size"  DefaultValue="" Description="Specifies the size of an empty data disk in gigabytes." IsReadOnly="false" Type="String">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
     <AttributeInfo Name="Networks In Use"  DefaultValue="" Description="Reserved networks to be excluded when allocating Sandbox networks. The value should include at least the Management Network. The syntax is comma-separated CIDRs. For example: “10.0.0.0/24, 10.1.0.0/16, 172.31.0.0/24”." IsReadOnly="false" Type="String">
       <Rules>
         <Rule Name="Configuration" />
@@ -104,6 +110,12 @@
       </Rules>
     </AttributeInfo>
     <AttributeInfo Name="Azure Application Key"  DefaultValue="" Description="Application key associated with the Azure API application. The application key allows CloudShell to access the Azure API and is generated as part of the Azure application’s configuration process. For more information, see the “Configure Azure API to work with CloudShell” article in the CloudShell online help." IsReadOnly="false" Type="Password">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo DefaultValue="true"  Name="Allow all Sandbox Traffic" Description="Whether an app should allow inbound traffic from all other apps in the sandbox. If set to false, access from specific apps or subnets can be defined by an API call." IsReadOnly="false" Type="Boolean">
       <Rules>
         <Rule Name="Configuration" />
         <Rule Name="Setting" />
@@ -190,6 +202,8 @@
             </AttachedAttribute>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="VM Size">
               <AllowedValues />
+            </AttachedAttribute><AttachedAttribute IsLocal="true" IsOverridable="true" Name="Disk Size">
+              <AllowedValues />
             </AttachedAttribute>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Networks In Use">
               <AllowedValues />
@@ -257,6 +271,9 @@
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="VM Size" UserInput="true">
               <AllowedValues />
             </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Disk Size" UserInput="true">
+              <AllowedValues />
+            </AttachedAttribute>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Autoload" UserInput="false">
               <AllowedValues />
             </AttachedAttribute>
@@ -302,6 +319,9 @@
                 <AllowedValue>SSD</AllowedValue>
               </AllowedValues>
             </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Allow all Sandbox Traffic" UserInput="true">
+              <AllowedValues />
+            </AttachedAttribute>
           </AttachedAttributes>
           <AttributeValues>
             <AttributeValue Name="Public IP Type" Value="Dynamic" />
@@ -314,6 +334,9 @@
         <ResourceModel Description="" Name="Azure VM From Custom Image" ImagePath="AzureCustomImage.png" SupportsConcurrentCommands="false">
           <AttachedAttributes>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="VM Size" UserInput="true">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Disk Size" UserInput="true">
               <AllowedValues />
             </AttachedAttribute>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Autoload" UserInput="false">

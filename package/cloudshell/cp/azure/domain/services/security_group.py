@@ -1,10 +1,12 @@
 from threading import Lock
 
-from azure.mgmt.network.models import NetworkSecurityGroup, RouteNextHopType, SecurityRuleProtocol
+from azure.mgmt.network.models import NetworkSecurityGroup, RouteNextHopType, SecurityRuleProtocol, SecurityRuleAccess
 from azure.mgmt.network.models import SecurityRule
 from retrying import retry
 
 from cloudshell.cp.azure.common.helpers.retrying_helpers import retry_if_connection_error
+from cloudshell.cp.azure.models.port_data import PortData
+from cloudshell.cp.azure.models.rule_data import RuleData
 
 
 class SecurityGroupService(object):
@@ -75,15 +77,25 @@ class SecurityGroupService(object):
         :param destination_addr: Destination IP address/CIDR
         :return: azure.mgmt.network.models.SecurityRule instance
         """
-        if rule_data.port:
-            port_range = str(rule_data.port)
+        source_address = RouteNextHopType.internet
+        if isinstance(rule_data, RuleData):
+            if rule_data.port:
+                port_range = str(rule_data.port)
+            else:
+                port_range = "{}-{}".format(rule_data.from_port, rule_data.to_port)
+        elif isinstance(rule_data, PortData):
+            source_address = rule_data.source
+            if rule_data.from_port == rule_data.to_port:
+                port_range = str(rule_data.from_port)
+            else:
+                port_range = "{}-{}".format(rule_data.from_port, rule_data.to_port)
         else:
-            port_range = "{}-{}".format(rule_data.from_port, rule_data.to_port)
+            raise ValueError("Unsupported type")
 
         return SecurityRule(
             access=access,
             direction="Inbound",
-            source_address_prefix=RouteNextHopType.internet,
+            source_address_prefix=source_address,
             source_port_range=SecurityRuleProtocol.asterisk,
             name="rule_{}".format(priority),
             destination_address_prefix=destination_addr,
@@ -141,19 +153,20 @@ class SecurityGroupService(object):
         return operation_poller.result()
 
     @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
-    def get_network_security_group(self, network_client, group_name):
+    def get_first_network_security_group(self, network_client, group_name):
         network_security_groups = self.list_network_security_group(
             network_client=network_client,
             group_name=group_name)
-        self._validate_network_security_group_is_single_per_group(network_security_groups, group_name)
+        if len(network_security_groups) == 0:
+            raise Exception("The resource group {} does not contain a network security group.".format(group_name))
         return network_security_groups[0]
 
-    @staticmethod
-    def _validate_network_security_group_is_single_per_group(resources_list, group_name):
-        if len(resources_list) > 1:
-            raise Exception("The resource group {} contains more than one network security group.".format(group_name))
-        if len(resources_list) == 0:
-            raise Exception("The resource group {} does not contain a network security group.".format(group_name))
+    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
+    def get_network_security_group(self, network_client, group_name, nsg_name):
+        nsg = network_client.network_security_groups.get(resource_group_name=group_name,
+                                                         network_security_group_name=nsg_name)
+
+        return nsg
 
     @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def create_network_security_group_rules(self, network_client, group_name, security_group_name,
@@ -185,6 +198,59 @@ class SecurityGroupService(object):
                     priority=next(priority_generator))
 
     @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
+    def create_isolated_network_security_group_rules(self, network_client, group_name, security_group_name, lock):
+        """Create NSG inbound rules on the Azure
+
+        :param network_client: azure.mgmt.network.NetworkManagementClient instance
+        :param group_name: resource group name (reservation id)
+        :param security_group_name: NSG name from the Azure
+        :param inbound_rules: list[cloudshell.cp.azure.models.rule_data.RuleData]
+        :param destination_addr: Destination IP address/CIDR
+        :param threading.Lock lock: The locker object to use to sync between concurrent operations on the NSG
+        :param start_from: (int) rule priority number to start from
+        :return: None
+        """
+        with lock:
+            # 1. add rule to allow azure load balancer inbound traffic. It is needed in order to avoid core
+            # azure services interruption
+            allow_azure_lb = SecurityRule(access=SecurityRuleAccess.allow,
+                                          direction='Inbound',
+                                          source_address_prefix='AzureLoadBalancer',
+                                          source_port_range='*',
+                                          name='allow_azure_lb',
+                                          destination_address_prefix='*',
+                                          destination_port_range='*',
+                                          priority=4010,
+                                          protocol='*')
+
+            operation_poller = network_client.security_rules.create_or_update(
+                resource_group_name=group_name,
+                network_security_group_name=security_group_name,
+                security_rule_name=allow_azure_lb.name,
+                security_rule_parameters=allow_azure_lb)
+
+            operation_poller.result()
+
+            # 2. deny all inbound traffic (with higher priority than 'allow_azure_lb' rule
+            deny_all_in = SecurityRule(access=SecurityRuleAccess.deny,
+                                       direction='Inbound',
+                                       source_address_prefix='*',
+                                       source_port_range='*',
+                                       name='deny_all_in',
+                                       destination_address_prefix='*',
+                                       destination_port_range='*',
+                                       priority=4020,
+                                       protocol='*')
+
+            operation_poller = network_client.security_rules.create_or_update(
+                resource_group_name=group_name,
+                network_security_group_name=security_group_name,
+                security_rule_name=deny_all_in.name,
+                security_rule_parameters=deny_all_in)
+
+            operation_poller.result()
+
+    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def delete_security_rules(self, network_client, resource_group_name, vm_name, lock, logger):
         """
         removes NSG inbound rules for virtual machine (based on private ip address)
@@ -201,8 +267,9 @@ class SecurityGroupService(object):
         private_ip_address = self.network_service.get_private_ip(network_client=network_client,
                                                                  group_name=resource_group_name,
                                                                  vm_name=vm_name)
-        # NetworkSecurityGroup
-        security_group = self.get_network_security_group(network_client=network_client, group_name=resource_group_name)
+        # todo - change to get the correct NSG
+        security_group = self.get_first_network_security_group(network_client=network_client,
+                                                               group_name=resource_group_name)
 
         if security_group is None:
             raise Exception("Could not find NetworkSecurityGroup in '{}'".format(resource_group_name))
