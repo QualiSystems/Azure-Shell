@@ -3,7 +3,10 @@ from functools import partial
 from multiprocessing.pool import ThreadPool
 from threading import Lock
 
+import jsonpickle
 from azure.mgmt.network.models import SecurityRuleProtocol, SecurityRule, SecurityRuleAccess
+from cloudshell.cp.core.models import CreateKeysActionResult, PrepareSubnetParams, PrepareSubnetActionResult, \
+    PrepareCloudInfra, PrepareCloudInfraParams, PrepareSubnet, PrepareCloudInfraResult, CreateKeys
 from msrestazure.azure_exceptions import CloudError
 from azure.mgmt.network.models import VirtualNetwork
 
@@ -12,6 +15,8 @@ from cloudshell.cp.azure.domain.services.network_service import NetworkService
 
 from cloudshell.cp.azure.models.azure_cloud_provider_resource_model import AzureCloudProviderResourceModel
 from cloudshell.cp.azure.common.parsers.azure_resource_id_parser import AzureResourceIdParser
+from cloudshell.cp.azure.models.network_actions_models import PrepareNetworkActionResult, ConnectivityActionResult, \
+    PrepareNetworkParams
 
 INVALID_REQUEST_ERROR = 'Invalid request: {0}'
 
@@ -54,6 +59,9 @@ class PrepareSandboxInfraOperation(object):
         self.subnet_locker = subnet_locker
         self.resource_id_parser = resource_id_parser
 
+    def action_with_cidr(action):
+        return isinstance(action, PrepareCloudInfra) or isinstance(action, PrepareSubnet)
+
     def prepare_connectivity(self,
                              reservation,
                              cloud_provider_model,
@@ -61,11 +69,11 @@ class PrepareSandboxInfraOperation(object):
                              resource_client,
                              network_client,
                              logger,
-                             request,
+                             actions,
                              cancellation_context):
         """
         :param logging.Logger logger:
-        :param request:
+        :param actions:
         :param network_client:
         :param storage_client:
         :param resource_client:
@@ -74,14 +82,23 @@ class PrepareSandboxInfraOperation(object):
         :param cancellation_context cloudshell.shell.core.driver_context.CancellationContext instance
         :return:
         """
-        cidr = self._validate_request_and_extract_cidr(request)
-        logger.info("Received CIDR {0} from server".format(cidr))
+        logger.info("PrepareConnectivity actions: {0}".format(','.join([jsonpickle.encode(a) for a in actions])))
+        results = []
+
+        # Execute prepareNetwork action first
+        network_action = next((a for a in actions if action_with_cidr(a)), None)
+
+        if not network_action:
+            raise ValueError("Actions list must contain a PrepareNetworkAction.")
+
+        cidr = network_action.actionParams.cidr
 
         reservation_id = reservation.reservation_id
         group_name = str(reservation_id)
-        subnet_name = group_name
         tags = self.tags_service.get_tags(reservation=reservation)
+        network_action_result = PrepareNetworkActionResult()
         create_key_action_result = CreateKeysActionResult()
+
 
         # 1. Create a resource group
         logger.info("Creating a resource group: {0} .".format(group_name))
@@ -161,10 +178,12 @@ class PrepareSandboxInfraOperation(object):
         #                     sandbox_vnet=sandbox_vnet,
         #                     subnet_name=subnet_name)
 
-        subnet_actions = [a for a in actions if isinstance(a.connection_params, PrepareSubnetParams)]
+        subnet_actions = [a for a in actions if isinstance(a, PrepareSubnet)]
+
         for subnet in subnet_actions:
-            subnet_name = (group_name + '_' + subnet.connection_params.cidr).replace(' ', '').replace('/', '-')
-            self._create_subnet(cidr=subnet.connection_params.cidr,
+            logger.warn('creating: ' + subnet.actionParams.cidr)
+            subnet_name = (group_name + '_' + subnet.actionParams.cidr).replace(' ', '').replace('/', '-')
+            self._create_subnet(cidr=subnet.actionParams.cidr,
                                 cloud_provider_model=cloud_provider_model,
                                 logger=logger,
                                 network_client=network_client,
@@ -181,19 +200,32 @@ class PrepareSandboxInfraOperation(object):
         pool.join()
         storage_res.get(timeout=900)  # will wait for 15 min and raise exception if storage account creation failed
 
-        network_action_result.actionId = network_action.id
-
-        results.append(network_action_result)
+        results.append(PrepareCloudInfraResult(self._get_action_id_by_type(actions, PrepareCloudInfra)))
+        create_key_action_result.actionId = self._get_action_id_by_type(actions, CreateKeys)
+        results.append(create_key_action_result)
 
         return results
 
-    def _create_result(se, item, subnet_name):
-        action_result = PrepareSubnetActionResult()
-        action_result.actionId = item.id
-        action_result.success = True
-        action_result.infoMessage = 'PrepareSubnet finished successfully'
-        action_result.subnetId = subnet_name
-        return action_result
+    def _prepare_results(self, create_key_action_result, actions):
+        network_action_result = PrepareCloudInfraResult(self._get_action_id_by_type(actions, PrepareCloudInfra))
+
+
+        subnet_action_results = [PrepareSubnetActionResult(action_id) for action_id in
+                                 self._get_action_ids_by_type(actions, PrepareSubnet)]
+
+        create_key_action_result.actionId = self._get_action_id_by_type(actions, CreateKeys)
+
+        return [network_action_result, create_key_action_result] + subnet_action_results
+
+    def _get_action_id_by_type(self, actions, action_class):
+        return next((action.actionId for action in actions if isinstance(action, action_class)))
+
+    def _get_action_ids_by_type(self, actions, action_class):
+        return [action.actionId for action in actions if isinstance(action, action_class)]
+
+    def _create_result(self, item, subnet_name):
+        return PrepareSubnetActionResult(item.actionId, True, 'PrepareSubnet finished successfully', '', subnet_name)
+
 
     def _prepare_storage_account_name(self, reservation_id):
         """ Storage account name in azure must be between 3-24 chars. Dashes are not allowed as well.
@@ -286,6 +318,7 @@ class PrepareSandboxInfraOperation(object):
             try:
                 create_subnet_command()
             except CloudError as e:
+                logger.warn(e.error)
                 if "NetcfgInvalidSubnet" not in str(e.error):
                     raise
                 # try to cleanup stale subnet
@@ -496,6 +529,7 @@ class PrepareSandboxInfraOperation(object):
         if sandbox_vnet is None:
             raise VirtualNetworkNotFoundException("Could not find Sandbox Virtual Network in Azure.")
 
+
     @staticmethod
     def _validate_request_and_extract_cidr(actions):
         requested_cidrs = {action.actionParams.cidr for action in actions if action_with_cidr(action)}
@@ -508,10 +542,14 @@ class PrepareSandboxInfraOperation(object):
 
         return requested_cidrs.pop()
 
+
     @staticmethod
     def _create_fault_action_result(action, e):
         action_result = ConnectivityActionResult()
-        action_result.actionId = action.id
+        action_result.actionId = action.actionid
         action_result.success = False
         action_result.errorMessage = 'PrepareConnectivity ended with the error: {0}'.format(e)
         return action_result
+
+def action_with_cidr(action):
+    return isinstance(action, PrepareCloudInfra) or isinstance(action, PrepareSubnet)

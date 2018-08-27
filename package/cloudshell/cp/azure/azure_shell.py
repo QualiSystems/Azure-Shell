@@ -1,7 +1,20 @@
 from threading import Lock
 
+import jsonpickle
 from cloudshell.api.cloudshell_api import CommandExecutionCancelledResultInfo
+from cloudshell.core.context.error_handling_context import ErrorHandlingContext
+from cloudshell.cp.core.models import DeployApp, ConnectSubnet, ConnectToSubnetActionResult, \
+    SetAppSecurityGroupActionResult
+from cloudshell.cp.core.utils import single
+from msrestazure.azure_exceptions import CloudError
+
 from cloudshell.cp.azure.domain.common.vm_details_provider import VmDetailsProvider
+from cloudshell.cp.azure.domain.networking_management.operations.add_route_operation import AddRouteOperation
+from cloudshell.cp.azure.domain.vm_management.operations.PrepareSandboxInfraOperation import \
+    PrepareSandboxInfraOperation
+from cloudshell.cp.azure.domain.vm_management.operations.access_key_operation import AccessKeyOperation
+from cloudshell.cp.azure.domain.vm_management.operations.delete_operation import DeleteAzureVMOperation
+from cloudshell.cp.azure.domain.vm_management.operations.set_app_security_groups import SetAppSecurityGroupsOperation
 from cloudshell.cp.azure.domain.vm_management.operations.vm_details_operation import VmDetailsOperation
 from cloudshell.shell.core.driver_context import ResourceCommandContext, CancellationContext
 from cloudshell.shell.core.session.cloudshell_session import CloudShellSessionContext
@@ -36,8 +49,6 @@ from cloudshell.cp.azure.domain.services.subscription import SubscriptionService
 from cloudshell.cp.azure.domain.vm_management.operations.deploy_operation import DeployAzureVMOperation
 from cloudshell.cp.azure.domain.vm_management.operations.power_operation import PowerAzureVMOperation
 from cloudshell.cp.azure.domain.vm_management.operations.refresh_ip_operation import RefreshIPOperation
-from cloudshell.cp.azure.domain.vm_management.operations.prepare_connectivity_operation import \
-    PrepareConnectivityOperation
 from cloudshell.cp.azure.common.azure_clients import AzureClientsManager
 from cloudshell.cp.azure.common.parsers.custom_param_extractor import VmCustomParamsExtractor
 from cloudshell.cp.azure.domain.vm_management.operations.app_ports_operation import DeployedAppPortsOperation
@@ -190,25 +201,27 @@ class AzureShell(object):
                                                                sandbox_id=command_context.reservation.reservation_id,
                                                                 subnet_lcoker=self.subnet_locker)
 
-
-
-
-
-    def deploy_azure_vm(self, command_context, deployment_request, cancellation_context):
+    def deploy_azure_vm(self, command_context, actions, cancellation_context):
         """ Will deploy Azure Image on the cloud provider
 
         :param ResourceCommandContext command_context:
         :param cloudshell.cp.core.models.DeployApp deploy_action: describes the desired deployment
         :param CancellationContext cancellation_context:
         """
+
+        deploy_action = single(actions, lambda x: isinstance(x, DeployApp))
+        network_actions = [a for a in actions if isinstance(a, ConnectSubnet)]
         with LoggingSessionContext(command_context) as logger:
             with ErrorHandlingContext(logger):
                 logger.info('Deploying Azure VM...')
+                logger.info(
+                    "Deploying VM actions: {0}".format(','.join([jsonpickle.encode(a) for a in actions])))
 
                 with CloudShellSessionContext(command_context) as cloudshell_session:
                     azure_vm_deployment_model = self.model_parser.convert_to_deploy_azure_vm_resource_model(
                         deploy_action=deploy_action,
                         cloudshell_session=cloudshell_session,
+                        network_actions=network_actions,
                         logger=logger)
 
                     cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(
@@ -217,13 +230,14 @@ class AzureShell(object):
 
                 azure_clients = AzureClientsManager(cloud_provider_model)
 
-                result = self.deploy_azure_vm_operation.deploy_from_marketplace(
+                results = self.deploy_azure_vm_operation.deploy_from_marketplace(
                     deployment_model=azure_vm_deployment_model,
                     cloud_provider_model=cloud_provider_model,
                     reservation=self.model_parser.convert_to_reservation_model(command_context.reservation),
                     network_client=azure_clients.network_client,
                     compute_client=azure_clients.compute_client,
                     storage_client=azure_clients.storage_client,
+                    network_actions=network_actions,
                     cancellation_context=cancellation_context,
                     logger=logger,
                     cloudshell_session=cloudshell_session)
@@ -231,13 +245,18 @@ class AzureShell(object):
                 logger.info('End deploying Azure VM')
 
                 # todo dont always set success?
-                actions = jsonpickle.decode(deployment_request)["NetworkConfigurationsRequest"]["actions"]
-                deploy_data.network_configuration_results = \
-                    [ConnectToSubnetActionResult(action_id=action["actionId"],
-                                                 interface_data='', success=True) for action in actions] \
-                        if actions else None
 
-                return self.command_result_parser.set_command_result(deploy_data)
+                # actions = network_actions
+                # deploy_data.network_configuration_results = \
+                #     [ConnectToSubnetActionResult(action_id=action["actionId"],
+                #                                  interface_data='', success=True) for action in actions] \
+                #         if actions else None
+                # logger.info('End deploying Azure VM')
+
+                network_results = [ConnectToSubnetActionResult(action.actionId, True, '', '', '') for action in
+                                   network_actions]
+                results.actionId = deploy_action.actionId
+                return [results] + network_results
 
     def deploy_vm_from_custom_image(self, command_context, deploy_action, cancellation_context):
         """Deploy Azure Image from given Image URN
@@ -304,9 +323,6 @@ class AzureShell(object):
 
                 azure_clients = AzureClientsManager(cloud_provider_model)
 
-                prepare_connectivity_request = DeployDataHolder(jsonpickle.decode(request))
-                prepare_connectivity_request = getattr(prepare_connectivity_request, 'driverRequest', None)
-
                 result = self.prepare_connectivity_operation.prepare_connectivity(
                     reservation=self.model_parser.convert_to_reservation_model(context.reservation),
                     cloud_provider_model=cloud_provider_model,
@@ -314,11 +330,11 @@ class AzureShell(object):
                     resource_client=azure_clients.resource_client,
                     network_client=azure_clients.network_client,
                     logger=logger,
-                    request=prepare_connectivity_request,
+                    actions=actions,
                     cancellation_context=cancellation_context)
 
                 logger.info('End Preparing Connectivity for Azure VM')
-                return self.command_result_parser.set_command_result({'driverResponse': {'actionResults': result}})
+                return result
 
     def cleanup_connectivity(self, command_context, request):
         with LoggingSessionContext(command_context) as logger:

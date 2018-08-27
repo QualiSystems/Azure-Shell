@@ -43,7 +43,7 @@ class SubnetConnectionParams(ConnectionParamsBase):
         self.custom_attributes.append(vnic_name_attr)
 
 
-class PrepareSubnetParams(ConnectionParamsBase):
+class PrepareSubnetParamsData(ConnectionParamsBase):
     def __init__(self, cidr=None, alias='', is_public=True):
         """
         :param str cidr:

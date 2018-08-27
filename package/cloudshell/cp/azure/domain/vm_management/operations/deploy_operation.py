@@ -17,7 +17,7 @@ from cloudshell.cp.azure.models.vm_credentials import VMCredentials
 from cloudshell.cp.azure.models.image_data import ImageDataModelBase, MarketplaceImageDataModel
 from cloudshell.cp.azure.models.network_actions_models import *
 from cloudshell.api.cloudshell_api import CloudShellAPISession
-from cloudshell.cp.core.models import DeployAppResult, Attribute
+from cloudshell.cp.core.models import DeployAppResult, Attribute, ConnectSubnet
 
 
 class DeployAzureVMOperation(object):
@@ -94,26 +94,17 @@ class DeployAzureVMOperation(object):
         logger.info("Start Deploy Azure VM From Custom Image operation")
 
         return self._deploy_vm_generic(create_vm_action=self._create_vm_custom_image_action,
-                                       deployment_model=deployment_model,
-                                       cloud_provider_model=cloud_provider_model,
-                                       reservation=reservation,
-                                       storage_client=storage_client,
-                                       compute_client=compute_client,
-                                       network_client=network_client,
-                                       cancellation_context=cancellation_context,
-                                       logger=logger,
+                                       deployment_model=deployment_model, cloud_provider_model=cloud_provider_model,
+                                       reservation=reservation, storage_client=storage_client,
+                                       compute_client=compute_client, network_client=network_client,
+                                       cancellation_context=cancellation_context, logger=logger,
                                        cloudshell_session=cloudshell_session)
 
-    def deploy_from_marketplace(self, deployment_model,
-                                cloud_provider_model,
-                                reservation,
-                                network_client,
-                                compute_client,
-                                storage_client,
-                                cancellation_context,
-                                logger,
-                                cloudshell_session):
+    def deploy_from_marketplace(self, deployment_model, cloud_provider_model, reservation, network_client,
+                                compute_client, storage_client, cancellation_context, logger, cloudshell_session,
+                                network_actions):
         """
+        :param list[ConnectSubnet] network_actions:
         :param CloudShellAPISession cloudshell_session:
         :param CancellationContext cancellation_context:
         :param azure.mgmt.storage.storage_management_client.StorageManagementClient storage_client:
@@ -125,8 +116,8 @@ class DeployAzureVMOperation(object):
         :param logging.Logger logger:
         :return:
         """
-        logger.info("Start Deploy Azure VM from marketplace operation")
 
+        logger.info("Start Deploy Azure VM from marketplace operation")
         return self._deploy_vm_generic(create_vm_action=self._create_vm_marketplace_action,
                                        deployment_model=deployment_model,
                                        cloud_provider_model=cloud_provider_model,
@@ -134,14 +125,17 @@ class DeployAzureVMOperation(object):
                                        storage_client=storage_client,
                                        compute_client=compute_client,
                                        network_client=network_client,
+                                       network_actions = network_actions,
                                        cancellation_context=cancellation_context,
                                        logger=logger,
                                        cloudshell_session=cloudshell_session)
 
     def _deploy_vm_generic(self, create_vm_action, deployment_model, cloud_provider_model, reservation, storage_client,
-                           compute_client, network_client, cancellation_context, logger, cloudshell_session):
+                           compute_client, network_client, cancellation_context, logger, cloudshell_session,
+                           network_actions):
         """
 
+        :param list[ConnectSubnet] network_actions:
         :param create_vm_action: action that returns a VM object with the following signature:
             (compute_client, storage_client, deployment_model, cloud_provider_model, data, cancellation_context, logger)
         :param BaseDeployAzureVMResourceModel deployment_model:
@@ -242,18 +236,28 @@ class DeployAzureVMOperation(object):
         is_market_place = type(data.image_model) is MarketplaceImageDataModel
         vm_details_data = self.vm_details_provider.create(vm, is_market_place, logger, network_client, data.group_name)
 
-        return DeployResult(vm_name=data.vm_name,
-                            vm_uuid=vm.vm_id,
-                            cloud_provider_resource_name=cloud_provider_model.cloud_provider_name,
-                            autoload=deployment_model.autoload,
-                            inbound_ports=deployment_model.inbound_ports,
-                            deployed_app_attributes=deployed_app_attributes,
-                            deployed_app_address=data.private_ip_address,
-                            public_ip=data.public_ip_address,
-                            resource_group=data.reservation_id,
-                            extension_time_out=extension_time_out,
-                            vm_details_data=vm_details_data,
-                            network_configuration_results=[])
+        # check if CustomImageDataModel or MarketplaceImageDataModel, no more options
+        return DeployAppResult(vmUuid=vm.vm_id,
+                               vmName=data.vm_name,
+                               deployedAppAddress=data.private_ip_address,
+                               deployedAppAttributes=deployed_app_attributes,
+                               vmDetailsData=vm_details_data
+                               )
+        #
+        # return DeployResult(vm_name=data.vm_name,
+        #                     vm_uuid=vm.vm_id,
+        #                     cloud_provider_resource_name=cloud_provider_model.cloud_provider_name,
+        #                     autoload=deployment_model.autoload,
+        #                     inbound_ports=deployment_model.inbound_ports,
+        #                     deployed_app_attributes=deployed_app_attributes,
+        #                     deployed_app_address=data.private_ip_address,
+        #                     public_ip=data.public_ip_address,
+        #                     resource_group=data.reservation_id,
+        #                     extension_time_out=extension_time_out,
+        #                     vm_details_data=vm_details_data,
+        #                     network_configuration_results=[])
+
+
 
     def _expand_cloud_error_message(self, exc, deployment_model):
         """
@@ -385,10 +389,17 @@ class DeployAzureVMOperation(object):
         sandbox_virtual_network = self.network_service.get_sandbox_virtual_network(
             network_client=network_client,
             group_name=cloud_provider_model.management_group_name)
+        for subnet in sandbox_virtual_network.subnets:
+            logger.warn('existing subnet name: ' + subnet.name)
 
         if deployment_model.network_configurations:
             deployment_model.network_configurations.sort(key=lambda x: x.connection_params.device_index)
             subnet_names = [action.connection_params.subnet_id for action in deployment_model.network_configurations]
+            logger.warn('subnet names: ')
+            for subnet_name in subnet_names:
+                logger.warn('name is:'
+                            + subnet_name)
+
         else:
             return [subnet for subnet in sandbox_virtual_network.subnets if subnet_name in subnet.name]
 
@@ -605,7 +616,8 @@ class DeployAzureVMOperation(object):
                                                                             data.group_name,
                                                                             security_group_name,
                                                                             inbound_rules,
-                                                                            '*',  # we want to apply 'inbound ports' attribute on all the VM nics
+                                                                            '*',
+                                                                            # we want to apply 'inbound ports' attribute on all the VM nics
                                                                             lock)
 
         self.cancellation_service.check_if_cancelled(cancellation_context)
@@ -728,7 +740,7 @@ class DeployAzureVMOperation(object):
         data.vm_size = self._prepare_vm_size(azure_vm_deployment_model=deployment_model,
                                              cloud_provider_model=cloud_provider_model)
 
-        logger.info("Retrieve sandbox subnet {}".format(data.group_name))
+        logger.warn("Retrieve sandbox subnet {}".format(data.group_name))
         data.subnets = self._get_subnets(network_client=network_client,
                                          cloud_provider_model=cloud_provider_model,
                                          subnet_name=data.group_name,
@@ -736,7 +748,7 @@ class DeployAzureVMOperation(object):
                                          deployment_model=deployment_model)
 
         data.interface_names = ["{}-{}".format(unique_resource_name, str(i)) for i, subnet in enumerate(data.subnets)]
-
+        logger.warn('interfaces:' + str(len(data.interface_names)))
         logger.info("Retrieve sandbox storage account name by resource group {}".format(data.group_name))
         data.storage_account_name = self.storage_service.get_sandbox_storage_account_name(storage_client=storage_client,
                                                                                           group_name=data.group_name)

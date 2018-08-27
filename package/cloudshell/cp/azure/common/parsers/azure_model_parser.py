@@ -1,6 +1,9 @@
 import jsonpickle
 from cloudshell.cp.core.utils import first_or_default
 
+from cloudshell.cp.azure.common.parsers.security_group_parser import SecurityGroupParser
+from cloudshell.cp.azure.domain.services.parsers.network_actions import NetworkActionsParser
+from cloudshell.cp.azure.models.app_security_groups_model import AppSecurityGroupModel, DeployedApp, VmDetails
 from cloudshell.cp.azure.models.azure_cloud_provider_resource_model import AzureCloudProviderResourceModel
 from cloudshell.cp.azure.models.deploy_azure_vm_resource_models import DeployAzureVMResourceModel, \
     RouteTableRequestResourceModel, RouteResourceModel
@@ -24,7 +27,7 @@ class AzureModelsParser(object):
         return data_holder
 
     @staticmethod
-    def _set_base_deploy_azure_vm_model_params(deployment_resource_model, deploy_action, cloudshell_session, logger):
+    def _set_base_deploy_azure_vm_model_params(deployment_resource_model, deploy_action, network_actions, cloudshell_session, logger):
         """
         Set base parameters to the Azure Deploy model
 
@@ -64,7 +67,7 @@ class AzureModelsParser(object):
             deployment_resource_model.password = decrypted_pass.Value
 
         deployment_resource_model.network_configurations = \
-            AzureModelsParser.parse_deploy_networking_configurations(data_holder)
+            AzureModelsParser.parse_deploy_networking_configurations(network_actions,logger)
 
         return deployment_resource_model
 
@@ -122,7 +125,7 @@ class AzureModelsParser(object):
         return route_table_model
 
     @staticmethod
-    def convert_to_deploy_azure_vm_resource_model(deploy_action, cloudshell_session, logger):
+    def convert_to_deploy_azure_vm_resource_model(deploy_action, network_actions, cloudshell_session, logger):
         """
         Convert deployment request JSON to the DeployAzureVMResourceModel model
 
@@ -140,6 +143,7 @@ class AzureModelsParser(object):
         deployment_resource_model.image_version = data_attributes['Image Version']
         AzureModelsParser._set_base_deploy_azure_vm_model_params(deployment_resource_model=deployment_resource_model,
                                                                  deploy_action=deploy_action,
+                                                                 network_actions=network_actions,
                                                                  cloudshell_session=cloudshell_session,
                                                                  logger=logger)
 
@@ -257,18 +261,17 @@ class AzureModelsParser(object):
         return None
 
     @staticmethod
-    def parse_deploy_networking_configurations(deployment_request):
+    def parse_deploy_networking_configurations(actions, logger):
         """
         :param deployment_request: request object to parse
         :return:
         """
-        if "NetworkConfigurationsRequest" not in deployment_request:
+        logger.warn('here')
+        if not actions:
             return None
-
-        actions = deployment_request["NetworkConfigurationsRequest"]["actions"]
         # actions = deployment_request["NetworkConfigurationsRequest"]
 
-        return NetworkActionsParser.parse_network_actions_data(actions)
+        return NetworkActionsParser.parse_network_actions_data(actions,logger)
 
     @staticmethod
     def get_app_security_groups_from_request(request):

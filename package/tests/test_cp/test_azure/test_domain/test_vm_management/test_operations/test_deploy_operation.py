@@ -163,12 +163,9 @@ class TestDeployAzureVMOperation(TestCase):
         result = self.deploy_operation._deploy_vm_generic(create_vm_action=create_vm_action,
                                                           deployment_model=resource_model,
                                                           cloud_provider_model=cloud_provider_model,
-                                                          reservation=reservation,
-                                                          network_client=network_client,
-                                                          compute_client=compute_client,
-                                                          storage_client=storage_client,
-                                                          cancellation_context=cancellation_context,
-                                                          logger=logger,
+                                                          reservation=reservation, storage_client=storage_client,
+                                                          compute_client=compute_client, network_client=network_client,
+                                                          cancellation_context=cancellation_context, logger=logger,
                                                           cloudshell_session=cloudshell_session)
 
         # Verify
@@ -279,16 +276,13 @@ class TestDeployAzureVMOperation(TestCase):
         cloudshell_session=Mock()
 
         # Act
-        res = self.deploy_operation.deploy_from_marketplace(
-                deployment_model=azure_vm_deployment_model,
-                cloud_provider_model=cloud_provider_model,
-                reservation=reservation,
-                network_client=network_client,
-                compute_client=compute_client,
-                storage_client=storage_client,
-                cancellation_context=cancellation_context,
-                logger=logger,
-                cloudshell_session=cloudshell_session)
+        res = self.deploy_operation.deploy_from_marketplace(deployment_model=azure_vm_deployment_model,
+                                                            cloud_provider_model=cloud_provider_model,
+                                                            reservation=reservation, network_client=network_client,
+                                                            compute_client=compute_client,
+                                                            storage_client=storage_client,
+                                                            cancellation_context=cancellation_context, logger=logger,
+                                                            cloudshell_session=cloudshell_session)
 
         # Assert
         self.assertEquals(expected_result, res)
@@ -412,15 +406,11 @@ class TestDeployAzureVMOperation(TestCase):
 
         # Act
         with self.assertRaises(Exception):
-            self.deploy_operation._deploy_vm_generic(create_vm_action=create_vm_action,
-                                                     deployment_model=resource_model,
-                                                     cloud_provider_model=cloud_provider_model,
-                                                     reservation=reservation,
+            self.deploy_operation._deploy_vm_generic(create_vm_action=create_vm_action, deployment_model=resource_model,
+                                                     cloud_provider_model=cloud_provider_model, reservation=reservation,
+                                                     storage_client=storage_client, compute_client=compute_client,
                                                      network_client=network_client,
-                                                     compute_client=compute_client,
-                                                     storage_client=storage_client,
-                                                     cancellation_context=cancellation_context,
-                                                     logger=logger,
+                                                     cancellation_context=cancellation_context, logger=logger,
                                                      cloudshell_session=cloudshell_session)
 
         # Verify

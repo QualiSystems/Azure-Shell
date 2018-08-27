@@ -1,4 +1,7 @@
 from azure.mgmt.compute.models import StorageAccountTypes
+from cloudshell.cp.core.models import VmDetailsProperty, VmDetailsData, VmDetailsNetworkInterface
+
+from cloudshell.cp.azure.domain.vm_management.operations.deploy_operation import get_ip_from_interface_name
 
 
 class VmDetailsProvider(object):
@@ -80,9 +83,11 @@ class VmDetailsProvider(object):
                                                           privateIpAddress=private_ip, publicIpAddress=public_ip)
 
             if ip_configuration.public_ip_address:
+                public_ip_name = get_ip_from_interface_name(nic_name)
+
                 public_ip_object = self.network_service.get_public_ip(network_client=network_client,
                                                                       group_name=group_name,
-                                                                      ip_name=instance.name)
+                                                                      ip_name=public_ip_name)
                 public_ip = public_ip_object.ip_address
 
                 network_data.append(VmDetailsProperty(key="Public IP", value=public_ip))
