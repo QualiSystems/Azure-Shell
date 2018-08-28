@@ -1,7 +1,10 @@
+from cloudshell.cp.azure.models.network_actions_models import ConnectToSubnetActionResult
+
+
 class DeployResult(object):
     def __init__(self, vm_name, vm_uuid, cloud_provider_resource_name, autoload,
                  inbound_ports, deployed_app_attributes, deployed_app_address,
-                 public_ip, resource_group, extension_time_out, vm_details_data):
+                 public_ip, resource_group, extension_time_out, vm_details_data, network_configuration_results):
         """
         :param str vm_name: The name of the virtual machine
         :param uuid uuid: The UUID
@@ -12,6 +15,7 @@ class DeployResult(object):
         :param str deployed_app_address:
         :param str public_ip:
         :param bool extension_time_out:
+        :param list[ConnectToSubnetActionResult] network_configuration_results:
         :return:
         """
 
@@ -29,3 +33,4 @@ class DeployResult(object):
         self.public_ip = public_ip
         self.extension_time_out = extension_time_out
         self.vm_details_data = vm_details_data
+        self.network_configuration_results = network_configuration_results  # type: list[ConnectToSubnetActionResult]

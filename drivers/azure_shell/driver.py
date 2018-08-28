@@ -19,13 +19,13 @@ class AzureShellDriver(ResourceDriverInterface):
     def Deploy(self, context, request=None, cancellation_context=None):
         actions = self.request_parser.convert_driver_request_to_actions(request)
         deploy_action = single(actions, lambda x: isinstance(x, DeployApp))
+
         deployment_name = deploy_action.actionParams.deployment.deploymentPath
 
         if deployment_name in self.deployments.keys():
             deploy_method = self.deployments[deployment_name]
-            result = deploy_method(context, deploy_action, cancellation_context)
-            result.actionId = deploy_action.actionId
-            return DriverResponse([result]).to_driver_response_json()
+            results = deploy_method(context, actions, cancellation_context)
+            return DriverResponse(results).to_driver_response_json()
         else:
             raise Exception('Could not find the deployment')
 
@@ -35,10 +35,13 @@ class AzureShellDriver(ResourceDriverInterface):
     def cleanup(self):
         pass
 
-    def deploy_vm(self, context, action, cancellation_context):
+    def deploy_vm(self, context, actions, cancellation_context):
         return self.azure_shell.deploy_azure_vm(command_context=context,
-                                                deploy_action=action,
+                                                actions=actions,
                                                 cancellation_context=cancellation_context)
+
+    # def create_route_table(self,context,request):
+    #     return self.azure_shell.create_route_table(context,request)
 
     def deploy_vm_from_custom_image(self, context, action, cancellation_context):
         return self.azure_shell.deploy_vm_from_custom_image(command_context=context,

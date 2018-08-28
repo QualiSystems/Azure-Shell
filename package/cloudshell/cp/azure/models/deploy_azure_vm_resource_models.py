@@ -1,6 +1,9 @@
+from typing import Dict, List
+
 class BaseDeployAzureVMResourceModel(object):
     def __init__(self):
         self.vm_size = ''  # type: str
+        self.disk_size = ''  # type: str
         self.autoload = False  # type: bool
         self.add_public_ip = False  # type: bool
         self.inbound_ports = ''  # type: str
@@ -12,6 +15,26 @@ class BaseDeployAzureVMResourceModel(object):
         self.extension_script_configurations = ''
         self.extension_script_timeout = 0  # type: int
         self.disk_type = ''  # type: str
+        self.allow_all_sandbox_traffic = True  # type: bool
+
+class DeployARMTemplateResourceModel():
+    def __init__(self):
+        self.template_url = ''  # type: str
+        self.parameters = ''  # type: Dict[str, str]
+
+
+class RouteResourceModel(object):
+    def __init__(self):
+        self.name = ''
+        self.route_address_prefix = ''
+        self.next_hop_type = ''
+        self.next_hope_address = ''
+
+class RouteTableRequestResourceModel(object):
+    def __init__(self):
+        self.name = None  # type: str
+        self.routes = []  # type: List[RouteResourceModel]
+        self.subnets = []
 
 
 class DeployAzureVMResourceModel(BaseDeployAzureVMResourceModel):

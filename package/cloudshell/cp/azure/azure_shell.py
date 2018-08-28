@@ -1,7 +1,21 @@
 from threading import Lock
 
 import jsonpickle
+from cloudshell.api.cloudshell_api import CommandExecutionCancelledResultInfo
 from cloudshell.core.context.error_handling_context import ErrorHandlingContext
+from cloudshell.cp.core.models import DeployApp, ConnectSubnet, ConnectToSubnetActionResult, \
+    SetAppSecurityGroupActionResult
+from cloudshell.cp.core.utils import single
+from msrestazure.azure_exceptions import CloudError
+
+from cloudshell.cp.azure.domain.common.vm_details_provider import VmDetailsProvider
+from cloudshell.cp.azure.domain.networking_management.operations.add_route_operation import AddRouteOperation
+from cloudshell.cp.azure.domain.vm_management.operations.PrepareSandboxInfraOperation import \
+    PrepareSandboxInfraOperation
+from cloudshell.cp.azure.domain.vm_management.operations.access_key_operation import AccessKeyOperation
+from cloudshell.cp.azure.domain.vm_management.operations.delete_operation import DeleteAzureVMOperation
+from cloudshell.cp.azure.domain.vm_management.operations.set_app_security_groups import SetAppSecurityGroupsOperation
+from cloudshell.cp.azure.domain.vm_management.operations.vm_details_operation import VmDetailsOperation
 from cloudshell.shell.core.driver_context import ResourceCommandContext, CancellationContext
 from cloudshell.shell.core.session.cloudshell_session import CloudShellSessionContext
 from cloudshell.shell.core.session.logging_session import LoggingSessionContext
@@ -29,16 +43,16 @@ from cloudshell.cp.azure.domain.services.task_waiter import TaskWaiterService
 from cloudshell.cp.azure.domain.services.virtual_machine_service import VirtualMachineService
 from cloudshell.cp.azure.domain.services.vm_credentials_service import VMCredentialsService
 from cloudshell.cp.azure.domain.services.vm_extension import VMExtensionService
-from cloudshell.cp.azure.domain.vm_management.operations.PrepareSandboxInfraOperation import \
-    PrepareSandboxInfraOperation
-from cloudshell.cp.azure.domain.vm_management.operations.access_key_operation import AccessKeyOperation
-from cloudshell.cp.azure.domain.vm_management.operations.app_ports_operation import DeployedAppPortsOperation
-from cloudshell.cp.azure.domain.vm_management.operations.autoload_operation import AutoloadOperation
-from cloudshell.cp.azure.domain.vm_management.operations.delete_operation import DeleteAzureVMOperation
+from cloudshell.cp.azure.domain.services.task_waiter import TaskWaiterService
+from cloudshell.cp.azure.domain.services.command_cancellation import CommandCancellationService
+from cloudshell.cp.azure.domain.services.subscription import SubscriptionService
 from cloudshell.cp.azure.domain.vm_management.operations.deploy_operation import DeployAzureVMOperation
 from cloudshell.cp.azure.domain.vm_management.operations.power_operation import PowerAzureVMOperation
 from cloudshell.cp.azure.domain.vm_management.operations.refresh_ip_operation import RefreshIPOperation
-from cloudshell.cp.azure.domain.vm_management.operations.vm_details_operation import VmDetailsOperation
+from cloudshell.cp.azure.common.azure_clients import AzureClientsManager
+from cloudshell.cp.azure.common.parsers.custom_param_extractor import VmCustomParamsExtractor
+from cloudshell.cp.azure.domain.vm_management.operations.app_ports_operation import DeployedAppPortsOperation
+from cloudshell.cp.azure.domain.vm_management.operations.autoload_operation import AutoloadOperation
 
 
 class AzureShell(object):
@@ -85,6 +99,8 @@ class AzureShell(object):
             subnet_locker=self.subnet_locker,
             resource_id_parser=self.resource_id_parser)
 
+        self.create_route_operation = AddRouteOperation(self.network_service)
+
         self.deploy_azure_vm_operation = DeployAzureVMOperation(
             vm_service=self.vm_service,
             network_service=self.network_service,
@@ -121,6 +137,11 @@ class AzureShell(object):
         self.vm_details_operation = VmDetailsOperation(vm_service=self.vm_service,
                                                        vm_details_provider=self.vm_details_provider)
 
+        self.set_app_security_groups_operation = SetAppSecurityGroupsOperation(vm_service=self.vm_service,
+                                                                               resource_id_parser=self.resource_id_parser,
+                                                                               nsg_service=self.security_group_service,
+                                                                               generic_lock_provider=self.generic_lock_provider)
+
     def get_inventory(self, command_context):
         """Validate Cloud Provider
 
@@ -141,11 +162,14 @@ class AzureShell(object):
                     logger.info("End Autoload Operation...")
                     return result
 
-    def deploy_azure_vm(self, command_context, deploy_action, cancellation_context):
+    def deploy_arm_template(self, command_context, template_name, cancellation_context):
+        pass
+
+    def create_route_table(self,command_context, route_table_request):
         """ Will deploy Azure Image on the cloud provider
 
         :param ResourceCommandContext command_context:
-        :param cloudshell.cp.core.models.DeployApp deploy_action: describes the desired deployment
+        :param str route_request: JSON string
         :param CancellationContext cancellation_context:
         """
         with LoggingSessionContext(command_context) as logger:
@@ -153,9 +177,51 @@ class AzureShell(object):
                 logger.info('Deploying Azure VM...')
 
                 with CloudShellSessionContext(command_context) as cloudshell_session:
+
+
+                    route_table_request_model = self.model_parser.convert_to_route_table_model(
+                        cloudshell_session=cloudshell_session,
+                        logger=logger, route_table_request=route_table_request)
+
+                    cloudshell_session.WriteMessageToReservationOutput(command_context.reservation.reservation_id,
+                                                                       route_table_request)
+
+                    for route in route_table_request_model.routes:
+                        cloudshell_session.WriteMessageToReservationOutput(command_context.reservation.reservation_id, route.name)
+
+                    cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(
+                        resource=command_context.resource,
+                        cloudshell_session=cloudshell_session)
+
+                azure_clients = AzureClientsManager(cloud_provider_model)
+
+                self.create_route_operation.create_route_table(network_client=azure_clients.network_client,
+                                                               cloud_provider_model=cloud_provider_model,
+                                                               route_table_request=route_table_request_model,
+                                                               sandbox_id=command_context.reservation.reservation_id,
+                                                                subnet_lcoker=self.subnet_locker)
+
+    def deploy_azure_vm(self, command_context, actions, cancellation_context):
+        """ Will deploy Azure Image on the cloud provider
+
+        :param ResourceCommandContext command_context:
+        :param cloudshell.cp.core.models.DeployApp deploy_action: describes the desired deployment
+        :param CancellationContext cancellation_context:
+        """
+
+        deploy_action = single(actions, lambda x: isinstance(x, DeployApp))
+        network_actions = [a for a in actions if isinstance(a, ConnectSubnet)]
+        with LoggingSessionContext(command_context) as logger:
+            with ErrorHandlingContext(logger):
+                logger.info('Deploying Azure VM...')
+                logger.info(
+                    "Deploying VM actions: {0}".format(','.join([jsonpickle.encode(a) for a in actions])))
+
+                with CloudShellSessionContext(command_context) as cloudshell_session:
                     azure_vm_deployment_model = self.model_parser.convert_to_deploy_azure_vm_resource_model(
                         deploy_action=deploy_action,
                         cloudshell_session=cloudshell_session,
+                        network_actions=network_actions,
                         logger=logger)
 
                     cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(
@@ -164,19 +230,33 @@ class AzureShell(object):
 
                 azure_clients = AzureClientsManager(cloud_provider_model)
 
-                result = self.deploy_azure_vm_operation.deploy_from_marketplace(
+                results = self.deploy_azure_vm_operation.deploy_from_marketplace(
                     deployment_model=azure_vm_deployment_model,
                     cloud_provider_model=cloud_provider_model,
                     reservation=self.model_parser.convert_to_reservation_model(command_context.reservation),
                     network_client=azure_clients.network_client,
                     compute_client=azure_clients.compute_client,
                     storage_client=azure_clients.storage_client,
+                    network_actions=network_actions,
                     cancellation_context=cancellation_context,
                     logger=logger,
                     cloudshell_session=cloudshell_session)
 
                 logger.info('End deploying Azure VM')
-                return result
+
+                # todo dont always set success?
+
+                # actions = network_actions
+                # deploy_data.network_configuration_results = \
+                #     [ConnectToSubnetActionResult(action_id=action["actionId"],
+                #                                  interface_data='', success=True) for action in actions] \
+                #         if actions else None
+                # logger.info('End deploying Azure VM')
+
+                network_results = [ConnectToSubnetActionResult(action.actionId, True, '', '', '') for action in
+                                   network_actions]
+                results.actionId = deploy_action.actionId
+                return [results] + network_results
 
     def deploy_vm_from_custom_image(self, command_context, deploy_action, cancellation_context):
         """Deploy Azure Image from given Image URN
@@ -298,13 +378,20 @@ class AzureShell(object):
                 azure_clients = AzureClientsManager(cloud_provider_model)
                 vm_name = command_context.remote_endpoints[0].fullname
 
-                self.delete_azure_vm_operation.delete(
-                    compute_client=azure_clients.compute_client,
-                    network_client=azure_clients.network_client,
-                    storage_client=azure_clients.storage_client,
-                    group_name=resource_group_name,
-                    vm_name=vm_name,
-                    logger=logger)
+                try:
+                    self.delete_azure_vm_operation.delete(
+                        compute_client=azure_clients.compute_client,
+                        network_client=azure_clients.network_client,
+                        storage_client=azure_clients.storage_client,
+                        group_name=resource_group_name,
+                        vm_name=vm_name,
+                        logger=logger)
+                except CloudError as e:
+                    if e.response.reason == "Not Found":
+                        logger.info('Deleting Azure VM Not Found Exception:', exc_info=1)
+                    else:
+                        logger.exception('Deleting Azure VM Exception:')
+                        raise
 
                 logger.info('End Deleting Azure VM')
 
@@ -435,11 +522,40 @@ class AzureShell(object):
         with LoggingSessionContext(command_context) as logger:
             with ErrorHandlingContext(logger):
                 logger.info('Getting Application Ports...')
-                resource = command_context.remote_endpoints[0]
-                data_holder = self.model_parser.convert_app_resource_to_deployed_app(resource)
+                with CloudShellSessionContext(command_context) as cloudshell_session:
+                    cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(
+                        resource=command_context.resource,
+                        cloudshell_session=cloudshell_session)
 
-                return self.deployed_app_ports_operation.get_formated_deployed_app_ports(
-                    data_holder.vmdetails.vmCustomParams)
+                azure_clients = AzureClientsManager(cloud_provider_model)
+                resource_group_name = \
+                    self.model_parser.convert_to_reservation_model(command_context.remote_reservation).reservation_id
+
+                resource = command_context.remote_endpoints[0]
+                vm_name = resource.fullname
+
+                compute_client = azure_clients.compute_client
+                network_client = azure_clients.network_client
+
+                vm = self.vm_service.get_vm(compute_client, resource_group_name, vm_name)
+
+                first_nic_name = vm.network_profile.network_interfaces[0].id.split('/')[-1]
+                first_nic = network_client.network_interfaces.get(resource_group_name, first_nic_name)
+                vm_nsg_name = first_nic.network_security_group.id.split('/')[-1]
+
+                vm_nsg = azure_clients.network_client.network_security_groups.get(resource_group_name, vm_nsg_name)
+
+                custom_rules_output = [
+                    'Protocol: {4}\t'
+                    'Source Address: {0}\tSource Port Range: {1}\t'
+                    'Destination Address: {2}\tDestination Port Range{3}'.format(rule.source_address_prefix,
+                                                                       rule.source_port_range,
+                                                                       rule.destination_address_prefix,
+                                                                       rule.destination_port_range,
+                                                                       rule.protocol)
+                    for rule in vm_nsg.security_rules if rule.name.startswith('rule_')]
+
+                return '\n'.join(custom_rules_output)
 
     def get_vm_details(self, command_context, cancellation_context, requests_json):
         """Get vm details for specific deployed app
@@ -481,3 +597,37 @@ class AzureShell(object):
                                                                       model_parser=self.model_parser,
                                                                       cancellation_context=cancellation_context)
                 return self.command_result_parser.set_command_result(vm_details)
+
+    def set_app_security_groups(self, command_context, request):
+        """
+        Set security groups (inbound rules only)
+        :param ResourceCommandContext command_context:
+        :param request: The json request
+        :return:
+        """
+        with LoggingSessionContext(command_context) as logger:
+            with ErrorHandlingContext(logger):
+                logger.info("Starting set_app_security_groups operation...")
+
+                app_security_group_models = self.model_parser.convert_to_app_security_group_models(request)
+
+                group_name = self.model_parser.convert_to_reservation_model(command_context.reservation) \
+                    .reservation_id
+
+                with CloudShellSessionContext(command_context) as cloudshell_session:
+                    cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(
+                        resource=command_context.resource,
+                        cloudshell_session=cloudshell_session)
+
+                    azure_clients = AzureClientsManager(cloud_provider_model)
+
+                    result = self.set_app_security_groups_operation.set_apps_security_groups(
+                        logger=logger,
+                        app_security_group_models=app_security_group_models,
+                        compute_client=azure_clients.compute_client,
+                        network_client=azure_clients.network_client,
+                        group_name=group_name)
+
+                    json_result = SetAppSecurityGroupActionResult.to_json(result)
+
+                    return json_result
