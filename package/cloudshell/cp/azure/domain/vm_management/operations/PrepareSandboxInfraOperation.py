@@ -27,7 +27,6 @@ class PrepareSandboxInfraOperation(object):
                  tags_service,
                  key_pair_service,
                  security_group_service,
-                 cryptography_service,
                  name_provider_service,
                  cancellation_service,
                  subnet_locker,
@@ -40,7 +39,6 @@ class PrepareSandboxInfraOperation(object):
         :param cloudshell.cp.azure.domain.services.tags.TagService tags_service:
         :param cloudshell.cp.azure.domain.services.key_pair.KeyPairService key_pair_service:
         :param cloudshell.cp.azure.domain.services.security_group.SecurityGroupService security_group_service:
-        :param cloudshell.cp.azure.domain.services.cryptography_service.CryptographyService cryptography_service:
         :param cloudshell.cp.azure.domain.services.name_provider.NameProviderService name_provider_service:
         :param cloudshell.cp.azure.domain.services.command_cancellation.CommandCancellationService cancellation_service:
         :param threading.Lock subnet_locker:
@@ -48,7 +46,6 @@ class PrepareSandboxInfraOperation(object):
         :return:
         """
 
-        self.cryptography_service = cryptography_service
         self.vm_service = vm_service
         self.network_service = network_service
         self.storage_service = storage_service
@@ -87,7 +84,7 @@ class PrepareSandboxInfraOperation(object):
         group_name = str(reservation_id)
         subnet_name = group_name
         tags = self.tags_service.get_tags(reservation=reservation)
-        network_action_result = PrepareCloudInfraResult()
+        create_key_action_result = CreateKeysActionResult()
 
         # 1. Create a resource group
         logger.info("Creating a resource group: {0} .".format(group_name))
@@ -101,7 +98,7 @@ class PrepareSandboxInfraOperation(object):
         pool = ThreadPool()
         storage_res = pool.apply_async(self._create_storage_and_keypairs,
                                        (logger, storage_client, storage_account_name, group_name, cloud_provider_model,
-                                        tags, cancellation_context, network_action_result))
+                                        tags, cancellation_context, create_key_action_result))
 
         logger.info("Retrieving MGMT vNet from resource group {} by tag {}={}".format(
                 cloud_provider_model.management_group_name,
@@ -174,14 +171,17 @@ class PrepareSandboxInfraOperation(object):
         pool.join()
         storage_res.get(timeout=900)  # will wait for 15 min and raise exception if storage account creation failed
 
-        return self._prepare_results(network_action_result, actions)
+        return self._prepare_results(create_key_action_result, actions)
 
-    def _prepare_results(self, network_action_result, actions):
-        network_action_result.actionId = self._get_action_id_by_type(actions, PrepareCloudInfra)
+    def _prepare_results(self, create_key_action_result, actions):
+        network_action_result = PrepareCloudInfraResult(self._get_action_id_by_type(actions, PrepareCloudInfra))
+
         subnet_action_results = [PrepareSubnetActionResult(action_id) for action_id in
                                  self._get_action_ids_by_type(actions, PrepareSubnet)]
-        create_keys_action_result = CreateKeysActionResult(self._get_action_id_by_type(actions, CreateKeys))
-        return [network_action_result, create_keys_action_result] + subnet_action_results
+
+        create_key_action_result.actionId = self._get_action_id_by_type(actions, CreateKeys)
+
+        return [network_action_result, create_key_action_result] + subnet_action_results
 
     def _get_action_id_by_type(self, actions, action_class):
         return next((action.actionId for action in actions if isinstance(action, action_class)))
@@ -200,8 +200,19 @@ class PrepareSandboxInfraOperation(object):
         return self.name_provider_service.generate_name(name=reservation_id, postfix="cs", max_length=24).replace("-", "")
 
     def _create_storage_and_keypairs(self, logger, storage_client, storage_account_name, group_name,
-                                     cloud_provider_model, tags, cancellation_context, action_result):
+                                     cloud_provider_model, tags, cancellation_context, create_key_action_result):
+        """
 
+        :param logger:
+        :param storage_client:
+        :param storage_account_name:
+        :param group_name:
+        :param cloud_provider_model:
+        :param tags:
+        :param cancellation_context:
+        :param CreateKeysActionResult create_key_action_result:
+        :return:
+        """
         try:
             # 2. Create a storage account
             logger.info("Creating a storage account {0} .".format(storage_account_name))
@@ -222,10 +233,8 @@ class PrepareSandboxInfraOperation(object):
 
             self.cancellation_service.check_if_cancelled(cancellation_context)
 
-            cryptography_dto = self.cryptography_service.encrypt(key_pair.private_key)
+            create_key_action_result.accessKey = key_pair.private_key
 
-            action_result.access_key = cryptography_dto.encrypted_input
-            action_result.secret_key = cryptography_dto.encrypted_asymmetric_key
         except Exception as exc:
             logger.error(traceback.format_exc())
             raise
