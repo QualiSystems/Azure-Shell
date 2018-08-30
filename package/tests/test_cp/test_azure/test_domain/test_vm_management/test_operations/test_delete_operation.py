@@ -133,6 +133,7 @@ class TestDeleteOperation(TestCase):
         network_client = Mock()
         network_interface = Mock()
         network_interface.ip_configurations = []
+        network_interface.network_security_group.id = 'eth0/interfaceName'
         network_client.network_interfaces.get.return_value = network_interface
         storage_client = Mock()
         compute_client = Mock()
@@ -152,9 +153,9 @@ class TestDeleteOperation(TestCase):
                                      logger=self.logger)
 
         # Verify
-        self.assertTrue(self.vm_service.delete_vm.assert_any_call())
-        self.assertTrue(network_client.public_ip_addresses.delete.assert_any_call())
-        self.assertTrue(network_client.network_interfaces.delete.assert_any_call())
+        self.vm_service.delete_vm.assert_called()
+        network_client.public_ip_addresses.delete.assert_called()
+        network_client.network_interfaces.delete.assert_called()
         self.delete_operation._delete_vm_disk.assert_called_once_with(
                 logger=self.logger,
                 storage_client=storage_client,
