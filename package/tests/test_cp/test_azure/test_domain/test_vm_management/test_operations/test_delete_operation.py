@@ -11,7 +11,6 @@ from cloudshell.cp.azure.domain.services.security_group import SecurityGroupServ
 from cloudshell.cp.azure.domain.services.tags import TagService
 from cloudshell.cp.azure.domain.services.virtual_machine_service import VirtualMachineService
 from cloudshell.cp.azure.domain.vm_management.operations.delete_operation import DeleteAzureVMOperation
-from tests.helpers.test_helper import TestHelper
 
 
 class TestDeleteOperation(TestCase):
@@ -132,6 +131,9 @@ class TestDeleteOperation(TestCase):
         self.vm_service.delete_vm = Mock()
         self.vm_service.get_vm = Mock(return_value=vm)
         network_client = Mock()
+        network_interface = Mock()
+        network_interface.ip_configurations = []
+        network_client.network_interfaces.get.return_value = network_interface
         storage_client = Mock()
         compute_client = Mock()
         compute_client.virtual_machines.get.return_value = vm
@@ -150,9 +152,9 @@ class TestDeleteOperation(TestCase):
                                      logger=self.logger)
 
         # Verify
-        self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.vm_service.delete_vm))
-        self.assertTrue(TestHelper.CheckMethodCalledXTimes(network_client.public_ip_addresses.delete))
-        self.assertTrue(TestHelper.CheckMethodCalledXTimes(network_client.network_interfaces.delete))
+        self.assertTrue(self.vm_service.delete_vm.assert_any_call())
+        self.assertTrue(network_client.public_ip_addresses.delete.assert_any_call())
+        self.assertTrue(network_client.network_interfaces.delete.assert_any_call())
         self.delete_operation._delete_vm_disk.assert_called_once_with(
                 logger=self.logger,
                 storage_client=storage_client,
@@ -236,7 +238,7 @@ class TestDeleteOperation(TestCase):
         self.vm_service.delete_resource_group(resource_management_client, group_name)
 
         # Verify
-        self.assertTrue(TestHelper.CheckMethodCalledXTimes(resource_management_client.resource_groups.delete))
+        self.assertTrue(resource_management_client.resource_groups.delete.assert_any_call())
         resource_management_client.resource_groups.delete.assert_called_with(group_name)
 
     def test_delete_vm(self):
