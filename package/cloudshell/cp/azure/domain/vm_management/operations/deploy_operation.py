@@ -77,9 +77,10 @@ class DeployAzureVMOperation(object):
                                  storage_client,
                                  cancellation_context,
                                  logger,
-                                 cloudshell_session):
+                                 cloudshell_session,
+                                 network_actions):
         """ Deploy Azure VM from custom image URN
-
+        :param list[ConnectSubnet] network_actions:
         :param CloudShellAPISession cloudshell_session:
         :param azure.mgmt.storage.storage_management_client.StorageManagementClient storage_client:
         :param azure.mgmt.compute.compute_management_client.ComputeManagementClient compute_client:
@@ -98,7 +99,7 @@ class DeployAzureVMOperation(object):
                                        reservation=reservation, storage_client=storage_client,
                                        compute_client=compute_client, network_client=network_client,
                                        cancellation_context=cancellation_context, logger=logger,
-                                       cloudshell_session=cloudshell_session)
+                                       cloudshell_session=cloudshell_session, network_actions=network_actions)
 
     def deploy_from_marketplace(self, deployment_model, cloud_provider_model, reservation, network_client,
                                 compute_client, storage_client, cancellation_context, logger, cloudshell_session,
@@ -125,7 +126,7 @@ class DeployAzureVMOperation(object):
                                        storage_client=storage_client,
                                        compute_client=compute_client,
                                        network_client=network_client,
-                                       network_actions = network_actions,
+                                       network_actions=network_actions,
                                        cancellation_context=cancellation_context,
                                        logger=logger,
                                        cloudshell_session=cloudshell_session)

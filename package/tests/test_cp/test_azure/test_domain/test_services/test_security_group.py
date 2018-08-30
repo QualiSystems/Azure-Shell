@@ -7,6 +7,7 @@ from mock import MagicMock
 from mock import Mock
 
 from cloudshell.cp.azure.domain.services.security_group import SecurityGroupService
+from cloudshell.cp.azure.models.rule_data import RuleData
 
 
 class TestSecurityGroupService(TestCase):
@@ -73,7 +74,9 @@ class TestSecurityGroupService(TestCase):
     def test_prepare_security_group_rule(self, security_rule_class):
         """Check that method returns SecurityRule model"""
         security_rule_class.return_value = security_rule = mock.MagicMock()
-        rule_data = mock.MagicMock()
+        rule_data = mock.MagicMock(spec=RuleData)
+        rule_data.port = 5
+        rule_data.protocol = 'tcp'
         private_vm_ip = mock.MagicMock()
         priority = mock.MagicMock()
 
@@ -155,8 +158,7 @@ class TestSecurityGroupService(TestCase):
         # Arrange
         self.network_security_group = MagicMock()
         self.security_group_service.list_network_security_group = MagicMock()
-        self.security_group_service.list_network_security_group.return_value = self.network_security_group
-        self.security_group_service._validate_network_security_group_is_single_per_group = MagicMock()
+        self.security_group_service.list_network_security_group.return_value = [self.network_security_group]
 
         # Act
         self.security_group_service.get_first_network_security_group(self.network_client, self.group_name)
@@ -165,9 +167,6 @@ class TestSecurityGroupService(TestCase):
         self.security_group_service.list_network_security_group.assert_called_once_with(
                 network_client=self.network_client,
                 group_name=self.group_name)
-        self.security_group_service._validate_network_security_group_is_single_per_group.assert_called_once_with(
-                self.network_security_group,
-                self.group_name)
 
     def test_delete_security_rules(self):
         # Arrange

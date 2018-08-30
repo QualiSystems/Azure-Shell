@@ -151,7 +151,7 @@ class VirtualMachineService(object):
         :param cloudshell.cp.azure.models.vm_credentials.VMCredentials vm_credentials:
         :param str computer_name: computer name
         :param str group_name: Azure resource group name (reservation id)
-        :param str nics: list of nics
+        :param list nics: list[Nic]
         :param str region: Azure region
         :param str vm_name: name for VM
         :param tags: Azure tags

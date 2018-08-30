@@ -1,6 +1,7 @@
 from threading import Lock
 from unittest import TestCase
 
+from azure.mgmt.compute.models import NetworkInterfaceReference
 from mock import Mock, MagicMock
 from msrestazure.azure_exceptions import CloudError
 from requests import Response
@@ -127,11 +128,13 @@ class TestDeleteOperation(TestCase):
 
         # Arrange
         vm = Mock()
+        vm.network_profile.network_interfaces = [NetworkInterfaceReference(id='1/1/1/1')]
         self.vm_service.delete_vm = Mock()
         self.vm_service.get_vm = Mock(return_value=vm)
         network_client = Mock()
         storage_client = Mock()
         compute_client = Mock()
+        compute_client.virtual_machines.get.return_value = vm
         group_name = "AzureTestGroup"
         network_client.network_interfaces.delete = Mock()
         network_client.public_ip_addresses.delete = Mock()
@@ -164,10 +167,11 @@ class TestDeleteOperation(TestCase):
         self.vm_service.delete_vm = Mock(side_effect=Exception("Boom!"))
 
         # Act
+        network_client = Mock()
         self.assertRaises(Exception,
                           self.delete_operation.delete,
                           Mock(),
-                          Mock(),
+                          network_client,
                           Mock(),
                           "AzureTestGroup",
                           "AzureTestVM",

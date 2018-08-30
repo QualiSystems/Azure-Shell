@@ -9,7 +9,7 @@
             <Command Description="" DisplayName="Get Application Ports" EnableCancellation="true" Name="GetApplicationPorts" Tags="remote_connectivity,allow_shared" />
             <Command Description="" DisplayName="Prepare Connectivity" EnableCancellation="true" Name="PrepareSandboxInfra" Tags="allow_unreserved" />
             <Command Description="" DisplayName="Cleanup Connectivity" Name="CleanupSandboxInfra" Tags="allow_unreserved" />
-            <!--<Command Description="" DisplayName="Create RouteTable" EnableCancellation="false" Name="create_route_table" Tags="allow_unreserved" />-->
+            
         </Category>
         <Category Name="Hidden Commands">
             <Command Description="" DisplayName="Power Cycle" Name="PowerCycle" Tags="power" />

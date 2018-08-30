@@ -43,9 +43,9 @@ class AzureShellDriver(ResourceDriverInterface):
     # def create_route_table(self,context,request):
     #     return self.azure_shell.create_route_table(context,request)
 
-    def deploy_vm_from_custom_image(self, context, action, cancellation_context):
+    def deploy_vm_from_custom_image(self, context, actions, cancellation_context):
         return self.azure_shell.deploy_vm_from_custom_image(command_context=context,
-                                                            deploy_action=action,
+                                                            actions=actions,
                                                             cancellation_context=cancellation_context)
 
     def PowerOn(self, context, ports):

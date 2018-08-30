@@ -99,7 +99,6 @@ class PrepareSandboxInfraOperation(object):
         network_action_result = PrepareNetworkActionResult()
         create_key_action_result = CreateKeysActionResult()
 
-
         # 1. Create a resource group
         logger.info("Creating a resource group: {0} .".format(group_name))
         self.vm_service.create_resource_group(resource_management_client=resource_client, group_name=group_name,

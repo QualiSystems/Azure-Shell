@@ -150,7 +150,7 @@ class AzureModelsParser(object):
         return deployment_resource_model
 
     @staticmethod
-    def convert_to_deploy_azure_vm_from_custom_image_resource_model(deploy_action, cloudshell_session, logger):
+    def convert_to_deploy_azure_vm_from_custom_image_resource_model(deploy_action, network_actions, cloudshell_session, logger):
         """
         Convert deployment request JSON to the DeployAzureVMFromCustomImageResourceModel model
 
@@ -166,6 +166,7 @@ class AzureModelsParser(object):
         deployment_resource_model.image_resource_group = data_attributes['Azure Resource Group']
         AzureModelsParser._set_base_deploy_azure_vm_model_params(deployment_resource_model=deployment_resource_model,
                                                                  deploy_action=deploy_action,
+                                                                 network_actions=network_actions,
                                                                  cloudshell_session=cloudshell_session,
                                                                  logger=logger)
 

@@ -165,7 +165,7 @@ class AzureShell(object):
     def deploy_arm_template(self, command_context, template_name, cancellation_context):
         pass
 
-    def create_route_table(self,command_context, route_table_request):
+    def create_route_table(self, command_context, route_table_request):
         """ Will deploy Azure Image on the cloud provider
 
         :param ResourceCommandContext command_context:
@@ -177,8 +177,6 @@ class AzureShell(object):
                 logger.info('Deploying Azure VM...')
 
                 with CloudShellSessionContext(command_context) as cloudshell_session:
-
-
                     route_table_request_model = self.model_parser.convert_to_route_table_model(
                         cloudshell_session=cloudshell_session,
                         logger=logger, route_table_request=route_table_request)
@@ -187,7 +185,8 @@ class AzureShell(object):
                                                                        route_table_request)
 
                     for route in route_table_request_model.routes:
-                        cloudshell_session.WriteMessageToReservationOutput(command_context.reservation.reservation_id, route.name)
+                        cloudshell_session.WriteMessageToReservationOutput(command_context.reservation.reservation_id,
+                                                                           route.name)
 
                     cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(
                         resource=command_context.resource,
@@ -199,7 +198,7 @@ class AzureShell(object):
                                                                cloud_provider_model=cloud_provider_model,
                                                                route_table_request=route_table_request_model,
                                                                sandbox_id=command_context.reservation.reservation_id,
-                                                                subnet_lcoker=self.subnet_locker)
+                                                               subnet_lcoker=self.subnet_locker)
 
     def deploy_azure_vm(self, command_context, actions, cancellation_context):
         """ Will deploy Azure Image on the cloud provider
@@ -246,19 +245,12 @@ class AzureShell(object):
 
                 # todo dont always set success?
 
-                # actions = network_actions
-                # deploy_data.network_configuration_results = \
-                #     [ConnectToSubnetActionResult(action_id=action["actionId"],
-                #                                  interface_data='', success=True) for action in actions] \
-                #         if actions else None
-                # logger.info('End deploying Azure VM')
-
                 network_results = [ConnectToSubnetActionResult(action.actionId, True, '', '', '') for action in
                                    network_actions]
                 results.actionId = deploy_action.actionId
                 return [results] + network_results
 
-    def deploy_vm_from_custom_image(self, command_context, deploy_action, cancellation_context):
+    def deploy_vm_from_custom_image(self, command_context, actions, cancellation_context):
         """Deploy Azure Image from given Image URN
 
         :param ResourceCommandContext command_context: ResourceCommandContext instance
@@ -266,6 +258,10 @@ class AzureShell(object):
         :param CancellationContext cancellation_context:
         :return:
         """
+
+        deploy_action = single(actions, lambda x: isinstance(x, DeployApp))
+        network_actions = [a for a in actions if isinstance(a, ConnectSubnet)]
+
         with LoggingSessionContext(command_context) as logger:
             with ErrorHandlingContext(logger):
                 logger.info('Deploying Azure VM From Custom Image...')
@@ -274,6 +270,7 @@ class AzureShell(object):
                     azure_vm_deployment_model = self.model_parser. \
                         convert_to_deploy_azure_vm_from_custom_image_resource_model(
                         deploy_action=deploy_action,
+                        network_actions=network_actions,
                         cloudshell_session=cloudshell_session,
                         logger=logger)
 
@@ -283,7 +280,7 @@ class AzureShell(object):
 
                 azure_clients = AzureClientsManager(cloud_provider_model)
 
-                result = self.deploy_azure_vm_operation.deploy_from_custom_image(
+                results = self.deploy_azure_vm_operation.deploy_from_custom_image(
                     deployment_model=azure_vm_deployment_model,
                     cloud_provider_model=cloud_provider_model,
                     reservation=self.model_parser.convert_to_reservation_model(command_context.reservation),
@@ -292,11 +289,16 @@ class AzureShell(object):
                     storage_client=azure_clients.storage_client,
                     cancellation_context=cancellation_context,
                     logger=logger,
-                    cloudshell_session=cloudshell_session)
+                    cloudshell_session=cloudshell_session,
+                    network_actions=network_actions)
 
                 logger.info('End deploying Azure VM From Custom Image')
 
-                return result
+                # todo dont always set success?
+                network_results = [ConnectToSubnetActionResult(action.actionId, True, '', '', '') for action in
+                                   network_actions]
+                results.actionId = deploy_action.actionId
+                return [results] + network_results
 
     def prepare_connectivity(self, context, actions, cancellation_context):
         """
@@ -521,7 +523,6 @@ class AzureShell(object):
         """
         with LoggingSessionContext(command_context) as logger:
             with ErrorHandlingContext(logger):
-                logger.info('Getting Application Ports...')
                 with CloudShellSessionContext(command_context) as cloudshell_session:
                     cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(
                         resource=command_context.resource,
@@ -549,10 +550,10 @@ class AzureShell(object):
                     'Protocol: {4}\t'
                     'Source Address: {0}\tSource Port Range: {1}\t'
                     'Destination Address: {2}\tDestination Port Range{3}'.format(rule.source_address_prefix,
-                                                                       rule.source_port_range,
-                                                                       rule.destination_address_prefix,
-                                                                       rule.destination_port_range,
-                                                                       rule.protocol)
+                                                                                 rule.source_port_range,
+                                                                                 rule.destination_address_prefix,
+                                                                                 rule.destination_port_range,
+                                                                                 rule.protocol)
                     for rule in vm_nsg.security_rules if rule.name.startswith('rule_')]
 
                 return '\n'.join(custom_rules_output)
