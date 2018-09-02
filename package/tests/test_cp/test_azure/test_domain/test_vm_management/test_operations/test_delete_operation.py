@@ -130,11 +130,7 @@ class TestDeleteOperation(TestCase):
         vm.network_profile.network_interfaces = [NetworkInterfaceReference(id='1/1/1/1')]
         self.vm_service.delete_vm = Mock()
         self.vm_service.get_vm = Mock(return_value=vm)
-        network_client = Mock()
-        network_interface = Mock()
-        network_interface.ip_configurations = []
-        network_interface.network_security_group.id = 'eth0/interfaceName'
-        network_client.network_interfaces.get.return_value = network_interface
+        network_client = self._prepare_mock_network_client()
         storage_client = Mock()
         compute_client = Mock()
         compute_client.virtual_machines.get.return_value = vm
@@ -168,12 +164,16 @@ class TestDeleteOperation(TestCase):
     def test_delete_operation_on_error(self):
         # Arrange
         self.vm_service.delete_vm = Mock(side_effect=Exception("Boom!"))
+        compute_client = self._prepare_mock_compute_client()
+        network_client = self._prepare_mock_network_client()
+        self.delete_operation.security_group_service.delete_security_rules = Mock()
+        self.delete_operation._delete_vm_disk = Mock()
 
         # Act
-        network_client = Mock()
+
         self.assertRaises(Exception,
                           self.delete_operation.delete,
-                          Mock(),
+                          compute_client,
                           network_client,
                           Mock(),
                           "AzureTestGroup",
@@ -183,19 +183,40 @@ class TestDeleteOperation(TestCase):
         # Verify
         self.logger.exception.assert_called()
 
+    def _prepare_mock_compute_client(self):
+        vm = Mock()
+        vm.network_profile.network_interfaces = [NetworkInterfaceReference(id='1/1/1/1')]
+        compute_client = Mock()
+        compute_client.virtual_machines.get.return_value = vm
+        return compute_client
+
+    def _prepare_mock_network_client(self):
+        network_client = Mock()
+        network_interface = Mock()
+        ip_configuration = Mock()
+        ip_configuration.public_ip_address.id = '55.55.55.55'
+        network_interface.ip_configurations = [ip_configuration]
+        network_interface.network_security_group.id = 'eth0/interfaceName'
+        network_client.network_interfaces.get.return_value = network_interface
+        return network_client
+
     def test_delete_operation_on_cloud_error_not_found_no_exception(self):
         # Arrange
         response = Response()
         response.status_code = 0
-        response.reason = "Not Found"
+        response.reason = 'Not Found'
+        response.encoding = 'UTF-8'
         error = CloudError(response)
         self.vm_service.delete_vm = Mock(side_effect=error)
         self.delete_operation.security_group_service.delete_security_rules = Mock()
+        compute_client = self._prepare_mock_compute_client()
+        network_client = self._prepare_mock_network_client()
+        self.delete_operation._delete_vm_disk = Mock()
 
         # Act
         self.delete_operation.delete(
-                Mock(),
-                Mock(),
+                compute_client,
+                network_client,
                 Mock(),
                 "group_name",
                 "vm_name",
@@ -209,6 +230,7 @@ class TestDeleteOperation(TestCase):
         response = Response()
         response.status_code = 0
         response.reason = "Bla bla error"
+        response.encoding = 'UTF-8'
         error = CloudError(response)
         self.vm_service.delete_vm = Mock(side_effect=error)
 
@@ -239,7 +261,6 @@ class TestDeleteOperation(TestCase):
         self.vm_service.delete_resource_group(resource_management_client, group_name)
 
         # Verify
-        self.assertTrue(resource_management_client.resource_groups.delete.assert_any_call())
         resource_management_client.resource_groups.delete.assert_called_with(group_name)
 
     def test_delete_vm(self):

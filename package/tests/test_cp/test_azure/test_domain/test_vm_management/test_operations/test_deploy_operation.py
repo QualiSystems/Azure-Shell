@@ -450,7 +450,7 @@ class TestDeployAzureVMOperation(TestCase):
         self.deploy_operation._rollback_deployed_resources(compute_client=MagicMock(),
                                                            network_client=MagicMock(),
                                                            group_name=MagicMock(),
-                                                           interface_namse=[MagicMock()],
+                                                           interface_names=[MagicMock()],
                                                            vm_name=MagicMock(),
                                                            logger=MagicMock())
 
