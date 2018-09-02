@@ -1,5 +1,6 @@
 from typing import Dict, List
 
+
 class BaseDeployAzureVMResourceModel(object):
     def __init__(self):
         self.vm_size = ''  # type: str
@@ -17,6 +18,7 @@ class BaseDeployAzureVMResourceModel(object):
         self.disk_type = ''  # type: str
         self.allow_all_sandbox_traffic = True  # type: bool
 
+
 class DeployARMTemplateResourceModel():
     def __init__(self):
         self.template_url = ''  # type: str
@@ -29,6 +31,7 @@ class RouteResourceModel(object):
         self.route_address_prefix = ''
         self.next_hop_type = ''
         self.next_hope_address = ''
+
 
 class RouteTableRequestResourceModel(object):
     def __init__(self):

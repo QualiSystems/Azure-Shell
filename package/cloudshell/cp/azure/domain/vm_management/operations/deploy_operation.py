@@ -372,6 +372,7 @@ class DeployAzureVMOperation(object):
         :param subnet_name: (str) Azure subnet resource name
         :param logger: logging.Logger instance
         :return: azure.mgmt.network.models.Subnet instance
+        :param BaseDeployAzureVMResourceModel deployment_model:
         """
         sandbox_virtual_network = self.network_service.get_sandbox_virtual_network(
             network_client=network_client,
@@ -379,13 +380,12 @@ class DeployAzureVMOperation(object):
         for subnet in sandbox_virtual_network.subnets:
             logger.warn('existing subnet name: ' + subnet.name)
 
-        if deployment_model.network_configurations:
+        if hasattr(deployment_model, 'network_configurations'):
             deployment_model.network_configurations.sort(key=lambda x: x.connection_params.device_index)
             subnet_names = [action.connection_params.subnet_id for action in deployment_model.network_configurations]
             logger.warn('subnet names: ')
             for subnet_name in subnet_names:
-                logger.warn('name is:'
-                            + subnet_name)
+                logger.warn('name is:' + subnet_name)
 
         else:
             return [subnet for subnet in sandbox_virtual_network.subnets if subnet_name in subnet.name]

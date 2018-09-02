@@ -50,42 +50,59 @@ class TestDeployAzureVMOperation(TestCase):
         """Check that method will call network service to get sandbox vNet and will return it's subnet by given name"""
         network_client = MagicMock()
         cloud_provider_model = MagicMock()
-        subnet_name = "testsubnetname"
-        sandbox_subnet = MagicMock()
-        sandbox_subnet.name = subnet_name
+        deployment_model, sandbox_subnet, subnet_name = self._prepare_mock_subnets()
         self.network_service.get_sandbox_virtual_network = MagicMock(
-                return_value=MagicMock(subnets=[MagicMock(), MagicMock(), sandbox_subnet]))
+            return_value=MagicMock(subnets=[MagicMock(), MagicMock(), sandbox_subnet]))
 
         # Act
-        subnet = self.deploy_operation._get_subnets(
+        subnets = self.deploy_operation._get_subnets(
                 network_client=network_client,
                 cloud_provider_model=cloud_provider_model,
                 subnet_name=subnet_name,
                 logger=self.logger,
-                deployment_model=Mock())
+                deployment_model=deployment_model)
 
         # Verify
         self.network_service.get_sandbox_virtual_network.assert_called_once_with(
                 network_client=network_client,
                 group_name=cloud_provider_model.management_group_name)
 
-        self.assertEqual(subnet, sandbox_subnet)
+        self.assertEqual(subnets[0], sandbox_subnet)
+
+    def _prepare_mock_subnets(self):
+        subnet_name = "testsubnetname"
+        sandbox_subnet = MagicMock()
+        sandbox_subnet.name = subnet_name
+        deployment_model = Mock()
+        network_action = Mock()
+        network_action.connection_params.subnet_id = subnet_name
+        deployment_model.network_configurations = [network_action]
+
+        return deployment_model, sandbox_subnet, subnet_name
 
     def test_get_sandbox_subnet_will_raise_no_valid_subnet_exception(self):
         """Check that method will raise Exception if there is no subnet with given name under the MGMT network"""
         network_client = MagicMock()
         cloud_provider_model = MagicMock()
-        subnet_name = "testsubnetname"
-        self.network_service.get_sandbox_virtual_network = MagicMock(
-                return_value=MagicMock(subnets=[MagicMock(), MagicMock(), MagicMock()]))
+        cloud_provider_model.management_group_name = 'delorean'
 
-        with self.assertRaisesRegexp(Exception, "Could not find a valid subnet."):
+        subnet_name = 'warawara'
+        deployment_model, sandbox_subnet, _ = self._prepare_mock_subnets()
+
+        # no subnets with subnet_name, to force exception to be thrown
+        self.network_service.get_sandbox_virtual_network = MagicMock(return_value=MagicMock(
+            subnets=[MagicMock(), MagicMock(), MagicMock()]))
+
+        error_message = "Subnet {} was not found under the resource group {}".format(
+            subnet_name, cloud_provider_model.management_group_name)
+
+        with self.assertRaisesRegexp(Exception, error_message):
             self.deploy_operation._get_subnets(
                     network_client=network_client,
                     cloud_provider_model=cloud_provider_model,
                     subnet_name=subnet_name,
                     logger=Mock(),
-                    deployment_model=Mock())
+                    deployment_model=deployment_model)
 
     def test_get_public_ip_address(self):
         """Check that method will use network service to get Public IP by it's name"""
@@ -340,6 +357,7 @@ class TestDeployAzureVMOperation(TestCase):
                 compute_management_client=compute_client,
                 image_name=azure_vm_deployment_model.image_name,
                 image_resource_group=azure_vm_deployment_model.image_resource_group,
+                disk_size=azure_vm_deployment_model.disk_size,
                 disk_type=azure_vm_deployment_model.disk_type,
                 vm_credentials=data.vm_credentials,
                 computer_name=data.computer_name,
@@ -379,6 +397,7 @@ class TestDeployAzureVMOperation(TestCase):
                 image_sku=azure_vm_deployment_model.image_sku,
                 image_version=azure_vm_deployment_model.image_version,
                 disk_type=azure_vm_deployment_model.disk_type,
+                disk_size=azure_vm_deployment_model.disk_size,
                 vm_credentials=data.vm_credentials,
                 computer_name=data.computer_name,
                 group_name=data.group_name,
@@ -431,8 +450,7 @@ class TestDeployAzureVMOperation(TestCase):
                 compute_client=compute_client,
                 network_client=network_client,
                 group_name=updated_data.group_name,
-                interface_name=updated_data.interface_name,
-                ip_name=updated_data.ip_name,
+                interface_names=updated_data.interface_names,
                 vm_name=updated_data.vm_name,
                 logger=logger)
 

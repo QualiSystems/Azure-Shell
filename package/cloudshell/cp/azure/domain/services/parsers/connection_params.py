@@ -20,7 +20,7 @@ class ConnectionParamsParser(object):
             params = SubnetConnectionParams()
             params.subnet_id = params_data.subnetId
 
-        elif isinstance(params_data,PrepareSubnetParams):
+        elif isinstance(params_data, PrepareSubnetParams):
             params = PrepareSubnetParamsData()
             params.is_public = convert_to_bool(params_data.isPublic)
             params.alias = params_data.alias
