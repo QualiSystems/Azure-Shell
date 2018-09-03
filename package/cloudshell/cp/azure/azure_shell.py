@@ -199,10 +199,6 @@ class AzureShell(object):
                                                                sandbox_id=command_context.reservation.reservation_id,
                                                                 subnet_lcoker=self.subnet_locker)
 
-
-
-
-
     def deploy_azure_vm(self, command_context, deployment_request, cancellation_context):
         """ Will deploy Azure Image on the cloud provider
 
@@ -285,6 +281,13 @@ class AzureShell(object):
                     cloudshell_session=cloudshell_session)
 
                 logger.info('End deploying Azure VM From Custom Image')
+
+                # todo dont always set success?
+                actions = jsonpickle.decode(deployment_request)["NetworkConfigurationsRequest"]["actions"]
+                deploy_data.network_configuration_results = \
+                    [ConnectToSubnetActionResult(action_id=action["actionId"],
+                                                 interface_data='', success=True) for action in actions] \
+                        if actions else None
 
                 return self.command_result_parser.set_command_result(deploy_data)
 
