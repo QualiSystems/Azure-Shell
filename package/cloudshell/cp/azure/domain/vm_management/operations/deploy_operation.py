@@ -150,7 +150,6 @@ class DeployAzureVMOperation(object):
         :return: cloudshell.cp.core.models.DeployAppResult
         """
         logger.info("Start Deploy Azure VM operation")
-        extension_time_out = False
 
         # 1. prepare deploy data model object
         data = self._prepare_deploy_data(logger=logger,
@@ -363,13 +362,12 @@ class DeployAzureVMOperation(object):
             logger.info("NSG rules were successfully created for NSG {}".format(network_security_group.name))
             self.cancellation_service.check_if_cancelled(cancellation_context)
 
-    def _get_subnets(self, network_client, cloud_provider_model, subnet_name, logger, deployment_model):
+    def _get_subnets(self, network_client, cloud_provider_model, logger, deployment_model):
         """
-        Get subnet for for given reservation
+        Get subnets for a given reservation
 
         :param network_client: azure.mgmt.network.network_management_client.NetworkManagementClient
         :param cloud_provider_model: cloudshell.cp.azure.models.azure_cloud_provider_resource_model.AzureCloudProviderResourceModel
-        :param subnet_name: (str) Azure subnet resource name
         :param logger: logging.Logger instance
         :return: azure.mgmt.network.models.Subnet instance
         :param BaseDeployAzureVMResourceModel deployment_model:
@@ -377,30 +375,36 @@ class DeployAzureVMOperation(object):
         sandbox_virtual_network = self.network_service.get_sandbox_virtual_network(
             network_client=network_client,
             group_name=cloud_provider_model.management_group_name)
+
         for subnet in sandbox_virtual_network.subnets:
             logger.warn('existing subnet name: ' + subnet.name)
 
+        # server has sent network actions to perform, we will return the subnets needed by this deployment
         if hasattr(deployment_model, 'network_configurations'):
+
             deployment_model.network_configurations.sort(key=lambda x: x.connection_params.device_index)
+
             subnet_names = [action.connection_params.subnet_id for action in deployment_model.network_configurations]
+
             logger.warn('subnet names: ')
-            for subnet_name in subnet_names:
-                logger.warn('name is:' + subnet_name)
+            [logger.warn('name is:' + subnet_name) for subnet_name in subnet_names]
 
+            try:
+                subnets = []
+                for name in subnet_names:
+                    subnet = next((subnet for subnet in sandbox_virtual_network.subnets if subnet.name == name), None)
+                    if subnet:
+                        subnets.append(subnet)
+                return subnets
+
+            except StopIteration:
+                logger.error("Subnets were not found under the resource group {}".format(
+                    cloud_provider_model.management_group_name))
+                raise Exception("Could not find a valid subnet.")
+
+        # no network actions, just return the default sandbox subnet
         else:
-            return [subnet for subnet in sandbox_virtual_network.subnets if subnet_name in subnet.name]
-
-        try:
-            subnets = []
-            for name in subnet_names:
-                subnet = next((subnet for subnet in sandbox_virtual_network.subnets if subnet.name == name), None)
-                if subnet:
-                    subnets.append(subnet)
-            return subnets
-        except StopIteration:
-            logger.error("Subnet {} was not found under the resource group {}".format(
-                subnet_name, cloud_provider_model.management_group_name))
-            raise Exception("Could not find a valid subnet.")
+            return [subnet for subnet in sandbox_virtual_network.subnets]
 
     def _rollback_deployed_resources(self, compute_client, network_client, group_name, interface_names, vm_name,
                                      logger):
@@ -730,7 +734,6 @@ class DeployAzureVMOperation(object):
         logger.warn("Retrieve sandbox subnet {}".format(data.group_name))
         data.subnets = self._get_subnets(network_client=network_client,
                                          cloud_provider_model=cloud_provider_model,
-                                         subnet_name=data.group_name,
                                          logger=logger,
                                          deployment_model=deployment_model)
 

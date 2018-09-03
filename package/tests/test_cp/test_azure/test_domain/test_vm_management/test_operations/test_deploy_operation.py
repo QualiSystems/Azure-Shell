@@ -58,7 +58,6 @@ class TestDeployAzureVMOperation(TestCase):
         subnets = self.deploy_operation._get_subnets(
                 network_client=network_client,
                 cloud_provider_model=cloud_provider_model,
-                subnet_name=subnet_name,
                 logger=self.logger,
                 deployment_model=deployment_model)
 
@@ -79,30 +78,6 @@ class TestDeployAzureVMOperation(TestCase):
         deployment_model.network_configurations = [network_action]
 
         return deployment_model, sandbox_subnet, subnet_name
-
-    def test_get_sandbox_subnet_will_raise_no_valid_subnet_exception(self):
-        """Check that method will raise Exception if there is no subnet with given name under the MGMT network"""
-        network_client = MagicMock()
-        cloud_provider_model = MagicMock()
-        cloud_provider_model.management_group_name = 'delorean'
-
-        subnet_name = 'warawara'
-        deployment_model, sandbox_subnet, _ = self._prepare_mock_subnets()
-
-        # no subnets with subnet_name, to force exception to be thrown
-        self.network_service.get_sandbox_virtual_network = MagicMock(return_value=MagicMock(
-            subnets=[MagicMock(), MagicMock(), MagicMock()]))
-
-        error_message = "Subnet {} was not found under the resource group {}".format(
-            subnet_name, cloud_provider_model.management_group_name)
-
-        with self.assertRaisesRegexp(Exception, error_message):
-            self.deploy_operation._get_subnets(
-                    network_client=network_client,
-                    cloud_provider_model=cloud_provider_model,
-                    subnet_name=subnet_name,
-                    logger=Mock(),
-                    deployment_model=deployment_model)
 
     def test_get_public_ip_address(self):
         """Check that method will use network service to get Public IP by it's name"""
@@ -648,7 +623,7 @@ class TestDeployAzureVMOperation(TestCase):
         self.deploy_operation.name_provider_service.generate_name = Mock(return_value="random_name")
         self.deploy_operation._prepare_computer_name = Mock(return_value="computer_name")
         self.deploy_operation._prepare_vm_size = Mock(return_value="vm_size")
-        self.deploy_operation._get_sandbox_subnet = Mock()
+        self.deploy_operation._get_subnets = Mock()
         self.deploy_operation.storage_service.get_sandbox_storage_account_name = Mock(return_value="storage")
         self.deploy_operation.tags_service.get_tags = Mock()
         self.name_provider_service.normalize_name = Mock(return_value="cool-app")
