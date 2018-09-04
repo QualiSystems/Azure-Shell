@@ -134,6 +134,9 @@ class TestDeployAzureVMOperation(TestCase):
         data = Mock()
         updated_data = Mock()
         updated_data.vm_credentials = Mock()
+        first_interface_name = 'a'
+        updated_data.interface_names = [first_interface_name, 'b', 'c']
+        updated_data.ip_name = updated_data.public_ip_address = '{}_PublicIP'.format(first_interface_name)
         deployed_app_attributes = Mock()
         self.deploy_operation._prepare_deploy_data = Mock(return_value=data)
         self.deploy_operation._create_vm_common_objects = Mock(return_value=updated_data)
@@ -623,7 +626,7 @@ class TestDeployAzureVMOperation(TestCase):
         self.deploy_operation.name_provider_service.generate_name = Mock(return_value="random_name")
         self.deploy_operation._prepare_computer_name = Mock(return_value="computer_name")
         self.deploy_operation._prepare_vm_size = Mock(return_value="vm_size")
-        self.deploy_operation._get_subnets = Mock()
+        self.deploy_operation._get_subnets = Mock(return_value=['a', 'b'])
         self.deploy_operation.storage_service.get_sandbox_storage_account_name = Mock(return_value="storage")
         self.deploy_operation.tags_service.get_tags = Mock()
         self.name_provider_service.normalize_name = Mock(return_value="cool-app")
@@ -662,11 +665,12 @@ class TestDeployAzureVMOperation(TestCase):
         self.assertEquals(data.image_model, image_data_model)
         self.name_provider_service.normalize_name.assert_called_once_with(deployment_model.app_name)
         self.assertEquals(data.app_name, "cool-app")
-        self.assertEquals(data.interface_name, "random_name")
+        self.assertEquals(data.interface_names[0], "random_name-0")
+        self.assertEquals(data.interface_names[1], "random_name-1")
         self.assertEquals(data.computer_name, "computer_name")
         self.assertEquals(data.vm_name, "random_name")
         self.assertEquals(data.vm_size, "vm_size")
-        self.assertEquals(data.subnet, self.deploy_operation._get_sandbox_subnet.return_value)
+        self.assertEquals(data.subnets[0], self.deploy_operation._get_subnets()[0])
         self.assertEquals(data.storage_account_name, "storage")
         self.assertEquals(data.tags, self.deploy_operation.tags_service.get_tags.return_value)
 
