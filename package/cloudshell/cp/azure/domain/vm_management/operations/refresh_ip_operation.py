@@ -33,7 +33,9 @@ class RefreshIPOperation(object):
             group_name=resource_group_name,
             vm_name=vm_name)
 
-        nic_reference = vm.network_profile.network_interfaces[0]
+        # find the primary nic
+        primary_nic_ref = next(iter(filter(lambda x: x.primary, vm.network_profile.network_interfaces)), None)
+        nic_reference = primary_nic_ref if primary_nic_ref else vm.network_profile.network_interfaces[0]
         nic_name = self.resource_id_parser.get_name_from_resource_id(nic_reference.id)
         logger.info("Retrieving NIC {} for VM {}".format(nic_name, vm_name))
         nic = network_client.network_interfaces.get(resource_group_name, nic_name)

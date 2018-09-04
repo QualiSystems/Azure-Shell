@@ -1,8 +1,11 @@
 from unittest import TestCase
 
 import mock
+from azure.mgmt.network.models import SecurityRule
+from cloudshell.cp.core.models import DeployApp
 
 from cloudshell.cp.azure.azure_shell import AzureShell
+from cloudshell.cp.azure.models.app_security_groups_model import AppSecurityGroupModel
 from cloudshell.cp.azure.models.ssh_key import SSHKey
 
 
@@ -54,7 +57,8 @@ class TestAzureShell(TestCase):
 
         command_context = mock.MagicMock()
         cancellation_context = mock.MagicMock()
-        deploy_action = mock.MagicMock()
+        deploy_action = mock.MagicMock(spec=DeployApp)
+        deploy_action.actionId = '633698de-a142-439b-a4c6-b633729126a4'
         azure_vm_deployment_model = mock.MagicMock()
         cloud_provider_model = mock.MagicMock()
         reservation = mock.MagicMock()
@@ -64,7 +68,7 @@ class TestAzureShell(TestCase):
 
         # Act
         self.azure_shell.deploy_azure_vm(command_context=command_context,
-                                         deploy_action=deploy_action,
+                                         actions=[deploy_action],
                                          cancellation_context=cancellation_context)
 
         # Verify
@@ -74,6 +78,7 @@ class TestAzureShell(TestCase):
             deployment_model=azure_vm_deployment_model,
             cloud_provider_model=cloud_provider_model,
             reservation=reservation,
+            network_actions=[],
             network_client=azure_clients_manager.network_client,
             compute_client=azure_clients_manager.compute_client,
             storage_client=azure_clients_manager.storage_client,
@@ -103,7 +108,8 @@ class TestAzureShell(TestCase):
 
         command_context = mock.MagicMock()
         cancellation_context = mock.MagicMock()
-        deploy_action = mock.MagicMock()
+        deploy_action = mock.MagicMock(spec=DeployApp)
+        deploy_action.actionId = '633698de-a142-439b-a4c6-b633729126a4'
         azure_vm_deployment_model = mock.MagicMock()
         cloud_provider_model = mock.MagicMock()
         reservation = mock.MagicMock()
@@ -113,7 +119,7 @@ class TestAzureShell(TestCase):
 
         # Act
         self.azure_shell.deploy_vm_from_custom_image(command_context=command_context,
-                                                     deploy_action=deploy_action,
+                                                     actions=[deploy_action],
                                                      cancellation_context=cancellation_context)
 
         # Verify
@@ -125,6 +131,7 @@ class TestAzureShell(TestCase):
             deployment_model=azure_vm_deployment_model,
             cloud_provider_model=cloud_provider_model,
             reservation=reservation,
+            network_actions=[],
             network_client=azure_clients_manager.network_client,
             compute_client=azure_clients_manager.compute_client,
             storage_client=azure_clients_manager.storage_client,
@@ -411,32 +418,57 @@ class TestAzureShell(TestCase):
             resource_fullname=resource_fullname,
             logger=self.logger)
 
+    @mock.patch("cloudshell.cp.azure.azure_shell.CloudShellSessionContext")
+    @mock.patch("cloudshell.cp.azure.azure_shell.AzureClientsManager")
     @mock.patch("cloudshell.cp.azure.azure_shell.LoggingSessionContext")
     @mock.patch("cloudshell.cp.azure.azure_shell.ErrorHandlingContext")
-    def test_get_application_ports(self, error_handling_class, logging_context_class):
+    def test_get_application_ports(self, error_handling_class, logging_context_class, azure_clients_manager_class,
+                                   cloudshell_session_context_class):
         """Check that method uses ErrorHandlingContext and get_formated_deployed_app_ports method"""
+        # mock Cloudshell Session
+        cloudshell_session = mock.MagicMock()
+        cloudshell_session_context = mock.MagicMock(__enter__=mock.MagicMock(return_value=cloudshell_session))
+        cloudshell_session_context_class.return_value = cloudshell_session_context
         # mock LoggingSessionContext and ErrorHandlingContext
         logging_context = mock.MagicMock(__enter__=mock.MagicMock(return_value=self.logger))
         logging_context_class.return_value = logging_context
         error_handling = mock.MagicMock()
         error_handling_class.return_value = error_handling
+        # mock Azure clients
+        azure_clients_manager = mock.MagicMock()
+        vm_nsg = mock.MagicMock()
+        mock_rules = [SecurityRule(name='rule_2500', source_address_prefix='srcPrefix', source_port_range='10-20',
+                                   destination_address_prefix='destPrefix', destination_port_range='10-20',
+                                   protocol='tcp', direction='bi', access='all')]
+        vm_nsg.security_rules = mock_rules
+
+        azure_clients_manager.network_client.network_security_groups.get.return_value = vm_nsg
+        azure_clients_manager_class.return_value = azure_clients_manager
 
         resource = mock.MagicMock()
         command_context = mock.MagicMock(remote_endpoints=[resource])
         data_holder = mock.MagicMock()
         self.azure_shell.model_parser.convert_app_resource_to_deployed_app.return_value = data_holder
 
+        custom_rules_output = [
+            'Protocol: {4}\t'
+            'Source Address: {0}\tSource Port Range: {1}\t'
+            'Destination Address: {2}\tDestination Port Range{3}'.format(rule.source_address_prefix,
+                                                                         rule.source_port_range,
+                                                                         rule.destination_address_prefix,
+                                                                         rule.destination_port_range,
+                                                                         rule.protocol)
+            for rule in mock_rules if rule.name.startswith('rule_')]
+        expected_output = '\n'.join(custom_rules_output)
+
         # Act
-        self.azure_shell.get_application_ports(command_context=command_context)
+        actual_output = self.azure_shell.get_application_ports(command_context=command_context)
 
         # Verify
         error_handling.__enter__.assert_called_once_with()
         error_handling_class.assert_called_once_with(self.logger)
 
-        self.azure_shell.model_parser.convert_app_resource_to_deployed_app.assert_called_once_with(resource)
-
-        self.azure_shell.deployed_app_ports_operation.get_formated_deployed_app_ports.assert_called_once_with(
-            data_holder.vmdetails.vmCustomParams)
+        self.assertTrue(expected_output == actual_output)
 
     @mock.patch("cloudshell.cp.azure.azure_shell.CloudShellSessionContext")
     @mock.patch("cloudshell.cp.azure.azure_shell.AzureClientsManager")
@@ -499,3 +531,33 @@ class TestAzureShell(TestCase):
             logger=self.logger)
 
         self.assertEqual(res, expected_res)
+
+    # @mock.patch("cloudshell.cp.azure.azure_shell.CloudShellSessionContext")
+    # @mock.patch("cloudshell.cp.azure.azure_shell.LoggingSessionContext")
+    # @mock.patch("cloudshell.cp.azure.azure_shell.ErrorHandlingContext")
+    # @mock.patch("cloudshell.cp.azure.azure_shell.AzureClientsManager")
+    # def test_set_app_security_groups(self, error_handling_class, logging_context_class,
+    #                                  cloudshell_session_context_class, azure_clients_manager_class):
+    #     """ Can create app security groups """
+    #     # region Configuration of contexts used by AzureShell
+    #     # mock Cloudshell Session
+    #     cloudshell_session = mock.MagicMock()
+    #     cloudshell_session_context = mock.MagicMock(__enter__=mock.MagicMock(return_value=cloudshell_session))
+    #     cloudshell_session_context_class.return_value = cloudshell_session_context
+    #     # mock LoggingSessionContext and ErrorHandlingContext
+    #     logging_context = mock.MagicMock(__enter__=mock.MagicMock(return_value=self.logger))
+    #     logging_context_class.return_value = logging_context
+    #     error_handling = mock.MagicMock()
+    #     error_handling_class.return_value = error_handling
+    #     # mock AzureClientManager
+    #     azure_clients_manager = mock.MagicMock()
+    #     azure_clients_manager_class.return_value = azure_clients_manager
+    #     # endregion
+    #
+    #     command_context = mock.MagicMock()
+    #     request = mock.MagicMock()
+    #     self.azure_shell.model_parser.convert_to_app_security_group_models.return_value = [AppSecurityGroupModel()]
+    #
+    #     result = self.azure_shell.set_app_security_groups(command_context, request)
+    #     # self.azure_shell.set_app_security_groups_operation.set_apps_security_groups.assert_called_once_with(self.logger)
+    #     return 1==1

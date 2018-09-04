@@ -12,7 +12,8 @@ from cloudshell.cp.azure.domain.services.tags import TagService
 from cloudshell.cp.azure.domain.vm_management.operations.PrepareSandboxInfraOperation import \
     PrepareSandboxInfraOperation
 from tests.helpers.test_helper import TestHelper
-from cloudshell.cp.core.models import PrepareCloudInfra, PrepareSubnet, CreateKeys
+from cloudshell.cp.core.models import PrepareCloudInfra, PrepareSubnet, CreateKeys, PrepareCloudInfraParams, \
+    PrepareSubnetParams
 
 
 class TestPrepareSandboxInfra(TestCase):
@@ -49,15 +50,15 @@ class TestPrepareSandboxInfra(TestCase):
         self.storage_service.create_storage_account = MagicMock()
         self.vm_service.create_resource_group = MagicMock()
 
-        network_action = Mock(spec=PrepareCloudInfra)
-        network_action.actionParams = Mock()
+        network_action = PrepareCloudInfra()
+        network_action.actionParams = PrepareCloudInfraParams
         network_action.actionParams.cidr = "10.0.0.0/24"
         network_action.actionId = '1'
-        subnet_action = Mock(spec=PrepareSubnet)
-        subnet_action.actionParams = Mock()
+        subnet_action = PrepareSubnet()
+        subnet_action.actionParams = PrepareSubnetParams
         subnet_action.actionParams.cidr = "10.0.0.0/24"
         subnet_action.actionId = '1'
-        create_keys_action = Mock(spec=CreateKeys)
+        create_keys_action = CreateKeys()
         create_keys_action.actionId = '3'
 
         actions = [network_action, subnet_action, create_keys_action]
@@ -81,7 +82,7 @@ class TestPrepareSandboxInfra(TestCase):
             storage_client=MagicMock(),
             resource_client=MagicMock(),
             network_client=network_client,
-            logger=self.logger,
+            logger=MagicMock(),
             actions=actions,
             cancellation_context=cancellation_context)
 
@@ -96,7 +97,7 @@ class TestPrepareSandboxInfra(TestCase):
         # key pair created
         self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.key_pair_service.save_key_pair))
 
-        self.assertTrue(TestHelper.CheckMethodCalledXTimes(network_client.security_rules.create_or_update, 3))
+        self.assertTrue(TestHelper.CheckMethodCalledXTimes(network_client.security_rules.create_or_update, 4))
         network_client.network_security_groups.create_or_update.assert_called_once()
         self.cancellation_service.check_if_cancelled.assert_called_with(cancellation_context)
 
@@ -134,15 +135,15 @@ class TestPrepareSandboxInfra(TestCase):
         self.network_service.get_virtual_network_by_tag = Mock(return_value=None)
         self.network_service.get_virtual_network_by_tag.side_effect = [None, Mock()]
 
-        network_action = Mock(spec=PrepareCloudInfra)
-        network_action.actionParams = Mock()
+        network_action = PrepareCloudInfra()
+        network_action.actionParams = PrepareCloudInfraParams()
         network_action.actionParams.cidr = "10.0.0.0/24"
         network_action.actionId = '1'
-        subnet_action = Mock(spec=PrepareSubnet)
-        subnet_action.actionParams = Mock()
+        subnet_action = PrepareSubnet()
+        subnet_action.actionParams = PrepareSubnetParams()
         subnet_action.actionParams.cidr = "10.0.0.0/24"
         subnet_action.actionId = '1'
-        create_keys_action = Mock(spec=CreateKeys)
+        create_keys_action = CreateKeys()
         create_keys_action.actionId = '3'
 
         actions = [network_action, subnet_action, create_keys_action]

@@ -1,5 +1,7 @@
 from azure.mgmt.compute.models import StorageAccountTypes
-from cloudshell.cp.core.models import  VmDetailsProperty,VmDetailsNetworkInterface,VmDetailsData
+from cloudshell.cp.core.models import VmDetailsProperty, VmDetailsData, VmDetailsNetworkInterface
+
+from cloudshell.cp.azure.domain.vm_management.operations.deploy_operation import get_ip_from_interface_name
 
 
 class VmDetailsProvider(object):
@@ -64,29 +66,39 @@ class VmDetailsProvider(object):
 
     def _get_vm_network_data(self, instance, network_client, group_name, logger):
 
-        nic = network_client.network_interfaces.get(group_name, instance.name)
+        network_interface_objects = []
+        for network_interface in instance.network_profile.network_interfaces:
+            nic_name = self.resource_id_parser.get_name_from_resource_id(network_interface.id)
 
-        ip_configuration = nic.ip_configurations[0]
-        private_ip = ip_configuration.private_ip_address
-        public_ip = ''
-        network_data = [VmDetailsProperty(key="IP", value=ip_configuration.private_ip_address)]
+            nic = network_client.network_interfaces.get(group_name, nic_name)
 
-        if ip_configuration.public_ip_address:
-            public_ip_object = self.network_service.get_public_ip(network_client=network_client,
-                                                           group_name=group_name,
-                                                           ip_name=instance.name)
-            public_ip = public_ip_object.ip_address
+            ip_configuration = nic.ip_configurations[0]
 
-            network_data.append(VmDetailsProperty(key="Public IP",value= public_ip))
-            network_data.append(VmDetailsProperty(key="Public IP Type",value= public_ip_object.public_ip_allocation_method))
-            # logger.info("VM {} was created with public IP '{}'.".format(instance.name,
-            #                                                             ip_configuration.public_ip_address.ip_address))
-            logger.info("VM {} was created with public IP '{}'.".format(instance.name, public_ip))
+            private_ip = ip_configuration.private_ip_address
+            public_ip = ''
+            network_data = [VmDetailsProperty(key="IP", value=ip_configuration.private_ip_address)]
 
-        network_data.append(VmDetailsProperty(key="MAC Address",value=nic.mac_address))
+            current_interface = VmDetailsNetworkInterface(interfaceId=nic.resource_guid, networkId=nic.name,
+                                                          isPrimary=nic.primary, networkData=network_data,
+                                                          privateIpAddress=private_ip, publicIpAddress=public_ip)
 
-        current_interface = VmDetailsNetworkInterface(interfaceId=nic.resource_guid, networkId=nic.name,
-                                                      isPrimary=nic.primary, networkData=network_data,
-                                                      privateIpAddress=private_ip, publicIpAddress=public_ip)
+            if ip_configuration.public_ip_address:
+                public_ip_name = get_ip_from_interface_name(nic_name)
 
-        return [current_interface]
+                public_ip_object = self.network_service.get_public_ip(network_client=network_client,
+                                                                      group_name=group_name,
+                                                                      ip_name=public_ip_name)
+                public_ip = public_ip_object.ip_address
+
+                network_data.append(VmDetailsProperty(key="Public IP", value=public_ip))
+                network_data.append(
+                    VmDetailsProperty(key="Public IP Type", value=public_ip_object.public_ip_allocation_method))
+                # logger.info("VM {} was created with public IP '{}'.".format(instance.name,
+                #                                                             ip_configuration.public_ip_address.ip_address))
+                logger.info("VM {} was created with public IP '{}'.".format(instance.name, public_ip))
+
+            network_data.append(VmDetailsProperty(key="MAC Address", value=nic.mac_address))
+
+            network_interface_objects.append(current_interface)
+
+        return network_interface_objects

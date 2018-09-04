@@ -15,6 +15,47 @@ class NetworkService(object):
         self.ip_service = ip_service
         self.tags_service = tags_service
 
+
+    def create_route_table(self, network_client,cloud_provider_model, routetable_request,
+                           sandbox_resource_group
+                           ):
+        """
+        :param NetworkManagementClient network_client: network client
+        :param RouteTableRequestResourceModel routetable_request: route_request
+        :param AzureCloudProviderResourceModel cloud_provider_model: cloud provider
+        :return:
+        """
+
+        routes = []
+        for route_request in routetable_request.routes:
+            routes.append(Route(name=route_request.name, next_hop_ip_address=route_request.next_hope_address,
+                                next_hop_type=route_request.next_hop_type,
+                                address_prefix=route_request.route_address_prefix))
+
+        route_table = RouteTable( location=cloud_provider_model.region,routes=routes)
+        poller =  network_client.route_tables.create_or_update(sandbox_resource_group,
+                                                               routetable_request.name,
+                                                               parameters=route_table)
+        poller.result()
+
+
+    def add_route_table_to_subnets(self, routes_rg,
+                                   route_table_name, network_client,
+                                   subnets, subnets_rg, subnets_vnet):
+        """
+        :param NetworkManagementClient network_client: network client
+        :param route_table_name:
+        :param subnets:
+        :return:
+        """
+        route_table = network_client.route_tables.get(routes_rg,
+                                                      route_table_name)
+        for subnet in subnets:
+            subnet_obj = network_client.subnets.get(subnets_rg,subnets_vnet,subnet)
+            subnet_obj.route_table=route_table
+            poller = network_client.subnets.create_or_update(subnets_rg,subnets_vnet,subnet,subnet_obj)
+            poller.result()
+
     def create_network_for_vm(self,
                               network_client,
                               group_name,
@@ -25,9 +66,11 @@ class NetworkService(object):
                               tags,
                               add_public_ip,
                               public_ip_type,
-                              logger):
+                              logger,
+                              network_security_group=None):
         """
         This method creates a an ip address and a nic for the vm
+        :param azure.mgmt.network.models.NetworkSecurityGroup network_security_group:
         :param cloud_provider_model:
         :param public_ip_type:
         :param add_public_ip:
@@ -68,16 +111,18 @@ class NetworkService(object):
                                IPAllocationMethod.static,
                                tags,
                                sandbox_virtual_network.name,
-                               logger)
+                               logger,
+                               network_security_group)
 
     @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def create_nic(self, interface_name, group_name, management_group_name, network_client, public_ip_address, region,
                    subnet,
                    private_ip_allocation_method, tags, virtual_network_name,
-                   logger):
+                   logger, network_security_group=None):
         """
         The method creates or updates network interface.
         Parameter
+        :param azure.mgmt.network.models.NetworkSecurityGroup network_security_group:
         :param logger:
         :param virtual_network_name:
         :param group_name:
@@ -101,23 +146,20 @@ class NetworkService(object):
                                                                           subnet.address_prefix[:-3],
                                                                           logger)
 
+        ip_config = NetworkInterfaceIPConfiguration(name='default',
+                                                    private_ip_allocation_method=private_ip_allocation_method,
+                                                    subnet=subnet,
+                                                    private_ip_address=private_ip_address,
+                                                    public_ip_address=public_ip_address)
+
+        network_interface = NetworkInterface(location=region,
+                                             network_security_group=network_security_group,
+                                             ip_configurations=[ip_config],
+                                             tags=tags)
         operation_poller = network_client.network_interfaces.create_or_update(
                 group_name,
                 interface_name,
-                NetworkInterface(
-                        location=region,
-                        ip_configurations=[
-                            NetworkInterfaceIPConfiguration(
-                                    name='default',
-                                    private_ip_allocation_method=private_ip_allocation_method,
-                                    subnet=subnet,
-                                    private_ip_address=private_ip_address,
-                                    public_ip_address=public_ip_address,
-                            ),
-                        ],
-                        tags=tags
-                ),
-        )
+                network_interface)
 
         return operation_poller.result()
 
@@ -289,17 +331,42 @@ class NetworkService(object):
         return nic.ip_configurations[0].private_ip_address
 
     @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
+    def delete_nics(self, network_client, group_name, interface_names):
+        """
+
+        :param interface_names:
+        :param azure.mgmt.network.network_management_client.NetworkManagementClient network_client:
+        :param group_name:
+        :return:
+        """
+        for interface_name in interface_names:
+            result = network_client.network_interfaces.delete(group_name, interface_name)
+            result.wait()
+
+    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def delete_nic(self, network_client, group_name, interface_name):
         """
 
+        :param interface_name:
         :param azure.mgmt.network.network_management_client.NetworkManagementClient network_client:
         :param group_name:
-        :param interface_name:
         :return:
         """
         result = network_client.network_interfaces.delete(group_name, interface_name)
-
         result.wait()
+
+    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
+    def delete_ips(self, network_client, group_name, public_ip_names):
+        """
+
+        :param azure.mgmt.network.network_management_client.NetworkManagementClient network_client:
+        :param group_name: (str) resource group name (reservation id)
+        :param ip_name: (str) name for Azure Public IP resource
+        :return:
+        """
+        for ip_name in public_ip_names:
+            result = network_client.public_ip_addresses.delete(group_name, ip_name)
+            result.wait()
 
     @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def delete_ip(self, network_client, group_name, ip_name):
