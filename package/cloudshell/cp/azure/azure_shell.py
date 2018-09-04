@@ -629,6 +629,4 @@ class AzureShell(object):
                         network_client=azure_clients.network_client,
                         group_name=group_name)
 
-                    json_result = SetAppSecurityGroupActionResult.to_json(result)
-
-                    return json_result
+                    return self.command_result_parser.set_command_result(result)
