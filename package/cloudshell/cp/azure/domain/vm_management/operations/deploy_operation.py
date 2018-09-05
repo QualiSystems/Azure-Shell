@@ -380,7 +380,7 @@ class DeployAzureVMOperation(object):
             logger.warn('existing subnet name: ' + subnet.name)
 
         # server has sent network actions to perform, we will return the subnets needed by this deployment
-        if hasattr(deployment_model, 'network_configurations'):
+        if hasattr(deployment_model, 'network_configurations') and deployment_model.network_configurations:
 
             deployment_model.network_configurations.sort(key=lambda x: x.connection_params.device_index)
 
