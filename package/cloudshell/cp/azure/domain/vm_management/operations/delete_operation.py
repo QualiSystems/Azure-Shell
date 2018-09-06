@@ -153,24 +153,6 @@ class DeleteAzureVMOperation(object):
         return [subnet for subnet in sandbox_virtual_network.subnets
                 if subnet.name.startswith(resource_group_name)]
 
-    def _delete_security_rules(self, network_client, group_name, vm_name, logger):
-        """
-        Delete NSG rules for given VM
-
-        :param network_client: azure.mgmt.network.NetworkManagementClient instance
-        :param group_name: (str) The name of the resource group
-        :param vm_name: (str) the same as ip_name and interface_name
-        :param logger: logging.Logger instance
-        :return:
-        """
-        logger.info("Deleting security group rules...")
-        lock = self.generic_lock_provider.get_resource_lock(lock_key=group_name, logger=logger)
-        self.security_group_service.delete_security_rules(network_client=network_client,
-                                                          resource_group_name=group_name,
-                                                          vm_name=vm_name,
-                                                          lock=lock,
-                                                          logger=logger)
-
     def _delete_vm_disk(self, logger, storage_client, compute_client, group_name, vm):
         """Delete the VM data disk. Will delete VHD or Managed Disk of the VM.
 

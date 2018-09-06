@@ -158,8 +158,6 @@ class TestDeleteOperation(TestCase):
                 compute_client=compute_client,
                 group_name=group_name,
                 vm=vm)
-        self.delete_operation.generic_lock_provider.get_resource_lock.assert_called_with(lock_key="AzureTestGroup",
-                                                                                         logger=self.logger)
 
     def test_delete_operation_on_error(self):
         # Arrange
