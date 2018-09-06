@@ -241,7 +241,7 @@ class DeleteAzureVMOperation(object):
                                   group_name=group_name,
                                   vm_name=vm_name)
 
-    def _delete_nic(self, network_client, group_name, vm_name, logger, interface_names):
+    def _delete_nics(self, network_client, group_name, vm_name, logger, interface_names):
         """Delete NIC resource on the azure for given VM
 
         :param network_client: azure.mgmt.network.NetworkManagementClient instance
@@ -293,19 +293,13 @@ class DeleteAzureVMOperation(object):
         first_nic = network_interfaces[0]
         vm_nsg_name = first_nic.network_security_group.id.split('/')[-1]
 
-        delete_security_rules_command = partial(self._delete_security_rules,
-                                                network_client=network_client,
-                                                group_name=group_name,
-                                                vm_name=vm_name,
-                                                logger=logger)
-
         delete_vm_command = partial(self._delete_vm,
                                     compute_client=compute_client,
                                     group_name=group_name,
                                     vm_name=vm_name,
                                     logger=logger)
 
-        delete_nic_command = partial(self._delete_nic,
+        delete_nics_command = partial(self._delete_nics,
                                      network_client=network_client,
                                      group_name=group_name,
                                      vm_name=vm_name,
@@ -319,16 +313,20 @@ class DeleteAzureVMOperation(object):
                                            logger=logger,
                                            public_ip_names=public_ip_names)
 
-        commands = [delete_security_rules_command, delete_vm_command, delete_nic_command, delete_public_ip_command]
+        delete_vm_nsg_command = partial(network_client.network_security_groups.delete,
+                                        group_name,
+                                        vm_nsg_name)
+
+        commands = [delete_vm_command, delete_nics_command, delete_public_ip_command, delete_vm_nsg_command]
 
         try:
             vm = self.vm_service.get_vm(compute_management_client=compute_client,
                                         group_name=group_name,
                                         vm_name=vm_name)
 
-
         except CloudError:
             logger.warning("Can't get VM to retrieve its VHD URL", exc_info=1)
+
         else:
             delete_vhd_disk_command = partial(self._delete_vm_disk,
                                               logger=logger,
@@ -344,13 +342,11 @@ class DeleteAzureVMOperation(object):
                 command()
             except CloudError as e:
                 if e.response.reason == "Not Found":
-                    logger.info('Deleting Azure VM Not Found Exception:', exc_info=1)
+                    logger.info('Deleting Azure Resource Not Found Exception:', exc_info=1)
+                    logger.info(e.message)
                 else:
                     logger.exception('Deleting Azure VM Exception:')
                     raise
             except Exception:
                 logger.exception('Deleting Azure VM Exception:')
                 raise
-
-        result = network_client.network_security_groups.delete(group_name, vm_nsg_name)
-        result.wait()

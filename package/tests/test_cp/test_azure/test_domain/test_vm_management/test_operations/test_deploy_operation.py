@@ -492,31 +492,6 @@ class TestDeployAzureVMOperation(TestCase):
                 security_group_name=security_groups_list[0].name,
                 lock=lock)
 
-    def test_process_nsg_rules_inbound_ports_attribute_is_empty(self):
-        """Check that method will not call security group service for NSG rules creation if there are no rules"""
-        group_name = "test_group_name"
-        network_client = MagicMock()
-        azure_vm_deployment_model = MagicMock()
-        nic = MagicMock()
-        cancellation_context = MagicMock()
-        logger = MagicMock()
-        self.deploy_operation._validate_resource_is_single_per_group = MagicMock()
-        azure_vm_deployment_model.inbound_ports = ""
-
-        # Act
-        self.deploy_operation._process_nsg_rules(
-                network_client=network_client,
-                group_name=group_name,
-                azure_vm_deployment_model=azure_vm_deployment_model,
-                nic=nic,
-                cancellation_context=cancellation_context,
-                logger=logger)
-
-        # Verify
-        self.deploy_operation.security_group_service.list_network_security_group.assert_not_called()
-        self.deploy_operation._validate_resource_is_single_per_group.assert_not_called()
-        self.deploy_operation.security_group_service.create_network_security_group_rules.assert_not_called()
-
     def test_validate_resource_is_single_per_group(self):
         """Check that method will not throw Exception if length of resource list is equal to 1"""
         group_name = "test_group_name"
@@ -692,7 +667,6 @@ class TestDeployAzureVMOperation(TestCase):
         cancellation_context = Mock()
         nic = MagicMock()
         self.deploy_operation.network_service.create_network_for_vm = Mock(return_value=nic)
-        self.deploy_operation._process_nsg_rules = Mock()
         vm_nsg = Mock()
         self.security_group_service.create_network_security_group = Mock(return_value=vm_nsg)
         credentials = Mock()
