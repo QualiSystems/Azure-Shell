@@ -322,46 +322,6 @@ class DeployAzureVMOperation(object):
             cancellation_context=cancellation_context,
             disk_size=deployment_model.disk_size)
 
-    def _process_nsg_rules(self, network_client, group_name, azure_vm_deployment_model, nic,
-                           cancellation_context, logger):
-        """
-        Create Network Security Group rules if needed
-
-        :param network_client: azure.mgmt.network.NetworkManagementClient instance
-        :param group_name: resource group name (reservation id)
-        :param azure_vm_deployment_model: deploy_azure_vm_resource_models.BaseDeployAzureVMResourceModel
-        :param nic: azure.mgmt.network.models.NetworkInterface instance
-        :param logger: logging.Logger instance
-        :return: None
-        """
-        logger.info("Process inbound rules: {}".format(azure_vm_deployment_model.inbound_ports))
-
-        if azure_vm_deployment_model.inbound_ports:
-            inbound_rules = RulesAttributeParser.parse_port_group_attribute(
-                ports_attribute=azure_vm_deployment_model.inbound_ports)
-
-            logger.info("Parsed inbound rules {}".format(inbound_rules))
-
-            logger.info("Get NSG by group name {}".format(group_name))
-            network_security_group = self.security_group_service.get_first_network_security_group(
-                network_client=network_client,
-                group_name=group_name)
-
-            self.cancellation_service.check_if_cancelled(cancellation_context)
-
-            logger.info("Create rules for the NSG {}".format(network_security_group.name))
-            lock = self.generic_lock_provider.get_resource_lock(lock_key=group_name, logger=logger)
-            self.security_group_service.create_network_security_group_rules(
-                network_client=network_client,
-                group_name=group_name,
-                security_group_name=network_security_group.name,
-                inbound_rules=inbound_rules,
-                destination_addr=nic.ip_configurations[0].private_ip_address,
-                lock=lock)
-
-            logger.info("NSG rules were successfully created for NSG {}".format(network_security_group.name))
-            self.cancellation_service.check_if_cancelled(cancellation_context)
-
     def _get_subnets(self, network_client, cloud_provider_model, logger, deployment_model):
         """
         Get subnets for a given reservation
