@@ -10,3 +10,4 @@ package/cloudshell_cp_azure.egg-info/*
 drivers/killPython.bat
 *.orig
 package/version.txt
+/package/dist/
