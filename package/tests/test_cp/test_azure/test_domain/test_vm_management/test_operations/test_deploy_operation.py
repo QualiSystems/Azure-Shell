@@ -455,43 +455,6 @@ class TestDeployAzureVMOperation(TestCase):
         self.network_service.delete_ip.assert_called_once()
         self.vm_service.delete_vm.assert_called_once()
 
-    def test_process_nsg_rules(self):
-        """Check that method validates NSG is single per group and uses security group service for rules creation"""
-        group_name = "test_group_name"
-        network_client = MagicMock()
-        azure_vm_deployment_model = MagicMock()
-        nic = MagicMock()
-        cancellation_context = MagicMock()
-        logger = MagicMock()
-        security_groups_list = MagicMock()
-        self.deploy_operation.security_group_service.list_network_security_group.return_value = security_groups_list
-        self.deploy_operation._validate_resource_is_single_per_group = MagicMock()
-        self.deploy_operation.security_group_service.get_first_network_security_group.return_value = security_groups_list[0]
-        lock = Mock()
-        self.generic_lock_provider.get_resource_lock = Mock(return_value=lock)
-
-        # Act
-        self.deploy_operation._process_nsg_rules(
-                network_client=network_client,
-                group_name=group_name,
-                azure_vm_deployment_model=azure_vm_deployment_model,
-                nic=nic,
-                cancellation_context=cancellation_context,
-                logger=logger)
-
-        # Verify
-        self.deploy_operation.security_group_service.get_first_network_security_group.assert_called_once_with(
-                network_client=network_client,
-                group_name=group_name)
-
-        self.deploy_operation.security_group_service.create_network_security_group_rules.assert_called_once_with(
-                destination_addr=nic.ip_configurations[0].private_ip_address,
-                group_name=group_name,
-                inbound_rules=[],
-                network_client=network_client,
-                security_group_name=security_groups_list[0].name,
-                lock=lock)
-
     def test_validate_resource_is_single_per_group(self):
         """Check that method will not throw Exception if length of resource list is equal to 1"""
         group_name = "test_group_name"
