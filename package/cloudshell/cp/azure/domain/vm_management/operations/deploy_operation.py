@@ -322,7 +322,7 @@ class DeployAzureVMOperation(object):
             cancellation_context=cancellation_context,
             disk_size=deployment_model.disk_size)
 
-    def _get_subnets(self, network_client, cloud_provider_model, logger, deployment_model):
+    def _get_subnets(self, network_client, cloud_provider_model, logger, deployment_model, resource_group_name):
         """
         Get subnets for a given reservation
 
@@ -364,7 +364,7 @@ class DeployAzureVMOperation(object):
 
         # no network actions, just return the default sandbox subnet
         else:
-            return [subnet for subnet in sandbox_virtual_network.subnets]
+            return [subnet for subnet in sandbox_virtual_network.subnets if resource_group_name in subnet.name]
 
     def _rollback_deployed_resources(self, compute_client, network_client, group_name, interface_names, vm_name,
                                      logger):
@@ -695,7 +695,8 @@ class DeployAzureVMOperation(object):
         data.subnets = self._get_subnets(network_client=network_client,
                                          cloud_provider_model=cloud_provider_model,
                                          logger=logger,
-                                         deployment_model=deployment_model)
+                                         deployment_model=deployment_model,
+                                         resource_group_name=data.group_name)
 
         data.interface_names = ["{}-{}".format(unique_resource_name, str(i)) for i, subnet in enumerate(data.subnets)]
         logger.warn('interfaces:' + str(len(data.interface_names)))

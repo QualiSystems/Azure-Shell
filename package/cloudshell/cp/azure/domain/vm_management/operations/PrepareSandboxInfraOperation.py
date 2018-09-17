@@ -18,6 +18,9 @@ from cloudshell.cp.azure.common.parsers.azure_resource_id_parser import AzureRes
 from cloudshell.cp.azure.models.network_actions_models import PrepareNetworkActionResult, ConnectivityActionResult, \
     PrepareNetworkParams
 
+
+
+
 INVALID_REQUEST_ERROR = 'Invalid request: {0}'
 
 
