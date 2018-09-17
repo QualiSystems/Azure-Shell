@@ -59,7 +59,8 @@ class TestDeployAzureVMOperation(TestCase):
                 network_client=network_client,
                 cloud_provider_model=cloud_provider_model,
                 logger=self.logger,
-                deployment_model=deployment_model)
+                deployment_model=deployment_model,
+                resource_group_name="some_resource_group")
 
         # Verify
         self.network_service.get_sandbox_virtual_network.assert_called_once_with(
