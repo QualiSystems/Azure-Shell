@@ -75,7 +75,10 @@ class StorageService(object):
         """
         return list(storage_client.storage_accounts.list_by_resource_group(group_name))
 
-    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
+    # changed the retry max attempt number to 20, because when deploying multiple sandboxes, would get an error that
+    # resource group had not been created quite consistently. This is not a magic number, its just found
+    # to be effective with 8~ concurrent sandbox launches. Might be changed in the future
+    @retry(stop_max_attempt_number=20, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def _get_storage_account_key(self, storage_client, group_name, storage_name):
         """Get firsts storage account access key for some storage
 
