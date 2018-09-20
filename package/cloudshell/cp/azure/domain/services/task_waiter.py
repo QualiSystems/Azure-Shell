@@ -26,7 +26,8 @@ class TaskWaiterService(object):
 
         return operation_poller.result()
 
-    def wait_for_task_with_timeout(self, operation_poller, cancellation_context, wait_time=30, timeout=1800):
+    def wait_for_task_with_timeout(self, operation_poller, cancellation_context, wait_time=30, timeout=1800,
+                                   logger=None):
         """Wait for Azure operation end
 
         :param timeout:
@@ -41,10 +42,14 @@ class TaskWaiterService(object):
 
         while not operation_poller.done() and (datetime_now < next_time):
             self.cancellation_service.check_if_cancelled(cancellation_context)
+            if logger:
+                logger.info('Waiting for poller, current status is {0}'.format(operation_poller.status()))
             time.sleep(wait_time)
             datetime_now = datetime.now()
 
         if not operation_poller.done() and (datetime_now > next_time):
+            if logger:
+                logger.warn('Had a timeout, current status in poller is: {0}'.format(operation_poller.status()))
             raise QualiTimeoutException()
 
         return operation_poller.result()

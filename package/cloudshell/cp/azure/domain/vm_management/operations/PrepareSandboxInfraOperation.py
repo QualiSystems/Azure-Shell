@@ -306,7 +306,7 @@ class PrepareSandboxInfraOperation(object):
             try:
                 create_subnet_command()
             except CloudError as e:
-                logger.warn(e.error)
+                logger.warn(e.message)
                 if "NetcfgInvalidSubnet" not in str(e.error):
                     raise
                 # try to cleanup stale subnet
@@ -353,15 +353,6 @@ class PrepareSandboxInfraOperation(object):
             for ip_conf in subnet.ip_configurations:
                 resource_group = self.resource_id_parser.get_resource_group_name(resource_id=ip_conf.id)
                 resource_groups.append(resource_group)
-
-        for resource_group in set(resource_groups):
-            logger.info("Resource group {} of the connected to subnet resource is not in the active state. "
-                        "Deleting resource group ".format(resource_group))
-
-            self.vm_service.delete_resource_group(resource_management_client=resource_client,
-                                                  group_name=resource_group)
-
-            logger.info("Resource group {} was successfully deleted".format(resource_group))
 
         logger.info("Deleting Subnet {}...".format(subnet.id))
         self.network_service.delete_subnet(network_client=network_client,

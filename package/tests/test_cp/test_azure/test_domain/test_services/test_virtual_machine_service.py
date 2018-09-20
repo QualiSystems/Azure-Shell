@@ -207,6 +207,7 @@ class TestVirtualMachineService(TestCase):
         network_interface = Mock()
         network_interface_class.return_value = network_interface
         nics = [NetworkInterfaceReference(id='5')]
+        logger = Mock()
 
         # Act
         self.vm_service.create_vm_from_custom_image(compute_management_client=compute_management_client,
@@ -222,7 +223,8 @@ class TestVirtualMachineService(TestCase):
                                                     vm_size=vm_size,
                                                     cancellation_context=cancellation_context,
                                                     disk_size=disk_size,
-                                                    nics=nics)
+                                                    nics=nics,
+                                                    logger=logger)
 
         # Verify
         hardware_profile_class.assert_called_once_with(vm_size=vm_size)
@@ -244,7 +246,8 @@ class TestVirtualMachineService(TestCase):
                                                            storage_profile=storage_profile,
                                                            cancellation_context=cancellation_context,
                                                            tags=tags,
-                                                           vm_name=vm_name)
+                                                           vm_name=vm_name,
+                                                           logger=logger)
 
     def test_vm_service_create_resource_group(self):
         # Arrange

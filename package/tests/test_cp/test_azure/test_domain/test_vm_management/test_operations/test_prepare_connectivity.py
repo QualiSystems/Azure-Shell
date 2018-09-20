@@ -210,12 +210,6 @@ class TestPrepareSandboxInfra(TestCase):
             subnet_name=subnet.name,
             subnet=subnet)
 
-        self.vm_service.delete_resource_group.assert_any_call(resource_management_client=resource_client,
-                                                              group_name="resource_group1")
-
-        self.vm_service.delete_resource_group.assert_any_call(resource_management_client=resource_client,
-                                                              group_name="resource_group2")
-
     def test_create_subnet_calls_cleanup_stale_data(self):
         """Check that method will call _cleanup_stale_data method on CloudError"""
         network_client = MagicMock()

@@ -345,7 +345,8 @@ class TestDeployAzureVMOperation(TestCase):
                 vm_name=data.vm_name,
                 tags=data.tags,
                 vm_size=data.vm_size,
-                cancellation_context=cancellation_context)
+                cancellation_context=cancellation_context,
+                logger=logger)
 
     def test_create_vm_marketplace_action(self):
         """Check deploy from custom Image operation"""
