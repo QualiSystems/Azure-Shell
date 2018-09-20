@@ -64,7 +64,7 @@ class VirtualMachineService(object):
 
     @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def _create_vm(self, compute_management_client, region, group_name, vm_name, hardware_profile, network_profile,
-                   os_profile, storage_profile, cancellation_context, tags, vm_plan=None):
+                   os_profile, storage_profile, cancellation_context, tags, vm_plan=None, logger=None):
         """Create and deploy Azure VM from the given parameters
 
         :param compute_management_client: azure.mgmt.compute.compute_management_client.ComputeManagementClient
@@ -89,11 +89,20 @@ class VirtualMachineService(object):
                                              boot_diagnostics=BootDiagnostics(enabled=False)),
                                          plan=vm_plan)
 
+        if logger:
+            logger.info('Created POCO VM for {0} in resource group {1}'.format(vm_name, group_name))
+
         operation_poller = compute_management_client.virtual_machines.create_or_update(group_name, vm_name,
                                                                                        virtual_machine)
 
-        return self.task_waiter_service.wait_for_task(operation_poller=operation_poller,
-                                                      cancellation_context=cancellation_context)
+        if logger:
+            logger.info('Got poller for create VM task for {0} in resource group {1}'.format(vm_name, group_name))
+
+        return self.task_waiter_service.wait_for_task_with_timeout(operation_poller=operation_poller,
+                                                                   cancellation_context=cancellation_context,
+                                                                   wait_time=30,
+                                                                   timeout=1200,
+                                                                   logger=logger)
 
     def _prepare_os_profile(self, vm_credentials, computer_name):
         """Prepare OS profile object for the VM
@@ -139,7 +148,8 @@ class VirtualMachineService(object):
                                     tags,
                                     vm_size,
                                     cancellation_context,
-                                    disk_size):
+                                    disk_size,
+                                    logger):
         """Create VM from custom image URN
 
         :param cancellation_context:
@@ -161,19 +171,34 @@ class VirtualMachineService(object):
         os_profile = self._prepare_os_profile(vm_credentials=vm_credentials,
                                               computer_name=computer_name)
 
+        logger.info('Prepared OS Profile for {0} in resource group {1}'.format(vm_name, group_name))
+
         hardware_profile = HardwareProfile(vm_size=vm_size)
+
+        logger.info('Prepared Hardware Profile for {0} in resource group {1}'.format(vm_name, group_name))
 
         network_interfaces = [NetworkInterfaceReference(id=nic.id) for nic in nics]
         for network_interface in network_interfaces:
             network_interface.primary = False
         network_interfaces[0].primary = True
 
+        logger.info('Prepared {2} network interfaces for {0} in resource group {1}'.format(vm_name, group_name, len(network_interfaces)))
+
         network_profile = NetworkProfile(network_interfaces=network_interfaces)
 
+        logger.info('Prepared Network Profile for {0} in resource group {1}'.format(vm_name, group_name))
+
         image = compute_management_client.images.get(resource_group_name=image_resource_group, image_name=image_name)
+
+        logger.info('Got image {2} for {0} in resource group {1}'.format(vm_name, group_name, image_name))
+
         storage_profile = StorageProfile(
                 os_disk=self._prepare_os_disk(disk_type, disk_size),
                 image_reference=ImageReference(id=image.id))
+
+        logger.info('Prepared Storage Profile for {0} in resource group {1}'.format(vm_name, group_name))
+
+        logger.info('Before actual create vm for {0} in resource group {1}'.format(vm_name, group_name))
 
         return self._create_vm(
                 compute_management_client=compute_management_client,
@@ -185,7 +210,8 @@ class VirtualMachineService(object):
                 os_profile=os_profile,
                 storage_profile=storage_profile,
                 cancellation_context=cancellation_context,
-                tags=tags)
+                tags=tags,
+                logger=logger)
 
     def _get_storage_type(self, disk_type):
         """

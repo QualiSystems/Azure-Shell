@@ -298,7 +298,8 @@ class DeployAzureVMOperation(object):
             tags=data.tags,
             vm_size=data.vm_size,
             cancellation_context=cancellation_context,
-            disk_size=deployment_model.disk_size)
+            disk_size=deployment_model.disk_size,
+            logger=logger)
 
     def _create_vm_marketplace_action(self, compute_client, deployment_model, cloud_provider_model,
                                       data, cancellation_context, logger):
