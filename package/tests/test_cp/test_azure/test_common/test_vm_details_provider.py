@@ -3,6 +3,7 @@ from azure.mgmt.compute.models import StorageAccountTypes
 from mock import Mock, MagicMock
 from cloudshell.cp.azure.domain.common.vm_details_provider import VmDetailsProvider
 
+
 class TestVmDetailsProvider(TestCase):
     def setUp(self):
         self.resource_id_parser = MagicMock()
@@ -66,6 +67,7 @@ class TestVmDetailsProvider(TestCase):
         ip_configuration = Mock()
         ip_configuration.private_ip_address = 'Param Ip Address'
         ip_configuration.public_ip_address = Mock()
+        ip_configuration.subnet.id = 'a/a'
         network_interface.ip_configurations = [ip_configuration]
         resource_group = 'Group 1'
 
@@ -88,7 +90,7 @@ class TestVmDetailsProvider(TestCase):
         nic = network_interface_objects[0]
 
         self.assertTrue(nic.interfaceId == network_interface.resource_guid)
-        self.assertTrue(nic.networkId == network_interface.name)
+        self.assertTrue(nic.networkId == ip_configuration.subnet.id.split('/')[-1])
 
         network_data = nic.networkData
 
