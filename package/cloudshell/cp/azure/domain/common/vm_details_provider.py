@@ -78,9 +78,14 @@ class VmDetailsProvider(object):
             public_ip = ''
             network_data = [VmDetailsProperty(key="IP", value=ip_configuration.private_ip_address)]
 
-            current_interface = VmDetailsNetworkInterface(interfaceId=nic.resource_guid, networkId=nic.name,
-                                                          isPrimary=nic.primary, networkData=network_data,
-                                                          privateIpAddress=private_ip, publicIpAddress=public_ip)
+            subnet_name = ip_configuration.subnet.id.split('/')[-1]
+
+            current_interface = VmDetailsNetworkInterface(interfaceId=nic.resource_guid,
+                                                          networkId=subnet_name,
+                                                          isPrimary=nic.primary,
+                                                          networkData=network_data,
+                                                          privateIpAddress=private_ip,
+                                                          publicIpAddress=public_ip)
 
             if ip_configuration.public_ip_address:
                 public_ip_name = get_ip_from_interface_name(nic_name)
