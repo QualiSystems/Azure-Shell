@@ -101,7 +101,7 @@ class VirtualMachineService(object):
         return self.task_waiter_service.wait_for_task_with_timeout(operation_poller=operation_poller,
                                                                    cancellation_context=cancellation_context,
                                                                    wait_time=30,
-                                                                   timeout=1200,
+                                                                   timeout=6600,
                                                                    logger=logger)
 
     def _prepare_os_profile(self, vm_credentials, computer_name):
