@@ -527,7 +527,7 @@ class DeployAzureVMOperation(object):
         # 2. set infra rules on VM NSG
         self._allow_mgmt_network_traffic_on_vm_nsg(cloud_provider_model, data, network_client, vm_nsg)
 
-        if not deployment_model.allow_all_sandbox_traffic:
+        if not deployment_model.allow_all_sandbox_traffic or deployment_model.allow_all_sandbox_traffic == 'False':
             self.security_group_service \
                 .create_isolated_network_security_group_rules(network_client=network_client,
                                                               group_name=data.group_name,
