@@ -451,13 +451,14 @@ class TestAzureShell(TestCase):
         self.azure_shell.model_parser.convert_app_resource_to_deployed_app.return_value = data_holder
 
         custom_rules_output = [
-            'Protocol: {4}\t'
-            'Source Address: {0}\tSource Port Range: {1}\t'
-            'Destination Address: {2}\tDestination Port Range{3}'.format(rule.source_address_prefix,
-                                                                         rule.source_port_range,
-                                                                         rule.destination_address_prefix,
-                                                                         rule.destination_port_range,
-                                                                         rule.protocol)
+            'Protocol: {4}\n'
+            'Source Address: {0}\nSource Port Range: {1}\n'
+            'Destination Address: {2}\nDestination Port Range: {3}\n\n'
+                .format(rule.source_address_prefix,
+                        rule.source_port_range,
+                        rule.destination_address_prefix,
+                        rule.destination_port_range,
+                        rule.protocol)
             for rule in mock_rules if rule.name.startswith('rule_')]
         expected_output = '\n'.join(custom_rules_output)
 
@@ -532,32 +533,32 @@ class TestAzureShell(TestCase):
 
         self.assertEqual(res, expected_res)
 
-    # @mock.patch("cloudshell.cp.azure.azure_shell.CloudShellSessionContext")
-    # @mock.patch("cloudshell.cp.azure.azure_shell.LoggingSessionContext")
-    # @mock.patch("cloudshell.cp.azure.azure_shell.ErrorHandlingContext")
-    # @mock.patch("cloudshell.cp.azure.azure_shell.AzureClientsManager")
-    # def test_set_app_security_groups(self, error_handling_class, logging_context_class,
-    #                                  cloudshell_session_context_class, azure_clients_manager_class):
-    #     """ Can create app security groups """
-    #     # region Configuration of contexts used by AzureShell
-    #     # mock Cloudshell Session
-    #     cloudshell_session = mock.MagicMock()
-    #     cloudshell_session_context = mock.MagicMock(__enter__=mock.MagicMock(return_value=cloudshell_session))
-    #     cloudshell_session_context_class.return_value = cloudshell_session_context
-    #     # mock LoggingSessionContext and ErrorHandlingContext
-    #     logging_context = mock.MagicMock(__enter__=mock.MagicMock(return_value=self.logger))
-    #     logging_context_class.return_value = logging_context
-    #     error_handling = mock.MagicMock()
-    #     error_handling_class.return_value = error_handling
-    #     # mock AzureClientManager
-    #     azure_clients_manager = mock.MagicMock()
-    #     azure_clients_manager_class.return_value = azure_clients_manager
-    #     # endregion
-    #
-    #     command_context = mock.MagicMock()
-    #     request = mock.MagicMock()
-    #     self.azure_shell.model_parser.convert_to_app_security_group_models.return_value = [AppSecurityGroupModel()]
-    #
-    #     result = self.azure_shell.set_app_security_groups(command_context, request)
-    #     # self.azure_shell.set_app_security_groups_operation.set_apps_security_groups.assert_called_once_with(self.logger)
-    #     return 1==1
+        # @mock.patch("cloudshell.cp.azure.azure_shell.CloudShellSessionContext")
+        # @mock.patch("cloudshell.cp.azure.azure_shell.LoggingSessionContext")
+        # @mock.patch("cloudshell.cp.azure.azure_shell.ErrorHandlingContext")
+        # @mock.patch("cloudshell.cp.azure.azure_shell.AzureClientsManager")
+        # def test_set_app_security_groups(self, error_handling_class, logging_context_class,
+        #                                  cloudshell_session_context_class, azure_clients_manager_class):
+        #     """ Can create app security groups """
+        #     # region Configuration of contexts used by AzureShell
+        #     # mock Cloudshell Session
+        #     cloudshell_session = mock.MagicMock()
+        #     cloudshell_session_context = mock.MagicMock(__enter__=mock.MagicMock(return_value=cloudshell_session))
+        #     cloudshell_session_context_class.return_value = cloudshell_session_context
+        #     # mock LoggingSessionContext and ErrorHandlingContext
+        #     logging_context = mock.MagicMock(__enter__=mock.MagicMock(return_value=self.logger))
+        #     logging_context_class.return_value = logging_context
+        #     error_handling = mock.MagicMock()
+        #     error_handling_class.return_value = error_handling
+        #     # mock AzureClientManager
+        #     azure_clients_manager = mock.MagicMock()
+        #     azure_clients_manager_class.return_value = azure_clients_manager
+        #     # endregion
+        #
+        #     command_context = mock.MagicMock()
+        #     request = mock.MagicMock()
+        #     self.azure_shell.model_parser.convert_to_app_security_group_models.return_value = [AppSecurityGroupModel()]
+        #
+        #     result = self.azure_shell.set_app_security_groups(command_context, request)
+        #     # self.azure_shell.set_app_security_groups_operation.set_apps_security_groups.assert_called_once_with(self.logger)
+        #     return 1==1

@@ -547,9 +547,9 @@ class AzureShell(object):
                 vm_nsg = azure_clients.network_client.network_security_groups.get(resource_group_name, vm_nsg_name)
 
                 custom_rules_output = [
-                    'Protocol: {4}\t'
-                    'Source Address: {0}\tSource Port Range: {1}\t'
-                    'Destination Address: {2}\tDestination Port Range{3}'.format(rule.source_address_prefix,
+                    'Protocol: {4}\n'
+                    'Source Address: {0}\nSource Port Range: {1}\n'
+                    'Destination Address: {2}\nDestination Port Range: {3}\n\n'.format(rule.source_address_prefix,
                                                                                  rule.source_port_range,
                                                                                  rule.destination_address_prefix,
                                                                                  rule.destination_port_range,
