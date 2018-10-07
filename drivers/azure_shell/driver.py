@@ -82,3 +82,6 @@ class AzureShellDriver(ResourceDriverInterface):
 
     def GetVmDetails(self, context, cancellation_context, requests):
         return self.azure_shell.get_vm_details(context, cancellation_context, requests)
+
+    def SetAppSecurityGroups(self, context, request):
+        return self.azure_shell.set_app_security_groups(context, request)
