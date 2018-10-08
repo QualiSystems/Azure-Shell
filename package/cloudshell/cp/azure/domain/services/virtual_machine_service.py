@@ -98,11 +98,9 @@ class VirtualMachineService(object):
         if logger:
             logger.info('Got poller for create VM task for {0} in resource group {1}'.format(vm_name, group_name))
 
-        return self.task_waiter_service.wait_for_task_with_timeout(operation_poller=operation_poller,
-                                                                   cancellation_context=cancellation_context,
-                                                                   wait_time=30,
-                                                                   timeout=6600,
-                                                                   logger=logger)
+        return self.task_waiter_service.wait_for_task(operation_poller=operation_poller,
+                                                      cancellation_context=cancellation_context,
+                                                      logger=logger)
 
     def _prepare_os_profile(self, vm_credentials, computer_name):
         """Prepare OS profile object for the VM
