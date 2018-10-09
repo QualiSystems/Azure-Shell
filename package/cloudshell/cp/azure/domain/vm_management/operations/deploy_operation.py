@@ -562,7 +562,7 @@ class DeployAzureVMOperation(object):
                                                                            tags=tags)
 
         # 2. set infra rules on VM NSG
-        self._allow_mgmt_network_traffic_on_vm_nsg(cloud_provider_model, data, network_client, vm_nsg)
+        self._allow_mgmt_network_traffic_on_vm_nsg(cloud_provider_model, data, network_client, vm_nsg, logger)
 
         if not deployment_model.allow_all_sandbox_traffic:
             self.security_group_service \
@@ -626,13 +626,22 @@ class DeployAzureVMOperation(object):
 
         return data
 
-    def _allow_mgmt_network_traffic_on_vm_nsg(self, cloud_provider_model, data, network_client, vm_nsg):
+    def _allow_mgmt_network_traffic_on_vm_nsg(self, cloud_provider_model, data, network_client, vm_nsg, logger):
+
         virtual_networks = self.network_service.get_virtual_networks(network_client=network_client,
                                                                      group_name=cloud_provider_model.management_group_name)
+
         management_vnet = self.network_service.get_virtual_network_by_tag(
             virtual_networks=virtual_networks,
             tag_key=NetworkService.NETWORK_TYPE_TAG_NAME,
             tag_value=NetworkService.MGMT_NETWORK_TAG_VALUE)
+
+        used_priorities = []
+        all_symbol = '*'
+
+        priority = 4000
+        used_priorities.append(priority)
+
         self.security_group_service.create_network_security_group_custom_rule(
             network_client=network_client,
             group_name=data.group_name,
@@ -641,12 +650,37 @@ class DeployAzureVMOperation(object):
                 access=SecurityRuleAccess.allow,
                 direction="Inbound",
                 source_address_prefix=management_vnet.address_space.address_prefixes[0],
-                source_port_range='*',
+                source_port_range=all_symbol,
                 name='allow_mgmt_network',
-                destination_address_prefix='*',
-                destination_port_range='*',
-                priority=4000,
-                protocol='*'))
+                destination_address_prefix=all_symbol,
+                destination_port_range=all_symbol,
+                priority=priority,
+                protocol=all_symbol))
+
+        # free priorities for additional NSG rules
+        mgmt_rules_priorities = (priority for priority in xrange(3900, 4001, 5) if priority not in used_priorities)
+
+        # create NSG rules for additional management networks
+        logger.info("Creating NSG rules to allow traffic from additional management networks...")
+
+        for additional_network, priority in zip(cloud_provider_model.additional_mgmt_networks, mgmt_rules_priorities):
+            logger.info("Creating NSG rule for additional management network {} with priority {} ..."
+                        .format(additional_network, priority))
+            self.security_group_service.create_network_security_group_custom_rule(
+                    network_client=network_client,
+                    group_name=data.group_name,
+                    security_group_name=vm_nsg.name,
+                    rule=SecurityRule(
+                            access=SecurityRuleAccess.allow,
+                            direction="Inbound",
+                            source_address_prefix=additional_network,
+                            source_port_range=all_symbol,
+                            name="rule_{}".format(priority),
+                            destination_address_prefix=all_symbol,
+                            destination_port_range=all_symbol,
+                            priority=priority,
+                            protocol=all_symbol),
+                    async=False)
 
     def _validate_deployment_model(self, vm_deployment_model, os_type):
         """
