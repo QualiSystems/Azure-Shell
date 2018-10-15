@@ -21,11 +21,12 @@ from cloudshell.cp.azure.common.exceptions.cancellation_exception import Cancell
 class StorageService(object):
     SAS_TOKEN_EXPIRATION_DAYS = 365
 
-    def __init__(self, cancellation_service):
+    def __init__(self, cancellation_service, name_provider_service):
         """
 
         :param cancellation_service: cloudshell.cp.azure.domain.services.command_cancellation.CommandCancellationService
         """
+        self.name_provider = name_provider_service
         self.cancellation_service = cancellation_service
         self._account_keys_lock = Lock()
         self._file_services_lock = Lock()
@@ -432,9 +433,9 @@ class StorageService(object):
         :param storage_accounts_list:
         :return:
         """
-        if not len(storage_accounts_list) == 1:
+        if not len(storage_accounts_list) > 0:
             raise ValidationError(
-                    "Sandbox Resource Group should contain only one storage account but found {} storage accounts"
+                    "Sandbox Resource Group should contain at least one storage account but found {} storage accounts"
                     .format(len(storage_accounts_list)))
 
     def get_sandbox_storage_account_name(self, storage_client, group_name):
@@ -448,4 +449,11 @@ class StorageService(object):
         """
         storage_accounts_list = self.get_storage_per_resource_group(storage_client, group_name)
         self.validate_single_storage_account(storage_accounts_list)
-        return storage_accounts_list[0].name
+        expected_storage_account_name = self.name_provider.generate_name(group_name.replace("-", ""),
+                                                                         postfix="cs",
+                                                                         max_length=24).replace("-", "")
+        storage_accounts_names = [x.name for x in storage_accounts_list]
+        if expected_storage_account_name in storage_accounts_names:
+            return expected_storage_account_name
+        raise ValidationError("Could not find storage account named {0}. The storage accounts found were: {1}"
+                              .format(expected_storage_account_name, ', '.join(storage_accounts_names)))

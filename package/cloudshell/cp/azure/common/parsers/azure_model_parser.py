@@ -12,8 +12,6 @@ from cloudshell.cp.azure.models.reservation_model import ReservationModel
 from cloudshell.cp.azure.domain.services.parsers.connection_params import convert_to_bool
 
 
-
-
 class AzureModelsParser(object):
     @staticmethod
     def convert_app_resource_to_deployed_app(resource):
@@ -74,7 +72,7 @@ class AzureModelsParser(object):
         return deployment_resource_model
 
     @staticmethod
-    def convert_to_boolean( value):
+    def convert_to_boolean(value):
         return value.lower() in ['1', 'true']
 
     @staticmethod
@@ -92,7 +90,6 @@ class AzureModelsParser(object):
 
         return list_attr
 
-
     @staticmethod
     def convert_to_route_table_model(route_table_request, cloudshell_session, logger):
         """
@@ -106,19 +103,19 @@ class AzureModelsParser(object):
         """
         data = jsonpickle.decode(route_table_request)
         route_table_model = RouteTableRequestResourceModel()
-        route_table_model.name=data['name']
+        route_table_model.name = data['name']
         route_table_model.subnets = []
         if data['subnets']:
-            route_table_model.subnets=data['subnets']
-        routes =[]
+            route_table_model.subnets = data['subnets']
+        routes = []
         for route in data['routes']:
             route_model = RouteResourceModel()
-            route_model.name=route['name']
-            route_model.route_address_prefix=route['address_prefix']
-            route_model.next_hop_type=route['next_hop_type']
-            route_model.next_hope_address=route['next_hop_address']
+            route_model.name = route['name']
+            route_model.route_address_prefix = route['address_prefix']
+            route_model.next_hop_type = route['next_hop_type']
+            route_model.next_hope_address = route['next_hop_address']
             routes.append(route_model)
-        route_table_model.routes=routes
+        route_table_model.routes = routes
 
         return route_table_model
 
@@ -300,6 +297,3 @@ class AzureModelsParser(object):
             security_group_models.append(security_group_model)
 
         return security_group_models
-
-
-

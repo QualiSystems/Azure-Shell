@@ -61,13 +61,14 @@ class AzureShell(object):
         self.ip_service = IpService()
         self.tags_service = TagService()
         self.network_service = NetworkService(self.ip_service, self.tags_service)
-        self.storage_service = StorageService(cancellation_service=self.cancellation_service)
+        self.name_provider_service = NameProviderService()
+        self.storage_service = StorageService(cancellation_service=self.cancellation_service,
+                                              name_provider_service=self.name_provider_service)
         self.vm_credentials_service = VMCredentialsService()
         self.key_pair_service = KeyPairService(storage_service=self.storage_service)
         self.security_group_service = SecurityGroupService(self.network_service)
         self.vm_custom_params_extractor = VmCustomParamsExtractor()
         self.cryptography_service = CryptographyService()
-        self.name_provider_service = NameProviderService()
         self.vm_extension_service = VMExtensionService(URLHelper(), waiter_service)
         self.subscription_service = SubscriptionService()
         self.task_waiter_service = waiter_service
@@ -163,29 +164,29 @@ class AzureShell(object):
     def deploy_arm_template(self, command_context, template_name, cancellation_context):
         pass
 
-    def create_route_table(self,command_context, route_table_request):
-        """ Will deploy Azure Image on the cloud provider
+    def create_route_table(self, command_context, route_table_request):
+        """ Creates a route table
 
+        :param route_table_request:
         :param ResourceCommandContext command_context:
-        :param str route_request: JSON string
-        :param CancellationContext cancellation_context:
+        :param str route_table_request: JSON string
         """
         with LoggingSessionContext(command_context) as logger:
             with ErrorHandlingContext(logger):
-                logger.info('Deploying Azure VM...')
+                logger.info('Creating route table...')
 
                 with CloudShellSessionContext(command_context) as cloudshell_session:
-
-
                     route_table_request_model = self.model_parser.convert_to_route_table_model(
                         cloudshell_session=cloudshell_session,
                         logger=logger, route_table_request=route_table_request)
 
+                    logger.info(route_table_request)
                     cloudshell_session.WriteMessageToReservationOutput(command_context.reservation.reservation_id,
                                                                        route_table_request)
 
                     for route in route_table_request_model.routes:
-                        cloudshell_session.WriteMessageToReservationOutput(command_context.reservation.reservation_id, route.name)
+                        cloudshell_session.WriteMessageToReservationOutput(command_context.reservation.reservation_id,
+                                                                           route.name)
 
                     cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(
                         resource=command_context.resource,
@@ -197,7 +198,7 @@ class AzureShell(object):
                                                                cloud_provider_model=cloud_provider_model,
                                                                route_table_request=route_table_request_model,
                                                                sandbox_id=command_context.reservation.reservation_id,
-                                                                subnet_lcoker=self.subnet_locker)
+                                                               subnet_lcoker=self.subnet_locker)
 
     def deploy_azure_vm(self, command_context, deployment_request, cancellation_context):
         """ Will deploy Azure Image on the cloud provider
@@ -558,10 +559,10 @@ class AzureShell(object):
                     'Protocol: {4}\t'
                     'Source Address: {0}\tSource Port Range: {1}\t'
                     'Destination Address: {2}\tDestination Port Range{3}'.format(rule.source_address_prefix,
-                                                                       rule.source_port_range,
-                                                                       rule.destination_address_prefix,
-                                                                       rule.destination_port_range,
-                                                                       rule.protocol)
+                                                                                 rule.source_port_range,
+                                                                                 rule.destination_address_prefix,
+                                                                                 rule.destination_port_range,
+                                                                                 rule.protocol)
                     for rule in vm_nsg.security_rules if rule.name.startswith('rule_')]
 
                 return '\n'.join(custom_rules_output)

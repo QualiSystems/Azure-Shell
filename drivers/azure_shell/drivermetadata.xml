@@ -1,4 +1,4 @@
-<Driver Description="This driver orchestrate all the command that will be executed on Azure" MainClass="driver.AzureShellDriver" Name="Azure Shell Driver" Version="1.6.11">
+<Driver Description="This driver orchestrate all the command that will be executed on Azure" MainClass="driver.AzureShellDriver" Name="Azure Shell Driver" Version="1.6.38">
     <Layout>
         <Category Name="Deployment">
             <Command Description="" DisplayName="Deploy VM" EnableCancellation="true" Name="deploy_vm" Tags="allow_unreserved" />
@@ -9,7 +9,6 @@
             <Command Description="" DisplayName="Get Application Ports" EnableCancellation="true" Name="GetApplicationPorts" Tags="remote_connectivity,allow_shared" />
             <Command Description="" DisplayName="Prepare Connectivity" EnableCancellation="true" Name="PrepareConnectivity" Tags="allow_unreserved" />
             <Command Description="" DisplayName="Create RouteTable" EnableCancellation="false" Name="create_route_table" Tags="allow_unreserved" />
-
             <Command Description="" DisplayName="Cleanup Connectivity" Name="CleanupConnectivity" Tags="allow_unreserved" />
         </Category>
         <Category Name="Hidden Commands">

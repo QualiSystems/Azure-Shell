@@ -18,7 +18,6 @@ class NetworkService(object):
         self.ip_service = ip_service
         self.tags_service = tags_service
 
-
     def create_route_table(self, network_client,cloud_provider_model, routetable_request,
                            sandbox_resource_group
                            ):
@@ -40,7 +39,6 @@ class NetworkService(object):
                                                                routetable_request.name,
                                                                parameters=route_table)
         poller.result()
-
 
     def add_route_table_to_subnets(self, routes_rg,
                                    route_table_name, network_client,

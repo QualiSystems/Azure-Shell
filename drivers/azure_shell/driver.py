@@ -28,6 +28,19 @@ class AzureShellDriver(ResourceDriverInterface):
         pass
 
     def create_route_table(self,context,request):
+        """ Creates a route table, as well as routes and associates it with whatever subnets are relevant
+        Example route table request:
+        {
+            "subnets": ["subnet1", "subnet2"],
+            "routes": [{
+                            "name":                 "myRoute1",
+                            "address_prefix":       "10.0.1.0/28" # cidr
+                            "next_hop_type":        "VirtualAppliance"
+                            "next_hop_address":     "10.0.1.15"
+            }]
+
+
+        """
         return self.azure_shell.create_route_table(context,request)
 
     def deploy_vm(self, context, request, cancellation_context):
@@ -75,3 +88,6 @@ class AzureShellDriver(ResourceDriverInterface):
 
     def GetVmDetails(self, context, cancellation_context, requests):
         return self.azure_shell.get_vm_details(context, cancellation_context, requests)
+
+
+
