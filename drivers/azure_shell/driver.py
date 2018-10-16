@@ -30,8 +30,8 @@ class AzureShellDriver(ResourceDriverInterface):
     def create_route_table(self,context,request):
         """ Creates a route table, as well as routes and associates it with whatever subnets are relevant
         Example route table request:
-        {
-            "subnets": ["subnet1", "subnet2"],
+        {   "name": "myRouteTable1"
+            "subnets": ["subnetId1", "subnetId2"],
             "routes": [{
                             "name":                 "myRoute1",
                             "address_prefix":       "10.0.1.0/28" # cidr
