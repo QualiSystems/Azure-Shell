@@ -53,7 +53,6 @@ from cloudshell.cp.azure.common.azure_clients import AzureClientsManager
 from cloudshell.cp.azure.common.parsers.custom_param_extractor import VmCustomParamsExtractor
 from cloudshell.cp.azure.domain.vm_management.operations.app_ports_operation import DeployedAppPortsOperation
 from cloudshell.cp.azure.domain.vm_management.operations.autoload_operation import AutoloadOperation
-from debug_utils import debugger
 
 
 class AzureShell(object):
@@ -618,7 +617,6 @@ class AzureShell(object):
         :param request: The json request
         :return:
         """
-        debugger.attach_debugger()
         with LoggingSessionContext(command_context) as logger:
             with ErrorHandlingContext(logger):
                 logger.info("Starting set_app_security_groups operation...")
