@@ -3,6 +3,10 @@ from cloudshell.shell.core.resource_driver_interface import ResourceDriverInterf
 from cloudshell.cp.core import DriverRequestParser
 from cloudshell.cp.core.models import DeployApp, DriverResponse
 from cloudshell.cp.core.utils import single
+from debug_utils import debugger
+
+
+
 
 
 class AzureShellDriver(ResourceDriverInterface):
@@ -84,4 +88,5 @@ class AzureShellDriver(ResourceDriverInterface):
         return self.azure_shell.get_vm_details(context, cancellation_context, requests)
 
     def SetAppSecurityGroups(self, context, request):
+        debugger.attach_debugger()
         return self.azure_shell.set_app_security_groups(context, request)

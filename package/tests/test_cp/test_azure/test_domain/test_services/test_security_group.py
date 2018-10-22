@@ -83,7 +83,7 @@ class TestSecurityGroupService(TestCase):
         # Act
         prepared_rule = self.security_group_service._prepare_security_group_rule(
                 rule_data=rule_data,
-                destination_addr=private_vm_ip,
+                destination_address=private_vm_ip,
                 priority=priority)
 
         # Verify
@@ -110,7 +110,7 @@ class TestSecurityGroupService(TestCase):
         # Verify
         self.security_group_service._prepare_security_group_rule.assert_called_once_with(
                 priority=self.security_group_service.RULE_DEFAULT_PRIORITY,
-                destination_addr=private_vm_ip,
+                destination_address=private_vm_ip,
                 rule_data=rule_data)
 
         self.network_client.security_rules.create_or_update.assert_called_with(
@@ -145,7 +145,7 @@ class TestSecurityGroupService(TestCase):
         # Verify
         self.security_group_service._prepare_security_group_rule.assert_called_once_with(
                 priority=self.security_group_service.RULE_DEFAULT_PRIORITY,
-                destination_addr=private_vm_ip,
+                destination_address=private_vm_ip,
                 rule_data=rule_data)
 
         self.network_client.security_rules.create_or_update.assert_called_with(
