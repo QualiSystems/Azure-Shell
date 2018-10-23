@@ -106,7 +106,7 @@ class NetworkService(object):
                                public_ip_address,
                                region,
                                subnet,
-                               IPAllocationMethod.static,
+                               IPAllocationMethod.dynamic,
                                tags,
                                sandbox_virtual_network.name,
                                logger,

@@ -610,7 +610,7 @@ class DeployAzureVMOperation(object):
             data.group_name,
             security_group_name,
             allow_all_traffic,
-            "Any",
+            "*",
             locker,
             start_from=4080,
             source_address=management_vnet_cidr
@@ -631,7 +631,7 @@ class DeployAzureVMOperation(object):
                 data.group_name,
                 security_group_name,
                 deny_all_traffic,
-                "Any",
+                "*",
                 locker,
                 start_from=4080,
                 source_address=management_vnet_cidr
