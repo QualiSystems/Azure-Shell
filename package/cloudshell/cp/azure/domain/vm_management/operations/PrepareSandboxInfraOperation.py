@@ -18,7 +18,6 @@ from cloudshell.cp.azure.common.parsers.azure_resource_id_parser import AzureRes
 from cloudshell.cp.azure.models.network_actions_models import PrepareNetworkActionResult, ConnectivityActionResult, \
     PrepareNetworkParams
 from cloudshell.cp.azure.models.rule_data import RuleData
-from debug_utils import debugger
 
 INVALID_REQUEST_ERROR = 'Invalid request: {0}'
 
@@ -145,8 +144,6 @@ class PrepareSandboxInfraOperation(object):
             tag_value=NetworkService.SANDBOX_NETWORK_TAG_VALUE)
 
         self._validate_sandbox_vnet(sandbox_vnet)
-
-        debugger.attach_debugger()
 
         # 4. Create the sandbox NSG object
         #
@@ -440,7 +437,10 @@ class PrepareSandboxInfraOperation(object):
             logger.info("Created security rule {0} on NSG {1}".format(security_rule_name, security_group_name))
 
         # block access from internet to private subnets
-        private_subnets = [s for s in subnet_actions if s.actionParams.subnetServiceAttributes['Public'] == 'False']
+        private_subnets = [s for s in subnet_actions if s.actionParams and
+                           s.actionParams.subnetServiceAttributes and
+                           'Public' in s.actionParams.subnetServiceAttributes and
+                           s.actionParams.subnetServiceAttributes['Public'] == 'False']
 
         for p in private_subnets:
             private_subnet_cidr = p.actionParams.cidr

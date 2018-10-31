@@ -24,29 +24,32 @@ class SetAppSecurityGroupsOperation(object):
         :param str group_name:
         :return:
         """
+        # purpose of set_apps_security_groups is to set custom security rules for specific apps.
+        # the idea is that we can allow / block traffic to specific VMs
+
+        # In general, we have two kinds of network security groups in Azure:
+        # 1. NSG per VM
+        # 2. an NSG for the sandbox, which handles security rules for the sandbox subnets.
+
         result = []
         for app_security_group_model in app_security_group_models:
             try:
+
+                # get network security group for VM
                 vm_name = app_security_group_model.deployed_app.name
                 nsg_name = 'NSG_' + vm_name
+                instance = self.vm_service.get_vm(compute_client, group_name, vm_name)
+                nic_to_subnet_name_map = self._create_nic_to_subnet_name_map(network_client, instance, group_name)
+
                 logger.info(
                     "Setting custom app security rules for {}.".format(app_security_group_model.deployed_app.name))
-
-                instance = self.vm_service.get_vm(compute_client, group_name, vm_name)
-
-                # nsg = self.nsg_service.get_network_security_group(network_client=network_client,
-                #                                                   group_name=group_name,
-                #                                                   nsg_name=nsg_name)
-
-                nic_to_subnet_name_map = self._create_nic_to_subnet_name_map(network_client, instance, group_name)
 
                 for security_group_config in app_security_group_model.security_group_configurations:
                     subnet_name = self.resource_id_parser.get_name_from_resource_id(security_group_config.subnet_id)
                     nic = self._find_nic_by_subnet(nic_to_subnet_name_map, subnet_name)
-
                     destination_ip = nic.ip_configurations[0].private_ip_address
-
                     lock = self.generic_lock_provider.get_resource_lock(lock_key=nsg_name, logger=logger)
+
                     self.nsg_service.create_network_security_group_rules(network_client=network_client,
                                                                          group_name=group_name,
                                                                          security_group_name=nsg_name,
@@ -58,13 +61,16 @@ class SetAppSecurityGroupsOperation(object):
                     app_name=app_security_group_model.deployed_app.name,
                     is_success=True,
                     message='')
+
             except Exception as ex:
                 message = "Setting custom app security rules failed for '{0}' with error '{1}'.".format(
                     app_security_group_model.deployed_app.name, ex.message)
+
                 action_result = self._create_security_group_action_result(
                     app_name=app_security_group_model.deployed_app.name,
                     is_success=False,
                     message=message)
+
                 logger.error("Setting custom app security rules failed for '{0}' with error '{1}'.".format(
                     app_security_group_model.deployed_app.name,
                     traceback.format_exc()))

@@ -65,6 +65,7 @@ class NetworkService(object):
                               add_public_ip,
                               public_ip_type,
                               logger,
+                              lock_provider,
                               network_security_group=None):
         """
         This method creates a an ip address and a nic for the vm
@@ -106,17 +107,18 @@ class NetworkService(object):
                                public_ip_address,
                                region,
                                subnet,
-                               IPAllocationMethod.dynamic,
+                               IPAllocationMethod.static,
                                tags,
                                sandbox_virtual_network.name,
                                logger,
+                               lock_provider,
                                network_security_group)
 
     @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def create_nic(self, interface_name, group_name, management_group_name, network_client, public_ip_address, region,
                    subnet,
                    private_ip_allocation_method, tags, virtual_network_name,
-                   logger, network_security_group=None):
+                   logger, lock_provider, network_security_group=None):
         """
         The method creates or updates network interface.
         Parameter
@@ -137,6 +139,10 @@ class NetworkService(object):
 
         # private_ip_address in required only in the case of static allocation method
         # in the case of dynamic allocation method is ignored
+
+        # purpose of static allocation -> on restart machine, the ip can get lost. By using static we ensure the ip
+        # will remain the same
+
         private_ip_address = ""
         if private_ip_allocation_method == IPAllocationMethod.static:
             private_ip_address = self.ip_service.get_available_private_ip(network_client, management_group_name,

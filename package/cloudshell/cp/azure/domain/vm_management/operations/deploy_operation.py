@@ -543,6 +543,7 @@ class DeployAzureVMOperation(object):
                                                              public_ip_type=deployment_model.public_ip_type,
                                                              tags=data.tags,
                                                              logger=logger,
+                                                             lock_provider=self.generic_lock_provider,
                                                              network_security_group=vm_nsg)
 
             if i == 0:
