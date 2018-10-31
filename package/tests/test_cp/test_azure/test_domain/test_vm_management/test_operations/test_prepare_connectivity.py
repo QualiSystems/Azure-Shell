@@ -57,6 +57,7 @@ class TestPrepareSandboxInfra(TestCase):
         subnet_action = PrepareSubnet()
         subnet_action.actionParams = PrepareSubnetParams
         subnet_action.actionParams.cidr = "10.0.0.0/24"
+        subnet_action.actionParams.subnetServiceAttributes = dict()
         subnet_action.actionId = '1'
         create_keys_action = CreateKeys()
         create_keys_action.actionId = '3'
@@ -97,7 +98,7 @@ class TestPrepareSandboxInfra(TestCase):
         # key pair created
         self.assertTrue(TestHelper.CheckMethodCalledXTimes(self.key_pair_service.save_key_pair))
 
-        self.assertTrue(TestHelper.CheckMethodCalledXTimes(network_client.security_rules.create_or_update, 4))
+        self.assertTrue(TestHelper.CheckMethodCalledXTimes(network_client.security_rules.create_or_update, 3))
         network_client.network_security_groups.create_or_update.assert_called_once()
         self.cancellation_service.check_if_cancelled.assert_called_with(cancellation_context)
 

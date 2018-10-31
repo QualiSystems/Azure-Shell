@@ -1,5 +1,6 @@
 import re
 
+from azure.mgmt.network.models import RouteNextHopType, SecurityRuleProtocol
 from msrestazure.azure_exceptions import CloudError
 from cloudshell.cp.azure.common.exceptions.quali_timeout_exception import QualiTimeoutException, \
     QualiScriptExecutionTimeoutException
@@ -13,6 +14,8 @@ from cloudshell.cp.azure.models.azure_cloud_provider_resource_model import Azure
 from azure.mgmt.network.models import Subnet, NetworkInterface, SecurityRule, SecurityRuleAccess
 from azure.mgmt.compute.models import OperatingSystemTypes, PurchasePlan
 from cloudshell.shell.core.driver_context import CancellationContext
+
+from cloudshell.cp.azure.models.rule_data import RuleData
 from cloudshell.cp.azure.models.vm_credentials import VMCredentials
 from cloudshell.cp.azure.models.image_data import ImageDataModelBase, MarketplaceImageDataModel
 from cloudshell.cp.azure.models.network_actions_models import *
@@ -515,26 +518,15 @@ class DeployAzureVMOperation(object):
         :return: Updated DeployDataModel instance
         :rtype: DeployAzureVMOperation.DeployDataModel
         """
-        # 1. Create NSG for VM
-        security_group_name = 'NSG_' + data.vm_name
-        tags = self.tags_service.get_tags(data.vm_name, data.reservation)
-        vm_nsg = self.security_group_service.create_network_security_group(network_client=network_client,
-                                                                           group_name=data.group_name,
-                                                                           security_group_name=security_group_name,
-                                                                           region=cloud_provider_model.region,
-                                                                           tags=tags)
 
-        # 2. set infra rules on VM NSG
-        self._allow_mgmt_network_traffic_on_vm_nsg(cloud_provider_model, data, network_client, vm_nsg)
+        # 1. Create network security group for VM
+        #       -   Open traffic to VM on inbound ports (an attribute on the app)
+        #       -   Open traffic to VM from additional mgmt networks
+        #       -   Open traffic to VM from mgmt vnet
+        #       -   block traffic to VM from sandbox if "allow all sandbox traffic = false"
 
-        if not deployment_model.allow_all_sandbox_traffic or deployment_model.allow_all_sandbox_traffic == 'False':
-            self.security_group_service \
-                .create_isolated_network_security_group_rules(network_client=network_client,
-                                                              group_name=data.group_name,
-                                                              security_group_name=vm_nsg.name,
-                                                              lock=self.generic_lock_provider.get_resource_lock(
-                                                                  vm_nsg.name,
-                                                                  logger))
+        vm_nsg = self._create_vm_network_security_group(cancellation_context, cloud_provider_model, data,
+                                                        deployment_model, logger, network_client)
 
         # 3. Create network for vm
         data.nics = []
@@ -551,28 +543,13 @@ class DeployAzureVMOperation(object):
                                                              public_ip_type=deployment_model.public_ip_type,
                                                              tags=data.tags,
                                                              logger=logger,
+                                                             lock_provider=self.generic_lock_provider,
                                                              network_security_group=vm_nsg)
 
             if i == 0:
                 data.private_ip_address = nic.ip_configurations[0].private_ip_address
             logger.info("NIC private IP is {}".format(data.private_ip_address))
             data.nics.append(nic)
-
-        # 4. open inbound ports requested by app definition
-        if deployment_model.inbound_ports:
-            inbound_rules = RulesAttributeParser.parse_port_group_attribute(
-                ports_attribute=deployment_model.inbound_ports)
-
-            lock = self.generic_lock_provider.get_resource_lock(lock_key=security_group_name, logger=logger)
-            self.security_group_service.create_network_security_group_rules(network_client,
-                                                                            data.group_name,
-                                                                            security_group_name,
-                                                                            inbound_rules,
-                                                                            '*',
-                                                                            # we want to apply 'inbound ports' attribute on all the VM nics
-                                                                            lock)
-
-        self.cancellation_service.check_if_cancelled(cancellation_context)
 
         # 5. Prepare credentials for VM
         logger.info("Prepare credentials for the VM {}".format(data.vm_name))
@@ -590,27 +567,101 @@ class DeployAzureVMOperation(object):
 
         return data
 
-    def _allow_mgmt_network_traffic_on_vm_nsg(self, cloud_provider_model, data, network_client, vm_nsg):
+    def _create_vm_network_security_group(self, cancellation_context, cloud_provider_model, data, deployment_model,
+                                          logger, network_client):
+
+        # Purpose of method is create a network security group that handles inbound and outbound traffic for a specific
+        # app.
+        # All nics on the VM are affected by the rules set on the VM
+
+        management_vnet_cidr = self._get_management_vnet_cidr(cloud_provider_model, network_client)
+        self.network_service.get_sandbox_virtual_network(network_client, data.group_name)
+
+        # create network security group
+        security_group_name = 'NSG_' + data.vm_name
+        tags = self.tags_service.get_tags(data.vm_name, data.reservation)
+        vm_nsg = self.security_group_service.create_network_security_group(network_client=network_client,
+                                                                           group_name=data.group_name,
+                                                                           security_group_name=security_group_name,
+                                                                           region=cloud_provider_model.region,
+                                                                           tags=tags)
+        locker = self.generic_lock_provider.get_resource_lock(vm_nsg.name, logger)
+
+        #   VM NSG rules overview
+        #       1xxx
+        #       -   Open traffic to VM on inbound ports (an attribute on the app)
+        #       4xxx
+        #       -   Open traffic to VM from additional mgmt networks
+        #       4080
+        #       -   Open traffic to VM from mgmt vnet
+        #       4090
+        #       -   block traffic to VM from sandbox if "allow all sandbox traffic = false"
+
+        # Rule 4080:
+        # Open traffic to VM from mgmt vnet
+
+        security_rule_name = 'Allow_{0}_To_Any'.format(management_vnet_cidr.replace('/', '-'))
+        allow_all_traffic = [RuleData(protocol=SecurityRuleProtocol.asterisk,
+                                      port='*',
+                                      access=SecurityRuleAccess.allow,
+                                      name=security_rule_name)]
+
+        self.security_group_service.create_network_security_group_rules(
+            network_client,
+            data.group_name,
+            security_group_name,
+            allow_all_traffic,
+            "*",
+            locker,
+            start_from=4080,
+            source_address=management_vnet_cidr
+        )
+
+        # Rule 4090:
+        # Block traffic from sandbox if vm is set to allow all sandbox traffic = false
+
+        if not deployment_model.allow_all_sandbox_traffic or deployment_model.allow_all_sandbox_traffic == 'False':
+            security_rule_name = 'Deny_{0}_To_Any'.format(management_vnet_cidr.replace('/', '-'))
+            deny_all_traffic = [RuleData(protocol=SecurityRuleProtocol.asterisk,
+                                         port='*',
+                                         access=SecurityRuleAccess.deny,
+                                         name=security_rule_name)]
+
+            self.security_group_service.create_network_security_group_rules(
+                network_client,
+                data.group_name,
+                security_group_name,
+                deny_all_traffic,
+                "*",
+                locker,
+                start_from=4080,
+                source_address=management_vnet_cidr
+            )
+
+        # 4. open inbound ports requested by app definition
+        if deployment_model.inbound_ports:
+            inbound_rules = RulesAttributeParser.parse_port_group_attribute(
+                ports_attribute=deployment_model.inbound_ports)
+
+            lock = self.generic_lock_provider.get_resource_lock(lock_key=security_group_name, logger=logger)
+            self.security_group_service.create_network_security_group_rules(network_client,
+                                                                            data.group_name,
+                                                                            security_group_name,
+                                                                            inbound_rules,
+                                                                            '*',
+                                                                            # we want to apply 'inbound ports' attribute on all the VM nics
+                                                                            lock)
+        self.cancellation_service.check_if_cancelled(cancellation_context)
+        return vm_nsg
+
+    def _get_management_vnet_cidr(self, cloud_provider_model, network_client):
         virtual_networks = self.network_service.get_virtual_networks(network_client=network_client,
                                                                      group_name=cloud_provider_model.management_group_name)
-        management_vnet = self.network_service.get_virtual_network_by_tag(
-            virtual_networks=virtual_networks,
-            tag_key=NetworkService.NETWORK_TYPE_TAG_NAME,
-            tag_value=NetworkService.MGMT_NETWORK_TAG_VALUE)
-        self.security_group_service.create_network_security_group_custom_rule(
-            network_client=network_client,
-            group_name=data.group_name,
-            security_group_name=vm_nsg.name,
-            rule=SecurityRule(
-                access=SecurityRuleAccess.allow,
-                direction="Inbound",
-                source_address_prefix=management_vnet.address_space.address_prefixes[0],
-                source_port_range='*',
-                name='allow_mgmt_network',
-                destination_address_prefix='*',
-                destination_port_range='*',
-                priority=4000,
-                protocol='*'))
+        management_vnet = self.network_service.get_virtual_network_by_tag(virtual_networks,
+                                                                          NetworkService.NETWORK_TYPE_TAG_NAME,
+                                                                          NetworkService.MGMT_NETWORK_TAG_VALUE)
+        management_vnet_cidr = management_vnet.address_space.address_prefixes[0]
+        return management_vnet_cidr
 
     def _validate_deployment_model(self, vm_deployment_model, os_type):
         """

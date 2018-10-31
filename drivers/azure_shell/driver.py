@@ -5,6 +5,7 @@ from cloudshell.cp.core.models import DeployApp, DriverResponse
 from cloudshell.cp.core.utils import single
 
 
+
 class AzureShellDriver(ResourceDriverInterface):
     def __init__(self):
         """
@@ -40,8 +41,8 @@ class AzureShellDriver(ResourceDriverInterface):
                                                 actions=actions,
                                                 cancellation_context=cancellation_context)
 
-    # def create_route_table(self,context,request):
-    #     return self.azure_shell.create_route_table(context,request)
+    def create_route_table(self,context,request):
+        return self.azure_shell.create_route_table(context, request)
 
     def deploy_vm_from_custom_image(self, context, actions, cancellation_context):
         return self.azure_shell.deploy_vm_from_custom_image(command_context=context,
@@ -82,3 +83,6 @@ class AzureShellDriver(ResourceDriverInterface):
 
     def GetVmDetails(self, context, cancellation_context, requests):
         return self.azure_shell.get_vm_details(context, cancellation_context, requests)
+
+    def SetAppSecurityGroups(self, context, request):
+        return self.azure_shell.set_app_security_groups(context, request)

@@ -12,7 +12,7 @@ class TaskWaiterService(object):
         """
         self.cancellation_service = cancellation_service
 
-    def wait_for_task(self, operation_poller, cancellation_context, wait_time=30):
+    def wait_for_task(self, operation_poller, cancellation_context, wait_time=30, logger=None):
         """Wait for Azure operation end
 
         :param operation_poller: msrestazure.azure_operation.AzureOperationPoller instance
@@ -21,6 +21,8 @@ class TaskWaiterService(object):
         :return: Azure Operation Poller result
         """
         while not operation_poller.done():
+            if logger:
+                logger.info('Waiting for poller, current status is {0}'.format(operation_poller.status()))
             self.cancellation_service.check_if_cancelled(cancellation_context)
             time.sleep(wait_time)
 

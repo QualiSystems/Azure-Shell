@@ -168,9 +168,20 @@ class AzureShell(object):
     def create_route_table(self, command_context, route_table_request):
         """ Will deploy Azure Image on the cloud provider
 
+        Creates a route table, as well as routes and associates it with whatever subnets are relevant
+        Example route table request:
+        {   "name": "myRouteTable1"
+            "subnets": ["subnetId1", "subnetId2"],
+            "routes": [{
+                            "name":                 "myRoute1",
+                            "address_prefix":       "10.0.1.0/28" # cidr
+                            "next_hop_type":        "VirtualAppliance"
+                            "next_hop_address":     "10.0.1.15"
+            }]
+
+        :param route_table_request:
         :param ResourceCommandContext command_context:
         :param str route_request: JSON string
-        :param CancellationContext cancellation_context:
         """
         with LoggingSessionContext(command_context) as logger:
             with ErrorHandlingContext(logger):
