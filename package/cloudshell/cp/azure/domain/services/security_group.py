@@ -91,17 +91,18 @@ class SecurityGroupService(object):
 
             access = rule_data.access
 
-            if rule_data.name:
-                rule_name = rule_data.name
-
         elif isinstance(rule_data, PortData):
             source_address = rule_data.source
             if rule_data.from_port == rule_data.to_port:
                 port_range = str(rule_data.from_port)
             else:
                 port_range = "{}-{}".format(rule_data.from_port, rule_data.to_port)
+
         else:
             raise ValueError("Unsupported type")
+
+        if rule_data.name:
+            rule_name = rule_data.name
 
         return SecurityRule(
             access=access,
@@ -266,6 +267,37 @@ class SecurityGroupService(object):
                 security_rule_parameters=deny_all_in)
 
             operation_poller.result()
+
+    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
+    def delete_custom_security_rules_from_nsg(self, network_client, resource_group_name, network_security_group_name,
+                                              lock, logger):
+        """
+        removes NSG custom rules from NSG. Custom rules are simply rules whose name begins with custom_rule
+
+        :param network_security_group_name:
+        :param logger:
+        :param network_client: azure.mgmt.network.NetworkManagementClient instance
+        :param resource_group_name: resource group name (reservation id)
+        :param threading.Lock lock: The locker object to use to sync between concurrent operations on the NSG
+
+        :return: None
+        """
+
+        logger.info('Preparing to delete custom security rules in {0}'.format(network_security_group_name))
+
+        rules_in_nsg = list(network_client.security_rules.list(resource_group_name, network_security_group_name))
+        custom_rules = [r for r in rules_in_nsg if 'custom_rule' in r.name]
+
+        with lock:
+            for rule in custom_rules:
+                result = network_client.security_rules.delete(resource_group_name,
+                                                              network_security_group_name,
+                                                              rule.name)
+                logger.info("Deleting custom security rule: {0} in {1}".format(rule.name, network_security_group_name))
+                result.wait()
+                logger.info("Deleted custom security rule: {0} in {1}".format(rule.name, network_security_group_name))
+
+        logger.info('Finished deleting custom security rules in {0}'.format(network_security_group_name))
 
     @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def delete_security_rules(self, network_client, resource_group_name, vm_name, lock, logger):

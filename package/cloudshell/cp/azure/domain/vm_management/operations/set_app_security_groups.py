@@ -27,17 +27,23 @@ class SetAppSecurityGroupsOperation(object):
         # purpose of set_apps_security_groups is to set custom security rules for specific apps.
         # the idea is that we can allow / block traffic to specific VMs
 
-        # In general, we have two kinds of network security groups in Azure:
-        # 1. NSG per VM
-        # 2. an NSG for the sandbox, which handles security rules for the sandbox subnets.
+        sg_model = app_security_group_models[0]
+        vm_name = sg_model.deployed_app.name
+        vm_nsg_name = 'NSG_' + vm_name
+        lock = self.generic_lock_provider.get_resource_lock(lock_key=vm_nsg_name, logger=logger)
+
+        # delete previous custom rules
+        self.nsg_service.delete_custom_security_rules_from_nsg(network_client=network_client,
+                                                               resource_group_name=group_name,
+                                                               network_security_group_name=vm_nsg_name,
+                                                               lock=lock,
+                                                               logger=logger)
 
         result = []
         for app_security_group_model in app_security_group_models:
             try:
 
                 # get network security group for VM
-                vm_name = app_security_group_model.deployed_app.name
-                nsg_name = 'NSG_' + vm_name
                 instance = self.vm_service.get_vm(compute_client, group_name, vm_name)
                 nic_to_subnet_name_map = self._create_nic_to_subnet_name_map(network_client, instance, group_name)
 
@@ -48,11 +54,13 @@ class SetAppSecurityGroupsOperation(object):
                     subnet_name = self.resource_id_parser.get_name_from_resource_id(security_group_config.subnet_id)
                     nic = self._find_nic_by_subnet(nic_to_subnet_name_map, subnet_name)
                     destination_ip = nic.ip_configurations[0].private_ip_address
-                    lock = self.generic_lock_provider.get_resource_lock(lock_key=nsg_name, logger=logger)
+                    for i, rule in enumerate(security_group_config.rules):
+                        rule.name = "custom_rule_{2}_for_{0}_to_{1}".format(vm_name, destination_ip, i)
 
+                    # create custom rules
                     self.nsg_service.create_network_security_group_rules(network_client=network_client,
                                                                          group_name=group_name,
-                                                                         security_group_name=nsg_name,
+                                                                         security_group_name=vm_nsg_name,
                                                                          inbound_rules=security_group_config.rules,
                                                                          destination_addr=destination_ip,
                                                                          lock=lock)
