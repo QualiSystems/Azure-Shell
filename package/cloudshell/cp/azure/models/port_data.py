@@ -20,3 +20,4 @@ class PortData(object):
         self.protocol = protocol
         self.destination = destination
         self.source = source
+        self.name = None
