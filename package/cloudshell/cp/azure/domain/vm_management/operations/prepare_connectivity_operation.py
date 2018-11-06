@@ -177,7 +177,7 @@ class PrepareConnectivityOperation(object):
 
         subnet_actions = [a for a in actions if isinstance(a.connection_params, PrepareSubnetParams)]
         for subnet in subnet_actions:
-            subnet_name = (group_name + '_' + subnet.connection_params.cidr).replace(' ', '').replace('/', '-')
+            subnet_name = self.name_provider_service.format_subnet_name(group_name, subnet.connection_params.cidr)
             self._create_subnet(cidr=subnet.connection_params.cidr,
                                 cloud_provider_model=cloud_provider_model,
                                 logger=logger,

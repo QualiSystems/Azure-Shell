@@ -6,6 +6,7 @@ from msrestazure.azure_exceptions import CloudError
 
 from cloudshell.cp.azure.domain.common.vm_details_provider import VmDetailsProvider
 from cloudshell.cp.azure.domain.networking_management.operations.add_route_operation import AddRouteOperation
+from cloudshell.cp.azure.domain.networking_management.operations.ip_operation import IPAddressOperation
 from cloudshell.cp.azure.domain.vm_management.operations.set_app_security_groups import SetAppSecurityGroupsOperation
 from cloudshell.cp.azure.domain.vm_management.operations.vm_details_operation import VmDetailsOperation
 from cloudshell.shell.core.driver_context import ResourceCommandContext, CancellationContext
@@ -37,12 +38,11 @@ from cloudshell.cp.azure.domain.services.vm_extension import VMExtensionService
 from cloudshell.cp.azure.domain.services.task_waiter import TaskWaiterService
 from cloudshell.cp.azure.domain.services.command_cancellation import CommandCancellationService
 from cloudshell.cp.azure.domain.services.subscription import SubscriptionService
-from cloudshell.cp.azure.domain.vm_management.operations.deploy_operation import DeployAzureVMOperation, \
-    SetAppSecurityGroupActionResult
+from cloudshell.cp.azure.domain.vm_management.operations.deploy_operation import DeployAzureVMOperation
 from cloudshell.cp.azure.domain.vm_management.operations.power_operation import PowerAzureVMOperation
 from cloudshell.cp.azure.domain.vm_management.operations.refresh_ip_operation import RefreshIPOperation
 from cloudshell.cp.azure.domain.vm_management.operations.prepare_connectivity_operation import \
-    PrepareConnectivityOperation
+    PrepareConnectivityOperation, SetAppSecurityGroupActionResult
 from cloudshell.cp.azure.common.azure_clients import AzureClientsManager
 from cloudshell.cp.azure.common.parsers.custom_param_extractor import VmCustomParamsExtractor
 from cloudshell.cp.azure.domain.vm_management.operations.app_ports_operation import DeployedAppPortsOperation
@@ -58,7 +58,8 @@ class AzureShell(object):
         self.command_result_parser = CommandResultsParser()
         self.model_parser = AzureModelsParser()
         self.resource_id_parser = AzureResourceIdParser()
-        self.ip_service = IpService()
+        self.generic_lock_provider = GenericLockProvider()
+        self.ip_service = IpService(self.generic_lock_provider)
         self.tags_service = TagService()
         self.network_service = NetworkService(self.ip_service, self.tags_service)
         self.name_provider_service = NameProviderService()
@@ -73,7 +74,6 @@ class AzureShell(object):
         self.subscription_service = SubscriptionService()
         self.task_waiter_service = waiter_service
         self.vm_service = VirtualMachineService(task_waiter_service=self.task_waiter_service)
-        self.generic_lock_provider = GenericLockProvider()
         self.subnet_locker = Lock()
         self.vm_details_provider = VmDetailsProvider(self.network_service, self.resource_id_parser)
         self.image_data_factory = ImageDataFactory(vm_service=self.vm_service)
@@ -113,7 +113,8 @@ class AzureShell(object):
             cancellation_service=self.cancellation_service,
             generic_lock_provider=self.generic_lock_provider,
             image_data_factory=self.image_data_factory,
-            vm_details_provider=self.vm_details_provider)
+            vm_details_provider=self.vm_details_provider,
+            ip_service=self.ip_service)
 
         self.power_vm_operation = PowerAzureVMOperation(vm_service=self.vm_service,
                                                         vm_custom_params_extractor=self.vm_custom_params_extractor)
@@ -128,7 +129,8 @@ class AzureShell(object):
             security_group_service=self.security_group_service,
             storage_service=self.storage_service,
             generic_lock_provider=self.generic_lock_provider,
-            subnet_locker=self.subnet_locker)
+            subnet_locker=self.subnet_locker,
+            ip_service=self.ip_service)
 
         self.deployed_app_ports_operation = DeployedAppPortsOperation(
             vm_custom_params_extractor=self.vm_custom_params_extractor)
@@ -140,6 +142,8 @@ class AzureShell(object):
                                                                                resource_id_parser=self.resource_id_parser,
                                                                                nsg_service=self.security_group_service,
                                                                                generic_lock_provider=self.generic_lock_provider)
+
+        self.ip_address_operation = IPAddressOperation(self.ip_service, self.network_service, self.name_provider_service)
 
     def get_inventory(self, command_context):
         """Validate Cloud Provider
@@ -393,7 +397,8 @@ class AzureShell(object):
                         storage_client=azure_clients.storage_client,
                         group_name=resource_group_name,
                         vm_name=vm_name,
-                        logger=logger)
+                        logger=logger,
+                        cloudshell_session=cloudshell_session)
                 except CloudError as e:
                     if e.response.reason == "Not Found":
                         logger.info('Deleting Azure VM Not Found Exception:', exc_info=1)
@@ -641,3 +646,27 @@ class AzureShell(object):
                     json_result = SetAppSecurityGroupActionResult.to_json(result)
 
                     return json_result
+
+    def get_available_private_ip(self, command_context, subnet_cidr, owner):
+        """
+        :param ResourceCommandContext command_context:
+        :param subnet_cidr:
+        :return:
+        """
+        with LoggingSessionContext(command_context) as logger, ErrorHandlingContext(logger):
+            with CloudShellSessionContext(command_context) as cloudshell_session:
+                reservation_id = command_context.reservation.reservation_id
+
+                cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(
+                    resource=command_context.resource,
+                    cloudshell_session=cloudshell_session)
+
+                azure_clients = AzureClientsManager(cloud_provider_model)
+
+                return self.ip_address_operation.get_available_private_ip(logger=logger,
+                                                                          cloudshell_session=cloudshell_session,
+                                                                          cloud_provider_model=cloud_provider_model,
+                                                                          network_client=azure_clients.network_client,
+                                                                          reservation_id=reservation_id,
+                                                                          subnet_cidr=subnet_cidr,
+                                                                          owner=owner)

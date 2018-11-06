@@ -18,7 +18,7 @@ class IpService(object):
         self.generic_lock_provider = generic_lock_provider
         self._cached_available_private_ips = {}
 
-    def get_next_available_ip_from_cs_pool(self, logger, api, reservation_id, subnet_cidr):
+    def get_next_available_ip_from_cs_pool(self, logger, api, reservation_id, subnet_cidr, owner=None):
         """
         Call the generic pool api to checkout the next available ip
         :param Logger logger:
@@ -33,7 +33,7 @@ class IpService(object):
         request = {'type': 'NextAvailableIP',
                    'poolId': self._get_pool_id(reservation_id),
                    'reservationId': reservation_id,
-                   'ownerId': self._get_pool_item_owner(),
+                   'ownerId': self._get_pool_item_owner(owner),
                    'isolation': 'Exclusive',
                    'subnetRange': subnet_cidr,
                    'reservedIps': self._get_reserved_ips(subnet_cidr)}
@@ -48,8 +48,8 @@ class IpService(object):
 
         return available_ip
 
-    def _get_pool_item_owner(self):
-        return 'Azure-Shell'
+    def _get_pool_item_owner(self, owner):
+        return 'Azure-Shell' if not owner else owner
 
     def _get_reserved_ips(self, subnet_cidr):
         # Calculate reserved ips by azure - The first and last IP addresses of each subnet are reserved for protocol
@@ -118,5 +118,5 @@ class IpService(object):
         api.ReleaseFromPool(values=ips_to_release,
                             poolId=self._get_pool_id(reservation_id),
                             reservationId=reservation_id,
-                            ownerId=self._get_pool_item_owner())
+                            ownerId=self._get_pool_item_owner(owner))
         logger.info('Released ips from pool: {}'.format(','.join(ips_to_release)))

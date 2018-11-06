@@ -89,5 +89,8 @@ class AzureShellDriver(ResourceDriverInterface):
     def GetVmDetails(self, context, cancellation_context, requests):
         return self.azure_shell.get_vm_details(context, cancellation_context, requests)
 
+    def GetAvailablePrivateIP(self, context, subnet_cidr, owner):
+        return self.azure_shell.get_available_private_ip(context, subnet_cidr, owner)
+
 
 
