@@ -183,11 +183,19 @@
         <Rule Name="Setting" />
       </Rules>
     </AttributeInfo>
+    <AttributeInfo Name="Private IP Allocation Method" DefaultValue="" IsReadOnly="false" Type="String" Description="Defines the method that will be used to allocated private ip addresses to VMs. When Static allocation method is selected the Azure-Shell will use the CloudShell Pool API to checkout the next available ip address when needed. When the instance is deleted the checked out ip addresses will be released. When Dynamic allocation method is selected the private ips will be assigned by Azure when creating the network interface.">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
   </Attributes>
   <ResourceFamilies>
     <ResourceFamily Description="" IsAdminOnly="true" IsSearchable="false" Name="Cloud Provider" AllowRemoteConnection="false">
       <AttachedAttributes />
-      <AttributeValues />
+      <AttributeValues>
+        <AttributeValue Name="Private IP Allocation Method" Value="Dynamic" />
+      </AttributeValues>
       <Models>
         <ResourceModel Description="" ImagePath="Azure.png" Name="Microsoft Azure" SupportsConcurrentCommands="true">
           <AttachedAttributes>
@@ -196,7 +204,8 @@
             </AttachedAttribute>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="VM Size">
               <AllowedValues />
-            </AttachedAttribute><AttachedAttribute IsLocal="true" IsOverridable="true" Name="Disk Size">
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Disk Size">
               <AllowedValues />
             </AttachedAttribute>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Networks In Use">
@@ -222,6 +231,12 @@
             </AttachedAttribute>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Additional Mgmt Networks">
               <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Private IP Allocation Method">
+              <AllowedValues>
+                <AllowedValue>Dynamic</AllowedValue>
+                <AllowedValue>Static</AllowedValue>
+              </AllowedValues>
             </AttachedAttribute>
           </AttachedAttributes>
           <ParentModels />
