@@ -142,6 +142,7 @@ class TestAzureModelsParser(TestCase):
         test_resource.attributes["Region"] = "East Canada"
         test_resource.attributes["Management Group Name"] = test_mgmt_group_name = mock.MagicMock()
         test_resource.attributes["Execution Server Selector"] = ""
+        test_resource.attributes["Private IP Allocation Method"] = "Cloudshell Allocation"
         cloudshell_session = mock.MagicMock()
         decrypted_azure_application_key = mock.MagicMock()
         cloudshell_session.DecryptPassword.return_value = decrypted_azure_application_key

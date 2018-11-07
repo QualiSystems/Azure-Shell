@@ -1,27 +1,25 @@
 import re
 
-from azure.mgmt.network.models import RouteNextHopType, SecurityRuleProtocol
-from msrestazure.azure_exceptions import CloudError
-from cloudshell.cp.azure.common.exceptions.quali_timeout_exception import QualiTimeoutException, \
-    QualiScriptExecutionTimeoutException
-from cloudshell.cp.azure.domain.services.network_service import NetworkService
-from cloudshell.cp.azure.models.deploy_result_model import DeployResult
-from cloudshell.cp.azure.common.parsers.rules_attribute_parser import RulesAttributeParser
-from cloudshell.cp.azure.models.nic_request import NicRequest
-from cloudshell.cp.azure.models.reservation_model import ReservationModel
-from cloudshell.cp.azure.models.deploy_azure_vm_resource_models import \
-    DeployAzureVMFromCustomImageResourceModel, BaseDeployAzureVMResourceModel, DeployAzureVMResourceModel
-from cloudshell.cp.azure.models.azure_cloud_provider_resource_model import AzureCloudProviderResourceModel
-from azure.mgmt.network.models import Subnet, NetworkInterface, SecurityRule, SecurityRuleAccess
-from azure.mgmt.compute.models import OperatingSystemTypes, PurchasePlan
-from cloudshell.shell.core.driver_context import CancellationContext
-
-from cloudshell.cp.azure.models.rule_data import RuleData
-from cloudshell.cp.azure.models.vm_credentials import VMCredentials
-from cloudshell.cp.azure.models.image_data import ImageDataModelBase, MarketplaceImageDataModel
-from cloudshell.cp.azure.models.network_actions_models import *
+from azure.mgmt.compute.models import OperatingSystemTypes
+from azure.mgmt.network.models import SecurityRuleAccess
+from azure.mgmt.network.models import SecurityRuleProtocol
 from cloudshell.api.cloudshell_api import CloudShellAPISession
 from cloudshell.cp.core.models import DeployAppResult, Attribute, ConnectSubnet
+from cloudshell.shell.core.driver_context import CancellationContext
+from msrestazure.azure_exceptions import CloudError
+
+from cloudshell.cp.azure.common.exceptions.quali_timeout_exception import QualiTimeoutException, \
+    QualiScriptExecutionTimeoutException
+from cloudshell.cp.azure.common.helpers.ip_allocation_helper import is_cloudshell_allocation
+from cloudshell.cp.azure.common.parsers.rules_attribute_parser import RulesAttributeParser
+from cloudshell.cp.azure.domain.services.network_service import NetworkService
+from cloudshell.cp.azure.models.azure_cloud_provider_resource_model import AzureCloudProviderResourceModel
+from cloudshell.cp.azure.models.deploy_azure_vm_resource_models import \
+    DeployAzureVMFromCustomImageResourceModel, BaseDeployAzureVMResourceModel, DeployAzureVMResourceModel
+from cloudshell.cp.azure.models.image_data import MarketplaceImageDataModel
+from cloudshell.cp.azure.models.nic_request import NicRequest
+from cloudshell.cp.azure.models.reservation_model import ReservationModel
+from cloudshell.cp.azure.models.rule_data import RuleData
 
 
 class DeployAzureVMOperation(object):
@@ -40,7 +38,8 @@ class DeployAzureVMOperation(object):
                  cancellation_service,
                  generic_lock_provider,
                  image_data_factory,
-                 vm_details_provider):
+                 vm_details_provider,
+                 ip_service):
         """
 
         :param cloudshell.cp.azure.domain.services.virtual_machine_service.VirtualMachineService vm_service:
@@ -56,6 +55,7 @@ class DeployAzureVMOperation(object):
         :param cloudshell.cp.azure.domain.services.lock_service.GenericLockProvider generic_lock_provider:
         :param cloudshell.cp.azure.domain.services.image_data.ImageDataFactory image_data_factory:
         :param cloudshell.cp.azure.domain.common.vm_details_provider.VmDetailsProvider vm_details_provider:
+        :param cloudshell.cp.azure.domain.services.ip_service.IpService ip_service:
         :return:
         """
 
@@ -72,6 +72,7 @@ class DeployAzureVMOperation(object):
         self.vm_extension_service = vm_extension_service
         self.cancellation_service = cancellation_service
         self.vm_details_provider = vm_details_provider
+        self.ip_service = ip_service
 
     def deploy_from_custom_image(self, deployment_model,
                                  cloud_provider_model,
@@ -176,7 +177,8 @@ class DeployAzureVMOperation(object):
                 cloud_provider_model=cloud_provider_model,
                 network_client=network_client,
                 storage_client=storage_client,
-                cancellation_context=cancellation_context)
+                cancellation_context=cancellation_context,
+                cloudshell_session=cloudshell_session)
 
             # 3. create VM
             logger.info("Start Deploying VM {}".format(data.vm_name))
@@ -214,12 +216,17 @@ class DeployAzureVMOperation(object):
 
         except Exception:
             logger.exception("Failed to deploy VM from marketplace. Error:")
+            # todo alexa - release ip from pool if needed
             self._rollback_deployed_resources(compute_client=compute_client,
                                               network_client=network_client,
                                               group_name=data.group_name,
                                               nic_requests=data.nic_requests,
                                               vm_name=data.vm_name,
-                                              logger=logger)
+                                              logger=logger,
+                                              private_ip_allocation_method=cloud_provider_model.private_ip_allocation_method,
+                                              allocated_private_ips=data.all_private_ip_addresses,
+                                              reservation_id=data.reservation_id,
+                                              cloudshell_session=cloudshell_session)
             raise
 
         logger.info("VM {} was successfully deployed".format(data.vm_name))
@@ -246,7 +253,7 @@ class DeployAzureVMOperation(object):
 
         deploy_result = DeployAppResult(vmUuid=vm.vm_id,
                                         vmName=data.vm_name,
-                                        deployedAppAddress=data.private_ip_address,
+                                        deployedAppAddress=data.primary_private_ip_address,
                                         deployedAppAttributes=deployed_app_attributes,
                                         vmDetailsData=vm_details_data)
 
@@ -409,8 +416,9 @@ class DeployAzureVMOperation(object):
 
         return nic_requests
 
-    def _rollback_deployed_resources(self, compute_client, network_client, group_name, nic_requests, vm_name,
-                                     logger):
+    def _rollback_deployed_resources(self, logger, compute_client, network_client, group_name, nic_requests, vm_name,
+                                     private_ip_allocation_method, allocated_private_ips, reservation_id,
+                                     cloudshell_session):
         """
         Remove all created resources by Deploy VM operation on any Exception.
         This method doesnt support cancellation because full cleanup is mandatory for successful deletion of subnet
@@ -422,6 +430,9 @@ class DeployAzureVMOperation(object):
         :param nic_requests: list[NicRequest]
         :param vm_name: Azure VM resource name
         :param logger: logging.Logger instance
+        :param IPAllocationMethod private_ip_allocation_method
+        :param list[str] allocated_private_ips:
+        :param CloudShellAPISession cloudshell_session:
         :return:
         """
         logger.info("Delete VM {} ".format(vm_name))
@@ -440,6 +451,12 @@ class DeployAzureVMOperation(object):
             self.network_service.delete_ip(network_client=network_client,
                                            group_name=group_name,
                                            ip_name=ip_name)
+
+        if is_cloudshell_allocation(private_ip_allocation_method):
+            try:
+                self.ip_service.release_ips(logger, cloudshell_session, reservation_id, allocated_private_ips)
+            except:
+                logger.exception('Failed to released ips from pool')
 
     def _get_public_ip_address(self, network_client, azure_vm_deployment_model, group_name, ip_name,
                                cancellation_context, logger):
@@ -544,9 +561,10 @@ class DeployAzureVMOperation(object):
         self.cancellation_service.check_if_cancelled(cancellation_context)
 
     def _create_vm_common_objects(self, logger, data, deployment_model, cloud_provider_model, network_client,
-                                  storage_client, cancellation_context):
+                                  storage_client, cancellation_context, cloudshell_session):
         """ Creates and configures common VM objects: NIC, Credentials, NSG (if needed)
 
+        :param cloudshell_session:
         :param DeployAzureVMOperation.DeployDataModel data:
         :param BaseDeployAzureVMResourceModel deployment_model:
         :param AzureCloudProviderResourceModel cloud_provider_model:
@@ -554,6 +572,7 @@ class DeployAzureVMOperation(object):
         :param azure.mgmt.network.network_management_client.NetworkManagementClient network_client:
         :param azure.mgmt.network.network_management_client.StorageManagementClient storage_client:
         :param CancellationContext cancellation_context:
+        :param cloudshell.api.cloudshell_api.CloudShellAPISession cloudshell_session:
         :return: Updated DeployDataModel instance
         :rtype: DeployAzureVMOperation.DeployDataModel
         """
@@ -589,13 +608,17 @@ class DeployAzureVMOperation(object):
                                                              public_ip_type=deployment_model.public_ip_type,
                                                              tags=data.tags,
                                                              logger=logger,
-                                                             lock_provider=self.generic_lock_provider,
-                                                             network_security_group=vm_nsg)
+                                                             network_security_group=vm_nsg,
+                                                             reservation_id=data.reservation_id,
+                                                             cloudshell_session=cloudshell_session)
 
-            ip_address = nic.ip_configurations[0].private_ip_address
+            private_ip_address = nic.ip_configurations[0].private_ip_address
+
+            data.all_private_ip_addresses.append(private_ip_address)
             if i == 0:
-                data.private_ip_address = ip_address
-            logger.info("NIC private IP is {}".format(data.private_ip_address))
+                data.primary_private_ip_address = private_ip_address
+
+            logger.info("NIC private IP is {}".format(data.primary_private_ip_address))
             data.nics.append(nic)
 
             # once we have the NIC ip, we can create a permissive security rule for inbound ports but only to ip
@@ -603,12 +626,12 @@ class DeployAzureVMOperation(object):
             # but no traffic from public addresses.
             if nic_request.is_public:
                 logger.info("Adding inbound port rules to sandbox subnets NSG, with ip address as destination {0}"
-                            .format(ip_address))
+                            .format(private_ip_address))
                 self.security_group_service.create_network_security_group_rules(network_client,
                                                                                 data.group_name,
                                                                                 subnets_nsg_name,
                                                                                 inbound_rules,
-                                                                                ip_address,
+                                                                                private_ip_address,
                                                                                 subnet_nsg_lock,
                                                                                 start_from=1000)
 
@@ -890,7 +913,8 @@ class DeployAzureVMOperation(object):
             self.os_type = ''  # type: OperatingSystemTypes
             self.nic = None  # type: NetworkInterface
             self.vm_credentials = None  # type: VMCredentials
-            self.private_ip_address = ''  # type: str
+            self.primary_private_ip_address = ''  # type: str
+            self.all_private_ip_addresses = []  # type: list[str]
             self.public_ip_address = ''  # type: str
             self.nic_requests = []  # type: list[NicRequest]
 

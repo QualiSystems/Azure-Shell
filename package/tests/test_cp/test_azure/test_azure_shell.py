@@ -241,6 +241,11 @@ class TestAzureShell(TestCase):
     def test_delete_azure_vm(self, error_handling_class, logging_context_class, azure_clients_manager_class,
                              cloudshell_session_context_class):
         """Check that method uses ErrorHandlingContext and delete_azure_vm_operation.delete method"""
+
+        cloudshell_session = mock.MagicMock()
+        cloudshell_session_context = mock.MagicMock(__enter__=mock.MagicMock(return_value=cloudshell_session))
+        cloudshell_session_context_class.return_value = cloudshell_session_context
+
         # mock LoggingSessionContext and ErrorHandlingContext
         logging_context = mock.MagicMock(__enter__=mock.MagicMock(return_value=self.logger))
         logging_context_class.return_value = logging_context
@@ -277,7 +282,8 @@ class TestAzureShell(TestCase):
             storage_client=azure_clients_manager.storage_client,
             group_name=self.group_name,
             vm_name=self.vm_name,
-            logger=self.logger)
+            logger=self.logger,
+            cloudshell_session=cloudshell_session)
 
     @mock.patch("cloudshell.cp.azure.azure_shell.CloudShellSessionContext")
     @mock.patch("cloudshell.cp.azure.azure_shell.AzureClientsManager")
