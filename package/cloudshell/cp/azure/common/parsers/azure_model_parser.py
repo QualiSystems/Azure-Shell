@@ -196,6 +196,7 @@ class AzureModelsParser(object):
         azure_resource_model.vm_size = resource_context['VM Size']
         azure_resource_model.region = resource_context['Region'].replace(" ", "").lower()
         azure_resource_model.management_group_name = resource_context['Management Group Name']
+        azure_resource_model.private_ip_allocation_method = resource_context["Private IP Allocation Method"]
 
         azure_resource_model.networks_in_use = AzureModelsParser._convert_list_attribute(
             resource_context['Networks In Use'])
@@ -206,6 +207,7 @@ class AzureModelsParser(object):
         encrypted_azure_application_key = resource_context['Azure Application Key']
         azure_application_key = cloudshell_session.DecryptPassword(encrypted_azure_application_key)
         azure_resource_model.azure_application_key = azure_application_key.Value
+
 
         return azure_resource_model
 
