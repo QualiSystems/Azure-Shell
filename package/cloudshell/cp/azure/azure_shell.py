@@ -540,34 +540,56 @@ class AzureShell(object):
                         cloudshell_session=cloudshell_session)
 
                 azure_clients = AzureClientsManager(cloud_provider_model)
-                resource_group_name = \
-                    self.model_parser.convert_to_reservation_model(command_context.remote_reservation).reservation_id
-
+                compute_client = azure_clients.compute_client
+                network_client = azure_clients.network_client
                 resource = command_context.remote_endpoints[0]
                 vm_name = resource.fullname
 
-                compute_client = azure_clients.compute_client
-                network_client = azure_clients.network_client
+                resource_group_name = \
+                    self.model_parser.\
+                        convert_to_reservation_model(command_context.remote_reservation).reservation_id
 
-                vm = self.vm_service.get_vm(compute_client, resource_group_name, vm_name)
+                allow_sandbox_traffic = self.model_parser.\
+                    get_allow_all_storage_traffic_from_connected_resource_details(command_context)
 
-                first_nic_name = vm.network_profile.network_interfaces[0].id.split('/')[-1]
-                first_nic = network_client.network_interfaces.get(resource_group_name, first_nic_name)
-                vm_nsg_name = first_nic.network_security_group.id.split('/')[-1]
+                vm_nsg = self._get_vm_nsg(azure_clients, compute_client, network_client, resource_group_name, vm_name)
 
-                vm_nsg = azure_clients.network_client.network_security_groups.get(resource_group_name, vm_nsg_name)
+                results_str_list = ['App Name: ' + resource.fullname,
+                                    'Allow Sandbox Traffic: ' + str(allow_sandbox_traffic)]
 
-                custom_rules_output = [
-                    'Protocol: {4}\n'
-                    'Source Address: {0}\nSource Port Range: {1}\n'
-                    'Destination Address: {2}\nDestination Port Range: {3}\n\n'.format(rule.source_address_prefix,
-                                                                                 rule.source_port_range,
-                                                                                 rule.destination_address_prefix,
-                                                                                 rule.destination_port_range,
-                                                                                 rule.protocol)
-                    for rule in vm_nsg.security_rules if rule.name.startswith('rule_')]
+                self._update_security_rules_display_strings(results_str_list, vm_nsg)
 
-                return '\n'.join(custom_rules_output)
+                return '\n'.join(results_str_list).strip()
+
+    def _get_vm_nsg(self, azure_clients, compute_client, network_client, resource_group_name, vm_name):
+        vm = self.vm_service.get_vm(compute_client, resource_group_name, vm_name)
+        vm_nsg_name = self._get_vm_network_security_group_name(network_client, resource_group_name, vm)
+        vm_nsg = azure_clients.network_client.network_security_groups.get(resource_group_name, vm_nsg_name)
+        return vm_nsg
+
+    def _get_vm_network_security_group_name(self, network_client, resource_group_name, vm):
+        first_nic_name = vm.network_profile.network_interfaces[0].id.split('/')[-1]
+        first_nic = network_client.network_interfaces.get(resource_group_name, first_nic_name)
+        vm_nsg_name = first_nic.network_security_group.id.split('/')[-1]
+        return vm_nsg_name
+
+    def _update_security_rules_display_strings(self, results_str_list, vm_nsg):
+        MORE_THAN_ONE_INDICATORS = [',', '-', '*']
+        inbound_rules_gen = (rule for rule in vm_nsg.security_rules if rule.name.startswith('rule_'))
+        for rule in inbound_rules_gen:
+            # when there are many ports, we want to print out "ports: 60-350" when there is single we want to
+            # print "port: 9090"
+            port_or_ports = "s" \
+                if any(x for x in MORE_THAN_ONE_INDICATORS if x in rule.destination_port_range) \
+                else ""
+
+            rule_display_str = 'Port{0}: {1}, Protocol: {2}, Destination: {3}'.format(
+                port_or_ports,
+                rule.destination_port_range,
+                rule.protocol,
+                rule.destination_address_prefix
+            )
+            results_str_list.append(rule_display_str)
 
     def get_vm_details(self, command_context, cancellation_context, requests_json):
         """Get vm details for specific deployed app
