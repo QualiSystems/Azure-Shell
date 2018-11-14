@@ -339,3 +339,6 @@ class SecurityGroupService(object):
                     security_rule_name=vm_rule.name)
                 result.wait()
                 logger.info("Security group rule '{}' deleted.".format(vm_rule.name))
+
+    def get_subnets_nsg_name(self, reservation_id):
+        return "NSG_sandbox_all_subnets_" + reservation_id
