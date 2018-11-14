@@ -446,21 +446,19 @@ class TestAzureShell(TestCase):
         azure_clients_manager_class.return_value = azure_clients_manager
 
         resource = mock.MagicMock()
+        reservation = mock.MagicMock()
+        reservation.reservation_id = 'ghi'
+        resource.fullname = 'abc'
         command_context = mock.MagicMock(remote_endpoints=[resource])
         data_holder = mock.MagicMock()
         self.azure_shell.model_parser.convert_app_resource_to_deployed_app.return_value = data_holder
+        self.azure_shell.model_parser.convert_to_reservation_model.return_value = reservation
+        self.azure_shell.model_parser.get_allow_all_storage_traffic_from_connected_resource_details.return_value \
+            = True
 
-        custom_rules_output = [
-            'Protocol: {4}\n'
-            'Source Address: {0}\nSource Port Range: {1}\n'
-            'Destination Address: {2}\nDestination Port Range: {3}\n\n'
-                .format(rule.source_address_prefix,
-                        rule.source_port_range,
-                        rule.destination_address_prefix,
-                        rule.destination_port_range,
-                        rule.protocol)
-            for rule in mock_rules if rule.name.startswith('rule_')]
-        expected_output = '\n'.join(custom_rules_output)
+        expected_output = "App Name: abc\n" \
+                          "Allow Sandbox Traffic: True\n" \
+                          "Ports: 10-20, Protocol: tcp, Destination: destPrefix"
 
         # Act
         actual_output = self.azure_shell.get_application_ports(command_context=command_context)
