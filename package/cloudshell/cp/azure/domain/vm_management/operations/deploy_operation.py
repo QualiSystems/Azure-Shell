@@ -524,9 +524,15 @@ class DeployAzureVMOperation(object):
         #       -   Open traffic to VM from additional mgmt networks
         #       -   Open traffic to VM from mgmt vnet
         #       -   block traffic to VM from sandbox if "allow all sandbox traffic = false"
-
+        subnets_nsg_name = self.security_group_service.get_subnets_nsg_name(data.reservation_id)
         vm_nsg = self._create_vm_network_security_group(cancellation_context, cloud_provider_model, data,
                                                         deployment_model, logger, network_client)
+
+        inbound_rules = RulesAttributeParser.parse_port_group_attribute(deployment_model.inbound_ports)
+        for rule in inbound_rules:
+            rule.name = "{0}_inbound_ports".format(data.vm_name.replace(" ", ""))
+
+        subnet_nsg_lock = self.generic_lock_provider.get_resource_lock(lock_key=subnets_nsg_name, logger=logger)
 
         # 3. Create network for vm
         data.nics = []
@@ -546,10 +552,22 @@ class DeployAzureVMOperation(object):
                                                              lock_provider=self.generic_lock_provider,
                                                              network_security_group=vm_nsg)
 
+            ip_address = nic.ip_configurations[0].private_ip_address
             if i == 0:
-                data.private_ip_address = nic.ip_configurations[0].private_ip_address
+                data.private_ip_address = ip_address
             logger.info("NIC private IP is {}".format(data.private_ip_address))
             data.nics.append(nic)
+
+            # once we have the NIC ip, we can create a permissive security rule for inbound ports but only to ip
+            logger.info("Adding inbound port rules to sandbox subnets NSG, with ip address as destination {0}"
+                        .format(ip_address))
+            self.security_group_service.create_network_security_group_rules(network_client,
+                                                                            data.group_name,
+                                                                            subnets_nsg_name,
+                                                                            inbound_rules,
+                                                                            ip_address,
+                                                                            subnet_nsg_lock,
+                                                                            start_from=1000)
 
         # 5. Prepare credentials for VM
         logger.info("Prepare credentials for the VM {}".format(data.vm_name))
@@ -585,7 +603,7 @@ class DeployAzureVMOperation(object):
                                                                            security_group_name=security_group_name,
                                                                            region=cloud_provider_model.region,
                                                                            tags=tags)
-        locker = self.generic_lock_provider.get_resource_lock(vm_nsg.name, logger)
+        vm_nsg_lock = self.generic_lock_provider.get_resource_lock(lock_key=security_group_name, logger=logger)
 
         #   VM NSG rules overview
         #       1xxx
@@ -596,6 +614,38 @@ class DeployAzureVMOperation(object):
         #       -   Open traffic to VM from mgmt vnet
         #       4090
         #       -   block traffic to VM from sandbox if "allow all sandbox traffic = false"
+
+        # Rule 1xxx
+        if deployment_model.inbound_ports:
+            inbound_rules = RulesAttributeParser.parse_port_group_attribute(
+                ports_attribute=deployment_model.inbound_ports)
+
+            self.security_group_service.create_network_security_group_rules(network_client,
+                                                                            data.group_name,
+                                                                            security_group_name,
+                                                                            inbound_rules,
+                                                                            '*',
+                                                                            vm_nsg_lock,
+                                                                            start_from=1000)
+
+        # Rule 4xxx:
+        # Open traffic to VM from additional mgmt networks
+
+        for mgmt_network in cloud_provider_model.additional_mgmt_networks:
+            security_rule_name = 'Allow_{0}'.format(mgmt_network.replace('/', '-'))
+            allow_traffic_from_additional_mgmt_network = [
+                RuleData(protocol=SecurityRuleProtocol.asterisk,
+                         port='*',
+                         access=SecurityRuleAccess.allow,
+                         name=security_rule_name)]
+
+            self.security_group_service.create_network_security_group_rules(network_client,
+                                                                            data.group_name,
+                                                                            security_group_name,
+                                                                            allow_traffic_from_additional_mgmt_network,
+                                                                            '*',
+                                                                            vm_nsg_lock,
+                                                                            start_from=4000)
 
         # Rule 4080:
         # Open traffic to VM from mgmt vnet
@@ -612,7 +662,7 @@ class DeployAzureVMOperation(object):
             security_group_name,
             allow_all_traffic,
             "*",
-            locker,
+            vm_nsg_lock,
             start_from=4080,
             source_address=management_vnet_cidr
         )
@@ -633,24 +683,11 @@ class DeployAzureVMOperation(object):
                 security_group_name,
                 deny_all_traffic,
                 "*",
-                locker,
+                vm_nsg_lock,
                 start_from=4080,
                 source_address=management_vnet_cidr
             )
 
-        # 4. open inbound ports requested by app definition
-        if deployment_model.inbound_ports:
-            inbound_rules = RulesAttributeParser.parse_port_group_attribute(
-                ports_attribute=deployment_model.inbound_ports)
-
-            lock = self.generic_lock_provider.get_resource_lock(lock_key=security_group_name, logger=logger)
-            self.security_group_service.create_network_security_group_rules(network_client,
-                                                                            data.group_name,
-                                                                            security_group_name,
-                                                                            inbound_rules,
-                                                                            '*',
-                                                                            # we want to apply 'inbound ports' attribute on all the VM nics
-                                                                            lock)
         self.cancellation_service.check_if_cancelled(cancellation_context)
         return vm_nsg
 
@@ -668,8 +705,11 @@ class DeployAzureVMOperation(object):
         :param BaseDeployAzureVMResourceModel vm_deployment_model:
         :param OperatingSystemTypes image_os_type: (enum) windows/linux value os_type
         """
-        if vm_deployment_model.inbound_ports and not vm_deployment_model.add_public_ip:
-            raise Exception('"Inbound Ports" attribute must be empty when "Add Public IP" is false')
+        # decided to allow inbound ports even when public ip false, since we still want to allow specific traffic
+        # to VMs that are isolated from sandbox traffic
+
+        # if vm_deployment_model.inbound_ports and not vm_deployment_model.add_public_ip:
+        #     raise Exception('"Inbound Ports" attribute must be empty when "Add Public IP" is false')
 
         if vm_deployment_model.extension_script_file:
             self.vm_extension_service.validate_script_extension(
