@@ -741,21 +741,18 @@ class TestDeployAzureVMOperation(TestCase):
             cancellation_context=cancellation_context,
             timeout=deployment_model.extension_script_timeout)
 
-    # cancelled this behavior, since you would still be interested in inbound ports in a multiple subnets environment
-    # when sandbox apps can access each other just through defined ports
-    #
-    # def test_validate_deployment_model_throws_when_has_inbound_ports_without_public_ip(self):
-    #     # Arrange
-    #     deployment_model = Mock()
-    #     deployment_model.inbound_ports = "xxx"
-    #     deployment_model.add_public_ip = None
-    #     os_type = Mock()
-    #
-    #     # Act & Assert
-    #     with self.assertRaisesRegexp(Exception,
-    #                                  '"Inbound Ports" attribute must be empty when "Add Public IP" is false'):
-    #         self.deploy_operation._validate_deployment_model(vm_deployment_model=deployment_model,
-    #                                                          os_type=os_type)
+    def test_validate_deployment_model_throws_when_has_inbound_ports_without_public_ip(self):
+        # Arrange
+        deployment_model = Mock()
+        deployment_model.inbound_ports = "xxx"
+        deployment_model.add_public_ip = None
+        os_type = Mock()
+
+        # Act & Assert
+        with self.assertRaisesRegexp(Exception,
+                                     '"Inbound Ports" attribute must be empty when "Add Public IP" is false'):
+            self.deploy_operation._validate_deployment_model(vm_deployment_model=deployment_model,
+                                                             os_type=os_type)
 
     def test_validate_deployment_model_has_extension_script_file(self):
         # Arrange

@@ -705,11 +705,9 @@ class DeployAzureVMOperation(object):
         :param BaseDeployAzureVMResourceModel vm_deployment_model:
         :param OperatingSystemTypes image_os_type: (enum) windows/linux value os_type
         """
-        # decided to allow inbound ports even when public ip false, since we still want to allow specific traffic
-        # to VMs that are isolated from sandbox traffic
 
-        # if vm_deployment_model.inbound_ports and not vm_deployment_model.add_public_ip:
-        #     raise Exception('"Inbound Ports" attribute must be empty when "Add Public IP" is false')
+        if vm_deployment_model.inbound_ports and not vm_deployment_model.add_public_ip:
+            raise Exception('"Inbound Ports" attribute must be empty when "Add Public IP" is false')
 
         if vm_deployment_model.extension_script_file:
             self.vm_extension_service.validate_script_extension(
