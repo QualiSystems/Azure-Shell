@@ -161,7 +161,8 @@ class DeployAzureVMOperation(object):
                                          cloud_provider_model=cloud_provider_model,
                                          network_client=network_client,
                                          storage_client=storage_client,
-                                         compute_client=compute_client)
+                                         compute_client=compute_client,
+                                         network_actions=network_actions)
 
         self.cancellation_service.check_if_cancelled(cancellation_context)
 
@@ -740,7 +741,7 @@ class DeployAzureVMOperation(object):
         return deployed_app_attr
 
     def _prepare_deploy_data(self, logger, reservation, deployment_model, cloud_provider_model,
-                             network_client, storage_client, compute_client):
+                             network_client, storage_client, compute_client, network_actions):
         """
         :param logging.Logger logger:
         :param ReservationModel reservation:
@@ -749,6 +750,7 @@ class DeployAzureVMOperation(object):
         :param azure.mgmt.network.network_management_client.NetworkManagementClient network_client:
         :param azure.mgmt.storage.storage_management_client.StorageManagementClient storage_client:
         :param azure.mgmt.storage.storage_management_client.ComputeManagementClient compute_client:
+        :param list[ConnectSubnet] network_actions:
         :return:
         :rtype: DeployAzureVMOperation.DeployDataModel
         """
@@ -760,7 +762,9 @@ class DeployAzureVMOperation(object):
             logger=logger)
 
         self._validate_deployment_model(vm_deployment_model=deployment_model, os_type=image_data_model.os_type)
-
+        
+        self._validate_network_actions(network_actions=network_actions)
+                
         data = self.DeployDataModel()
 
         data.reservation_id = str(reservation.reservation_id)
@@ -820,6 +824,13 @@ class DeployAzureVMOperation(object):
             self.vm_credentials = None  # type: VMCredentials
             self.private_ip_address = ''  # type: str
             self.public_ip_address = ''  # type: str
+
+    def _validate_network_actions(self, network_actions):
+        """
+        :param list[ConnectSubnet] network_actions:
+        """
+
+        # validate that connect subnet actions that specify to which nic to connect, are consecutive
 
 
 def get_ip_from_interface_name(interface_name):

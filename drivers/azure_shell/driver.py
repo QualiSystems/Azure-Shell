@@ -3,7 +3,7 @@ from cloudshell.shell.core.resource_driver_interface import ResourceDriverInterf
 from cloudshell.cp.core import DriverRequestParser
 from cloudshell.cp.core.models import DeployApp, DriverResponse
 from cloudshell.cp.core.utils import single
-
+from debug_utils import debugger
 
 
 class AzureShellDriver(ResourceDriverInterface):
@@ -18,6 +18,7 @@ class AzureShellDriver(ResourceDriverInterface):
         self.azure_shell = AzureShell()
 
     def Deploy(self, context, request=None, cancellation_context=None):
+        debugger.attach_debugger()
         actions = self.request_parser.convert_driver_request_to_actions(request)
         deploy_action = single(actions, lambda x: isinstance(x, DeployApp))
 
