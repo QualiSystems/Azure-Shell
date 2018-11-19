@@ -202,8 +202,6 @@
             </AttachedAttribute>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="VM Size">
               <AllowedValues />
-            </AttachedAttribute><AttachedAttribute IsLocal="true" IsOverridable="true" Name="Disk Size">
-              <AllowedValues />
             </AttachedAttribute>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Networks In Use">
               <AllowedValues />
