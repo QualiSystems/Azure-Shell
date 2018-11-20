@@ -7,6 +7,7 @@ from cloudshell.cp.azure.common.exceptions.quali_timeout_exception import QualiT
 from cloudshell.cp.azure.domain.services.network_service import NetworkService
 from cloudshell.cp.azure.models.deploy_result_model import DeployResult
 from cloudshell.cp.azure.common.parsers.rules_attribute_parser import RulesAttributeParser
+from cloudshell.cp.azure.models.nic_request import NicRequest
 from cloudshell.cp.azure.models.reservation_model import ReservationModel
 from cloudshell.cp.azure.models.deploy_azure_vm_resource_models import \
     DeployAzureVMFromCustomImageResourceModel, BaseDeployAzureVMResourceModel, DeployAzureVMResourceModel
@@ -161,7 +162,8 @@ class DeployAzureVMOperation(object):
                                          cloud_provider_model=cloud_provider_model,
                                          network_client=network_client,
                                          storage_client=storage_client,
-                                         compute_client=compute_client)
+                                         compute_client=compute_client,
+                                         network_actions=network_actions)
 
         self.cancellation_service.check_if_cancelled(cancellation_context)
 
@@ -215,15 +217,15 @@ class DeployAzureVMOperation(object):
             self._rollback_deployed_resources(compute_client=compute_client,
                                               network_client=network_client,
                                               group_name=data.group_name,
-                                              interface_names=data.interface_names,
+                                              nic_requests=data.nic_requests,
                                               vm_name=data.vm_name,
                                               logger=logger)
             raise
 
         logger.info("VM {} was successfully deployed".format(data.vm_name))
 
-        if data.interface_names:
-            public_ip_name = get_ip_from_interface_name(data.interface_names[0])
+        if data.nic_requests:
+            public_ip_name = get_ip_from_interface_name(data.nic_requests[0].interface_name)
             data.public_ip_address = self._get_public_ip_address(network_client=network_client,
                                                                  azure_vm_deployment_model=deployment_model,
                                                                  group_name=data.group_name,
@@ -326,51 +328,86 @@ class DeployAzureVMOperation(object):
             cancellation_context=cancellation_context,
             disk_size=deployment_model.disk_size)
 
-    def _get_subnets(self, network_client, cloud_provider_model, logger, deployment_model, resource_group_name):
+    def _get_nic_requests(self, network_client, cloud_provider_model, logger, deployment_model, resource_group_name,
+                          vm_name):
         """
-        Get subnets for a given reservation
+        Get request to connect nic to subnet (contains subnet, interface name, and private/public
+        This method will acquire the subnets connected to the sandbox virtual network, then associate them with a
+        NicRequest, which also contains the interface name as well as if the network is public or not.
+
+        Furthermore, the nic requests are ordered by the device index, i.e. Nics are created according to the order the
+        user wanted the subnets to be connected.
 
         :param network_client: azure.mgmt.network.network_management_client.NetworkManagementClient
         :param cloud_provider_model: cloudshell.cp.azure.models.azure_cloud_provider_resource_model.AzureCloudProviderResourceModel
         :param logger: logging.Logger instance
-        :return: azure.mgmt.network.models.Subnet instance
+        :rtype: list[NicRequest]
         :param BaseDeployAzureVMResourceModel deployment_model:
         """
+
+        multiple_subnet_mode = hasattr(deployment_model, 'network_configurations') \
+                               and deployment_model.network_configurations
+
         sandbox_virtual_network = self.network_service.get_sandbox_virtual_network(
             network_client=network_client,
             group_name=cloud_provider_model.management_group_name)
 
-        for subnet in sandbox_virtual_network.subnets:
-            logger.warn('existing subnet name: ' + subnet.name)
+        [logger.warn('existing subnet name: ' + s.name) for s in sandbox_virtual_network.subnets]
 
-        # server has sent network actions to perform, we will return the subnets needed by this deployment
-        if hasattr(deployment_model, 'network_configurations') and deployment_model.network_configurations:
+        nic_requests = []
 
-            deployment_model.network_configurations.sort(key=lambda x: x.connection_params.device_index)
+        # in default subnet mode, there are no special network configurations, i.e. no ConnectToSubnet actions
+        # in this case, PrepareSandboxInfra creates a single default subnet for sandbox.
 
-            subnet_names = [action.connection_params.subnet_id for action in deployment_model.network_configurations]
-
-            logger.warn('subnet names: ')
-            [logger.warn('name is:' + subnet_name) for subnet_name in subnet_names]
-
+        if not multiple_subnet_mode:
             try:
-                subnets = []
-                for name in subnet_names:
-                    subnet = next((subnet for subnet in sandbox_virtual_network.subnets if subnet.name == name), None)
-                    if subnet:
-                        subnets.append(subnet)
-                return subnets
+                nic_requests = [next((NicRequest("{}-{}".format(vm_name, 0), s, is_public=True)
+                                     for s in sandbox_virtual_network.subnets if resource_group_name in s.name), None)]
 
             except StopIteration:
                 logger.error("Subnets were not found under the resource group {}".format(
                     cloud_provider_model.management_group_name))
                 raise Exception("Could not find a valid subnet.")
 
-        # no network actions, just return the default sandbox subnet
-        else:
-            return [subnet for subnet in sandbox_virtual_network.subnets if resource_group_name in subnet.name]
+        # in multiple subnet mode, the server has sent network actions to perform,
+        # we will return the subnets needed by this deployment; first we check if the subnets were created by a previous
+        # stage, PrepareSandboxInfra, then we match them to ConnectSubnetActions sent by server.
 
-    def _rollback_deployed_resources(self, compute_client, network_client, group_name, interface_names, vm_name,
+        else:
+            # when there are multiple subnets, they have an order based on device index; the device index is either
+            # arbitrary, or set by user specifically by configuring blueprint connection attribute
+            # "Source/TargetRequestVnic"
+
+            # sort network requests
+            deployment_model.network_configurations.sort(key=lambda x: x.connection_params.device_index)
+
+            # subnet ids for subnets we need to connect and were already created in a previous phase
+            request_subnet_ids = [action.connection_params.subnet_id
+                                  for action in deployment_model.network_configurations]
+
+            logger.warn('requested subnet names: ')
+            [logger.warn(subnet_id) for subnet_id in request_subnet_ids]
+
+            try:
+                for i, connect_action in enumerate(deployment_model.network_configurations):
+                    subnet_id = connect_action.connection_params.subnet_id
+                    subnet = next((subnet for subnet in sandbox_virtual_network.subnets if subnet.name == subnet_id),
+                                  None)
+                    if subnet:
+                        nic_requests.append(NicRequest(
+                            "{}-{}".format(vm_name, i),
+                            subnet,
+                            connect_action.connection_params.is_public_subnet()
+                        ))
+
+            except StopIteration:
+                logger.error("Subnets were not found under the resource group {}".format(
+                    cloud_provider_model.management_group_name))
+                raise Exception("Could not find a valid subnet.")
+
+        return nic_requests
+
+    def _rollback_deployed_resources(self, compute_client, network_client, group_name, nic_requests, vm_name,
                                      logger):
         """
         Remove all created resources by Deploy VM operation on any Exception.
@@ -380,7 +417,7 @@ class DeployAzureVMOperation(object):
         :param compute_client: azure.mgmt.compute.compute_management_client.ComputeManagementClient
         :param network_client: azure.mgmt.network.network_management_client.NetworkManagementClient instance
         :param group_name: resource group name (reservation id)
-        :param interface_names: Azure NICs resource name
+        :param nic_requests: list[NicRequest]
         :param vm_name: Azure VM resource name
         :param logger: logging.Logger instance
         :return:
@@ -390,12 +427,12 @@ class DeployAzureVMOperation(object):
                                   group_name=group_name,
                                   vm_name=vm_name)
 
-        for interface_name in interface_names:
-            ip_name = get_ip_from_interface_name(interface_name)
-            logger.info("Delete NIC {} ".format(interface_name))
+        for nic_request in nic_requests:
+            ip_name = get_ip_from_interface_name(nic_request.interface_name)
+            logger.info("Delete NIC {} ".format(nic_request.interface_name))
             self.network_service.delete_nic(network_client=network_client,
                                             group_name=group_name,
-                                            interface_name=interface_name)
+                                            interface_name=nic_request.interface_name)
 
             logger.info("Delete IP {} ".format(ip_name))
             self.network_service.delete_ip(network_client=network_client,
@@ -536,16 +573,17 @@ class DeployAzureVMOperation(object):
 
         # 3. Create network for vm
         data.nics = []
-        for i, interface_name in enumerate(data.interface_names):
-            logger.info("Creating NIC '{}'".format(interface_name))
-            ip_name = get_ip_from_interface_name(interface_name)
+        for i, nic_request in enumerate(data.nic_requests):
+            logger.info("Creating NIC '{}'".format(nic_request.interface_name))
+            ip_name = get_ip_from_interface_name(nic_request.interface_name)
+            add_public_ip = deployment_model.add_public_ip and nic_request.is_public
             nic = self.network_service.create_network_for_vm(network_client=network_client,
                                                              group_name=data.group_name,
-                                                             interface_name=interface_name,
+                                                             interface_name=nic_request.interface_name,
                                                              ip_name=ip_name,
                                                              cloud_provider_model=cloud_provider_model,
-                                                             subnet=data.subnets[i],
-                                                             add_public_ip=deployment_model.add_public_ip,
+                                                             subnet=nic_request.subnet,
+                                                             add_public_ip=add_public_ip,
                                                              public_ip_type=deployment_model.public_ip_type,
                                                              tags=data.tags,
                                                              logger=logger,
@@ -559,15 +597,18 @@ class DeployAzureVMOperation(object):
             data.nics.append(nic)
 
             # once we have the NIC ip, we can create a permissive security rule for inbound ports but only to ip
-            logger.info("Adding inbound port rules to sandbox subnets NSG, with ip address as destination {0}"
-                        .format(ip_address))
-            self.security_group_service.create_network_security_group_rules(network_client,
-                                                                            data.group_name,
-                                                                            subnets_nsg_name,
-                                                                            inbound_rules,
-                                                                            ip_address,
-                                                                            subnet_nsg_lock,
-                                                                            start_from=1000)
+            # inbound ports only works on public subnets! private subnets are allowed all traffic from sandbox
+            # but no traffic from public addresses.
+            if nic_request.is_public:
+                logger.info("Adding inbound port rules to sandbox subnets NSG, with ip address as destination {0}"
+                            .format(ip_address))
+                self.security_group_service.create_network_security_group_rules(network_client,
+                                                                                data.group_name,
+                                                                                subnets_nsg_name,
+                                                                                inbound_rules,
+                                                                                ip_address,
+                                                                                subnet_nsg_lock,
+                                                                                start_from=1000)
 
         # 5. Prepare credentials for VM
         logger.info("Prepare credentials for the VM {}".format(data.vm_name))
@@ -624,8 +665,8 @@ class DeployAzureVMOperation(object):
                                                                             data.group_name,
                                                                             security_group_name,
                                                                             inbound_rules,
-                                                                            '*',
-                                                                            vm_nsg_lock,
+                                                                            destination_addr='*',
+                                                                            lock=vm_nsg_lock,
                                                                             start_from=1000)
 
         # Rule 4xxx:
@@ -700,11 +741,22 @@ class DeployAzureVMOperation(object):
         management_vnet_cidr = management_vnet.address_space.address_prefixes[0]
         return management_vnet_cidr
 
-    def _validate_deployment_model(self, vm_deployment_model, os_type):
+    def _validate_deployment_model(self, vm_deployment_model, os_type, network_actions):
         """
+        :param list[ConnectSubnet] network_actions:
         :param BaseDeployAzureVMResourceModel vm_deployment_model:
         :param OperatingSystemTypes image_os_type: (enum) windows/linux value os_type
         """
+
+        # if there are only private subnets, and we ask for public ip, that is a problem:
+
+        all_subnets_are_private = network_actions and all(s for s in network_actions if s.actionParams and
+                                                          s.actionParams.subnetServiceAttributes and
+                                                          'Public' in s.actionParams.subnetServiceAttributes and
+                                                          s.actionParams.subnetServiceAttributes['Public'] == 'False')
+
+        if all_subnets_are_private and vm_deployment_model.add_public_ip:
+            raise ValueError("Cannot deploy app with public ip when connected only to private subnets")
 
         if vm_deployment_model.inbound_ports and not vm_deployment_model.add_public_ip:
             raise Exception('"Inbound Ports" attribute must be empty when "Add Public IP" is false')
@@ -738,7 +790,7 @@ class DeployAzureVMOperation(object):
         return deployed_app_attr
 
     def _prepare_deploy_data(self, logger, reservation, deployment_model, cloud_provider_model,
-                             network_client, storage_client, compute_client):
+                             network_client, storage_client, compute_client, network_actions):
         """
         :param logging.Logger logger:
         :param ReservationModel reservation:
@@ -747,6 +799,7 @@ class DeployAzureVMOperation(object):
         :param azure.mgmt.network.network_management_client.NetworkManagementClient network_client:
         :param azure.mgmt.storage.storage_management_client.StorageManagementClient storage_client:
         :param azure.mgmt.storage.storage_management_client.ComputeManagementClient compute_client:
+        :param list[ConnectSubnet] network_actions:
         :return:
         :rtype: DeployAzureVMOperation.DeployDataModel
         """
@@ -757,7 +810,9 @@ class DeployAzureVMOperation(object):
             compute_client=compute_client,
             logger=logger)
 
-        self._validate_deployment_model(vm_deployment_model=deployment_model, os_type=image_data_model.os_type)
+        self._validate_deployment_model(vm_deployment_model=deployment_model,
+                                        os_type=image_data_model.os_type,
+                                        network_actions=network_actions)
 
         data = self.DeployDataModel()
 
@@ -782,14 +837,14 @@ class DeployAzureVMOperation(object):
                                              cloud_provider_model=cloud_provider_model)
 
         logger.warn("Retrieve sandbox subnet {}".format(data.group_name))
-        data.subnets = self._get_subnets(network_client=network_client,
-                                         cloud_provider_model=cloud_provider_model,
-                                         logger=logger,
-                                         deployment_model=deployment_model,
-                                         resource_group_name=data.group_name)
+        data.nic_requests = self._get_nic_requests(network_client=network_client,
+                                                   cloud_provider_model=cloud_provider_model,
+                                                   logger=logger,
+                                                   deployment_model=deployment_model,
+                                                   resource_group_name=data.group_name,
+                                                   vm_name=unique_resource_name)
 
-        data.interface_names = ["{}-{}".format(unique_resource_name, str(i)) for i, subnet in enumerate(data.subnets)]
-        logger.warn('interfaces:' + str(len(data.interface_names)))
+        logger.warn('interfaces:' + str(len(data.nic_requests)))
         logger.info("Retrieve sandbox storage account name by resource group {}".format(data.group_name))
         data.storage_account_name = self.storage_service.get_sandbox_storage_account_name(storage_client=storage_client,
                                                                                           group_name=data.group_name)
@@ -805,11 +860,9 @@ class DeployAzureVMOperation(object):
             self.reservation = None  # type: ReservationModel
             self.app_name = ''  # type: str
             self.group_name = ''  # type: str
-            self.interface_names = ''  # type: list[str]
             self.computer_name = ''  # type: str
             self.vm_name = ''  # type: str
             self.vm_size = ''  # type: str
-            self.subnets = None  # type: list[Subnet]
             self.storage_account_name = ''  # type: str
             self.tags = {}  # type: dict
             self.image_model = None  # type: ImageDataModelBase
@@ -818,6 +871,7 @@ class DeployAzureVMOperation(object):
             self.vm_credentials = None  # type: VMCredentials
             self.private_ip_address = ''  # type: str
             self.public_ip_address = ''  # type: str
+            self.nic_requests = []  # type: list[NicRequest]
 
 
 def get_ip_from_interface_name(interface_name):
