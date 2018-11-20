@@ -14,6 +14,8 @@ from cloudshell.cp.azure.models.azure_cloud_provider_resource_model import Azure
 from cloudshell.cp.azure.models.deploy_azure_vm_resource_models import DeployAzureVMResourceModel
 from cloudshell.cp.core.models import Attribute
 
+from cloudshell.cp.azure.models.nic_request import NicRequest
+
 
 class TestDeployAzureVMOperation(TestCase):
     def setUp(self):
@@ -55,19 +57,20 @@ class TestDeployAzureVMOperation(TestCase):
             return_value=MagicMock(subnets=[MagicMock(), MagicMock(), sandbox_subnet]))
 
         # Act
-        subnets = self.deploy_operation._get_subnets(
+        subnets = self.deploy_operation._get_nic_requests(
             network_client=network_client,
             cloud_provider_model=cloud_provider_model,
             logger=self.logger,
             deployment_model=deployment_model,
-            resource_group_name="some_resource_group")
+            resource_group_name="some_resource_group",
+            vm_name="whatever")
 
         # Verify
         self.network_service.get_sandbox_virtual_network.assert_called_once_with(
             network_client=network_client,
             group_name=cloud_provider_model.management_group_name)
 
-        self.assertEqual(subnets[0], sandbox_subnet)
+        self.assertEqual(subnets[0].subnet, sandbox_subnet)
 
     def _prepare_mock_subnets(self):
         subnet_name = "testsubnetname"
@@ -133,10 +136,11 @@ class TestDeployAzureVMOperation(TestCase):
         # Arrange
         resource_model = DeployAzureVMResourceModel()
         data = Mock()
+        data.nic_requests = [NicRequest("a", Mock(), True)]
         updated_data = Mock()
         updated_data.vm_credentials = Mock()
         first_interface_name = 'a'
-        updated_data.interface_names = [first_interface_name, 'b', 'c']
+        updated_data.nic_requests = [NicRequest("a", Mock(), True)]
         updated_data.ip_name = updated_data.public_ip_address = '{}_PublicIP'.format(first_interface_name)
         deployed_app_attributes = Mock()
         self.deploy_operation._prepare_deploy_data = Mock(return_value=data)
@@ -162,9 +166,12 @@ class TestDeployAzureVMOperation(TestCase):
         result = self.deploy_operation._deploy_vm_generic(create_vm_action=create_vm_action,
                                                           deployment_model=resource_model,
                                                           cloud_provider_model=cloud_provider_model,
-                                                          reservation=reservation, storage_client=storage_client,
-                                                          compute_client=compute_client, network_client=network_client,
-                                                          cancellation_context=cancellation_context, logger=logger,
+                                                          reservation=reservation,
+                                                          storage_client=storage_client,
+                                                          compute_client=compute_client,
+                                                          network_client=network_client,
+                                                          cancellation_context=cancellation_context,
+                                                          logger=logger,
                                                           cloudshell_session=cloudshell_session,
                                                           network_actions=network_actions)
 
@@ -178,7 +185,8 @@ class TestDeployAzureVMOperation(TestCase):
             cloud_provider_model=cloud_provider_model,
             network_client=network_client,
             storage_client=storage_client,
-            compute_client=compute_client)
+            compute_client=compute_client,
+            network_actions=network_actions)
         self.deploy_operation._create_vm_common_objects.assert_called_once_with(
             logger=logger,
             data=data,
@@ -429,7 +437,7 @@ class TestDeployAzureVMOperation(TestCase):
             compute_client=compute_client,
             network_client=network_client,
             group_name=updated_data.group_name,
-            interface_names=updated_data.interface_names,
+            nic_requests=updated_data.nic_requests,
             vm_name=updated_data.vm_name,
             logger=logger)
 
@@ -447,7 +455,7 @@ class TestDeployAzureVMOperation(TestCase):
         self.deploy_operation._rollback_deployed_resources(compute_client=MagicMock(),
                                                            network_client=MagicMock(),
                                                            group_name=MagicMock(),
-                                                           interface_names=[MagicMock()],
+                                                           nic_requests=[MagicMock()],
                                                            vm_name=MagicMock(),
                                                            logger=MagicMock())
 
@@ -471,9 +479,13 @@ class TestDeployAzureVMOperation(TestCase):
     def test_validate_deployment_model_raises_exception(self):
         """Check that method will raise Exception if "Add Public IP" attr is False and "Inbound Ports" is not empty"""
         vm_deployment_mode = MagicMock(inbound_ports="80:tcp", add_public_ip=False)
+        os_type = Mock()
+        network_actions = []
 
         with self.assertRaises(Exception):
-            self.deploy_operation._validate_deployment_model(vm_deployment_mode)
+            self.deploy_operation._validate_deployment_model(vm_deployment_mode,
+                                                             os_type=os_type,
+                                                             network_actions=network_actions)
 
     def test_validate_resource_is_single_per_group_several_resources(self):
         """Check that method will not throw Exception if length of resource list is more than 1"""
@@ -565,7 +577,8 @@ class TestDeployAzureVMOperation(TestCase):
         self.deploy_operation.name_provider_service.generate_name = Mock(return_value="random_name")
         self.deploy_operation._prepare_computer_name = Mock(return_value="computer_name")
         self.deploy_operation._prepare_vm_size = Mock(return_value="vm_size")
-        self.deploy_operation._get_subnets = Mock(return_value=['a', 'b'])
+        self.deploy_operation._get_nic_requests = Mock(return_value=[NicRequest('random_name-0', Mock(), True),
+                                                                     NicRequest('random_name-1', Mock(), True)])
         self.deploy_operation.storage_service.get_sandbox_storage_account_name = Mock(return_value="storage")
         self.deploy_operation.tags_service.get_tags = Mock()
         self.name_provider_service.normalize_name = Mock(return_value="cool-app")
@@ -576,6 +589,7 @@ class TestDeployAzureVMOperation(TestCase):
         network_client = Mock()
         storage_client = Mock()
         compute_client = Mock()
+        network_actions = []
 
         # Act
         data = self.deploy_operation._prepare_deploy_data(
@@ -585,7 +599,8 @@ class TestDeployAzureVMOperation(TestCase):
             cloud_provider_model=cloud_provider_model,
             network_client=network_client,
             storage_client=storage_client,
-            compute_client=compute_client)
+            compute_client=compute_client,
+            network_actions=network_actions)
 
         # Assert
         self.deploy_operation.image_data_factory.get_image_data_model.assert_called_once_with(
@@ -594,7 +609,8 @@ class TestDeployAzureVMOperation(TestCase):
             compute_client=compute_client,
             logger=logger)
         self.deploy_operation._validate_deployment_model.assert_called_once_with(vm_deployment_model=deployment_model,
-                                                                                 os_type=image_data_model.os_type)
+                                                                                 os_type=image_data_model.os_type,
+                                                                                 network_actions=network_actions)
         self.deploy_operation._prepare_vm_size.assert_called_once()
         self.deploy_operation._prepare_vm_size._get_sandbox_subnet()
         self.deploy_operation.storage_service.get_sandbox_storage_account_name()
@@ -604,12 +620,17 @@ class TestDeployAzureVMOperation(TestCase):
         self.assertEquals(data.image_model, image_data_model)
         self.name_provider_service.normalize_name.assert_called_once_with(deployment_model.app_name)
         self.assertEquals(data.app_name, "cool-app")
-        self.assertEquals(data.interface_names[0], "random_name-0")
-        self.assertEquals(data.interface_names[1], "random_name-1")
+        self.assertEquals(data.nic_requests[0].interface_name, "random_name-0")
+        self.assertEquals(data.nic_requests[1].interface_name, "random_name-1")
         self.assertEquals(data.computer_name, "computer_name")
         self.assertEquals(data.vm_name, "random_name")
         self.assertEquals(data.vm_size, "vm_size")
-        self.assertEquals(data.subnets[0], self.deploy_operation._get_subnets()[0])
+        self.assertEquals(data.nic_requests[0], self.deploy_operation._get_nic_requests(network_client,
+                                                                                               cloud_provider_model,
+                                                                                               logger,
+                                                                                               deployment_model,
+                                                                                               data.group_name,
+                                                                                               data.app_name)[0])
         self.assertEquals(data.storage_account_name, "storage")
         self.assertEquals(data.tags, self.deploy_operation.tags_service.get_tags.return_value)
 
@@ -620,10 +641,11 @@ class TestDeployAzureVMOperation(TestCase):
         data.vm_name = 'lol'
         interface_name = 'hi'
         data.interface_names = [interface_name]
-        subnet = Mock()
-        data.subnets = [subnet]
+        nic_request = NicRequest(interface_name, Mock(), True)
+        data.nic_requests = [nic_request]
         deployment_model = Mock()
         deployment_model.inbound_ports = '1;2-5'
+        deployment_model.add_public_ip = True
         cloud_provider_model = Mock()
         cloud_provider_model.additional_mgmt_networks = [Mock()]
         network_client = Mock()
@@ -663,7 +685,7 @@ class TestDeployAzureVMOperation(TestCase):
             ip_name=interface_name + '_PublicIP',
             cloud_provider_model=cloud_provider_model,
             network_security_group=vm_nsg,
-            subnet=subnet,
+            subnet=data.nic_requests[0].subnet,
             add_public_ip=deployment_model.add_public_ip,
             public_ip_type=deployment_model.public_ip_type,
             tags=data.tags,
@@ -747,12 +769,14 @@ class TestDeployAzureVMOperation(TestCase):
         deployment_model.inbound_ports = "xxx"
         deployment_model.add_public_ip = None
         os_type = Mock()
+        network_actions = []
 
         # Act & Assert
         with self.assertRaisesRegexp(Exception,
                                      '"Inbound Ports" attribute must be empty when "Add Public IP" is false'):
             self.deploy_operation._validate_deployment_model(vm_deployment_model=deployment_model,
-                                                             os_type=os_type)
+                                                             os_type=os_type,
+                                                             network_actions=network_actions)
 
     def test_validate_deployment_model_has_extension_script_file(self):
         # Arrange
@@ -760,10 +784,12 @@ class TestDeployAzureVMOperation(TestCase):
         deployment_model.extension_script_file = "http://bla.com/script"
         os_type = Mock()
         self.deploy_operation.vm_extension_service.validate_script_extension = Mock()
+        network_actions = []
 
         # Act
         self.deploy_operation._validate_deployment_model(vm_deployment_model=deployment_model,
-                                                         os_type=os_type)
+                                                         os_type=os_type,
+                                                         network_actions=network_actions)
 
         # Assert
         self.deploy_operation.vm_extension_service.validate_script_extension.assert_called_once_with(
