@@ -224,8 +224,10 @@ class DeployAzureVMOperation(object):
 
         logger.info("VM {} was successfully deployed".format(data.vm_name))
 
-        if data.nic_requests:
-            public_ip_name = get_ip_from_interface_name(data.nic_requests[0].interface_name)
+        if data.nic_requests and any(n.is_public for n in data.nic_requests):
+            # the name of the first interface we requested to be connected to a public subnet
+            request_to_connect_to_public_subnet = next(n for n in data.nic_requests if n.is_public)
+            public_ip_name = get_ip_from_interface_name(request_to_connect_to_public_subnet.interface_name)
             data.public_ip_address = self._get_public_ip_address(network_client=network_client,
                                                                  azure_vm_deployment_model=deployment_model,
                                                                  group_name=data.group_name,
@@ -362,7 +364,7 @@ class DeployAzureVMOperation(object):
         if not multiple_subnet_mode:
             try:
                 nic_requests = [next((NicRequest("{}-{}".format(vm_name, 0), s, is_public=True)
-                                     for s in sandbox_virtual_network.subnets if resource_group_name in s.name), None)]
+                                      for s in sandbox_virtual_network.subnets if resource_group_name in s.name), None)]
 
             except StopIteration:
                 logger.error("Subnets were not found under the resource group {}".format(
@@ -649,7 +651,7 @@ class DeployAzureVMOperation(object):
         #   VM NSG rules overview
         #       1xxx
         #       -   Open traffic to VM on inbound ports (an attribute on the app)
-        #       4xxx
+        #       3xxx
         #       -   Open traffic to VM from additional mgmt networks
         #       4080
         #       -   Open traffic to VM from mgmt vnet
@@ -669,7 +671,7 @@ class DeployAzureVMOperation(object):
                                                                             lock=vm_nsg_lock,
                                                                             start_from=1000)
 
-        # Rule 4xxx:
+        # Rule 3xxx:
         # Open traffic to VM from additional mgmt networks
 
         for mgmt_network in cloud_provider_model.additional_mgmt_networks:
@@ -686,12 +688,12 @@ class DeployAzureVMOperation(object):
                                                                             allow_traffic_from_additional_mgmt_network,
                                                                             '*',
                                                                             vm_nsg_lock,
-                                                                            start_from=4000)
+                                                                            start_from=3000)
 
-        # Rule 4080:
+        # Rule 4070:
         # Open traffic to VM from mgmt vnet
 
-        security_rule_name = 'Allow_{0}_To_Any'.format(management_vnet_cidr.replace('/', '-'))
+        security_rule_name = 'Allow_Traffic_From_Management_Vnet_To_Any'
         allow_all_traffic = [RuleData(protocol=SecurityRuleProtocol.asterisk,
                                       port='*',
                                       access=SecurityRuleAccess.allow,
@@ -702,17 +704,36 @@ class DeployAzureVMOperation(object):
             data.group_name,
             security_group_name,
             allow_all_traffic,
-            "*",
-            vm_nsg_lock,
-            start_from=4080,
+            destination_addr="*",
+            lock=vm_nsg_lock,
+            start_from=4070,
             source_address=management_vnet_cidr
         )
 
-        # Rule 4090:
-        # Block traffic from sandbox if vm is set to allow all sandbox traffic = false
+        # Rule 4080 / Rule 4090:
+        # Block traffic from sandbox if vm is set to allow all sandbox traffic = false;
+        # And if block traffic from sandbox, must specifically allow traffic for AzureLoadBalancer, otherwise basic
+        # services will break
 
         if not deployment_model.allow_all_sandbox_traffic or deployment_model.allow_all_sandbox_traffic == 'False':
-            security_rule_name = 'Deny_{0}_To_Any'.format(management_vnet_cidr.replace('/', '-'))
+            security_rule_name = 'Allow_Azure_Load_Balancer'
+            allow_all_traffic = [RuleData(protocol=SecurityRuleProtocol.asterisk,
+                                          port='*',
+                                          access=SecurityRuleAccess.allow,
+                                          name=security_rule_name)]
+
+            self.security_group_service.create_network_security_group_rules(
+                network_client,
+                data.group_name,
+                security_group_name,
+                allow_all_traffic,
+                destination_addr="*",
+                lock=vm_nsg_lock,
+                start_from=4080,
+                source_address="VirtualNetwork"
+            )
+
+            security_rule_name = 'Deny_Sandbox_Traffic'
             deny_all_traffic = [RuleData(protocol=SecurityRuleProtocol.asterisk,
                                          port='*',
                                          access=SecurityRuleAccess.deny,
@@ -723,10 +744,10 @@ class DeployAzureVMOperation(object):
                 data.group_name,
                 security_group_name,
                 deny_all_traffic,
-                "*",
-                vm_nsg_lock,
-                start_from=4080,
-                source_address=management_vnet_cidr
+                destination_addr="*",
+                lock=vm_nsg_lock,
+                start_from=4090,
+                source_address="VirtualNetwork"
             )
 
         self.cancellation_service.check_if_cancelled(cancellation_context)
