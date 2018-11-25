@@ -730,7 +730,7 @@ class DeployAzureVMOperation(object):
                 destination_addr="*",
                 lock=vm_nsg_lock,
                 start_from=4080,
-                source_address="VirtualNetwork"
+                source_address="AzureLoadBalancer"
             )
 
             security_rule_name = 'Deny_Sandbox_Traffic'
