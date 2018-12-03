@@ -97,33 +97,35 @@ class AzureModelsParser(object):
 
 
     @staticmethod
-    def convert_to_route_table_model(route_table_request, cloudshell_session, logger):
+    def convert_to_route_table_model(route_table_request):
         """
         Convert deployment request JSON to the DeployAzureVMResourceModel model
 
         :param str deployment_request: JSON string
-        :param cloudshell.api.cloudshell_api.CloudShellAPISession cloudshell_session: instance
-        :param logging.Logger logger:
         :return: deploy_azure_vm_resource_models.DeployAzureVMResourceModel instance
-        :rtype: RouteTableRequestResourceModel
+        :rtype: list[RouteTableRequestResourceModel]
         """
         data = jsonpickle.decode(route_table_request)
-        route_table_model = RouteTableRequestResourceModel()
-        route_table_model.name=data['name']
-        route_table_model.subnets = []
-        if data['subnets']:
-            route_table_model.subnets=data['subnets']
-        routes =[]
-        for route in data['routes']:
-            route_model = RouteResourceModel()
-            route_model.name=route['name']
-            route_model.route_address_prefix=route['address_prefix']
-            route_model.next_hop_type=route['next_hop_type']
-            route_model.next_hope_address=route['next_hop_address']
-            routes.append(route_model)
-        route_table_model.routes=routes
+        route_table_models = []
+        for route_table in data['route_tables']:
+            route_table_model = RouteTableRequestResourceModel()
+            route_table_model.name = data['name']
+            route_table_model.subnets = []
+            if data['subnets']:
+                route_table_model.subnets = data['subnets']
+            routes = []
+            for route in data['routes']:
+                route_model = RouteResourceModel()
+                route_model.name = route['name']
+                route_model.route_address_prefix = route['address_prefix']
+                route_model.next_hop_type = route['next_hop_type']
+                route_model.next_hope_address = route['next_hop_address']
+                routes.append(route_model)
+            route_table_model.routes = routes
 
-        return route_table_model
+            route_table.append(route_table_model)
+
+        return route_table_models
 
     @staticmethod
     def convert_to_deploy_azure_vm_resource_model(deploy_action, network_actions, cloudshell_session, logger):
