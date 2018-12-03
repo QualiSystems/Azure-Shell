@@ -170,14 +170,26 @@ class AzureShell(object):
 
         Creates a route table, as well as routes and associates it with whatever subnets are relevant
         Example route table request:
-        {   "name": "myRouteTable1"
-            "subnets": ["subnetId1", "subnetId2"],
-            "routes": [{
-                            "name":                 "myRoute1",
-                            "address_prefix":       "10.0.1.0/28" # cidr
-                            "next_hop_type":        "VirtualAppliance"
-                            "next_hop_address":     "10.0.1.15"
-            }]
+        {   "route_tables": [
+                {
+                "name": "myRouteTable1"
+                "subnets": ["subnetId1", "subnetId2"],
+                "routes": [{
+                                "name":                 "myRoute1",
+                                "address_prefix":       "10.0.1.0/28" # cidr
+                                "next_hop_type":        "VirtualAppliance"
+                                "next_hop_address":     "10.0.1.15"
+                }]},
+                {"name": "myRouteTable2"
+                "subnets": ["subnetId3", "subnetId4"],
+                "routes": [{
+                                "name":                 "myRoute2",
+                                "address_prefix":       "10.0.1.0/28" # cidr
+                                "next_hop_type":        "VirtualAppliance"
+                                "next_hop_address":     "10.0.1.15"
+                }]},
+            ]
+        }
 
         :param route_table_request:
         :param ResourceCommandContext command_context:
@@ -188,28 +200,30 @@ class AzureShell(object):
                 logger.info('Deploying Azure VM...')
 
                 with CloudShellSessionContext(command_context) as cloudshell_session:
-                    route_table_request_model = self.model_parser.convert_to_route_table_model(
-                        cloudshell_session=cloudshell_session,
-                        logger=logger, route_table_request=route_table_request)
+                    reservation_id = command_context.reservation.reservation_id
 
-                    cloudshell_session.WriteMessageToReservationOutput(command_context.reservation.reservation_id,
-                                                                       route_table_request)
-
-                    for route in route_table_request_model.routes:
-                        cloudshell_session.WriteMessageToReservationOutput(command_context.reservation.reservation_id,
-                                                                           route.name)
+                    route_table_request_models = self.model_parser.convert_to_route_table_model(
+                        route_table_request=route_table_request)
 
                     cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(
                         resource=command_context.resource,
                         cloudshell_session=cloudshell_session)
 
-                azure_clients = AzureClientsManager(cloud_provider_model)
+                    azure_clients = AzureClientsManager(cloud_provider_model)
 
-                self.create_route_operation.create_route_table(network_client=azure_clients.network_client,
-                                                               cloud_provider_model=cloud_provider_model,
-                                                               route_table_request=route_table_request_model,
-                                                               sandbox_id=command_context.reservation.reservation_id,
-                                                               subnet_lcoker=self.subnet_locker)
+                    for route_table_request_model in route_table_request_models:
+                        cloudshell_session.WriteMessageToReservationOutput(reservation_id,
+                                                                           route_table_request)
+
+                        for route in route_table_request_model.routes:
+                            cloudshell_session.WriteMessageToReservationOutput(reservation_id,
+                                                                               route.name)
+
+                        self.create_route_operation.create_route_table(network_client=azure_clients.network_client,
+                                                                       cloud_provider_model=cloud_provider_model,
+                                                                       route_table_request=route_table_request_model,
+                                                                       sandbox_id=reservation_id,
+                                                                       subnet_lcoker=self.subnet_locker)
 
     def deploy_azure_vm(self, command_context, actions, cancellation_context):
         """ Will deploy Azure Image on the cloud provider

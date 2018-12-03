@@ -41,9 +41,8 @@ class AzureShellDriver(ResourceDriverInterface):
                                                 actions=actions,
                                                 cancellation_context=cancellation_context)
 
-    # capability disabled until further testing
-    # def create_route_table(self,context,request):
-    #     return self.azure_shell.create_route_table(context, request)
+    def create_route_table(self, context, request):
+        return self.azure_shell.create_route_table(context, request)
 
     def deploy_vm_from_custom_image(self, context, actions, cancellation_context):
         return self.azure_shell.deploy_vm_from_custom_image(command_context=context,
