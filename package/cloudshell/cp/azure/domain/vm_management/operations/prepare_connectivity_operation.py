@@ -165,16 +165,7 @@ class PrepareConnectivityOperation(object):
 
         self.cancellation_service.check_if_cancelled(cancellation_context)
 
-        # # 6. Create a subnet with NSG
-        # self._create_subnet(cidr=cidr,
-        #                     cloud_provider_model=cloud_provider_model,
-        #                     logger=logger,
-        #                     network_client=network_client,
-        #                     resource_client=resource_client,
-        #                     network_security_group=network_security_group,
-        #                     sandbox_vnet=sandbox_vnet,
-        #                     subnet_name=subnet_name)
-
+        # 6. Create subnets with NSG
         subnet_actions = [a for a in actions if isinstance(a.connection_params, PrepareSubnetParams)]
         for subnet in subnet_actions:
             subnet_name = self.name_provider_service.format_subnet_name(group_name, subnet.connection_params.cidr)
@@ -189,6 +180,10 @@ class PrepareConnectivityOperation(object):
             results.append(self._create_result(subnet, subnet_name))
 
         self.cancellation_service.check_if_cancelled(cancellation_context)
+
+        # wait for vnet to be ready
+        self.network_service.wait_for_sandbox_virtual_network_succeeded_state(
+            logger, network_client, cloud_provider_model.management_group_name)
 
         # wait for all async operations
         pool.close()

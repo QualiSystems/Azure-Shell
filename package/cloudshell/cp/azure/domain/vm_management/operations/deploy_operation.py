@@ -171,6 +171,10 @@ class DeployAzureVMOperation(object):
         self.cancellation_service.check_if_cancelled(cancellation_context)
 
         try:
+            # wait for vnet to be ready
+            self.network_service.wait_for_sandbox_virtual_network_succeeded_state(
+                logger, network_client, cloud_provider_model.management_group_name)
+
             # 2. create NIC + Credentials & update NSG
             data = self._create_vm_common_objects(
                 logger=logger,

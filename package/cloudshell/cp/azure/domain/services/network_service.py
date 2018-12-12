@@ -4,6 +4,9 @@ import azure
 from azure.mgmt.network import NetworkManagementClient
 from azure.mgmt.network.models import NetworkInterface, NetworkInterfaceIPConfiguration, IPAllocationMethod, \
     VirtualNetwork, RouteTable, Route, Subnet
+
+from cloudshell.cp.azure.common.exceptions.quali_timeout_exception import QualiTimeoutException
+from cloudshell.cp.azure.common.exceptions.virtual_network_not_found_exception import VirtualNetworkNotFoundException
 from cloudshell.cp.azure.models.azure_cloud_provider_resource_model import AzureCloudProviderResourceModel
 from retrying import retry
 
@@ -444,3 +447,34 @@ class NetworkService(object):
                      if network and self.tags_service.try_find_tag(
             tags_list=network.tags, tag_key=tag_key) == tag_value),
                     None)
+
+    def wait_for_sandbox_virtual_network_succeeded_state(self, logger, network_client, group_name, delay=15, timeout=300):
+        """
+        :param logging.Logger logger:
+        :param azure.mgmt.network.network_management_client.NetworkManagementClient network_client:
+        :param str group_name:
+        :param int delay:
+        :param int timeout:
+        :return:
+        """
+        start_time = time.time()
+        logger.info('Waiter start')
+        while True:
+            vnet = self.get_sandbox_virtual_network(network_client, group_name)
+
+            if not vnet:
+                raise VirtualNetworkNotFoundException('Sandbox VNet not found')
+
+            if vnet.provisioning_state == 'Succeeded':
+                logger.info('Waiter ended. Sandbox VNet is in Succeeded state')
+                return
+            elif vnet.provisioning_state == 'Updating':
+                if time.time() - start_time >= timeout:
+                    raise QualiTimeoutException()
+                logger.info('Sandbox VNet is in Updating state, waiting.')
+                time.sleep(delay)
+            else:
+                raise VirtualNetworkNotFoundException('Sandbox VNet is in bad provisioning state: {}'
+                                                      .format(vnet.provisioning_state))
+
+
