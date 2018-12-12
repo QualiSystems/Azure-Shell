@@ -6,8 +6,8 @@ from requests.packages.urllib3.exceptions import ConnectionError
 
 
 retryable_error_string = "RetryableError"
-retryable_error_timeout = 180000
-retryable_error_max_attempts = 3
+retryable_error_timeout = 15000
+retryable_error_max_attempts = 20
 
 
 def retry_if_connection_error(exception):
