@@ -123,7 +123,7 @@ class AzureModelsParser(object):
                 routes.append(route_model)
             route_table_model.routes = routes
 
-            route_table.append(route_table_model)
+            route_table_models.append(route_table_model)
 
         return route_table_models
 
