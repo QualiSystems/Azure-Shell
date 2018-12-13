@@ -41,7 +41,7 @@ class AzureShellDriver(ResourceDriverInterface):
                                                 actions=actions,
                                                 cancellation_context=cancellation_context)
 
-    def create_route_tables(self, context, request):
+    def CreateRouteTables(self, context, request):
         return self.azure_shell.create_route_tables(context, request)
 
     def deploy_vm_from_custom_image(self, context, actions, cancellation_context):
