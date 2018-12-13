@@ -1,6 +1,6 @@
 import azure
 from azure.mgmt.network.models import NetworkInterface, NetworkInterfaceIPConfiguration, IPAllocationMethod, \
-    VirtualNetwork
+    VirtualNetwork, RouteTable, Route
 from retrying import retry
 
 from cloudshell.cp.azure.common.helpers.retrying_helpers import retry_if_connection_error
