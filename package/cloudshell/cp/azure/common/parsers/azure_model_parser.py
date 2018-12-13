@@ -109,12 +109,12 @@ class AzureModelsParser(object):
         route_table_models = []
         for route_table in data['route_tables']:
             route_table_model = RouteTableRequestResourceModel()
-            route_table_model.name = data['name']
+            route_table_model.name = route_table['name']
             route_table_model.subnets = []
-            if data['subnets']:
-                route_table_model.subnets = data['subnets']
+            if route_table['subnets']:
+                route_table_model.subnets = route_table['subnets']
             routes = []
-            for route in data['routes']:
+            for route in route_table['routes']:
                 route_model = RouteResourceModel()
                 route_model.name = route['name']
                 route_model.route_address_prefix = route['address_prefix']

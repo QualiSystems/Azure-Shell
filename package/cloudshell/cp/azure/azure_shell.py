@@ -165,7 +165,7 @@ class AzureShell(object):
     def deploy_arm_template(self, command_context, template_name, cancellation_context):
         pass
 
-    def create_route_table(self, command_context, route_table_request):
+    def create_route_tables(self, command_context, route_table_request):
         """ Will deploy Azure Image on the cloud provider
 
         Creates a route table, as well as routes and associates it with whatever subnets are relevant
