@@ -13,6 +13,8 @@ from retrying import retry
 from cloudshell.cp.azure.common.helpers.retrying_helpers import retry_if_connection_error
 from cloudshell.cp.azure.models.deploy_azure_vm_resource_models import RouteTableRequestResourceModel
 
+from cloudshell.cp.azure.common.helpers.retrying_helpers import retry_if_connection_error, \
+    retry_if_retryable_error, retryable_error_max_attempts, retryable_error_timeout
 
 class NetworkService(object):
     NETWORK_TYPE_TAG_NAME = 'network_type'
@@ -125,6 +127,7 @@ class NetworkService(object):
                                network_security_group)
 
     @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
+    @retry(stop_max_attempt_number=retryable_error_max_attempts, wait_fixed=retryable_error_timeout, retry_on_exception=retry_if_retryable_error)
     def create_nic(self, interface_name, group_name, network_client, public_ip_address, region,
                    subnet, private_ip_allocation_method, tags, logger, reservation_id, cloudshell_session, network_security_group=None):
         """
