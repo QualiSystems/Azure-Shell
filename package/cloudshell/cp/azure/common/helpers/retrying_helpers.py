@@ -22,8 +22,7 @@ def retry_if_retryable_error(exception):
     """Return True if we should retry (in this case when it's an RetryableError), False otherwise
     :param exception:
     """
-    return isinstance(exception, CloudError) and (exception.error.__contains__(retryable_error_string) or
-                                                  exception.message.__contains__(retryable_error_string))
+    return isinstance(exception, CloudError) and (exception.message.lower().__contains__(retryable_error_string.lower()))
 
 
 def is_pool_closed_error(exception):
