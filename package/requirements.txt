@@ -1,5 +1,5 @@
-requests~=2.16
-msrest==0.6.2
+requests==2.14.2
+msrest==<0.5.0,>=0.4.0
 azure-mgmt-resource~=0.31.0
 azure-mgmt-compute~=0.33.0
 azure-mgmt-network~=0.30.0
