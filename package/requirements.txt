@@ -18,3 +18,4 @@ netaddr==0.7.19
 typing==3.6.4
 oauthlib==2.1.0
 requests-oauthlib==1.0.0
+isodate==0.6.0
