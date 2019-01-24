@@ -78,6 +78,8 @@ class TestNetworkService(TestCase):
         subnet_name = "subnet"
         ip_name = "ip"
         tags = "tags"
+        reservation_id = 'blabla'
+        cloudshell_session = MagicMock()
 
         network_client = MagicMock()
         network_client.virtual_networks.create_or_update = MagicMock()
@@ -88,6 +90,7 @@ class TestNetworkService(TestCase):
         result.result().ip_configurations = [MagicMock()]
         network_client.network_interfaces.create_or_update = MagicMock(return_value=result)
         cloud_provider_model = MagicMock()
+        cloud_provider_model.private_ip_allocation_method = 'cloudshell allocation'
         sandbox_virtual_network = MagicMock()
         sandbox_virtual_network.name = "sandbox"
         self.network_service.get_sandbox_virtual_network = MagicMock(sandbox_virtual_network)
@@ -104,16 +107,16 @@ class TestNetworkService(TestCase):
             public_ip_type="Static",
             tags=tags,
             logger=MagicMock(),
-            lock_provider=MagicMock)
+            reservation_id=reservation_id,
+            cloudshell_session=cloudshell_session)
 
         # Verify
 
         self.assertEqual(network_client.network_interfaces.create_or_update.call_count, 1)
 
         # one time static
-        self.assertEqual(network_client.network_interfaces.create_or_update.call_args_list[0][0][2].ip_configurations[
-                             0].private_ip_allocation_method,
-                         IPAllocationMethod.static)
+        self.assertEqual(network_client.network_interfaces.create_or_update.call_args_list[0][0][2].ip_configurations[0]
+                         .private_ip_allocation_method, IPAllocationMethod.static)
 
     def test_delete_subnet(self):
         """Check that method will use network_client to delete subnet and will wait until deletion will be done"""

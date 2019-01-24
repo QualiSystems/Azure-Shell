@@ -182,7 +182,7 @@ class PrepareSandboxInfraOperation(object):
         # 6. Create additional subnets requested by server
         for subnet in subnet_actions:
             logger.warn('creating: ' + subnet.actionParams.cidr)
-            subnet_name = (group_name + '_' + subnet.actionParams.cidr).replace(' ', '').replace('/', '-')
+            subnet_name = self.name_provider_service.format_subnet_name(group_name, subnet.actionParams.cidr)
             self._create_subnet(cidr=subnet.actionParams.cidr,
                                 cloud_provider_model=cloud_provider_model,
                                 logger=logger,

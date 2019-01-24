@@ -86,3 +86,6 @@ class AzureShellDriver(ResourceDriverInterface):
 
     def SetAppSecurityGroups(self, context, request):
         return self.azure_shell.set_app_security_groups(context, request)
+
+    def GetAvailablePrivateIP(self, context, subnet_cidr, owner):
+        return self.azure_shell.get_available_private_ip(context, subnet_cidr, owner)

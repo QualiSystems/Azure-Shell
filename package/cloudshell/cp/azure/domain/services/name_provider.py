@@ -53,3 +53,6 @@ class NameProviderService(object):
         """
         unique_id = str(uuid.uuid4())[:8]
         return unique_id
+
+    def format_subnet_name(self, resource_group_name, subnet_cidr):
+        return (resource_group_name + '_' + subnet_cidr).replace(' ', '').replace('/', '-')

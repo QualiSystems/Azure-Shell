@@ -19,6 +19,7 @@
                 <Attribute Value="Standard_A3" Name="VM Size"/>
                 <Attribute Value="" Name="Additional Mgmt Networks"/>
                 <Attribute Value="10.0.0.0/24" Name="Networks In Use"/>
+                <Attribute Value="Azure Allocation" Name="Private IP Allocation Method" />
                 <Attribute Value="" Name="Execution Server Selector"/>
             </Attributes>
         </ResourceTemplate>
