@@ -488,7 +488,7 @@ class TestDeployAzureVMOperation(TestCase):
         self.network_service.delete_nic = Mock()
         self.network_service.delete_ip = Mock()
         self.vm_service.delete_vm = Mock()
-        private_ip_allocation_method = "Cloudshell Allocation"
+        private_ip_allocation_method = "Static"
         cloudshell_session = Mock()
 
         # Act

@@ -4,7 +4,7 @@ import azure
 from azure.mgmt.network.models import NetworkInterface, NetworkInterfaceIPConfiguration, VirtualNetwork, RouteTable, Route
 from retrying import retry
 
-from cloudshell.cp.azure.common.helpers.ip_allocation_helper import is_cloudshell_allocation, to_azure_type
+from cloudshell.cp.azure.common.helpers.ip_allocation_helper import is_static_allocation, to_azure_type
 from cloudshell.cp.azure.common.helpers.retrying_helpers import retry_if_connection_error
 
 
@@ -142,7 +142,7 @@ class NetworkService(object):
         # will remain the same
 
         private_ip_address = None
-        if is_cloudshell_allocation(private_ip_allocation_method):
+        if is_static_allocation(private_ip_allocation_method):
             private_ip_address = self.ip_service.get_next_available_ip_from_cs_pool(logger=logger,
                                                                                     api=cloudshell_session,
                                                                                     reservation_id=reservation_id,
