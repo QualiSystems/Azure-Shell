@@ -10,7 +10,7 @@ from msrestazure.azure_exceptions import CloudError
 
 from cloudshell.cp.azure.common.exceptions.quali_timeout_exception import QualiTimeoutException, \
     QualiScriptExecutionTimeoutException
-from cloudshell.cp.azure.common.helpers.ip_allocation_helper import is_cloudshell_allocation
+from cloudshell.cp.azure.common.helpers.ip_allocation_helper import is_static_allocation
 from cloudshell.cp.azure.common.parsers.rules_attribute_parser import RulesAttributeParser
 from cloudshell.cp.azure.domain.services.network_service import NetworkService
 from cloudshell.cp.azure.models.azure_cloud_provider_resource_model import AzureCloudProviderResourceModel
@@ -452,7 +452,7 @@ class DeployAzureVMOperation(object):
                                            group_name=group_name,
                                            ip_name=ip_name)
 
-        if is_cloudshell_allocation(private_ip_allocation_method):
+        if is_static_allocation(private_ip_allocation_method):
             try:
                 self.ip_service.release_ips(logger, cloudshell_session, reservation_id, allocated_private_ips)
             except:

@@ -1,9 +1,10 @@
 from azure.mgmt.network.models import IPAllocationMethod
 
 
-def is_cloudshell_allocation(private_ip_allocation_method):
+# Azure Static Allocation is known as Cloudshell Allocation to users, can be set by attribute on cloud provider
+def is_static_allocation(private_ip_allocation_method):
     try:
-        return private_ip_allocation_method.lower() == 'cloudshell allocation'
+        return private_ip_allocation_method.lower() == IPAllocationMethod.static.name
     except AttributeError:
         return private_ip_allocation_method == IPAllocationMethod.static
 

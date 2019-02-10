@@ -5,7 +5,7 @@ from azure.mgmt.network.models import VirtualNetwork, Subnet
 from cloudshell.api.cloudshell_api import CloudShellAPISession
 from msrestazure.azure_exceptions import CloudError
 
-from cloudshell.cp.azure.common.helpers.ip_allocation_helper import is_cloudshell_allocation
+from cloudshell.cp.azure.common.helpers.ip_allocation_helper import is_static_allocation
 from cloudshell.cp.azure.domain.services.ip_service import IpService
 
 
@@ -276,7 +276,7 @@ class DeleteAzureVMOperation(object):
                            ni.ip_configurations[0].public_ip_address is not None]
         private_ips = [nic.ip_configurations[0].private_ip_address for nic in network_interfaces
                        if
-                       is_cloudshell_allocation(nic.ip_configurations[0].private_ip_allocation_method)]
+                       is_static_allocation(nic.ip_configurations[0].private_ip_allocation_method)]
 
         first_nic = network_interfaces[0]
         vm_nsg_name = first_nic.network_security_group.id.split('/')[-1]
