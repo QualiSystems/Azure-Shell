@@ -1,6 +1,7 @@
 from cloudshell.cp.azure.domain.services.virtual_machine_service import VirtualMachineService
 from cloudshell.cp.azure.models.deploy_azure_vm_resource_models import \
-    DeployAzureVMFromCustomImageResourceModel, BaseDeployAzureVMResourceModel, DeployAzureVMResourceModel
+    DeployAzureVMFromCustomImageResourceModel, BaseDeployAzureVMResourceModel, DeployAzureVMResourceModel, \
+    DeployAzureVMFromSnapshotResourceModel
 from cloudshell.cp.azure.models.image_data import *
 
 
@@ -32,6 +33,11 @@ class ImageDataFactory(object):
                                                     compute_client=compute_client,
                                                     logger=logger)
 
+        elif isinstance(deployment_model, DeployAzureVMFromSnapshotResourceModel):
+            return self._get_snapshot_image_data(deployment_model=deployment_model,
+                                                 compute_client=compute_client,
+                                                 logger=logger)
+
         raise Exception("Unsupported deployment_model type")
 
     def _get_custom_image_data(self, deployment_model, compute_client, logger):
@@ -46,6 +52,28 @@ class ImageDataFactory(object):
                                           image_name=deployment_model.image_name)
         return CustomImageDataModel(image_id=image.id, os_type=image.storage_profile.os_disk.os_type)
 
+    def _get_snapshot_image_data(self, deployment_model, compute_client, logger):
+        """
+        :param DeployAzureVMFromSnapshotResourceModel deployment_model:
+        :param azure.mgmt.compute.compute_management_client.ComputeManagementClient compute_client:
+        :param logging.Logger logger:
+        :return:
+        :rtype: MarketplaceImageDataModel
+        """
+        logger.info("Retrieving operation system type for the snapshot {} from resource group {}".format(
+            deployment_model.snapshot_name,
+            deployment_model.snapshot_resource_group))
+
+        snapshot = compute_client.snapshots.get(resource_group_name=deployment_model.snapshot_resource_group,
+                                                snapshot_name=deployment_model.snapshot_name)
+
+        logger.info("Operation system type for the snapshot is {}".format(snapshot.os_type))
+
+        return SnapshotDataModel(os_type=snapshot.os_type,
+                                 snapshot_id=snapshot.id,
+                                 snapshot_name=deployment_model.snapshot_name,
+                                 snapshot_resource_group=deployment_model.snapshot_resource_group)
+
     def _get_marketplace_image_data(self, deployment_model, cloud_provider_model, compute_client, logger):
         """
         :param DeployAzureVMResourceModel deployment_model:
@@ -56,16 +84,16 @@ class ImageDataFactory(object):
         :rtype: MarketplaceImageDataModel
         """
         logger.info("Retrieving operation system type for the VM Image {}:{}:{}".format(
-                deployment_model.image_publisher,
-                deployment_model.image_offer,
-                deployment_model.image_sku))
+            deployment_model.image_publisher,
+            deployment_model.image_offer,
+            deployment_model.image_sku))
 
         virtual_machine_image = self.vm_service.get_virtual_machine_image(
-                compute_management_client=compute_client,
-                location=cloud_provider_model.region,
-                publisher_name=deployment_model.image_publisher,
-                offer=deployment_model.image_offer,
-                skus=deployment_model.image_sku)
+            compute_management_client=compute_client,
+            location=cloud_provider_model.region,
+            publisher_name=deployment_model.image_publisher,
+            offer=deployment_model.image_offer,
+            skus=deployment_model.image_sku)
 
         os_type = virtual_machine_image.os_disk_image.operating_system
 

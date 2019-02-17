@@ -261,6 +261,54 @@ class AzureShell(object):
                 results.actionId = deploy_action.actionId
                 return [results] + network_results
 
+    def deploy_vm_from_snapshot(self, command_context, actions, cancellation_context):
+        """ Deploy Azure VM from given Snapshot
+
+        :param ResourceCommandContext command_context: ResourceCommandContext instance
+        :param cloudshell.cp.core.models.DeployApp deploy_action: describes the desired deployment
+        :param CancellationContext cancellation_context:
+        :return:
+        """
+        deploy_action = single(actions, lambda x: isinstance(x, DeployApp))
+        network_actions = [a for a in actions if isinstance(a, ConnectSubnet)]
+
+        with LoggingSessionContext(command_context) as logger, ErrorHandlingContext(logger):
+            logger.info('Deploying Azure VM From Snapshot...')
+
+            with CloudShellSessionContext(command_context) as cloudshell_session:
+                azure_vm_deployment_model = self.model_parser. \
+                    convert_to_deploy_azure_vm_from_snapshot_resource_model(
+                        deploy_action=deploy_action,
+                        network_actions=network_actions,
+                        cloudshell_session=cloudshell_session,
+                        logger=logger)
+
+                cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(
+                    resource=command_context.resource,
+                    cloudshell_session=cloudshell_session)
+
+            azure_clients = AzureClientsManager(cloud_provider_model)
+
+            results = self.deploy_azure_vm_operation.deploy_from_snapshot(
+                deployment_model=azure_vm_deployment_model,
+                cloud_provider_model=cloud_provider_model,
+                reservation=self.model_parser.convert_to_reservation_model(command_context.reservation),
+                network_client=azure_clients.network_client,
+                compute_client=azure_clients.compute_client,
+                storage_client=azure_clients.storage_client,
+                cancellation_context=cancellation_context,
+                logger=logger,
+                cloudshell_session=cloudshell_session,
+                network_actions=network_actions)
+
+            logger.info('End deploying Azure VM From Custom Image')
+
+            # todo dont always set success?
+            network_results = [ConnectToSubnetActionResult(action.actionId, True, '', '', '') for action in
+                               network_actions]
+            results.actionId = deploy_action.actionId
+            return [results] + network_results
+
     def deploy_vm_from_custom_image(self, command_context, actions, cancellation_context):
         """Deploy Azure Image from given Image URN
 

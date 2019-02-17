@@ -201,6 +201,12 @@
         <Rule Name="Setting" />
       </Rules>
     </AttributeInfo>
+    <AttributeInfo Name="Azure Snapshot" DefaultValue="" Description="Name of the custom snapshot to be used to create a VM." IsReadOnly="false" Type="String">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
     <AttributeInfo Name="Azure Resource Group" DefaultValue="" Description="Name of the Azure resource group that the image belongs to." IsReadOnly="false" Type="String">
       <Rules>
         <Rule Name="Configuration" />
@@ -208,6 +214,12 @@
       </Rules>
     </AttributeInfo>
     <AttributeInfo Name="Disk Type" DefaultValue="" Description="Type of disk to use (HDD / SSD). Default is HDD" IsReadOnly="false" Type="String">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo Name="Private Static IP" DefaultValue="" Description="The private static IP that will be set on the main NIC of the VM" IsReadOnly="false" Type="String">
       <Rules>
         <Rule Name="Configuration" />
         <Rule Name="Setting" />
@@ -301,7 +313,8 @@
       <AttachedAttributes />
       <AttributeValues />
       <Models>
-        <ResourceModel Description="" Name="Azure VM From Marketplace" ImagePath="AzureMarketplaceImage.png" SupportsConcurrentCommands="false">          <AttachedAttributes>
+        <ResourceModel Description="" Name="Azure VM From Marketplace" ImagePath="AzureMarketplaceImage.png" SupportsConcurrentCommands="false">
+          <AttachedAttributes>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="VM Size" UserInput="true">
               <AllowedValues />
             </AttachedAttribute>
@@ -323,7 +336,7 @@
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Extension Script Configurations" UserInput="true">
               <AllowedValues />
             </AttachedAttribute>
-          <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Extension Script Timeout" UserInput="false">
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Extension Script Timeout" UserInput="false">
               <AllowedValues />
             </AttachedAttribute>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Public IP Type" UserInput="true">
@@ -413,6 +426,68 @@
               </AllowedValues>
             </AttachedAttribute>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Allow all Sandbox Traffic" UserInput="true">
+              <AllowedValues />
+            </AttachedAttribute>
+          </AttachedAttributes>
+          <AttributeValues>
+            <AttributeValue Name="Public IP Type" Value="Dynamic" />
+            <AttributeValue Name="Disk Type" Value="HDD" />
+            <AttributeValue Name="Wait for IP" Value="False" />
+          </AttributeValues>
+          <ParentModels />
+          <Drivers/>
+        </ResourceModel>
+        <ResourceModel Description="" Name="Azure VM From Snapshot" ImagePath="AzureCustomImage.png" SupportsConcurrentCommands="false">
+          <AttachedAttributes>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="VM Size" UserInput="true">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Disk Size" UserInput="true">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Autoload" UserInput="false">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Add Public IP" UserInput="true">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Wait for IP" UserInput="true">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Extension Script file" UserInput="true">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Extension Script Configurations" UserInput="true">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Extension Script Timeout" UserInput="false">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Public IP Type" UserInput="true">
+              <AllowedValues>
+                <AllowedValue>Static</AllowedValue>
+                <AllowedValue>Dynamic</AllowedValue>
+              </AllowedValues>
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Inbound Ports" UserInput="true">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Azure Snapshot" UserInput="true" EditableOnlyInAppTemplate="true">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Azure Resource Group" UserInput="true" EditableOnlyInAppTemplate="true">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Disk Type" UserInput="true">
+              <AllowedValues>
+                <AllowedValue>HDD</AllowedValue>
+                <AllowedValue>SSD</AllowedValue>
+              </AllowedValues>
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Allow all Sandbox Traffic" UserInput="true">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Private Static IP" UserInput="true">
               <AllowedValues />
             </AttachedAttribute>
           </AttachedAttributes>
