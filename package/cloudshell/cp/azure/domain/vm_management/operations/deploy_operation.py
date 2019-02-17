@@ -407,9 +407,11 @@ class DeployAzureVMOperation(object):
         multiple_subnet_mode = hasattr(deployment_model, 'network_configurations') \
                                and deployment_model.network_configurations
 
+        sandbox_vnet_group = self.network_service.get_vnet_group(cloud_provider_model, resource_group_name)
+
         sandbox_virtual_network = self.network_service.get_sandbox_virtual_network(
             network_client=network_client,
-            group_name=cloud_provider_model.management_group_name)
+            group_name=sandbox_vnet_group)
 
         [logger.warn('existing subnet name: ' + s.name) for s in sandbox_virtual_network.subnets]
 
@@ -425,7 +427,7 @@ class DeployAzureVMOperation(object):
 
             except StopIteration:
                 logger.error("Subnets were not found under the resource group {}".format(
-                    cloud_provider_model.management_group_name))
+                    sandbox_vnet_group))
                 raise Exception("Could not find a valid subnet.")
 
         # in multiple subnet mode, the server has sent network actions to perform,
@@ -461,7 +463,7 @@ class DeployAzureVMOperation(object):
 
             except StopIteration:
                 logger.error("Subnets were not found under the resource group {}".format(
-                    cloud_provider_model.management_group_name))
+                    sandbox_vnet_group))
                 raise Exception("Could not find a valid subnet.")
 
         return nic_requests

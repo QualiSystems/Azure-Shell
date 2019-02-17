@@ -11,6 +11,7 @@ from cloudshell.cp.azure.domain.services.security_group import SecurityGroupServ
 from cloudshell.cp.azure.domain.services.tags import TagService
 from cloudshell.cp.azure.domain.services.virtual_machine_service import VirtualMachineService
 from cloudshell.cp.azure.domain.vm_management.operations.delete_operation import DeleteAzureVMOperation
+from cloudshell.cp.azure.models.vnet_mode import VnetMode
 
 
 class TestDeleteOperation(TestCase):
@@ -36,11 +37,14 @@ class TestDeleteOperation(TestCase):
         test_exception_message = "lalala"
         self.delete_operation.remove_nsg_and_routetable_from_subnets = Mock(side_effect=Exception(test_exception_message))
         self.delete_operation.delete_sandbox_subnets = Mock()
+        cloud_provider_model = Mock()
+        cloud_provider_model.vnet_mode = VnetMode.SINGLE
+
 
         # Act
         result = self.delete_operation.cleanup_connectivity(network_client=Mock(),
                                                             resource_client=Mock(),
-                                                            cloud_provider_model=Mock(),
+                                                            cloud_provider_model=cloud_provider_model,
                                                             resource_group_name=Mock(),
                                                             request=Mock(actions=[Mock(type="cleanupNetwork")]),
                                                             logger=self.logger)
@@ -64,6 +68,7 @@ class TestDeleteOperation(TestCase):
         resource_client = Mock()
         network_client = Mock()
         cloud_provider_model = Mock()
+        cloud_provider_model.vnet_mode = VnetMode.SINGLE
 
         vnet = Mock()
         subnet = Mock()

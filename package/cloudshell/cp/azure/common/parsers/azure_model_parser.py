@@ -11,13 +11,8 @@ from cloudshell.cp.azure.models.deploy_azure_vm_resource_models import DeployAzu
     DeployAzureVMFromSnapshotResourceModel
 from cloudshell.cp.azure.common.deploy_data_holder import DeployDataHolder
 from cloudshell.cp.azure.models.reservation_model import ReservationModel
-from cloudshell.cp.azure.domain.services.parsers.connection_params import convert_to_bool
 
-
-class VnetMode:
-    SINGLE = 1
-    MULTIPLE = 2
-
+from cloudshell.cp.azure.models.vnet_mode import VnetMode
 
 class AzureModelsParser(object):
     @staticmethod

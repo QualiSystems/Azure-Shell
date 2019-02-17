@@ -4,6 +4,8 @@ from threading import Lock
 from azure.mgmt.network.models import VirtualNetwork, Subnet
 from msrestazure.azure_exceptions import CloudError
 
+from cloudshell.cp.azure.models.vnet_mode import VnetMode
+
 
 class DeleteAzureVMOperation(object):
     def __init__(self,
@@ -70,7 +72,13 @@ class DeleteAzureVMOperation(object):
         3. delete sandbox subnet
         """
         errors = []
-        for command in (remove_nsg_from_subnets_command, delete_resource_group_command, delete_sandbox_subnets_command):
+
+        cleanup_commands = self.get_cleanup_commands(cloud_provider_model,
+                                                     delete_resource_group_command,
+                                                     delete_sandbox_subnets_command,
+                                                     remove_nsg_from_subnets_command)
+
+        for command in cleanup_commands:
             try:
                 command()
             except Exception as e:
@@ -86,13 +94,22 @@ class DeleteAzureVMOperation(object):
 
         return result
 
+    def get_cleanup_commands(self, cloud_provider_model, delete_resource_group_command, delete_sandbox_subnets_command,
+                             remove_nsg_from_subnets_command):
+        single_mode_cleanup = [remove_nsg_from_subnets_command, delete_resource_group_command,
+                               delete_sandbox_subnets_command]
+        multiple_mode_cleanup = [delete_resource_group_command]
+        cleanup_commands = single_mode_cleanup if cloud_provider_model.vnet_mode == VnetMode.SINGLE else multiple_mode_cleanup
+        return cleanup_commands
+
     def remove_nsg_and_routetable_from_subnets(self, network_client, resource_group_name, cloud_provider_model, logger):
         logger.info("Removing NSG from the sandbox subnets...")
 
-        management_group_name = cloud_provider_model.management_group_name
-        logger.info("Retrieving sandbox vNet from MGMT group {}".format(management_group_name))
+        vnet_group = self.network_service.get_vnet_group(cloud_provider_model, resource_group_name)
+
+        logger.info("Retrieving sandbox vNet from {}".format(vnet_group))
         sandbox_virtual_network = self.network_service.get_sandbox_virtual_network(network_client=network_client,
-                                                                                   group_name=management_group_name)
+                                                                                   group_name=vnet_group)
 
         subnets = self._find_sandbox_subnets(resource_group_name, sandbox_virtual_network)
         if not subnets:
@@ -108,7 +125,7 @@ class DeleteAzureVMOperation(object):
             with self.subnet_locker:
                 logger.info("Updating subnet {} with NSG set to null".format(subnet.name))
                 self.network_service.update_subnet(network_client=network_client,
-                                                   resource_group_name=management_group_name,
+                                                   resource_group_name=vnet_group,
                                                    virtual_network_name=sandbox_virtual_network.name,
                                                    subnet_name=subnet.name,
                                                    subnet=subnet)
@@ -121,10 +138,12 @@ class DeleteAzureVMOperation(object):
     def delete_sandbox_subnets(self, network_client, cloud_provider_model, resource_group_name, logger):
         logger.info("Deleting sandbox subnets...")
 
-        logger.info("Retrieving sandbox vNet from MGMT group {}".format(cloud_provider_model.management_group_name))
+        vnet_group = self.network_service.get_vnet_group(cloud_provider_model, resource_group_name)
+
+        logger.info("Retrieving sandbox vNet from group {}".format(vnet_group))
         sandbox_virtual_network = self.network_service.get_sandbox_virtual_network(
             network_client=network_client,
-            group_name=cloud_provider_model.management_group_name)
+            group_name=vnet_group)
 
         subnets = self._find_sandbox_subnets(resource_group_name, sandbox_virtual_network)
 
@@ -137,7 +156,7 @@ class DeleteAzureVMOperation(object):
             with self.subnet_locker:
                 logger.info("Deleting subnet {}".format(subnet.name))
                 self.network_service.delete_subnet(network_client=network_client,
-                                                   group_name=cloud_provider_model.management_group_name,
+                                                   group_name=vnet_group,
                                                    vnet_name=sandbox_virtual_network.name,
                                                    subnet_name=subnet.name)
                 logger.info("Deleted subnet {}".format(subnet.name))

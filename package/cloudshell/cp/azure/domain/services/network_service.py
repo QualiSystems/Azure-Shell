@@ -1,9 +1,10 @@
 import azure
 from azure.mgmt.network.models import NetworkInterface, NetworkInterfaceIPConfiguration, IPAllocationMethod, \
-    VirtualNetwork
+    VirtualNetwork, Route, RouteTable
 from retrying import retry
 
 from cloudshell.cp.azure.common.helpers.retrying_helpers import retry_if_connection_error
+from cloudshell.cp.azure.models.vnet_mode import VnetMode
 
 
 class NetworkService(object):
@@ -84,9 +85,9 @@ class NetworkService(object):
         """
 
         region = cloud_provider_model.region
-        management_group_name = cloud_provider_model.management_group_name
+        vnet_resource_group = self.get_vnet_group(cloud_provider_model, group_name)
         sandbox_virtual_network = self.get_sandbox_virtual_network(network_client=network_client,
-                                                                   group_name=management_group_name)
+                                                                   group_name=vnet_resource_group)
 
         # 1. Create ip address
         public_ip_address = None
@@ -102,7 +103,7 @@ class NetworkService(object):
         # 2. Create NIC
         return self.create_nic(interface_name,
                                group_name,
-                               management_group_name,
+                               vnet_resource_group,
                                network_client,
                                public_ip_address,
                                region,
@@ -114,8 +115,12 @@ class NetworkService(object):
                                lock_provider,
                                network_security_group)
 
+    # vnet group is sandbox resource group for multiple vnet, management resource group if single vnet
+    def get_vnet_group(self, cloud_provider_model, group_name):
+        return group_name if cloud_provider_model.vnet_mode == VnetMode.MULTIPLE else cloud_provider_model.management_group_name
+
     @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
-    def create_nic(self, interface_name, group_name, management_group_name, network_client, public_ip_address, region,
+    def create_nic(self, interface_name, group_name, vnet_group_name, network_client, public_ip_address, region,
                    subnet,
                    private_ip_allocation_method, tags, virtual_network_name,
                    logger, lock_provider, network_security_group=None):
@@ -127,7 +132,7 @@ class NetworkService(object):
         :param virtual_network_name:
         :param group_name:
         :param interface_name:
-        :param management_group_name:
+        :param vnet_group_name:
         :param network_client:
         :param public_ip_address:
         :param region:
@@ -145,7 +150,8 @@ class NetworkService(object):
 
         private_ip_address = ""
         if private_ip_allocation_method == IPAllocationMethod.static:
-            private_ip_address = self.ip_service.get_available_private_ip(network_client, management_group_name,
+            private_ip_address = self.ip_service.get_available_private_ip(network_client,
+                                                                          vnet_group_name,
                                                                           virtual_network_name,
                                                                           subnet.address_prefix[:-3],
                                                                           logger)
@@ -264,52 +270,36 @@ class NetworkService(object):
         return operation_poller.result()
 
     @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
-    def create_virtual_network(self, management_group_name,
+    def create_virtual_network(self,
+                               resource_group_name,
                                network_client,
                                network_name,
                                region,
-                               subnet_name,
                                tags,
-                               vnet_cidr,
-                               subnet_cidr,
-                               network_security_group):
+                               vnet_cidr):
         """
         Creates a virtual network with a subnet
-        :param management_group_name:
+        :param resource_group_name:
         :param network_client:
         :param network_name:
         :param region:
-        :param subnet_name:
         :param tags:
         :param vnet_cidr:
-        :param subnet_cidr:
-        :param network_security_group:
         :return:
         """
         result = network_client.virtual_networks.create_or_update(
-            management_group_name,
+            resource_group_name,
             network_name,
             azure.mgmt.network.models.VirtualNetwork(
                 location=region,
                 tags=tags,
                 address_space=azure.mgmt.network.models.AddressSpace(
-                    address_prefixes=[
-                        vnet_cidr,
-                    ],
+                    address_prefixes=[vnet_cidr],
                 ),
-                subnets=[
-                    azure.mgmt.network.models.Subnet(
-                        network_security_group=network_security_group,
-                        name=subnet_name,
-                        address_prefix=subnet_cidr,
-                    ),
-                ],
             ),
             tags=tags
         )
         result.wait()
-        subnet = network_client.subnets.get(management_group_name, network_name, subnet_name)
-        return subnet
 
     @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def get_public_ip(self, network_client, group_name, ip_name):

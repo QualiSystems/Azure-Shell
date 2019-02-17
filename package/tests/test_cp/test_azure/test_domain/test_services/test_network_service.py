@@ -24,17 +24,13 @@ class TestNetworkService(TestCase):
         subnet_cidr = Mock()
         network_security_group = Mock()
         tags = Mock()
-        self.network_service.create_virtual_network(management_group_name=management_group_name,
+        self.network_service.create_virtual_network(resource_group_name=management_group_name,
                                                     network_client=self.network_client,
                                                     network_name=network_name,
                                                     region=region,
-                                                    subnet_name=subnet_name,
                                                     tags=tags,
-                                                    vnet_cidr=vnet_cidr,
-                                                    subnet_cidr=subnet_cidr,
-                                                    network_security_group=network_security_group)
+                                                    vnet_cidr=vnet_cidr)
 
-        self.network_client.subnets.get.assert_called()
         self.network_client.virtual_networks.create_or_update.assert_called_with(management_group_name,
                                                                                  network_name,
                                                                                  azure.mgmt.network.models.VirtualNetwork(
@@ -45,13 +41,6 @@ class TestNetworkService(TestCase):
                                                                                              vnet_cidr,
                                                                                          ],
                                                                                      ),
-                                                                                     subnets=[
-                                                                                         azure.mgmt.network.models.Subnet(
-                                                                                             network_security_group=network_security_group,
-                                                                                             name=subnet_name,
-                                                                                             address_prefix=subnet_cidr,
-                                                                                         ),
-                                                                                     ],
                                                                                  ),
                                                                                  tags=tags)
 
