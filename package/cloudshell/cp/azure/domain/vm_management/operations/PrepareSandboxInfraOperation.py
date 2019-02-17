@@ -11,7 +11,7 @@ from msrestazure.azure_exceptions import CloudError
 from azure.mgmt.network.models import VirtualNetwork
 
 from cloudshell.cp.azure.common.exceptions.virtual_network_not_found_exception import VirtualNetworkNotFoundException
-from cloudshell.cp.azure.common.parsers.azure_model_parser import VnetMode
+from cloudshell.cp.azure.models.vnet_mode import VnetMode
 from cloudshell.cp.azure.domain.services.network_service import NetworkService
 
 from cloudshell.cp.azure.models.azure_cloud_provider_resource_model import AzureCloudProviderResourceModel
@@ -156,7 +156,7 @@ class PrepareSandboxInfraOperation(object):
             sandbox_networks = self.network_service \
                 .get_virtual_networks(network_client=network_client, group_name=group_name)
 
-        sandbox_vnet = self._get_sandbox_vnet(cloud_provider_model, logger, sandbox_networks)
+        sandbox_vnet = self._get_sandbox_vnet(logger, sandbox_networks)
 
         # 4. Create the sandbox NSG object
         #
@@ -207,6 +207,10 @@ class PrepareSandboxInfraOperation(object):
         self.cancellation_service.check_if_cancelled(cancellation_context)
 
         # 6. Create additional subnets requested by server
+
+        # will create subnet in resource group's vnet; is management resource group for SINGLE vnet mode
+        subnet_resource_group = self._get_subnet_resource_group(cloud_provider_model, group_name)
+
         for subnet in subnet_actions:
             logger.warn('creating: ' + subnet.actionParams.cidr)
             subnet_name = (group_name + '_' + subnet.actionParams.cidr).replace(' ', '').replace('/', '-')
@@ -217,7 +221,8 @@ class PrepareSandboxInfraOperation(object):
                                 resource_client=resource_client,
                                 network_security_group=sandbox_network_security_group,
                                 sandbox_vnet=sandbox_vnet,
-                                subnet_name=subnet_name)
+                                subnet_name=subnet_name,
+                                resource_group_name=subnet_resource_group)
             results.append(self._create_result(subnet, subnet_name))
 
         self.cancellation_service.check_if_cancelled(cancellation_context)
@@ -233,12 +238,14 @@ class PrepareSandboxInfraOperation(object):
 
         return results
 
-    def _get_sandbox_vnet(self, cloud_provider_model, logger, virtual_networks):
+    def _get_subnet_resource_group(self, cloud_provider_model, group_name):
+        return cloud_provider_model.management_group_name if cloud_provider_model.vnet_mode == VnetMode.SINGLE else group_name
+
+    def _get_sandbox_vnet(self, logger, virtual_networks):
         # For VNET Mode Single, return the sandbox vnet from Management Resource Group
         # For VNET Mode Multiple, return the sandbox vnet from sandbox Resource Group
 
-        logger.info("Retrieving sandbox vNet from resource group {} by tag {}={}".format(
-            cloud_provider_model.management_group_name,
+        logger.info("Retrieving sandbox vNet by tag {}={}".format(
             NetworkService.NETWORK_TYPE_TAG_NAME,
             NetworkService.SANDBOX_NETWORK_TAG_VALUE))
 
@@ -335,8 +342,7 @@ class PrepareSandboxInfraOperation(object):
         return key_pair
 
     def _create_subnet(self, cidr, cloud_provider_model, logger, network_client, resource_client,
-                       network_security_group, sandbox_vnet,
-                       subnet_name):
+                       network_security_group, sandbox_vnet,subnet_name, resource_group_name):
         """
         This method is atomic because we have to sync subnet creation for the entire sandbox vnet
         :param VirtualNetwork sandbox_vnet:
@@ -346,11 +352,11 @@ class PrepareSandboxInfraOperation(object):
         with self.subnet_locker:
             logger.info(
                 "Creating a subnet {0} under: {1}/{2}.".format(subnet_name,
-                                                               cloud_provider_model.management_group_name,
+                                                               resource_group_name,
                                                                sandbox_vnet.name))
             create_subnet_command = partial(self.network_service.create_subnet,
                                             network_client=network_client,
-                                            resource_group_name=cloud_provider_model.management_group_name,
+                                            resource_group_name=resource_group_name,
                                             subnet_name=subnet_name,
                                             subnet_cidr=cidr,
                                             virtual_network=sandbox_vnet,
@@ -372,12 +378,13 @@ class PrepareSandboxInfraOperation(object):
                                          cloud_provider_model=cloud_provider_model,
                                          sandbox_vnet=sandbox_vnet,
                                          subnet_cidr=cidr,
-                                         logger=logger)
+                                         logger=logger,
+                                         sandbox_resource_group=resource_group_name)
                 # try to create subnet again
                 create_subnet_command()
 
     def _cleanup_stale_data(self, network_client, resource_client, cloud_provider_model, sandbox_vnet, subnet_cidr,
-                            logger):
+                            logger, sandbox_resource_group):
         """
         :param AzureCloudProviderResourceModel cloud_provider_model:
         :param VirtualNetwork sandbox_vnet:
@@ -391,12 +398,14 @@ class PrepareSandboxInfraOperation(object):
             return
         subnet = stale_subnets[0]
 
+        vnet_group = self.network_service.get_vnet_group(cloud_provider_model, sandbox_resource_group)
+
         if subnet.network_security_group is not None:
             logger.info("Detaching NSG from subnet {}".format(subnet.id))
 
             subnet.network_security_group = None
             self.network_service.update_subnet(network_client=network_client,
-                                               resource_group_name=cloud_provider_model.management_group_name,
+                                               resource_group_name=vnet_group,
                                                virtual_network_name=sandbox_vnet.name,
                                                subnet_name=subnet.name,
                                                subnet=subnet)
@@ -410,7 +419,7 @@ class PrepareSandboxInfraOperation(object):
 
         logger.info("Deleting Subnet {}...".format(subnet.id))
         self.network_service.delete_subnet(network_client=network_client,
-                                           group_name=cloud_provider_model.management_group_name,
+                                           group_name=vnet_group,
                                            vnet_name=sandbox_vnet.name,
                                            subnet_name=subnet.name)
 

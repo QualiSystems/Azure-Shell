@@ -1,22 +1,16 @@
 import jsonpickle
 from cloudshell.cp.core.utils import first_or_default
 
+from cloudshell.cp.azure.common.deploy_data_holder import DeployDataHolder
 from cloudshell.cp.azure.common.parsers.security_group_parser import SecurityGroupParser
 from cloudshell.cp.azure.domain.services.parsers.network_actions import NetworkActionsParser
 from cloudshell.cp.azure.models.app_security_groups_model import AppSecurityGroupModel, DeployedApp, VmDetails
 from cloudshell.cp.azure.models.azure_cloud_provider_resource_model import AzureCloudProviderResourceModel
+from cloudshell.cp.azure.models.deploy_azure_vm_resource_models import DeployAzureVMFromCustomImageResourceModel
 from cloudshell.cp.azure.models.deploy_azure_vm_resource_models import DeployAzureVMResourceModel, \
     RouteTableRequestResourceModel, RouteResourceModel
-from cloudshell.cp.azure.models.deploy_azure_vm_resource_models import DeployAzureVMFromCustomImageResourceModel
-from cloudshell.cp.azure.common.deploy_data_holder import DeployDataHolder
 from cloudshell.cp.azure.models.reservation_model import ReservationModel
-from cloudshell.cp.azure.domain.services.parsers.connection_params import convert_to_bool
-from cloudshell.cp.core.utils import first_or_default
-
-
-class VnetMode:
-    SINGLE = 1
-    MULTIPLE = 2
+from cloudshell.cp.azure.models.vnet_mode import VnetMode
 
 
 class AzureModelsParser(object):

@@ -1,4 +1,4 @@
-from cloudshell.cp.azure.common.parsers.azure_model_parser import VnetMode
+from cloudshell.cp.azure.models.vnet_mode import VnetMode
 
 
 class AzureCloudProviderResourceModel(object):
@@ -20,3 +20,5 @@ class AzureCloudProviderResourceModel(object):
         self.vnet_mode = ''  # type: VnetMode
         self.vnet_cidr = ''  # type: str
         self.custom_vnet_dns = ''  # type: str
+
+
