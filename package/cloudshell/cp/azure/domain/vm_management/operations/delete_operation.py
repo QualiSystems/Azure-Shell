@@ -72,12 +72,11 @@ class DeleteAzureVMOperation(object):
         3. delete sandbox subnet
         """
         errors = []
-        cleanup_commands = \
-            (remove_nsg_from_subnets_command,
-             delete_resource_group_command,
-             delete_sandbox_subnets_command) \
-            if cloud_provider_model.vnet_mode == VnetMode.SINGLE \
-            else (delete_resource_group_command)
+
+        cleanup_commands = self.get_cleanup_commands(cloud_provider_model,
+                                                     delete_resource_group_command,
+                                                     delete_sandbox_subnets_command,
+                                                     remove_nsg_from_subnets_command)
 
         for command in cleanup_commands:
             try:
@@ -94,6 +93,14 @@ class DeleteAzureVMOperation(object):
         self.generic_lock_provider.remove_lock_resource(resource_group_name, logger=logger)
 
         return result
+
+    def get_cleanup_commands(self, cloud_provider_model, delete_resource_group_command, delete_sandbox_subnets_command,
+                             remove_nsg_from_subnets_command):
+        single_mode_cleanup = [remove_nsg_from_subnets_command, delete_resource_group_command,
+                               delete_sandbox_subnets_command]
+        multiple_mode_cleanup = [delete_resource_group_command]
+        cleanup_commands = single_mode_cleanup if cloud_provider_model.vnet_mode == VnetMode.SINGLE else multiple_mode_cleanup
+        return cleanup_commands
 
     def remove_nsg_and_routetable_from_subnets(self, network_client, resource_group_name, cloud_provider_model, logger):
         logger.info("Removing NSG from the sandbox subnets...")
