@@ -11,6 +11,7 @@ from cloudshell.cp.azure.models.deploy_azure_vm_resource_models import DeployAzu
 from cloudshell.cp.azure.common.deploy_data_holder import DeployDataHolder
 from cloudshell.cp.azure.models.reservation_model import ReservationModel
 from cloudshell.cp.azure.domain.services.parsers.connection_params import convert_to_bool
+from cloudshell.cp.core.utils import first_or_default
 
 
 class AzureModelsParser(object):

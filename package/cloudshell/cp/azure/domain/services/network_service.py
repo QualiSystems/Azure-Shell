@@ -1,6 +1,6 @@
 import azure
 from azure.mgmt.network.models import NetworkInterface, NetworkInterfaceIPConfiguration, IPAllocationMethod, \
-    VirtualNetwork
+    VirtualNetwork, Route, RouteTable
 from retrying import retry
 
 from cloudshell.cp.azure.common.helpers.retrying_helpers import retry_if_connection_error
@@ -264,52 +264,36 @@ class NetworkService(object):
         return operation_poller.result()
 
     @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
-    def create_virtual_network(self, management_group_name,
+    def create_virtual_network(self,
+                               resource_group_name,
                                network_client,
                                network_name,
                                region,
-                               subnet_name,
                                tags,
-                               vnet_cidr,
-                               subnet_cidr,
-                               network_security_group):
+                               vnet_cidr):
         """
         Creates a virtual network with a subnet
-        :param management_group_name:
+        :param resource_group_name:
         :param network_client:
         :param network_name:
         :param region:
-        :param subnet_name:
         :param tags:
         :param vnet_cidr:
-        :param subnet_cidr:
-        :param network_security_group:
         :return:
         """
         result = network_client.virtual_networks.create_or_update(
-            management_group_name,
+            resource_group_name,
             network_name,
             azure.mgmt.network.models.VirtualNetwork(
                 location=region,
                 tags=tags,
                 address_space=azure.mgmt.network.models.AddressSpace(
-                    address_prefixes=[
-                        vnet_cidr,
-                    ],
+                    address_prefixes=[vnet_cidr],
                 ),
-                subnets=[
-                    azure.mgmt.network.models.Subnet(
-                        network_security_group=network_security_group,
-                        name=subnet_name,
-                        address_prefix=subnet_cidr,
-                    ),
-                ],
             ),
             tags=tags
         )
         result.wait()
-        subnet = network_client.subnets.get(management_group_name, network_name, subnet_name)
-        return subnet
 
     @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def get_public_ip(self, network_client, group_name, ip_name):
