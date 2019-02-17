@@ -153,7 +153,7 @@ class NetworkService(object):
             private_ip_address = self.ip_service.get_available_private_ip(network_client,
                                                                           vnet_group_name,
                                                                           virtual_network_name,
-                                                                          subnet.address_prefix[:-3],
+                                                                          subnet.address_prefix.split('/')[0],
                                                                           logger)
 
         ip_config = NetworkInterfaceIPConfiguration(name='default',
