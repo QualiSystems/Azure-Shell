@@ -31,7 +31,7 @@ class VmDetailsProvider(object):
             vm_network_data = self._get_vm_network_data(instance, network_client, group_name, logger)
             logger.info("VM {} was created via market place.".format(instance.name))
         else:
-            vm_instance_data = self._get_vm_instance_data_for_custom_image(instance)
+            vm_instance_data = self._get_vm_instance_data_for_vm_from_non_marketplace_image(instance)
             vm_network_data = self._get_vm_network_data(instance, network_client, group_name, logger)
             logger.info("VM {} was created via custom image.".format(instance.name))
 
@@ -40,28 +40,36 @@ class VmDetailsProvider(object):
     @staticmethod
     def _get_vm_instance_data_for_market_place(instance):
         data = [
-            VmDetailsProperty(key='Image Publisher',value= instance.storage_profile.image_reference.publisher),
-            VmDetailsProperty(key='Image Offer',value= instance.storage_profile.image_reference.offer),
-            VmDetailsProperty(key='Image SKU',value= instance.storage_profile.image_reference.sku),
-            VmDetailsProperty(key='VM Size',value= instance.hardware_profile.vm_size),
-            VmDetailsProperty(key='Operating System',value= instance.storage_profile.os_disk.os_type.name),
-            VmDetailsProperty(key='Disk Type',value=
-                           'HDD' if instance.storage_profile.os_disk.managed_disk.storage_account_type == StorageAccountTypes.standard_lrs else 'SSD')
+            VmDetailsProperty(key='Image Publisher', value=instance.storage_profile.image_reference.publisher),
+            VmDetailsProperty(key='Image Offer', value=instance.storage_profile.image_reference.offer),
+            VmDetailsProperty(key='Image SKU', value=instance.storage_profile.image_reference.sku),
+            VmDetailsProperty(key='VM Size', value=instance.hardware_profile.vm_size),
+            VmDetailsProperty(key='Operating System', value=instance.storage_profile.os_disk.os_type.name),
+            VmDetailsProperty(key='Disk Type', value=
+            'HDD' if instance.storage_profile.os_disk.managed_disk.storage_account_type == StorageAccountTypes.standard_lrs else 'SSD')
         ]
         return data
 
-    def _get_vm_instance_data_for_custom_image(self, instance):
-        image_name = self.resource_id_parser.get_image_name(resource_id=instance.storage_profile.image_reference.id)
-        resource_group = self.resource_id_parser.get_resource_group_name(resource_id=instance.storage_profile.image_reference.id)
+    def _get_vm_instance_data_for_vm_from_non_marketplace_image(self, instance):
+        data = []
+        if instance.storage_profile.image_reference:
+            # VM was created from a custom image
+            image_name = self.resource_id_parser.get_image_name(resource_id=instance.storage_profile.image_reference.id)
+            resource_group = self.resource_id_parser.get_resource_group_name(
+                resource_id=instance.storage_profile.image_reference.id)
 
-        data = [
-            VmDetailsProperty(key='Image',value= image_name),
-            VmDetailsProperty(key='Image Resource Group',value= resource_group),
-            VmDetailsProperty(key='VM Size',value= instance.hardware_profile.vm_size),
-            VmDetailsProperty(key='Operating System',value= instance.storage_profile.os_disk.os_type.name),
-            VmDetailsProperty(key='Disk Type',value=
-                           'HDD' if instance.storage_profile.os_disk.managed_disk.storage_account_type == StorageAccountTypes.standard_lrs else 'SSD')
-        ]
+            data.append(VmDetailsProperty(key='Image', value=image_name))
+            data.append(VmDetailsProperty(key='Image Resource Group', value=resource_group))
+        else:
+            # VM was created from a snapshot
+            # todo - get the os disk object and than extract the snapshot name from the source URI located under creation_data
+            pass
+
+        data.append(VmDetailsProperty(key='VM Size', value=instance.hardware_profile.vm_size))
+        data.append(VmDetailsProperty(key='Operating System', value=instance.storage_profile.os_disk.os_type.name),)
+        data.append(VmDetailsProperty(key='Disk Type', value=
+            'HDD' if instance.storage_profile.os_disk.managed_disk.storage_account_type == StorageAccountTypes.standard_lrs else 'SSD'))
+
         return data
 
     def _get_vm_network_data(self, instance, network_client, group_name, logger):
