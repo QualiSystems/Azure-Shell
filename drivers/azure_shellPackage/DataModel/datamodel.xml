@@ -140,6 +140,30 @@
       </Rules>
     </AttributeInfo>
 
+    <AttributeInfo Name="VNET Mode"  DefaultValue="" IsReadOnly="false" Type="String"
+                   Description="Single VNET mode - all subnets are created under a single account VNET. Multiple VNET mode - creates a VNET for each sandbox" >
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+
+    <AttributeInfo Name="VNET CIDR"  DefaultValue="" IsReadOnly="false" Type="String"
+                   Description="The CIDR used by sandbox vnets in Multiple VNET Mode" >
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+
+    <AttributeInfo Name="Custom VNET DNS"  DefaultValue="" IsReadOnly="false" Type="String"
+                   Description="Associate sandbox VNETs to a custom DNS provider." >
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+
     <!--New Azure Deployment Option Attributes -->
     <AttributeInfo Name="Public IP Type"  DefaultValue="" Description="Static Public IP Type ensures that the VM always uses the same public IP. By default, Public IPs are dynamic and their address may change when the VM is powered off." IsReadOnly="false" Type="String">
       <Rules>
@@ -191,7 +215,7 @@
     </AttributeInfo>
   </Attributes>
   <ResourceFamilies>
-    <ResourceFamily Description="" IsAdminOnly="true" IsSearchable="false" Name="Cloud Provider" AllowRemoteConnection="false">
+    <ResourceFamily Name="Cloud Provider" Description="" IsAdminOnly="true" IsSearchable="false" AllowRemoteConnection="false">
       <AttachedAttributes />
       <AttributeValues />
       <Models>
@@ -226,6 +250,18 @@
             </AttachedAttribute>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Additional Mgmt Networks">
               <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute Name="VNET Mode" IsLocal="true" IsOverridable="true">
+              <AllowedValues>
+                <AllowedValue>Single</AllowedValue>
+                <AllowedValue>Multiple</AllowedValue>
+              </AllowedValues>
+            </AttachedAttribute>
+            <AttachedAttribute Name="VNET CIDR" IsLocal="true" IsOverridable="true">
+              <AllowedValues/>
+            </AttachedAttribute>
+            <AttachedAttribute Name="Custom VNET DNS" IsLocal="true" IsOverridable="true">
+              <AllowedValues/>
             </AttachedAttribute>
           </AttachedAttributes>
           <ParentModels />
