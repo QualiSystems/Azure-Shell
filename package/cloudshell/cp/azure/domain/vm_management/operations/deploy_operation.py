@@ -5,12 +5,14 @@ from msrestazure.azure_exceptions import CloudError
 from cloudshell.cp.azure.common.exceptions.quali_timeout_exception import QualiTimeoutException, \
     QualiScriptExecutionTimeoutException
 from cloudshell.cp.azure.domain.services.network_service import NetworkService
+from cloudshell.cp.azure.models.create_vm_request_models import CreateVmFromSnapshotRequest
 from cloudshell.cp.azure.models.deploy_result_model import DeployResult
 from cloudshell.cp.azure.common.parsers.rules_attribute_parser import RulesAttributeParser
 from cloudshell.cp.azure.models.nic_request import NicRequest
 from cloudshell.cp.azure.models.reservation_model import ReservationModel
 from cloudshell.cp.azure.models.deploy_azure_vm_resource_models import \
-    DeployAzureVMFromCustomImageResourceModel, BaseDeployAzureVMResourceModel, DeployAzureVMResourceModel
+    DeployAzureVMFromCustomImageResourceModel, BaseDeployAzureVMResourceModel, DeployAzureVMResourceModel, \
+    DeployAzureVMFromSnapshotResourceModel, DeployDataModel
 from cloudshell.cp.azure.models.azure_cloud_provider_resource_model import AzureCloudProviderResourceModel
 from azure.mgmt.network.models import Subnet, NetworkInterface, SecurityRule, SecurityRuleAccess
 from azure.mgmt.compute.models import OperatingSystemTypes, PurchasePlan
@@ -72,6 +74,38 @@ class DeployAzureVMOperation(object):
         self.vm_extension_service = vm_extension_service
         self.cancellation_service = cancellation_service
         self.vm_details_provider = vm_details_provider
+
+    def deploy_from_snapshot(self, deployment_model,
+                             cloud_provider_model,
+                             reservation,
+                             network_client,
+                             compute_client,
+                             storage_client,
+                             cancellation_context,
+                             logger,
+                             cloudshell_session,
+                             network_actions):
+        """ Deploy Azure VM from Snapshot
+        :param list[ConnectSubnet] network_actions:
+        :param CloudShellAPISession cloudshell_session:
+        :param azure.mgmt.storage.storage_management_client.StorageManagementClient storage_client:
+        :param azure.mgmt.compute.compute_management_client.ComputeManagementClient compute_client:
+        :param azure.mgmt.network.network_management_client.NetworkManagementClient network_client:
+        :param ReservationModel reservation:
+        :param DeployAzureVMFromSnapshotResourceModel deployment_model:
+        :param AzureCloudProviderResourceModel cloud_provider_model:
+        :param logging.Logger logger:
+        :param CancellationContext cancellation_context:
+        :return:
+        """
+        logger.info("Start Deploy Azure VM From Snapshot operation")
+
+        return self._deploy_vm_generic(create_vm_action=self._create_vm_from_snapshot_action,
+                                       deployment_model=deployment_model, cloud_provider_model=cloud_provider_model,
+                                       reservation=reservation, storage_client=storage_client,
+                                       compute_client=compute_client, network_client=network_client,
+                                       cancellation_context=cancellation_context, logger=logger,
+                                       cloudshell_session=cloudshell_session, network_actions=network_actions)
 
     def deploy_from_custom_image(self, deployment_model,
                                  cloud_provider_model,
@@ -263,13 +297,36 @@ class DeployAzureVMOperation(object):
             exc.error.message += "\nDisk Type attribute value {} doesn't support the selected VM size.".format(
                 deployment_model.disk_type)
 
+    def _create_vm_from_snapshot_action(self, compute_client, deployment_model, cloud_provider_model,
+                                        data, cancellation_context, logger):
+        """
+        :param DeployAzureVMFromSnapshotResourceModel deployment_model:
+        :param AzureCloudProviderResourceModel cloud_provider_model:
+        :param azure.mgmt.compute.compute_management_client.ComputeManagementClient compute_client:
+        :param DeployDataModel data:
+        :param CancellationContext cancellation_context:
+        :param logging.Logger logger:
+        :return:
+        :rtype: azure.mgmt.compute.models.VirtualMachine
+        """
+        self.cancellation_service.check_if_cancelled(cancellation_context)
+
+        # create VM
+        logger.info("Start creating VM {} from snapshot {} from resource group {}"
+                    .format(data.vm_name, deployment_model.snapshot_name, deployment_model.snapshot_resource_group))
+
+        create_vm_req = CreateVmFromSnapshotRequest(compute_client, deployment_model, cloud_provider_model,
+                                                    data, cancellation_context, logger)
+
+        return self.vm_service.create_vm_from_snapshot(create_vm_req)
+
     def _create_vm_custom_image_action(self, compute_client, deployment_model, cloud_provider_model,
                                        data, cancellation_context, logger):
         """
         :param DeployAzureVMFromCustomImageResourceModel deployment_model:
         :param AzureCloudProviderResourceModel cloud_provider_model:
         :param azure.mgmt.compute.compute_management_client.ComputeManagementClient compute_client:
-        :param DeployAzureVMOperation.DeployDataModel data:
+        :param DeployDataModel data:
         :param CancellationContext cancellation_context:
         :param logging.Logger logger:
         :return:
@@ -305,7 +362,7 @@ class DeployAzureVMOperation(object):
         :param DeployAzureVMResourceModel deployment_model:
         :param AzureCloudProviderResourceModel cloud_provider_model:
         :param azure.mgmt.compute.compute_management_client.ComputeManagementClient compute_client:
-        :param DeployAzureVMOperation.DeployDataModel data:
+        :param DeployDataModel data:
         :param CancellationContext cancellation_context:
         :param logging.Logger logger:
         :return:
@@ -343,8 +400,8 @@ class DeployAzureVMOperation(object):
         :param network_client: azure.mgmt.network.network_management_client.NetworkManagementClient
         :param cloud_provider_model: cloudshell.cp.azure.models.azure_cloud_provider_resource_model.AzureCloudProviderResourceModel
         :param logger: logging.Logger instance
-        :rtype: list[NicRequest]
         :param BaseDeployAzureVMResourceModel deployment_model:
+        :rtype: list[NicRequest]
         """
 
         multiple_subnet_mode = hasattr(deployment_model, 'network_configurations') \
@@ -504,7 +561,7 @@ class DeployAzureVMOperation(object):
         :param BaseDeployAzureVMResourceModel deployment_model:
         :param AzureCloudProviderResourceModel cloud_provider_model:
         :param azure.mgmt.compute.compute_management_client.ComputeManagementClient compute_client:
-        :param DeployAzureVMOperation.DeployDataModel data:
+        :param DeployDataModel data:
         :param logging.Logger logger:
         :param CancellationContext cancellation_context:
         :return:
@@ -549,7 +606,7 @@ class DeployAzureVMOperation(object):
                                   storage_client, cancellation_context):
         """ Creates and configures common VM objects: NIC, Credentials, NSG (if needed)
 
-        :param DeployAzureVMOperation.DeployDataModel data:
+        :param DeployDataModel data:
         :param BaseDeployAzureVMResourceModel deployment_model:
         :param AzureCloudProviderResourceModel cloud_provider_model:
         :param logging.Logger logger:
@@ -557,7 +614,7 @@ class DeployAzureVMOperation(object):
         :param azure.mgmt.network.network_management_client.StorageManagementClient storage_client:
         :param CancellationContext cancellation_context:
         :return: Updated DeployDataModel instance
-        :rtype: DeployAzureVMOperation.DeployDataModel
+        :rtype: DeployDataModel
         """
 
         # 1. Create network security group for VM
@@ -824,7 +881,7 @@ class DeployAzureVMOperation(object):
         :param azure.mgmt.storage.storage_management_client.ComputeManagementClient compute_client:
         :param list[ConnectSubnet] network_actions:
         :return:
-        :rtype: DeployAzureVMOperation.DeployDataModel
+        :rtype: DeployDataModel
         """
 
         image_data_model = self.image_data_factory.get_image_data_model(
@@ -837,7 +894,7 @@ class DeployAzureVMOperation(object):
                                         os_type=image_data_model.os_type,
                                         network_actions=network_actions)
 
-        data = self.DeployDataModel()
+        data = DeployDataModel()
 
         data.reservation_id = str(reservation.reservation_id)
         data.reservation = reservation
@@ -876,25 +933,6 @@ class DeployAzureVMOperation(object):
         logger.info("Tags for the VM {}".format(data.tags))
 
         return data
-
-    class DeployDataModel(object):
-        def __init__(self):
-            self.reservation_id = ''  # type: str
-            self.reservation = None  # type: ReservationModel
-            self.app_name = ''  # type: str
-            self.group_name = ''  # type: str
-            self.computer_name = ''  # type: str
-            self.vm_name = ''  # type: str
-            self.vm_size = ''  # type: str
-            self.storage_account_name = ''  # type: str
-            self.tags = {}  # type: dict
-            self.image_model = None  # type: ImageDataModelBase
-            self.os_type = ''  # type: OperatingSystemTypes
-            self.nic = None  # type: NetworkInterface
-            self.vm_credentials = None  # type: VMCredentials
-            self.private_ip_address = ''  # type: str
-            self.public_ip_address = ''  # type: str
-            self.nic_requests = []  # type: list[NicRequest]
 
 
 def get_ip_from_interface_name(interface_name):

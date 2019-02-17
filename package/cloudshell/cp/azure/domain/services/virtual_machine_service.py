@@ -1,15 +1,19 @@
+from azure.mgmt.compute import ComputeManagementClient
 from azure.mgmt.compute.models import OSProfile, HardwareProfile, NetworkProfile, \
     NetworkInterfaceReference, DiskCreateOptionTypes, ImageReference, OSDisk, \
     VirtualMachine, StorageProfile, Plan, ManagedDiskParameters, StorageAccountTypes, DiagnosticsProfile, \
-    BootDiagnostics
+    BootDiagnostics, Disk, CreationData, DiskCreateOption
 from azure.mgmt.compute.models import OperatingSystemTypes, VirtualMachineImage
 from azure.mgmt.compute.models.linux_configuration import LinuxConfiguration
 from azure.mgmt.compute.models.ssh_configuration import SshConfiguration
 from azure.mgmt.compute.models.ssh_public_key import SshPublicKey
+from azure.mgmt.network.models import NetworkInterface
 from azure.mgmt.resource.resources.models import ResourceGroup
 from retrying import retry
+from typing import List
 
 from cloudshell.cp.azure.common.helpers.retrying_helpers import retry_if_connection_error
+from cloudshell.cp.azure.models.create_vm_request_models import CreateVmFromSnapshotRequest
 
 
 class VirtualMachineService(object):
@@ -132,6 +136,83 @@ class VirtualMachineService(object):
 
         return OperatingSystemTypes.windows
 
+    def create_vm_from_snapshot(self, req):
+        """ Create VM from snapshot
+
+        :param CreateVmFromSnapshotRequest req:
+        :rtype: azure.mgmt.compute.models.VirtualMachine
+        """
+        storage_profile = self._prepare_storage_profile_for_create_from_snapshot(req)
+
+        network_profile = self._prepare_network_profile(req.nics)
+
+        hardware_profile = HardwareProfile(req.vm_size)
+
+        os_profile = None
+
+        return self._create_vm(
+            compute_management_client=req.compute_client,
+            region=req.region,
+            group_name=req.sandbox_resource_group,
+            vm_name=req.vm_name,
+            hardware_profile=hardware_profile,
+            network_profile=network_profile,
+            os_profile=os_profile,
+            storage_profile=storage_profile,
+            cancellation_context=req.cancellation_context,
+            tags=req.tags,
+            logger=req.logger)
+
+    def _prepare_storage_profile_for_create_from_snapshot(self, req):
+        """
+        :param CreateVmFromSnapshotRequest req:
+        :return:
+        """
+        req.logger.info('Creating OS Disk for VM {} from snapshot {} in resource group {}'
+                        .format(req.vm_name,
+                                req.snapshot_model.snapshot_name,
+                                req.snapshot_model.snapshot_resource_group))
+
+        disk = self._create_disk_from_snapshot(req.compute_client, req.snapshot_model, req.region,
+                                               req.sandbox_resource_group, req.vm_name)
+
+        os_disk = OSDisk(create_option=DiskCreateOptionTypes.attach,
+                         disk_size_gb=self._parse_disk_size(req.disk_size),
+                         os_type=req.snapshot_model.os_type,
+                         managed_disk=ManagedDiskParameters(id=disk.id))
+
+        return StorageProfile(os_disk=os_disk)
+
+    def _prepare_network_profile(self, nics):
+        """
+        :param List[NetworkInterface] nics:
+        :return:
+        """
+        network_interfaces = [NetworkInterfaceReference(id=nic.id) for nic in nics]
+        for network_interface in network_interfaces:
+            network_interface.primary = False
+        network_interfaces[0].primary = True
+        network_profile = NetworkProfile(network_interfaces=network_interfaces)
+        return network_profile
+
+    def _create_disk_from_snapshot(self, compute_client, snapshot_model, region, disk_resource_group, disk_name):
+        """
+        :param ComputeManagementClient compute_client:
+        :param SnapshotDataModel snapshot_model:
+        :param str region:
+        :param str disk_resource_group:
+        :param str disk_name:
+        :rtype: Disk
+        """
+        new_disk_req = Disk(location=region,
+                            creation_data=CreationData(create_option=DiskCreateOption.copy,
+                                                       source_resource_id=snapshot_model.snapshot_id))
+        async_creation = compute_client.disks.create_or_update(resource_group_name=disk_resource_group,
+                                                               disk_name=disk_name,
+                                                               disk=new_disk_req)
+        disk = async_creation.result()
+        return disk
+
     def create_vm_from_custom_image(self,
                                     compute_management_client,
                                     image_name,
@@ -177,38 +258,31 @@ class VirtualMachineService(object):
 
         logger.info('Prepared OS Profile for {0} in resource group {1}'.format(vm_name, group_name))
 
-        network_interfaces = [NetworkInterfaceReference(id=nic.id) for nic in nics]
-        for network_interface in network_interfaces:
-            network_interface.primary = False
-        network_interfaces[0].primary = True
-
-        logger.info('Prepared {2} network interfaces for {0} in resource group {1}'.format(vm_name, group_name, len(network_interfaces)))
-
-        network_profile = NetworkProfile(network_interfaces=network_interfaces)
+        network_profile = self._prepare_network_profile(nics)
 
         logger.info('Prepared Network Profile for {0} in resource group {1}'.format(vm_name, group_name))
 
         image = compute_management_client.images.get(resource_group_name=image_resource_group, image_name=image_name)
         storage_profile = StorageProfile(
-                os_disk=self._prepare_os_disk(disk_type, disk_size),
-                image_reference=ImageReference(id=image.id))
+            os_disk=self._prepare_os_disk(disk_type, disk_size),
+            image_reference=ImageReference(id=image.id))
 
         logger.info('Prepared Storage Profile for {0} in resource group {1}'.format(vm_name, group_name))
 
         logger.info('Before actual create vm for {0} in resource group {1}'.format(vm_name, group_name))
 
         return self._create_vm(
-                compute_management_client=compute_management_client,
-                region=region,
-                group_name=group_name,
-                vm_name=vm_name,
-                hardware_profile=hardware_profile,
-                network_profile=network_profile,
-                os_profile=os_profile,
-                storage_profile=storage_profile,
-                cancellation_context=cancellation_context,
-                tags=tags,
-                logger=logger)
+            compute_management_client=compute_management_client,
+            region=region,
+            group_name=group_name,
+            vm_name=vm_name,
+            hardware_profile=hardware_profile,
+            network_profile=network_profile,
+            os_profile=os_profile,
+            storage_profile=storage_profile,
+            cancellation_context=cancellation_context,
+            tags=tags,
+            logger=logger)
 
     def _get_storage_type(self, disk_type):
         """
@@ -267,35 +341,31 @@ class VirtualMachineService(object):
 
         hardware_profile = HardwareProfile(vm_size=vm_size)
 
-        network_interfaces = [NetworkInterfaceReference(id=nic.id) for nic in nics]
-        for network_interface in network_interfaces:
-            network_interface.primary = False
-        network_interfaces[0].primary = True
-        network_profile = NetworkProfile(network_interfaces=network_interfaces)
+        network_profile = self._prepare_network_profile(nics)
 
         storage_profile = StorageProfile(
-                os_disk=self._prepare_os_disk(disk_type, disk_size),
-                image_reference=ImageReference(publisher=image_publisher,
-                                               offer=image_offer,
-                                               sku=image_sku,
-                                               version=image_version))
+            os_disk=self._prepare_os_disk(disk_type, disk_size),
+            image_reference=ImageReference(publisher=image_publisher,
+                                           offer=image_offer,
+                                           sku=image_sku,
+                                           version=image_version))
 
         vm_plan = None
         if purchase_plan is not None:
             vm_plan = Plan(name=purchase_plan.name, publisher=purchase_plan.publisher, product=purchase_plan.product)
 
         return self._create_vm(
-                compute_management_client=compute_management_client,
-                region=region,
-                group_name=group_name,
-                vm_name=vm_name,
-                hardware_profile=hardware_profile,
-                network_profile=network_profile,
-                os_profile=os_profile,
-                storage_profile=storage_profile,
-                cancellation_context=cancellation_context,
-                tags=tags,
-                vm_plan=vm_plan)
+            compute_management_client=compute_management_client,
+            region=region,
+            group_name=group_name,
+            vm_name=vm_name,
+            hardware_profile=hardware_profile,
+            network_profile=network_profile,
+            os_profile=os_profile,
+            storage_profile=storage_profile,
+            cancellation_context=cancellation_context,
+            tags=tags,
+            vm_plan=vm_plan)
 
     def _prepare_os_disk(self, disk_type, disk_size):
         """
@@ -304,17 +374,29 @@ class VirtualMachineService(object):
         :return:
         :rtype: OSDisk
         """
+        disk_size_num = self._parse_disk_size(disk_size)
+        return OSDisk(create_option=DiskCreateOptionTypes.from_image,
+                      disk_size_gb=disk_size_num,
+                      managed_disk=ManagedDiskParameters(storage_account_type=self._get_storage_type(disk_type)))
+
+    def _parse_disk_size(self, disk_size):
+        """
+        :param str disk_size:
+        :return: Returns the disk size as int or None if disk_size is not a valid int
+        :rtype: int
+        """
+        disk_size_num = None
         if disk_size.isdigit():
             disk_size_num = int(disk_size)
-            if disk_size_num > 1023:
-                raise Exception('Disk size cannot be larger than 1023 GB')
-            return OSDisk(create_option=DiskCreateOptionTypes.from_image,
-                          disk_size_gb=disk_size_num,
-                          managed_disk=ManagedDiskParameters(storage_account_type=self._get_storage_type(disk_type)))
-        return \
-            OSDisk(create_option=DiskCreateOptionTypes.from_image,
-                   managed_disk=ManagedDiskParameters(
-                           storage_account_type=self._get_storage_type(disk_type)))
+            self._validate_disk_size(disk_size_num)
+        return disk_size_num
+
+    def _validate_disk_size(self, disk_size_num):
+        """
+        :param int disk_size_num:
+        """
+        if disk_size_num > 1023:
+            raise Exception('Disk size cannot be larger than 1023 GB')
 
     @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def create_resource_group(self, resource_management_client, group_name, region, tags):
@@ -393,19 +475,19 @@ class VirtualMachineService(object):
         """
         # get last version first (required for the virtual machine images GET Api)
         image_resources = compute_management_client.virtual_machine_images.list(
-                location=location,
-                publisher_name=publisher_name,
-                offer=offer,
-                skus=skus)
+            location=location,
+            publisher_name=publisher_name,
+            offer=offer,
+            skus=skus)
 
         version = image_resources[-1].name
 
         deployed_image = compute_management_client.virtual_machine_images.get(
-                location=location,
-                publisher_name=publisher_name,
-                offer=offer,
-                skus=skus,
-                version=version)
+            location=location,
+            publisher_name=publisher_name,
+            offer=offer,
+            skus=skus,
+            version=version)
 
         return deployed_image
 

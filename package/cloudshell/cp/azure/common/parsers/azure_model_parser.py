@@ -1,17 +1,18 @@
 import jsonpickle
 from cloudshell.cp.core.utils import first_or_default
 
-from cloudshell.cp.azure.common.deploy_data_holder import DeployDataHolder
 from cloudshell.cp.azure.common.parsers.security_group_parser import SecurityGroupParser
 from cloudshell.cp.azure.domain.services.parsers.network_actions import NetworkActionsParser
 from cloudshell.cp.azure.models.app_security_groups_model import AppSecurityGroupModel, DeployedApp, VmDetails
 from cloudshell.cp.azure.models.azure_cloud_provider_resource_model import AzureCloudProviderResourceModel
-from cloudshell.cp.azure.models.deploy_azure_vm_resource_models import DeployAzureVMFromCustomImageResourceModel
 from cloudshell.cp.azure.models.deploy_azure_vm_resource_models import DeployAzureVMResourceModel, \
     RouteTableRequestResourceModel, RouteResourceModel
+from cloudshell.cp.azure.models.deploy_azure_vm_resource_models import DeployAzureVMFromCustomImageResourceModel, \
+    DeployAzureVMFromSnapshotResourceModel
+from cloudshell.cp.azure.common.deploy_data_holder import DeployDataHolder
 from cloudshell.cp.azure.models.reservation_model import ReservationModel
-from cloudshell.cp.azure.models.vnet_mode import VnetMode
 
+from cloudshell.cp.azure.models.vnet_mode import VnetMode
 
 class AzureModelsParser(object):
     @staticmethod
@@ -175,6 +176,48 @@ class AzureModelsParser(object):
         AzureModelsParser.validate_custom_image_model(deployment_resource_model)
 
         return deployment_resource_model
+
+    @staticmethod
+    def convert_to_deploy_azure_vm_from_snapshot_resource_model(deploy_action, network_actions, cloudshell_session,
+                                                                logger):
+        """
+        Convert deployment request JSON to the DeployAzureVMFromSnapshotResourceModel model
+
+        :param package.cloudshell.cp.core.models.DeployApp deploy_action: describes the desired deployment
+        :param cloudshell.api.cloudshell_api.CloudShellAPISession cloudshell_session: instance
+        :param logging.Logger logger:
+        :return: deploy_azure_vm_resource_models.DeployAzureVMFromSnapshotResourceModel instance
+        :rtype: DeployAzureVMFromSnapshotResourceModel
+        """
+        data_attributes = deploy_action.actionParams.deployment.attributes
+        deployment_resource_model = DeployAzureVMFromSnapshotResourceModel()
+        deployment_resource_model.snapshot_name = data_attributes['Azure Snapshot']
+        deployment_resource_model.snapshot_resource_group = data_attributes['Azure Resource Group']
+        deployment_resource_model.private_static_ip = data_attributes['Private Static IP']
+
+        AzureModelsParser._set_base_deploy_azure_vm_model_params(deployment_resource_model=deployment_resource_model,
+                                                                 deploy_action=deploy_action,
+                                                                 network_actions=network_actions,
+                                                                 cloudshell_session=cloudshell_session,
+                                                                 logger=logger)
+
+        AzureModelsParser.validate_snapshot_model(deployment_resource_model)
+
+        return deployment_resource_model
+
+    @staticmethod
+    def validate_snapshot_model(model):
+        """
+        :param DeployAzureVMFromSnapshotResourceModel model:
+        :return:
+        """
+        if not model.snapshot_name:
+            raise ValueError("Azure Snapshot attribute is mandatory and cannot be empty")
+
+        if not model.snapshot_resource_group:
+            raise ValueError("Azure Resource Group attribute is mandatory and cannot be empty")
+
+        # todo - validate 'Private Static IP' attribute
 
     @staticmethod
     def validate_custom_image_model(model):
