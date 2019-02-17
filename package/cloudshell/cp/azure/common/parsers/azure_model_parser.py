@@ -13,6 +13,11 @@ from cloudshell.cp.azure.models.reservation_model import ReservationModel
 from cloudshell.cp.azure.domain.services.parsers.connection_params import convert_to_bool
 
 
+class VnetMode:
+    SINGLE = 1
+    MULTIPLE = 2
+
+
 class AzureModelsParser(object):
     @staticmethod
     def convert_app_resource_to_deployed_app(resource):
@@ -27,7 +32,8 @@ class AzureModelsParser(object):
         return data_holder
 
     @staticmethod
-    def _set_base_deploy_azure_vm_model_params(deployment_resource_model, deploy_action, network_actions, cloudshell_session, logger):
+    def _set_base_deploy_azure_vm_model_params(deployment_resource_model, deploy_action, network_actions,
+                                               cloudshell_session, logger):
         """
         Set base parameters to the Azure Deploy model
 
@@ -68,7 +74,7 @@ class AzureModelsParser(object):
             deployment_resource_model.password = decrypted_pass.Value
 
         deployment_resource_model.network_configurations = \
-            AzureModelsParser.parse_deploy_networking_configurations(network_actions,logger)
+            AzureModelsParser.parse_deploy_networking_configurations(network_actions, logger)
 
         return deployment_resource_model
 
@@ -77,7 +83,7 @@ class AzureModelsParser(object):
         return lambda x: x == attribute_key or x.endswith("." + attribute_key)
 
     @staticmethod
-    def convert_to_boolean( value):
+    def convert_to_boolean(value):
         return value.lower() in ['1', 'true']
 
     @staticmethod
@@ -95,7 +101,6 @@ class AzureModelsParser(object):
 
         return list_attr
 
-
     @staticmethod
     def convert_to_route_table_model(route_table_request, cloudshell_session, logger):
         """
@@ -109,19 +114,19 @@ class AzureModelsParser(object):
         """
         data = jsonpickle.decode(route_table_request)
         route_table_model = RouteTableRequestResourceModel()
-        route_table_model.name=data['name']
+        route_table_model.name = data['name']
         route_table_model.subnets = []
         if data['subnets']:
-            route_table_model.subnets=data['subnets']
-        routes =[]
+            route_table_model.subnets = data['subnets']
+        routes = []
         for route in data['routes']:
             route_model = RouteResourceModel()
-            route_model.name=route['name']
-            route_model.route_address_prefix=route['address_prefix']
-            route_model.next_hop_type=route['next_hop_type']
-            route_model.next_hope_address=route['next_hop_address']
+            route_model.name = route['name']
+            route_model.route_address_prefix = route['address_prefix']
+            route_model.next_hop_type = route['next_hop_type']
+            route_model.next_hope_address = route['next_hop_address']
             routes.append(route_model)
-        route_table_model.routes=routes
+        route_table_model.routes = routes
 
         return route_table_model
 
@@ -151,7 +156,8 @@ class AzureModelsParser(object):
         return deployment_resource_model
 
     @staticmethod
-    def convert_to_deploy_azure_vm_from_custom_image_resource_model(deploy_action, network_actions, cloudshell_session, logger):
+    def convert_to_deploy_azure_vm_from_custom_image_resource_model(deploy_action, network_actions, cloudshell_session,
+                                                                    logger):
         """
         Convert deployment request JSON to the DeployAzureVMFromCustomImageResourceModel model
 
@@ -213,7 +219,27 @@ class AzureModelsParser(object):
         azure_application_key = cloudshell_session.DecryptPassword(encrypted_azure_application_key)
         azure_resource_model.azure_application_key = azure_application_key.Value
 
+        azure_resource_model.vnet_mode = AzureModelsParser.get_vnet_mode(resource_context)
+        azure_resource_model.vnet_cidr = resource_context.get('VNET CIDR', "")
+        azure_resource_model.custom_vnet_dns = resource_context.get('Custom VNET DNS', "")
+
         return azure_resource_model
+
+    @staticmethod
+    def get_vnet_mode(resource_context):
+        vnet_mode_string = resource_context.get('VNET Mode', 'Single')
+
+        # DEFAULT - if there is no lower() method for some reason we didn't get a good string from attribute
+        if not hasattr(vnet_mode_string, 'lower'):
+            return VnetMode.SINGLE
+
+        if vnet_mode_string.lower() == 'single':
+            return VnetMode.SINGLE
+
+        if vnet_mode_string.lower() == 'multiple':
+            return VnetMode.MULTIPLE
+
+        return VnetMode.SINGLE
 
     @staticmethod
     def convert_to_reservation_model(reservation_context):
@@ -273,7 +299,7 @@ class AzureModelsParser(object):
             return None
         # actions = deployment_request["NetworkConfigurationsRequest"]
 
-        return NetworkActionsParser.parse_network_actions_data(actions,logger)
+        return NetworkActionsParser.parse_network_actions_data(actions, logger)
 
     @staticmethod
     def get_app_security_groups_from_request(request):
