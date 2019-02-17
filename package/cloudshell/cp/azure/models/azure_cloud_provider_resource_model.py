@@ -1,3 +1,6 @@
+from cloudshell.cp.azure.common.parsers.azure_model_parser import VnetMode
+
+
 class AzureCloudProviderResourceModel(object):
     def __init__(self):
         self.azure_application_id = ''  # type: str
@@ -14,3 +17,6 @@ class AzureCloudProviderResourceModel(object):
         self.management_group_name = ''  # type: str
         self.additional_mgmt_networks = ''  # type: str
         self.cloud_provider_name = ''  # type: str
+        self.vnet_mode = ''  # type: VnetMode
+        self.vnet_cidr = ''  # type: str
+        self.custom_vnet_dns = ''  # type: str

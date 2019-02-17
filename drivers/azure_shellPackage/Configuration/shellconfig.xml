@@ -20,6 +20,9 @@
                 <Attribute Value="" Name="Additional Mgmt Networks"/>
                 <Attribute Value="10.0.0.0/24" Name="Networks In Use"/>
                 <Attribute Value="" Name="Execution Server Selector"/>
+                <Attribute Value="Single" Name="VNET Mode"/>
+                <Attribute Value="" Name="VNET CIDR"/>
+                <Attribute Value="" Name="Custom VNET DNS"/>
             </Attributes>
         </ResourceTemplate>
     </ResourceTemplates>
