@@ -12,3 +12,4 @@ drivers/killPython.bat
 package/version.txt
 /package/dist/
 /venv/*
+package/tests/playground.py
