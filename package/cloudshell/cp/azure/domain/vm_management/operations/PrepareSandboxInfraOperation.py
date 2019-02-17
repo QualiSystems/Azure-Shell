@@ -379,12 +379,12 @@ class PrepareSandboxInfraOperation(object):
                                          sandbox_vnet=sandbox_vnet,
                                          subnet_cidr=cidr,
                                          logger=logger,
-                                         sandbox_resource_group=resource_group_name)
+                                         sandbox_vnet_owning_resource_group=resource_group_name)
                 # try to create subnet again
                 create_subnet_command()
 
     def _cleanup_stale_data(self, network_client, resource_client, cloud_provider_model, sandbox_vnet, subnet_cidr,
-                            logger, sandbox_resource_group):
+                            logger, sandbox_vnet_owning_resource_group):
         """
         :param AzureCloudProviderResourceModel cloud_provider_model:
         :param VirtualNetwork sandbox_vnet:
@@ -392,13 +392,17 @@ class PrepareSandboxInfraOperation(object):
         :param logging.Logger logger:
         :return:
         """
+
+        # sandbox_vnet_owning_resource_group - management resource group if vnet mode is single
+        # for vnet multiple mode we pass in the sandbox resource group
+
         stale_subnets = filter(lambda x: x.address_prefix == subnet_cidr, sandbox_vnet.subnets)
         if len(stale_subnets) == 0:
             logger.info("Stale subnet with cidr {0} not found".format(subnet_cidr))
             return
         subnet = stale_subnets[0]
 
-        vnet_group = self.network_service.get_vnet_group(cloud_provider_model, sandbox_resource_group)
+        vnet_group = self.network_service.get_vnet_group(cloud_provider_model, sandbox_vnet_owning_resource_group)
 
         if subnet.network_security_group is not None:
             logger.info("Detaching NSG from subnet {}".format(subnet.id))

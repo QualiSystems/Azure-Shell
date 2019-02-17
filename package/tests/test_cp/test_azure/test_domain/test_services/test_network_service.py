@@ -31,7 +31,6 @@ class TestNetworkService(TestCase):
                                                     tags=tags,
                                                     vnet_cidr=vnet_cidr)
 
-        self.network_client.subnets.get.assert_called()
         self.network_client.virtual_networks.create_or_update.assert_called_with(management_group_name,
                                                                                  network_name,
                                                                                  azure.mgmt.network.models.VirtualNetwork(
@@ -42,13 +41,6 @@ class TestNetworkService(TestCase):
                                                                                              vnet_cidr,
                                                                                          ],
                                                                                      ),
-                                                                                     subnets=[
-                                                                                         azure.mgmt.network.models.Subnet(
-                                                                                             network_security_group=network_security_group,
-                                                                                             name=subnet_name,
-                                                                                             address_prefix=subnet_cidr,
-                                                                                         ),
-                                                                                     ],
                                                                                  ),
                                                                                  tags=tags)
 

@@ -11,6 +11,7 @@ from cloudshell.cp.azure.domain.services.security_group import SecurityGroupServ
 from cloudshell.cp.azure.domain.services.tags import TagService
 from cloudshell.cp.azure.domain.vm_management.operations.PrepareSandboxInfraOperation import \
     PrepareSandboxInfraOperation
+from cloudshell.cp.azure.models.vnet_mode import VnetMode
 from tests.helpers.test_helper import TestHelper
 from cloudshell.cp.core.models import PrepareCloudInfra, PrepareSubnet, CreateKeys, PrepareCloudInfraParams, \
     PrepareSubnetParams
@@ -75,11 +76,13 @@ class TestPrepareSandboxInfra(TestCase):
         network_client.network_security_groups.create_or_update = Mock()
         cancellation_context = MagicMock()
         self.prepare_connectivity_operation._cleanup_stale_data = MagicMock()
+        cloud_provider_model = MagicMock()
+        cloud_provider_model.vnet_mode = VnetMode.SINGLE
 
         # Act
         self.prepare_connectivity_operation.prepare_connectivity(
             reservation=MagicMock(),
-            cloud_provider_model=MagicMock(),
+            cloud_provider_model=cloud_provider_model,
             storage_client=MagicMock(),
             resource_client=MagicMock(),
             network_client=network_client,
@@ -184,10 +187,12 @@ class TestPrepareSandboxInfra(TestCase):
         network_client = MagicMock()
         resource_client = MagicMock()
         cloud_provider_model = MagicMock()
+        cloud_provider_model.vnet_mode = VnetMode.SINGLE
         subnet_cidr = "10.10.10.10/24"
         subnet = MagicMock(address_prefix=subnet_cidr, ip_configurations=[MagicMock(), MagicMock()])
         sandbox_vnet = MagicMock(subnets=[subnet])
         self.resource_id_parser.get_resource_group_name.side_effect = ["resource_group1", "resource_group2"]
+        self.network_service.get_vnet_group.return_value = cloud_provider_model.management_group_name
 
         # Act
         self.prepare_connectivity_operation._cleanup_stale_data(network_client=network_client,
@@ -195,7 +200,9 @@ class TestPrepareSandboxInfra(TestCase):
                                                                 cloud_provider_model=cloud_provider_model,
                                                                 sandbox_vnet=sandbox_vnet,
                                                                 subnet_cidr=subnet_cidr,
-                                                                logger=self.logger)
+                                                                logger=self.logger,
+                                                                sandbox_vnet_owning_resource_group=
+                                                                cloud_provider_model.management_group_name)
 
         # Verify
         self.network_service.delete_subnet.assert_called_once_with(
@@ -216,6 +223,7 @@ class TestPrepareSandboxInfra(TestCase):
         network_client = MagicMock()
         resource_client = MagicMock()
         cloud_provider_model = MagicMock()
+        cloud_provider_model.vnet_mode = VnetMode.SINGLE
         network_security_group = MagicMock()
         subnet_cidr = "10.10.10.10/24"
         subnet_name = "test_subnet_name"
@@ -235,7 +243,8 @@ class TestPrepareSandboxInfra(TestCase):
             resource_client=resource_client,
             network_security_group=network_security_group,
             sandbox_vnet=sandbox_vnet,
-            subnet_name=subnet_name)
+            subnet_name=subnet_name,
+            resource_group_name=cloud_provider_model.management_resource_group)
 
         # Verfy
         self.prepare_connectivity_operation._cleanup_stale_data.assert_called_once_with(
@@ -244,4 +253,5 @@ class TestPrepareSandboxInfra(TestCase):
             resource_client=resource_client,
             sandbox_vnet=sandbox_vnet,
             subnet_cidr=subnet_cidr,
-            logger=self.logger)
+            logger=self.logger,
+            sandbox_vnet_owning_resource_group=cloud_provider_model.management_resource_group)
