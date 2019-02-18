@@ -96,7 +96,8 @@ class PrepareSandboxInfraOperation(object):
 
         # TODO validate combination of VNET mode and VNET CIDR / Custom VNET DNS
 
-        cidr = network_action.actionParams.cidr
+        cidr = cloud_provider_model.vnet_cidr if cloud_provider_model.vnet_mode == VnetMode.MULTIPLE \
+            else network_action.actionParams.cidr
 
         reservation_id = reservation.reservation_id
         group_name = str(reservation_id)
@@ -152,7 +153,8 @@ class PrepareSandboxInfraOperation(object):
                                                         network_name=SANDBOX_VNET_NAME,
                                                         region=cloud_provider_model.region,
                                                         tags=vnet_tags,
-                                                        vnet_cidr=cloud_provider_model.vnet_cidr)
+                                                        vnet_cidr=cloud_provider_model.vnet_cidr,
+                                                        vnet_dns=cloud_provider_model.custom_vnet_dns)
             sandbox_networks = self.network_service \
                 .get_virtual_networks(network_client=network_client, group_name=group_name)
 
@@ -217,6 +219,7 @@ class PrepareSandboxInfraOperation(object):
 
         for subnet in subnet_actions:
             subnet_cidr = cloud_provider_model.vnet_cidr if cloud_provider_model.vnet_mode.MULTIPLE else subnet.actionParams.cidr
+
             logger.warn('creating: ' + subnet_cidr)
             subnet_name = (group_name + '_' + subnet_cidr).replace(' ', '').replace('/', '-')
 
@@ -610,28 +613,30 @@ class PrepareSandboxInfraOperation(object):
 
         # Deny inbound traffic from internet for subnets that requested Public = False
 
-        private_subnets = [s for s in subnet_actions if s.actionParams and
-                           s.actionParams.subnetServiceAttributes and
-                           'Public' in s.actionParams.subnetServiceAttributes and
-                           s.actionParams.subnetServiceAttributes['Public'] == 'False']
 
-        for p in private_subnets:
-            private_subnet_cidr = p.actionParams.cidr
-            security_rule_name = 'Deny_Internet_Traffic_To_Private_Subnet_{0}' \
-                .format(private_subnet_cidr.replace('/', '-'))
-            deny_all_traffic = [self.deny_all_rule(security_rule_name)]
-
-            self.security_group_service.create_network_security_group_rules(
-                network_client=network_client,
-                group_name=group_name,
-                security_group_name=security_group_name,
-                inbound_rules=deny_all_traffic,
-                destination_addr=private_subnet_cidr,
-                source_address=RouteNextHopType.internet,
-                lock=self.subnet_locker,
-                start_from=2000)
-
-            logger.info("Created security rule {0} on NSG {1}".format(security_rule_name, security_group_name))
+        # TODO we dont support multiple subnets in multiple vnets
+        # private_subnets = [s for s in subnet_actions if s.actionParams and
+        #                    s.actionParams.subnetServiceAttributes and
+        #                    'Public' in s.actionParams.subnetServiceAttributes and
+        #                    s.actionParams.subnetServiceAttributes['Public'] == 'False']
+        #
+        # for p in private_subnets:
+        #     private_subnet_cidr = p.actionParams.cidr
+        #     security_rule_name = 'Deny_Internet_Traffic_To_Private_Subnet_{0}' \
+        #         .format(private_subnet_cidr.replace('/', '-'))
+        #     deny_all_traffic = [self.deny_all_rule(security_rule_name)]
+        #
+        #     self.security_group_service.create_network_security_group_rules(
+        #         network_client=network_client,
+        #         group_name=group_name,
+        #         security_group_name=security_group_name,
+        #         inbound_rules=deny_all_traffic,
+        #         destination_addr=private_subnet_cidr,
+        #         source_address=RouteNextHopType.internet,
+        #         lock=self.subnet_locker,
+        #         start_from=2000)
+        #
+        #     logger.info("Created security rule {0} on NSG {1}".format(security_rule_name, security_group_name))
 
         # Allow inbound traffic from additional management networks (can configure on Azure cloud provider resource
         #  that additional networks are allowed to communicate with subnets and vms)

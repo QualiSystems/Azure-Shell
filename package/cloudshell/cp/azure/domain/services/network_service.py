@@ -1,6 +1,6 @@
 import azure
 from azure.mgmt.network.models import NetworkInterface, NetworkInterfaceIPConfiguration, IPAllocationMethod, \
-    VirtualNetwork, Route, RouteTable
+    VirtualNetwork, Route, RouteTable, DhcpOptions
 from retrying import retry
 
 from cloudshell.cp.azure.common.helpers.retrying_helpers import retry_if_connection_error
@@ -158,7 +158,7 @@ class NetworkService(object):
                 self.ip_service.get_available_private_ip(network_client,
                                                          vnet_group_name,
                                                          virtual_network_name,
-                                                         subnet.address_prefix[:-3],
+                                                         subnet.address_prefix.split('/')[0],
                                                          logger)
             logger.info("Private IP: {}".format(private_ip_address))
 
@@ -282,9 +282,11 @@ class NetworkService(object):
                                network_name,
                                region,
                                tags,
-                               vnet_cidr):
+                               vnet_cidr,
+                               vnet_dns=None):
         """
         Creates a virtual network with a subnet
+        :param vnet_dns:
         :param resource_group_name:
         :param network_client:
         :param network_name:
@@ -293,6 +295,8 @@ class NetworkService(object):
         :param vnet_cidr:
         :return:
         """
+        dhcp_options = DhcpOptions(dns_servers=vnet_dns) if vnet_dns else None
+
         result = network_client.virtual_networks.create_or_update(
             resource_group_name,
             network_name,
@@ -302,6 +306,7 @@ class NetworkService(object):
                 address_space=azure.mgmt.network.models.AddressSpace(
                     address_prefixes=[vnet_cidr],
                 ),
+                dhcp_options=dhcp_options
             ),
             tags=tags
         )

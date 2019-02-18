@@ -157,7 +157,7 @@
     </AttributeInfo>
 
     <AttributeInfo Name="Custom VNET DNS"  DefaultValue="" IsReadOnly="false" Type="String"
-                   Description="Associate sandbox VNETs to a custom DNS provider." >
+                   Description="Associate sandbox VNET to custom DNS servers: enter DNS server ips, separated by comma." >
       <Rules>
         <Rule Name="Configuration" />
         <Rule Name="Setting" />
