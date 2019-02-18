@@ -10,7 +10,7 @@ class SnapshotOperation:
              source_resource_group,
              snapshot_name_prefix):
 
-        vm = self.vm_service.get_vm(azure_clients.compute_client, destination_resource_group, instance_name)
+        vm = self.vm_service.get_vm(azure_clients.compute_client, source_resource_group, instance_name)
         disk_name = vm.storage_profile.os_disk.name
 
         managed_disk = azure_clients.compute_client.disks.get(source_resource_group, disk_name)
