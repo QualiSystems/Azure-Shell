@@ -211,10 +211,16 @@ class PrepareSandboxInfraOperation(object):
         # will create subnet in resource group's vnet; is management resource group for SINGLE vnet mode
         subnet_resource_group = self._get_subnet_resource_group(cloud_provider_model, group_name)
 
+        # TODO make it nicer
+        if cloud_provider_model.vnet_mode == VnetMode.MULTIPLE and len(subnet_actions) > 1:
+            raise Exception('Multiple VNET Mode supports only single subnet per sandbox')
+
         for subnet in subnet_actions:
-            logger.warn('creating: ' + subnet.actionParams.cidr)
-            subnet_name = (group_name + '_' + subnet.actionParams.cidr).replace(' ', '').replace('/', '-')
-            self._create_subnet(cidr=subnet.actionParams.cidr,
+            subnet_cidr = cloud_provider_model.vnet_cidr if cloud_provider_model.vnet_mode.MULTIPLE else subnet.actionParams.cidr
+            logger.warn('creating: ' + subnet_cidr)
+            subnet_name = (group_name + '_' + subnet_cidr).replace(' ', '').replace('/', '-')
+
+            self._create_subnet(cidr=subnet_cidr,
                                 cloud_provider_model=cloud_provider_model,
                                 logger=logger,
                                 network_client=network_client,

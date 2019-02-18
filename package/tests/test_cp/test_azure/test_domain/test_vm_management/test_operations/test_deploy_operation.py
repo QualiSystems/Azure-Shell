@@ -690,7 +690,8 @@ class TestDeployAzureVMOperation(TestCase):
             public_ip_type=deployment_model.public_ip_type,
             tags=data.tags,
             logger=logger,
-            lock_provider=self.generic_lock_provider)
+            lock_provider=self.generic_lock_provider,
+            private_ip_address=None)
 
         self.deploy_operation.vm_credentials_service.prepare_credentials.assert_called_once_with(
             os_type=data.image_model.os_type,

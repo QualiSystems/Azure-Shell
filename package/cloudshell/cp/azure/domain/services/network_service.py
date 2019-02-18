@@ -67,7 +67,8 @@ class NetworkService(object):
                               public_ip_type,
                               logger,
                               lock_provider,
-                              network_security_group=None):
+                              network_security_group=None,
+                              private_ip_address=None):
         """
         This method creates a an ip address and a nic for the vm
         :param azure.mgmt.network.models.NetworkSecurityGroup network_security_group:
@@ -113,7 +114,8 @@ class NetworkService(object):
                                sandbox_virtual_network.name,
                                logger,
                                lock_provider,
-                               network_security_group)
+                               network_security_group,
+                               static_private_ip=private_ip_address)
 
     # vnet group is sandbox resource group for multiple vnet, management resource group if single vnet
     def get_vnet_group(self, cloud_provider_model, group_name):
@@ -123,10 +125,11 @@ class NetworkService(object):
     def create_nic(self, interface_name, group_name, vnet_group_name, network_client, public_ip_address, region,
                    subnet,
                    private_ip_allocation_method, tags, virtual_network_name,
-                   logger, lock_provider, network_security_group=None):
+                   logger, lock_provider, network_security_group=None, static_private_ip=None):
         """
         The method creates or updates network interface.
         Parameter
+        :param str static_private_ip:
         :param azure.mgmt.network.models.NetworkSecurityGroup network_security_group:
         :param logger:
         :param virtual_network_name:
@@ -150,11 +153,14 @@ class NetworkService(object):
 
         private_ip_address = ""
         if private_ip_allocation_method == IPAllocationMethod.static:
-            private_ip_address = self.ip_service.get_available_private_ip(network_client,
-                                                                          vnet_group_name,
-                                                                          virtual_network_name,
-                                                                          subnet.address_prefix[:-3],
-                                                                          logger)
+            logger.info("Private IP: {}".format(static_private_ip))
+            private_ip_address = static_private_ip if static_private_ip else \
+                self.ip_service.get_available_private_ip(network_client,
+                                                         vnet_group_name,
+                                                         virtual_network_name,
+                                                         subnet.address_prefix[:-3],
+                                                         logger)
+            logger.info("Private IP: {}".format(private_ip_address))
 
         ip_config = NetworkInterfaceIPConfiguration(name='default',
                                                     private_ip_allocation_method=private_ip_allocation_method,

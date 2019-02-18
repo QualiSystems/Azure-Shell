@@ -31,11 +31,12 @@ class VmDetailsOperation(object):
 
             vm_name = request.deployedAppJson.name
             deployment_service = request.appRequestJson.deploymentService
-            is_market_place = filter(lambda x: x.name == "Image SKU", deployment_service.attributes)
+            is_marketplace = filter(lambda x: x.name == "Image SKU", deployment_service.attributes)
 
             try:
                 vm = self.vm_service.get_vm(compute_client, group_name, vm_name)
-                result = self.vm_details_provider.create(vm, is_market_place, logger, network_client, group_name)
+                result = self.vm_details_provider.create(vm, is_marketplace, logger, group_name, network_client,
+                                                         compute_client)
 
             except Exception as e:
                 logger.error("Error getting vm details for '{0}': {1}".format(vm_name, traceback.format_exc()))

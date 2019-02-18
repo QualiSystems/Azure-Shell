@@ -274,9 +274,10 @@ class DeployAzureVMOperation(object):
             admin_password=data.vm_credentials.admin_password,
             public_ip=data.public_ip_address)
 
-        # check if CustomImageDataModel or MarketplaceImageDataModel, no more options
-        is_market_place = type(data.image_model) is MarketplaceImageDataModel
-        vm_details_data = self.vm_details_provider.create(vm, is_market_place, logger, network_client, data.group_name)
+        # check if MarketplaceImageDataModel or not
+        is_marketplace = type(data.image_model) is MarketplaceImageDataModel
+        vm_details_data = self.vm_details_provider.create(vm, is_marketplace, logger, data.group_name,
+                                                          network_client, compute_client)
 
         deploy_result = DeployAppResult(vmUuid=vm.vm_id,
                                         vmName=data.vm_name,
@@ -422,7 +423,11 @@ class DeployAzureVMOperation(object):
 
         if not multiple_subnet_mode:
             try:
-                nic_requests = [next((NicRequest("{}-{}".format(vm_name, 0), s, is_public=True)
+                private_ip = None
+                if isinstance(deployment_model, DeployAzureVMFromSnapshotResourceModel) and deployment_model.private_static_ip:
+                    private_ip = deployment_model.private_static_ip
+
+                nic_requests = [next((NicRequest("{}-{}".format(vm_name, 0), s, is_public=True, private_ip=private_ip)
                                       for s in sandbox_virtual_network.subnets if resource_group_name in s.name), None)]
 
             except StopIteration:
@@ -649,7 +654,8 @@ class DeployAzureVMOperation(object):
                                                              tags=data.tags,
                                                              logger=logger,
                                                              lock_provider=self.generic_lock_provider,
-                                                             network_security_group=vm_nsg)
+                                                             network_security_group=vm_nsg,
+                                                             private_ip_address=nic_request.private_ip)
 
             ip_address = nic.ip_configurations[0].private_ip_address
             if i == 0:

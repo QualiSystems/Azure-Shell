@@ -24,8 +24,8 @@ class TestVmDetailsProvider(TestCase):
         instance.network_profile = Mock()
         instance.network_profile.network_interfaces = MagicMock()
 
-        vm_instance_data = self.vm_details_provider.create(instance, True, self.logger, self.network_client,
-                                                           '').vmInstanceData
+        vm_instance_data = self.vm_details_provider.create(instance, True, self.logger, '',
+                                                           self.network_client, Mock()).vmInstanceData
 
         self.assertTrue(
             self._get_value(vm_instance_data, 'Image Publisher') == instance.storage_profile.image_reference.publisher)
@@ -48,8 +48,8 @@ class TestVmDetailsProvider(TestCase):
         instance.storage_profile.os_disk.os_type.name = 'Param 5'
         instance.storage_profile.os_disk.managed_disk.storage_account_type = StorageAccountTypes.premium_lrs
 
-        vm_instance_data = self.vm_details_provider.create(instance, False, self.logger, self.network_client,
-                                                           resource_group).vmInstanceData
+        vm_instance_data = self.vm_details_provider.create(instance, False, self.logger, resource_group,
+                                                           self.network_client, Mock()).vmInstanceData
 
         self.assertTrue(self._get_value(vm_instance_data, 'Image') == 'Image Name')
         self.assertTrue(self._get_value(vm_instance_data, 'Image Resource Group') == resource_group)
