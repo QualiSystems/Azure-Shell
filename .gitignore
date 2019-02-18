@@ -13,3 +13,4 @@ package/version.txt
 /package/dist/
 /venv/*
 package/tests/playground.py
+/package/dist.bat
