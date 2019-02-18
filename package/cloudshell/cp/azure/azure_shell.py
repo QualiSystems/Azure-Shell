@@ -1,6 +1,7 @@
 from threading import Lock
 
 import jsonpickle
+from azure.mgmt.compute.models import StorageAccountTypes
 from cloudshell.api.cloudshell_api import CommandExecutionCancelledResultInfo
 from cloudshell.core.context.error_handling_context import ErrorHandlingContext
 from cloudshell.cp.core.models import DeployApp, ConnectSubnet, ConnectToSubnetActionResult, \
@@ -580,10 +581,18 @@ class AzureShell(object):
                 return self.access_key_operation.get_access_key(storage_client=azure_clients.storage_client,
                                                                 group_name=resource_group_name)
 
-    def remote_save_snapshot(self, context, resource_group, snapshot_prefix):
+    def remote_save_snapshot(self, context, resource_group, snapshot_prefix, disk_type):
         with LoggingSessionContext(context) as logger:
             with ErrorHandlingContext(logger):
                 logger.info("Saving snapshot started")
+
+                disk_type = disk_type.lower()
+                if disk_type == "ssd":
+                    disk_type = StorageAccountTypes.premium_lrs
+                elif disk_type == "hdd":
+                    disk_type = StorageAccountTypes.standard_lrs
+                else:
+                    raise Exception("disk type should be HDD/SDD")
 
                 with CloudShellSessionContext(context) as cloudshell_session:
                     cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(
@@ -602,7 +611,8 @@ class AzureShell(object):
                                                  instance_name=data_holder.name,
                                                  destination_resource_group=resource_group,
                                                  source_resource_group=resource_group_name,
-                                                 snapshot_name_prefix=snapshot_prefix)
+                                                 snapshot_name_prefix=snapshot_prefix,
+                                                 disk_type=disk_type)
 
     def get_application_ports(self, command_context):
         """Get application ports in a nicely formatted manner

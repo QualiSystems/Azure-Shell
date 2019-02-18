@@ -11,7 +11,8 @@ class SnapshotOperation:
              instance_name,
              destination_resource_group,
              source_resource_group,
-             snapshot_name_prefix):
+             snapshot_name_prefix,
+             disk_type="Standard_LRS"):
         vm = self.vm_service.get_vm(azure_clients.compute_client, source_resource_group, instance_name)
         disk_name = vm.storage_profile.os_disk.name
 
@@ -21,7 +22,7 @@ class SnapshotOperation:
             destination_resource_group,
             "{0}{1}".format(snapshot_name_prefix, instance_name),
             Snapshot(location=cloud_provider_model.region,
-                     account_type=StorageAccountTypes.standard_lrs,
+                     account_type=disk_type,
                      creation_data=CreationData(create_option=DiskCreateOption.copy,
                                                 source_uri=managed_disk.id))
         )

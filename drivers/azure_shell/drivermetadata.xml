@@ -1,4 +1,4 @@
-<Driver Description="This driver orchestrate all the command that will be executed on Azure" MainClass="driver.AzureShellDriver" Name="Azure Shell Driver" Version="1.8.8">
+<Driver Description="This driver orchestrate all the command that will be executed on Azure" MainClass="driver.AzureShellDriver" Name="Azure Shell Driver" Version="1.8.9">
     <Layout>
         <Category Name="Deployment">
             <Command Description="" DisplayName="Deploy VM" EnableCancellation="true" Name="deploy_vm" Tags="allow_unreserved" />
@@ -30,6 +30,7 @@
                 <Parameters>
                     <Parameter DefaultValue="" Description="Please enter the VM snapshot prefix, for example 'Snapshot1'" DisplayName="Snapshot Prefix" Mandatory="True" Name="snapshot_prefix" Type="String" />
                     <Parameter DefaultValue="" Description="Resource group where the snapshot will be saved" DisplayName="Resource Group" Mandatory="True" Name="resource_group" Type="String" />
+                    <Parameter DefaultValue="HDD" Description="Type of snapshot disk HDD or SSD" DisplayName="Snapshot disk type" Mandatory="True" Name="disk_type" Type="String" />
                 </Parameters>
             </Command>
         </Category>
