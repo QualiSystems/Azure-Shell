@@ -1,11 +1,15 @@
 import netaddr
+from azure.mgmt.network.models import VirtualNetwork
 from msrest.exceptions import AuthenticationError
 from msrestazure.azure_exceptions import CloudError
 
 from cloudshell.shell.core.driver_context import AutoLoadDetails
+from typing import List
 
 from cloudshell.cp.azure.common.azure_clients import AzureClientsManager
 from cloudshell.cp.azure.common.exceptions.autoload_exception import AutoloadException
+from cloudshell.cp.azure.models.azure_cloud_provider_resource_model import AzureCloudProviderResourceModel
+from cloudshell.cp.azure.models.vnet_mode import VnetMode
 
 
 class AutoloadOperation(object):
@@ -192,9 +196,9 @@ class AutoloadOperation(object):
     def get_inventory(self, cloud_provider_model, logger):
         """Check that all needed resources are valid and present on the Azure
 
-        :param cloud_provider_model: cloudshell.cp.azure.models.AzureCloudProviderResourceModel instance
-        :param logger: logging.Logger instance
-        :return: cloudshell.shell.core.driver_context.AutoLoadDetails instance
+        :param AzureCloudProviderResourceModel cloud_provider_model:
+        :param logging.Logger logger:
+        :rtype: AutoLoadDetails
         """
         logger.info("Starting Autoload Operation...")
 
@@ -218,11 +222,8 @@ class AutoloadOperation(object):
             network_client=azure_clients.network_client,
             group_name=cloud_provider_model.management_group_name)
 
-        # verify that "sandbox" vNet exists under the MGMT resource group
-        sandbox_vnet = self._validate_vnet(virtual_networks=virtual_networks,
-                                           mgmt_group_name=cloud_provider_model.management_group_name,
-                                           network_tag=self.network_service.SANDBOX_NETWORK_TAG_VALUE,
-                                           logger=logger)
+        # verify the "sandbox" vNet according to configurations
+        self._validate_sandbox_vnet_configuration(cloud_provider_model, logger, virtual_networks)
 
         # verify that "mgmt" vNet exists under the MGMT resource group
         self._validate_vnet(virtual_networks=virtual_networks,
@@ -243,3 +244,57 @@ class AutoloadOperation(object):
         logger.info("Autoload Operation was successfully completed")
 
         return AutoLoadDetails([], [])
+
+    def _validate_sandbox_vnet_configuration(self, cloud_provider_model, logger, virtual_networks):
+        """
+        :param AzureCloudProviderResourceModel cloud_provider_model:
+        :param logging.Logger logger:
+        :param List[VirtualNetwork] virtual_networks:
+        """
+        if cloud_provider_model.vnet_mode == VnetMode.SINGLE:
+            # verify that "sandbox" vNet exists under the MGMT resource group
+            logger.info("Single VNET mode")
+            sandbox_vnet = self._validate_vnet(virtual_networks=virtual_networks,
+                                               mgmt_group_name=cloud_provider_model.management_group_name,
+                                               network_tag=self.network_service.SANDBOX_NETWORK_TAG_VALUE,
+                                               logger=logger)
+
+        elif cloud_provider_model.vnet_mode == VnetMode.MULTIPLE:
+            # verify that vnet_cidr is set and a valid vnet
+            logger.info("Multiple VNETs mode")
+            self._validate_multiple_vnets_mode(cloud_provider_model)
+
+        else:
+            raise AutoloadException("VNET Mode value {} is not supported".format(cloud_provider_model.vnet_mode))
+
+    def _validate_multiple_vnets_mode(self, cloud_provider_model):
+        # 1. validate vnet cidr is set when in vnets mode. If method is called we assume we are in multi-vnet mode.
+        if not cloud_provider_model.vnet_cidr:
+            raise AutoloadException("When 'Multiple' VNET mode is set VNET CIDR attribute cannot be empty")
+
+        # 2. validate VNET CIDR attribute is correct format
+        try:
+            network = netaddr.IPNetwork(cloud_provider_model.vnet_cidr)
+        except (netaddr.core.AddrFormatError, ValueError):
+            raise AutoloadException("VNET CIDR attribute value {} is not in a correct CIDR format"
+                                    .format(cloud_provider_model.vnet_cidr))
+
+        # 3. validate VNET CIDR is larger than /29 and smaller than /22
+        network_size = len(network)
+        if network_size < 8:
+            raise AutoloadException("VNET CIDR attribute is too small")
+        elif network_size > 1024:
+            raise AutoloadException("VNET CIDR attribute is too large")
+
+        for custom_vnet_dns in cloud_provider_model.custom_vnet_dns:
+            # 4. if custom dns is set verify it is correct ip address format
+            try:
+                address = netaddr.IPAddress(custom_vnet_dns)
+            except (netaddr.core.AddrFormatError, ValueError):
+                raise AutoloadException("CUSTOM VNET DNS attribute value {} is not in correct IP Address format"
+                                        .format(custom_vnet_dns))
+
+            # 5. if custom dns is set verify it is inside VNET CIDR attribute
+            if address not in network:
+                raise AutoloadException("CUSTOM VNET DNS attribute value {} is not inside VNET CIDR attribute value {}"
+                                        .format(custom_vnet_dns, cloud_provider_model.vnet_cidr))

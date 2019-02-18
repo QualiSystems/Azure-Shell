@@ -1,3 +1,5 @@
+from typing import List
+
 from cloudshell.cp.azure.models.vnet_mode import VnetMode
 
 
@@ -19,6 +21,6 @@ class AzureCloudProviderResourceModel(object):
         self.cloud_provider_name = ''  # type: str
         self.vnet_mode = ''  # type: VnetMode
         self.vnet_cidr = ''  # type: str
-        self.custom_vnet_dns = ''  # type: str
+        self.custom_vnet_dns = []  # type: List[str]
 
 

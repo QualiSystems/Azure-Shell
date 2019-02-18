@@ -31,6 +31,7 @@ class TestAutoloadOperation(TestCase):
         self.autoload_operation._register_azure_providers = mock.MagicMock()
         self.autoload_operation._validate_mgmt_resource_group = mock.MagicMock()
         self.autoload_operation._validate_vnet = mock.MagicMock()
+        self.autoload_operation._validate_sandbox_vnet_configuration = mock.MagicMock()
         self.autoload_operation._validate_vm_size = mock.MagicMock()
         self.autoload_operation._validate_additional_mgmt_networks = mock.MagicMock()
 
@@ -44,6 +45,7 @@ class TestAutoloadOperation(TestCase):
         self.autoload_operation._register_azure_providers.assert_called_once()
         self.autoload_operation._validate_mgmt_resource_group.assert_called_once()
         self.autoload_operation._validate_vnet.assert_called()
+        self.autoload_operation._validate_sandbox_vnet_configuration.assert_called()
         self.autoload_operation._validate_vm_size.assert_called_once()
         self.autoload_operation._validate_additional_mgmt_networks.assert_called_once()
 
