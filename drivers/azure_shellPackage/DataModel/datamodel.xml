@@ -472,10 +472,10 @@
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Inbound Ports" UserInput="true">
               <AllowedValues />
             </AttachedAttribute>
-            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Azure Snapshot" UserInput="true" EditableOnlyInAppTemplate="true">
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Azure Snapshot" UserInput="true">
               <AllowedValues />
             </AttachedAttribute>
-            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Azure Resource Group" UserInput="true" EditableOnlyInAppTemplate="true">
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Azure Resource Group" UserInput="true">
               <AllowedValues />
             </AttachedAttribute>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Disk Type" UserInput="true">
