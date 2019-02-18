@@ -315,8 +315,12 @@ class DeployAzureVMOperation(object):
         logger.info("Start creating VM {} from snapshot {} from resource group {}"
                     .format(data.vm_name, deployment_model.snapshot_name, deployment_model.snapshot_resource_group))
 
-        create_vm_req = CreateVmFromSnapshotRequest(compute_client, deployment_model, cloud_provider_model,
-                                                    data, cancellation_context, logger)
+        create_vm_req = CreateVmFromSnapshotRequest(compute_client,
+                                                    deployment_model,
+                                                    cloud_provider_model,
+                                                    data,
+                                                    cancellation_context,
+                                                    logger)
 
         return self.vm_service.create_vm_from_snapshot(create_vm_req)
 

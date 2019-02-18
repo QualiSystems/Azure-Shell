@@ -259,7 +259,8 @@ class AzureModelsParser(object):
 
         azure_resource_model.vnet_mode = AzureModelsParser.get_vnet_mode(resource_context)
         azure_resource_model.vnet_cidr = resource_context.get('VNET CIDR', "")
-        azure_resource_model.custom_vnet_dns = resource_context.get('Custom VNET DNS', "")
+        azure_resource_model.custom_vnet_dns = AzureModelsParser._convert_list_attribute(
+            resource_context.get('Custom VNET DNS', ""))
 
         return azure_resource_model
 
