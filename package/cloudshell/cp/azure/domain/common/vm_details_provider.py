@@ -1,4 +1,6 @@
-from azure.mgmt.compute.models import StorageAccountTypes
+from azure.mgmt.compute import ComputeManagementClient
+from azure.mgmt.compute.models import StorageAccountTypes, VirtualMachine, Disk, CreationData
+from azure.mgmt.network import NetworkManagementClient
 from cloudshell.cp.core.models import VmDetailsProperty, VmDetailsData, VmDetailsNetworkInterface
 
 from cloudshell.cp.azure.domain.vm_management.operations.deploy_operation import get_ip_from_interface_name
@@ -14,10 +16,11 @@ class VmDetailsProvider(object):
         self.network_service = network_service
         self.resource_id_parser = resource_id_parser
 
-    def create(self, instance, is_market_place, logger, network_client, group_name):
+    def create(self, instance, is_market_place, logger, group_name, network_client, compute_client):
         """
         :param group_name:
-        :param network_client:
+        :param NetworkManagementClient network_client:
+        :param ComputeManagementClient compute_client:
         :param instance: azure.mgmt.compute.models.VirtualMachine
         :param is_market_place: bool
         :param logging.Logger logger:
@@ -29,11 +32,13 @@ class VmDetailsProvider(object):
         if is_market_place:
             vm_instance_data = self._get_vm_instance_data_for_market_place(instance)
             vm_network_data = self._get_vm_network_data(instance, network_client, group_name, logger)
-            logger.info("VM {} was created via market place.".format(instance.name))
+            logger.info("VM {} was created via marketplace.".format(instance.name))
         else:
-            vm_instance_data = self._get_vm_instance_data_for_vm_from_non_marketplace_image(instance)
+            vm_instance_data = self._get_vm_instance_data_for_vm_from_non_marketplace_image(instance,
+                                                                                            compute_client,
+                                                                                            group_name)
             vm_network_data = self._get_vm_network_data(instance, network_client, group_name, logger)
-            logger.info("VM {} was created via custom image.".format(instance.name))
+            logger.info("VM {} was created via NON marketplace.".format(instance.name))
 
         return VmDetailsData(vmInstanceData=vm_instance_data, vmNetworkData=vm_network_data)
 
@@ -50,7 +55,13 @@ class VmDetailsProvider(object):
         ]
         return data
 
-    def _get_vm_instance_data_for_vm_from_non_marketplace_image(self, instance):
+    def _get_vm_instance_data_for_vm_from_non_marketplace_image(self, instance, compute_client, group_name):
+        """
+        :param VirtualMachine instance:
+        :param ComputeManagementClient compute_client:
+        :param str group_name:
+        :return:
+        """
         data = []
         if instance.storage_profile.image_reference:
             # VM was created from a custom image
@@ -62,8 +73,14 @@ class VmDetailsProvider(object):
             data.append(VmDetailsProperty(key='Image Resource Group', value=resource_group))
         else:
             # VM was created from a snapshot
-            # todo - get the os disk object and than extract the snapshot name from the source URI located under creation_data
-            pass
+            os_disk = compute_client.disks.get(resource_group_name=group_name,
+                                               disk_name=instance.storage_profile.os_disk.name)  # type: Disk
+            source_snapshot_id = os_disk.creation_data.source_uri
+            source_snapshot_rg = self.resource_id_parser.get_resource_group_name(source_snapshot_id)
+            source_snapshot_name = self.resource_id_parser.get_name_from_resource_id(source_snapshot_id)
+
+            data.append(VmDetailsProperty(key='Snapshot', value=source_snapshot_name))
+            data.append(VmDetailsProperty(key='Snapshot Resource Group', value=source_snapshot_rg))
 
         data.append(VmDetailsProperty(key='VM Size', value=instance.hardware_profile.vm_size))
         data.append(VmDetailsProperty(key='Operating System', value=instance.storage_profile.os_disk.os_type.name),)

@@ -303,7 +303,7 @@ class AzureShell(object):
                 cloudshell_session=cloudshell_session,
                 network_actions=network_actions)
 
-            logger.info('End deploying Azure VM From Custom Image')
+            logger.info('End deploying Azure VM From Snapshot')
 
             # todo dont always set success?
             network_results = [ConnectToSubnetActionResult(action.actionId, True, '', '', '') for action in

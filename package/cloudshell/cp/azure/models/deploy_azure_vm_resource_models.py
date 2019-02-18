@@ -1,5 +1,7 @@
 from typing import Dict, List
 
+from cloudshell.cp.azure.models.nic_request import NicRequest
+
 
 class BaseDeployAzureVMResourceModel(object):
     def __init__(self):
@@ -81,4 +83,4 @@ class DeployDataModel(object):
         self.vm_credentials = None  # type: VMCredentials
         self.private_ip_address = ''  # type: str
         self.public_ip_address = ''  # type: str
-        self.nic_requests = []  # type: list[NicRequest]
+        self.nic_requests = []  # type: List[NicRequest]
