@@ -606,13 +606,15 @@ class AzureShell(object):
                         self.model_parser.convert_to_reservation_model(context.remote_reservation).reservation_id
 
                     azure_clients = AzureClientsManager(cloud_provider_model)
+
                     self.snapshot_operation.save(azure_clients=azure_clients,
                                                  cloud_provider_model=cloud_provider_model,
                                                  instance_name=data_holder.name,
                                                  destination_resource_group=resource_group,
                                                  source_resource_group=resource_group_name,
                                                  snapshot_name_prefix=snapshot_prefix,
-                                                 disk_type=disk_type)
+                                                 disk_type=disk_type,
+                                                 logger=logger)
 
     def get_application_ports(self, command_context):
         """Get application ports in a nicely formatted manner

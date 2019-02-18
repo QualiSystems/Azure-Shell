@@ -12,15 +12,21 @@ class SnapshotOperation:
              destination_resource_group,
              source_resource_group,
              snapshot_name_prefix,
-             disk_type="Standard_LRS"):
+             logger,
+             disk_type="Standard_LRS",
+             ):
         vm = self.vm_service.get_vm(azure_clients.compute_client, source_resource_group, instance_name)
         disk_name = vm.storage_profile.os_disk.name
 
         managed_disk = azure_clients.compute_client.disks.get(source_resource_group, disk_name)
 
+        snapshot_name = "{0}{1}".format(snapshot_name_prefix, instance_name)
+        logger.info("Creating Snapshot {0} in Resource group {1} based on resource :(2)"
+                    .format(snapshot_name, destination_resource_group, instance_name))
+
         async_snapshot_creation = azure_clients.compute_client.snapshots.create_or_update(
             destination_resource_group,
-            "{0}{1}".format(snapshot_name_prefix, instance_name),
+            snapshot_name,
             Snapshot(location=cloud_provider_model.region,
                      account_type=disk_type,
                      creation_data=CreationData(create_option=DiskCreateOption.copy,
@@ -29,4 +35,5 @@ class SnapshotOperation:
 
         snapshot = async_snapshot_creation.result()
 
+        logger.info("Created Snapshot {0} in Resource group {1}".format(snapshot_name, destination_resource_group))
         return snapshot
