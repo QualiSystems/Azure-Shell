@@ -14,6 +14,7 @@ from cloudshell.cp.azure.domain.vm_management.operations.PrepareSandboxInfraOper
     PrepareSandboxInfraOperation
 from cloudshell.cp.azure.domain.vm_management.operations.access_key_operation import AccessKeyOperation
 from cloudshell.cp.azure.domain.vm_management.operations.delete_operation import DeleteAzureVMOperation
+from cloudshell.cp.azure.domain.vm_management.operations.snapshot_operation import SnapshotOperation
 from cloudshell.cp.azure.domain.vm_management.operations.set_app_security_groups import SetAppSecurityGroupsOperation
 from cloudshell.cp.azure.domain.vm_management.operations.vm_details_operation import VmDetailsOperation
 from cloudshell.shell.core.driver_context import ResourceCommandContext, CancellationContext
@@ -142,6 +143,8 @@ class AzureShell(object):
                                                                                nsg_service=self.security_group_service,
                                                                                generic_lock_provider=self.generic_lock_provider)
 
+        self.snapshot_operation = SnapshotOperation(vm_service=self.vm_service)
+
     def get_inventory(self, command_context):
         """Validate Cloud Provider
 
@@ -218,7 +221,6 @@ class AzureShell(object):
         :param cloudshell.cp.core.models.DeployApp deploy_action: describes the desired deployment
         :param CancellationContext cancellation_context:
         """
-
         deploy_action = single(actions, lambda x: isinstance(x, DeployApp))
         network_actions = [a for a in actions if isinstance(a, ConnectSubnet)]
         with LoggingSessionContext(command_context) as logger:
@@ -278,10 +280,10 @@ class AzureShell(object):
             with CloudShellSessionContext(command_context) as cloudshell_session:
                 azure_vm_deployment_model = self.model_parser. \
                     convert_to_deploy_azure_vm_from_snapshot_resource_model(
-                        deploy_action=deploy_action,
-                        network_actions=network_actions,
-                        cloudshell_session=cloudshell_session,
-                        logger=logger)
+                    deploy_action=deploy_action,
+                    network_actions=network_actions,
+                    cloudshell_session=cloudshell_session,
+                    logger=logger)
 
                 cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(
                     resource=command_context.resource,
@@ -373,6 +375,7 @@ class AzureShell(object):
         :param cancellation_context cloudshell.shell.core.driver_context.CancellationContext instance
         :return:
         """
+
         with LoggingSessionContext(context) as logger:
             with ErrorHandlingContext(logger):
                 logger.info('Preparing Connectivity for Azure VM...')
@@ -381,6 +384,8 @@ class AzureShell(object):
                     cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(
                         resource=context.resource,
                         cloudshell_session=cloudshell_session)
+
+                logger.info('Deploying with VNET Mode: {}'.format(cloud_provider_model.vnet_mode))
 
                 azure_clients = AzureClientsManager(cloud_provider_model)
 
@@ -575,6 +580,30 @@ class AzureShell(object):
                 return self.access_key_operation.get_access_key(storage_client=azure_clients.storage_client,
                                                                 group_name=resource_group_name)
 
+    def remote_save_snapshot(self, context, resource_group, snapshot_prefix):
+        with LoggingSessionContext(context) as logger:
+            with ErrorHandlingContext(logger):
+                logger.info("Saving snapshot started")
+
+                with CloudShellSessionContext(context) as cloudshell_session:
+                    cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(
+                        resource=context.resource,
+                        cloudshell_session=cloudshell_session)
+
+                    resource = context.remote_endpoints[0]
+                    data_holder = self.model_parser.convert_app_resource_to_deployed_app(resource)
+
+                    resource_group_name = \
+                        self.model_parser.convert_to_reservation_model(context.remote_reservation).reservation_id
+
+                    azure_clients = AzureClientsManager(cloud_provider_model)
+                    self.snapshot_operation.save(azure_clients=azure_clients,
+                                                 cloud_provider_model=cloud_provider_model,
+                                                 instance_name=data_holder.name,
+                                                 destination_resource_group=resource_group,
+                                                 source_resource_group=resource_group_name,
+                                                 snapshot_name_prefix=snapshot_prefix)
+
     def get_application_ports(self, command_context):
         """Get application ports in a nicely formatted manner
 
@@ -594,10 +623,10 @@ class AzureShell(object):
                 vm_name = resource.fullname
 
                 resource_group_name = \
-                    self.model_parser.\
+                    self.model_parser. \
                         convert_to_reservation_model(command_context.remote_reservation).reservation_id
 
-                allow_sandbox_traffic = self.model_parser.\
+                allow_sandbox_traffic = self.model_parser. \
                     get_allow_all_storage_traffic_from_connected_resource_details(command_context)
 
                 vm_nsg = self._get_vm_nsg(azure_clients, compute_client, network_client, resource_group_name, vm_name)

@@ -153,7 +153,8 @@ class PrepareSandboxInfraOperation(object):
                                                         network_name=SANDBOX_VNET_NAME,
                                                         region=cloud_provider_model.region,
                                                         tags=vnet_tags,
-                                                        vnet_cidr=cloud_provider_model.vnet_cidr)
+                                                        vnet_cidr=cloud_provider_model.vnet_cidr,
+                                                        vnet_dns=cloud_provider_model.custom_vnet_dns)
             sandbox_networks = self.network_service \
                 .get_virtual_networks(network_client=network_client, group_name=group_name)
 
