@@ -26,10 +26,11 @@
         </Category>
 
         <Category Name="Snapshot">
-            <Command Description="" DisplayName="Save Snapshot" Name="remote_save_snapshot" Tags="remote_connectivity,allow_unreserved">
+            <Command Description="" DisplayName="Save Snapshot" EnableCancellation="true" Name="remote_save_snapshot" Tags="remote_connectivity,allow_unreserved">
                 <Parameters>
                     <Parameter DefaultValue="" Description="Please enter the VM snapshot prefix, for example 'Snapshot1'" DisplayName="Snapshot Prefix" Mandatory="True" Name="snapshot_prefix" Type="String" />
                     <Parameter DefaultValue="" Description="Resource group where the snapshot will be saved" DisplayName="Resource Group" Mandatory="True" Name="resource_group" Type="String" />
+                    <Parameter DefaultValue="HDD" Description="Type of snapshot disk HDD or SSD" DisplayName="Snapshot disk type" Mandatory="True" Name="disk_type" Type="String" />
                 </Parameters>
             </Command>
         </Category>
