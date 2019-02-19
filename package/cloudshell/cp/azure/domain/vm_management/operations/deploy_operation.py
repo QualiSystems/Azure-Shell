@@ -669,7 +669,7 @@ class DeployAzureVMOperation(object):
             # once we have the NIC ip, we can create a permissive security rule for inbound ports but only to ip
             # inbound ports only works on public subnets! private subnets are allowed all traffic from sandbox
             # but no traffic from public addresses.
-            if nic_request.is_public and cloud_provider_model.vnet_mode == VnetMode.SINGLE:
+            if nic_request.is_public:
                 logger.info("Adding inbound port rules to sandbox subnets NSG, with ip address as destination {0}"
                             .format(ip_address))
                 self.security_group_service.create_network_security_group_rules(network_client,
