@@ -716,9 +716,8 @@ class DeployAzureVMOperation(object):
                                                                            tags=tags)
         vm_nsg_lock = self.generic_lock_provider.get_resource_lock(lock_key=security_group_name, logger=logger)
 
-        if cloud_provider_model.vnet_mode == VnetMode.SINGLE:
-            self.create_vm_nsg_rules(cloud_provider_model, data, deployment_model, management_vnet_cidr, network_client,
-                                     security_group_name, vm_nsg_lock)
+        self.create_vm_nsg_rules(cloud_provider_model, data, deployment_model, management_vnet_cidr, network_client,
+                                 security_group_name, vm_nsg_lock)
 
         self.cancellation_service.check_if_cancelled(cancellation_context)
         return vm_nsg
