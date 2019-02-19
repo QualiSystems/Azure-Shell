@@ -166,40 +166,34 @@ class PrepareSandboxInfraOperation(object):
         # to subnets that set their attribute Public = false, i.e. private subnets
         # the idea is that all subnets in sandbox are subscribed to this subnet.
 
-        security_group_name = self.security_group_service.get_subnets_nsg_name(reservation_id)
-        logger.info("Creating a network security group: '{}' .".format(security_group_name))
-        sandbox_network_security_group = self.security_group_service.create_network_security_group(
-            network_client=network_client,
-            group_name=group_name,
-            security_group_name=security_group_name,
-            region=cloud_provider_model.region,
-            tags=tags)
+        if cloud_provider_model.vnet_mode == VnetMode.SINGLE:
+            security_group_name = self.security_group_service.get_subnets_nsg_name(reservation_id)
+            logger.info("Creating a network security group: '{}' .".format(security_group_name))
+            sandbox_network_security_group = self.security_group_service.create_network_security_group(
+                network_client=network_client,
+                group_name=group_name,
+                security_group_name=security_group_name,
+                region=cloud_provider_model.region,
+                tags=tags)
+        else:
+            sandbox_network_security_group = None
 
         self.cancellation_service.check_if_cancelled(cancellation_context)
 
-        logger.info("Creating management rules for {0}...".format(security_group_name))
         # 5. Set rules on the subnets nsg - which handles security for all subnets in sandbox.
         # Support "additional management traffic" inbound traffic
         # allow management vnet traffic
         # deny inbound from other subnets in vnet
 
-        # TODO
+        # only use sandbox nsg in multiple vnet mode
         if cloud_provider_model.vnet_mode == VnetMode.SINGLE:
+            logger.info("Creating management rules for {0}...".format(security_group_name))
+
             self._create_subnet_nsg_rules_for_single_vnet(
                 group_name=group_name,
                 management_vnet=management_vnet,
                 network_client=network_client,
                 sandbox_vnet=sandbox_vnet,
-                sandbox_cidr=cidr,
-                security_group_name=security_group_name,
-                additional_mgmt_networks=cloud_provider_model.additional_mgmt_networks,
-                logger=logger,
-                subnet_actions=subnet_actions)
-        else:
-            self._create_subnet_nsg_rules_for_multiple_vnet(
-                group_name=group_name,
-                management_vnet=management_vnet,
-                network_client=network_client,
                 sandbox_cidr=cidr,
                 security_group_name=security_group_name,
                 additional_mgmt_networks=cloud_provider_model.additional_mgmt_networks,
