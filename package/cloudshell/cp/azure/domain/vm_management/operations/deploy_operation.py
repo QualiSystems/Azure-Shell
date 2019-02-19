@@ -1,29 +1,27 @@
 import re
 
-from azure.mgmt.network.models import RouteNextHopType, SecurityRuleProtocol
+from azure.mgmt.compute.models import OperatingSystemTypes
+from azure.mgmt.network.models import SecurityRuleAccess
+from azure.mgmt.network.models import SecurityRuleProtocol
+from cloudshell.api.cloudshell_api import CloudShellAPISession
+from cloudshell.cp.core.models import DeployAppResult, Attribute, ConnectSubnet
+from cloudshell.shell.core.driver_context import CancellationContext
 from msrestazure.azure_exceptions import CloudError
+
 from cloudshell.cp.azure.common.exceptions.quali_timeout_exception import QualiTimeoutException, \
     QualiScriptExecutionTimeoutException
-from cloudshell.cp.azure.domain.services.network_service import NetworkService
-from cloudshell.cp.azure.models.create_vm_request_models import CreateVmFromSnapshotRequest
-from cloudshell.cp.azure.models.deploy_result_model import DeployResult
 from cloudshell.cp.azure.common.parsers.rules_attribute_parser import RulesAttributeParser
-from cloudshell.cp.azure.models.nic_request import NicRequest
-from cloudshell.cp.azure.models.reservation_model import ReservationModel
+from cloudshell.cp.azure.domain.services.network_service import NetworkService
+from cloudshell.cp.azure.models.azure_cloud_provider_resource_model import AzureCloudProviderResourceModel
+from cloudshell.cp.azure.models.create_vm_request_models import CreateVmFromSnapshotRequest
 from cloudshell.cp.azure.models.deploy_azure_vm_resource_models import \
     DeployAzureVMFromCustomImageResourceModel, BaseDeployAzureVMResourceModel, DeployAzureVMResourceModel, \
     DeployAzureVMFromSnapshotResourceModel, DeployDataModel
-from cloudshell.cp.azure.models.azure_cloud_provider_resource_model import AzureCloudProviderResourceModel
-from azure.mgmt.network.models import Subnet, NetworkInterface, SecurityRule, SecurityRuleAccess
-from azure.mgmt.compute.models import OperatingSystemTypes, PurchasePlan
-from cloudshell.shell.core.driver_context import CancellationContext
-
+from cloudshell.cp.azure.models.image_data import MarketplaceImageDataModel
+from cloudshell.cp.azure.models.nic_request import NicRequest
+from cloudshell.cp.azure.models.reservation_model import ReservationModel
 from cloudshell.cp.azure.models.rule_data import RuleData
-from cloudshell.cp.azure.models.vm_credentials import VMCredentials
-from cloudshell.cp.azure.models.image_data import ImageDataModelBase, MarketplaceImageDataModel
-from cloudshell.cp.azure.models.network_actions_models import *
-from cloudshell.api.cloudshell_api import CloudShellAPISession
-from cloudshell.cp.core.models import DeployAppResult, Attribute, ConnectSubnet
+from cloudshell.cp.azure.models.vnet_mode import VnetMode
 
 
 class DeployAzureVMOperation(object):
@@ -428,7 +426,8 @@ class DeployAzureVMOperation(object):
         if not multiple_subnet_mode:
             try:
                 private_ip = None
-                if isinstance(deployment_model, DeployAzureVMFromSnapshotResourceModel) and deployment_model.private_static_ip:
+                if isinstance(deployment_model,
+                              DeployAzureVMFromSnapshotResourceModel) and deployment_model.private_static_ip:
                     private_ip = deployment_model.private_static_ip
 
                 nic_requests = [next((NicRequest("{}-{}".format(vm_name, 0), s, is_public=True, private_ip=private_ip)
@@ -670,7 +669,7 @@ class DeployAzureVMOperation(object):
             # once we have the NIC ip, we can create a permissive security rule for inbound ports but only to ip
             # inbound ports only works on public subnets! private subnets are allowed all traffic from sandbox
             # but no traffic from public addresses.
-            if nic_request.is_public:
+            if nic_request.is_public and cloud_provider_model.vnet_mode == VnetMode.SINGLE:
                 logger.info("Adding inbound port rules to sandbox subnets NSG, with ip address as destination {0}"
                             .format(ip_address))
                 self.security_group_service.create_network_security_group_rules(network_client,
@@ -717,6 +716,15 @@ class DeployAzureVMOperation(object):
                                                                            tags=tags)
         vm_nsg_lock = self.generic_lock_provider.get_resource_lock(lock_key=security_group_name, logger=logger)
 
+        if cloud_provider_model.vnet_mode == VnetMode.SINGLE:
+            self.create_vm_nsg_rules(cloud_provider_model, data, deployment_model, management_vnet_cidr, network_client,
+                                     security_group_name, vm_nsg_lock)
+
+        self.cancellation_service.check_if_cancelled(cancellation_context)
+        return vm_nsg
+
+    def create_vm_nsg_rules(self, cloud_provider_model, data, deployment_model, management_vnet_cidr, network_client,
+                            security_group_name, vm_nsg_lock):
         #   VM NSG rules overview
         #       1xxx
         #       -   Open traffic to VM on inbound ports (an attribute on the app)
@@ -726,7 +734,6 @@ class DeployAzureVMOperation(object):
         #       -   Open traffic to VM from mgmt vnet
         #       4090
         #       -   block traffic to VM from sandbox if "allow all sandbox traffic = false"
-
         # Rule 1xxx
         if deployment_model.inbound_ports:
             inbound_rules = RulesAttributeParser.parse_port_group_attribute(
@@ -742,7 +749,6 @@ class DeployAzureVMOperation(object):
 
         # Rule 3xxx:
         # Open traffic to VM from additional mgmt networks
-
         for mgmt_network in cloud_provider_model.additional_mgmt_networks:
             security_rule_name = 'Allow_{0}'.format(mgmt_network.replace('/', '-'))
             allow_traffic_from_additional_mgmt_network = [
@@ -761,13 +767,11 @@ class DeployAzureVMOperation(object):
 
         # Rule 4070:
         # Open traffic to VM from mgmt vnet
-
         security_rule_name = 'Allow_Traffic_From_Management_Vnet_To_Any'
         allow_all_traffic = [RuleData(protocol=SecurityRuleProtocol.asterisk,
                                       port='*',
                                       access=SecurityRuleAccess.allow,
                                       name=security_rule_name)]
-
         self.security_group_service.create_network_security_group_rules(
             network_client,
             data.group_name,
@@ -778,12 +782,10 @@ class DeployAzureVMOperation(object):
             start_from=4070,
             source_address=management_vnet_cidr
         )
-
         # Rule 4080 / Rule 4090:
         # Block traffic from sandbox if vm is set to allow all sandbox traffic = false;
         # And if block traffic from sandbox, must specifically allow traffic for AzureLoadBalancer, otherwise basic
         # services will break
-
         if not deployment_model.allow_all_sandbox_traffic or deployment_model.allow_all_sandbox_traffic == 'False':
             security_rule_name = 'Allow_Azure_Load_Balancer'
             allow_all_traffic = [RuleData(protocol=SecurityRuleProtocol.asterisk,
@@ -818,9 +820,6 @@ class DeployAzureVMOperation(object):
                 start_from=4090,
                 source_address="VirtualNetwork"
             )
-
-        self.cancellation_service.check_if_cancelled(cancellation_context)
-        return vm_nsg
 
     def _get_management_vnet_cidr(self, cloud_provider_model, network_client):
         virtual_networks = self.network_service.get_virtual_networks(network_client=network_client,
