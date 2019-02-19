@@ -1,6 +1,7 @@
 from threading import Lock
 
 import jsonpickle
+from azure.mgmt.compute.models import StorageAccountTypes
 from cloudshell.api.cloudshell_api import CommandExecutionCancelledResultInfo
 from cloudshell.core.context.error_handling_context import ErrorHandlingContext
 from cloudshell.cp.core.models import DeployApp, ConnectSubnet, ConnectToSubnetActionResult, \
@@ -143,7 +144,8 @@ class AzureShell(object):
                                                                                nsg_service=self.security_group_service,
                                                                                generic_lock_provider=self.generic_lock_provider)
 
-        self.snapshot_operation = SnapshotOperation(vm_service=self.vm_service)
+        self.snapshot_operation = SnapshotOperation(vm_service=self.vm_service,
+                                                    task_service=self.task_waiter_service)
 
     def get_inventory(self, command_context):
         """Validate Cloud Provider
@@ -580,12 +582,15 @@ class AzureShell(object):
                 return self.access_key_operation.get_access_key(storage_client=azure_clients.storage_client,
                                                                 group_name=resource_group_name)
 
-    def remote_save_snapshot(self, context, resource_group, snapshot_prefix):
+    def remote_save_snapshot(self, context, cancellation_context, resource_group, snapshot_prefix, disk_type):
+
+        destination_resource_group = resource_group
         with LoggingSessionContext(context) as logger:
             with ErrorHandlingContext(logger):
                 logger.info("Saving snapshot started")
-
                 with CloudShellSessionContext(context) as cloudshell_session:
+                    disk_type = self._get_disk_type(disk_type)
+
                     cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(
                         resource=context.resource,
                         cloudshell_session=cloudshell_session)
@@ -597,12 +602,35 @@ class AzureShell(object):
                         self.model_parser.convert_to_reservation_model(context.remote_reservation).reservation_id
 
                     azure_clients = AzureClientsManager(cloud_provider_model)
-                    self.snapshot_operation.save(azure_clients=azure_clients,
-                                                 cloud_provider_model=cloud_provider_model,
-                                                 instance_name=data_holder.name,
-                                                 destination_resource_group=resource_group,
-                                                 source_resource_group=resource_group_name,
-                                                 snapshot_name_prefix=snapshot_prefix)
+                    snapshot = self.snapshot_operation.save(azure_clients=azure_clients,
+                                                            cloud_provider_model=cloud_provider_model,
+                                                            instance_name=data_holder.name,
+                                                            destination_resource_group=destination_resource_group,
+                                                            source_resource_group=resource_group_name,
+                                                            snapshot_name_prefix=snapshot_prefix,
+                                                            disk_type=disk_type,
+                                                            cancellation_context=cancellation_context,
+                                                            logger=logger)
+
+                    try:
+                        result = 'Created snapshot {0} in resource group {1} for app {2}'\
+                            .format(snapshot.name,
+                                    destination_resource_group,
+                                    data_holder.name)
+                        return result
+                    except Exception:
+                        logger.exception('Error during snapshot creation')
+                        raise Exception('Error during snapshot creation, please check logs')
+
+    def _get_disk_type(self, disk_type):
+        disk_type = disk_type.lower()
+        if disk_type == "ssd":
+            disk_type = StorageAccountTypes.premium_lrs
+        elif disk_type == "hdd":
+            disk_type = StorageAccountTypes.standard_lrs
+        else:
+            raise Exception("disk type should be HDD/SDD")
+        return disk_type
 
     def get_application_ports(self, command_context):
         """Get application ports in a nicely formatted manner
