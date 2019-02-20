@@ -1,5 +1,6 @@
 import jsonpickle
 from cloudshell.cp.core.utils import first_or_default
+from typing import List
 
 from cloudshell.cp.azure.common.parsers.security_group_parser import SecurityGroupParser
 from cloudshell.cp.azure.domain.services.parsers.network_actions import NetworkActionsParser
@@ -287,7 +288,7 @@ class AzureModelsParser(object):
     @staticmethod
     def convert_to_app_security_group_models(request):
         """
-        :rtype list[AppSecurityGroupModel]:
+        :rtype List[AppSecurityGroupModel]:
         """
         security_group_models = []
 

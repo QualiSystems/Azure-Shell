@@ -11,3 +11,4 @@ drivers/killPython.bat
 *.orig
 package/version.txt
 /package/dist/
+/package/dist.bat
