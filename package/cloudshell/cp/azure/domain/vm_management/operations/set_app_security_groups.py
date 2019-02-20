@@ -25,23 +25,21 @@ class SetAppSecurityGroupsOperation(object):
         :return:
         """
         # purpose of set_apps_security_groups is to set custom security rules for specific apps.
-        # the idea is that we can allow / block traffic to specific VMs
-
-        sg_model = app_security_group_models[0]
-        vm_name = sg_model.deployed_app.name
-        vm_nsg_name = 'NSG_' + vm_name
-        lock = self.generic_lock_provider.get_resource_lock(lock_key=vm_nsg_name, logger=logger)
-
-        # delete previous custom rules
-        self.nsg_service.delete_custom_security_rules_from_nsg(network_client=network_client,
-                                                               resource_group_name=group_name,
-                                                               network_security_group_name=vm_nsg_name,
-                                                               lock=lock,
-                                                               logger=logger)
+        # the idea is that we can allow traffic to specific VMs
 
         result = []
         for app_security_group_model in app_security_group_models:
             try:
+                vm_name = app_security_group_model.deployed_app.name
+                vm_nsg_name = 'NSG_' + vm_name
+                lock = self.generic_lock_provider.get_resource_lock(lock_key=vm_nsg_name, logger=logger)
+
+                # delete previous custom rules
+                self.nsg_service.delete_custom_security_rules_from_nsg(network_client=network_client,
+                                                                       resource_group_name=group_name,
+                                                                       network_security_group_name=vm_nsg_name,
+                                                                       lock=lock,
+                                                                       logger=logger)
 
                 # get network security group for VM
                 instance = self.vm_service.get_vm(compute_client, group_name, vm_name)
