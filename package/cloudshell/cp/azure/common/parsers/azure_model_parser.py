@@ -52,6 +52,7 @@ class AzureModelsParser(object):
         deployment_resource_model.extension_script_timeout = (int(data_attributes['Extension Script Timeout']))
         deployment_resource_model.disk_type = data_attributes['Disk Type']
         deployment_resource_model.allow_all_sandbox_traffic = data_attributes['Allow all Sandbox Traffic']
+        deployment_resource_model.private_static_ip = data_attributes['Private Static IP']
         deployment_resource_model.app_name = deploy_action.actionParams.appName
         logical_resource = deploy_action.actionParams.appResource.attributes  # its not a dictionary!!?@@#@!?#
 
@@ -194,7 +195,6 @@ class AzureModelsParser(object):
         deployment_resource_model = DeployAzureVMFromSnapshotResourceModel()
         deployment_resource_model.snapshot_name = data_attributes['Azure Snapshot']
         deployment_resource_model.snapshot_resource_group = data_attributes['Azure Resource Group']
-        deployment_resource_model.private_static_ip = data_attributes['Private Static IP']
 
         AzureModelsParser._set_base_deploy_azure_vm_model_params(deployment_resource_model=deployment_resource_model,
                                                                  deploy_action=deploy_action,

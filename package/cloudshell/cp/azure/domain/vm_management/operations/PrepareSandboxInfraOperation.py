@@ -141,22 +141,29 @@ class PrepareSandboxInfraOperation(object):
 
         # 1b. Create a VNET for multiple vnet mode
         if cloud_provider_model.vnet_mode == VnetMode.MULTIPLE:
-            logger.info("Creating a sandbox vnet: {}".format(SANDBOX_VNET_NAME))
-
-            # purpose is to identify sandbox vnet using tags
-            vnet_tags = tags.copy()
-            vnet_tags["VNET_Name"] = SANDBOX_VNET_NAME
-            vnet_tags[NetworkService.NETWORK_TYPE_TAG_NAME] = NetworkService.SANDBOX_NETWORK_TAG_VALUE
-
-            self.network_service.create_virtual_network(resource_group_name=group_name,
-                                                        network_client=network_client,
-                                                        network_name=SANDBOX_VNET_NAME,
-                                                        region=cloud_provider_model.region,
-                                                        tags=vnet_tags,
-                                                        vnet_cidr=cloud_provider_model.vnet_cidr,
-                                                        vnet_dns=cloud_provider_model.custom_vnet_dns)
+            # check if sandbox vnet already exists in case setup is running again
             sandbox_networks = self.network_service \
                 .get_virtual_networks(network_client=network_client, group_name=group_name)
+            try:
+                self._get_sandbox_vnet(logger, sandbox_networks)
+                logger.info("Sandbox vnet exists: {}".format(SANDBOX_VNET_NAME))
+            except VirtualNetworkNotFoundException:
+                logger.info("Creating a sandbox vnet: {}".format(SANDBOX_VNET_NAME))
+
+                # purpose is to identify sandbox vnet using tags
+                vnet_tags = tags.copy()
+                vnet_tags["VNET_Name"] = SANDBOX_VNET_NAME
+                vnet_tags[NetworkService.NETWORK_TYPE_TAG_NAME] = NetworkService.SANDBOX_NETWORK_TAG_VALUE
+
+                self.network_service.create_virtual_network(resource_group_name=group_name,
+                                                            network_client=network_client,
+                                                            network_name=SANDBOX_VNET_NAME,
+                                                            region=cloud_provider_model.region,
+                                                            tags=vnet_tags,
+                                                            vnet_cidr=cloud_provider_model.vnet_cidr,
+                                                            vnet_dns=cloud_provider_model.custom_vnet_dns)
+                sandbox_networks = self.network_service \
+                    .get_virtual_networks(network_client=network_client, group_name=group_name)
 
         sandbox_vnet = self._get_sandbox_vnet(logger, sandbox_networks)
 
