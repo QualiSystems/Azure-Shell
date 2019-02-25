@@ -435,8 +435,7 @@ class DeployAzureVMOperation(object):
         if not multiple_subnet_mode:
             try:
                 private_ip = None
-                if isinstance(deployment_model,
-                              DeployAzureVMFromSnapshotResourceModel) and deployment_model.private_static_ip:
+                if deployment_model.private_static_ip:
                     private_ip = deployment_model.private_static_ip
 
                 nic_requests = [next((NicRequest("{}-{}".format(vm_name, 0), s, is_public=True, private_ip=private_ip)
@@ -632,8 +631,8 @@ class DeployAzureVMOperation(object):
         :return:
         """
 
-        if data.image_model.os_type is not OperatingSystemTypes.linux and\
-                isinstance(deployment_model, DeployAzureVMFromSnapshotResourceModel):
+        if data.image_model.os_type is not OperatingSystemTypes.linux \
+                and not isinstance(deployment_model, DeployAzureVMFromSnapshotResourceModel):
             # VM Access Extension is supported only for linux and we use it only when the deployment option
             # is "From Snapshot"
             return

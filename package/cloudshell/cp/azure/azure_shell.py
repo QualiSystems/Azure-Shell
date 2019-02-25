@@ -282,10 +282,10 @@ class AzureShell(object):
             with CloudShellSessionContext(command_context) as cloudshell_session:
                 azure_vm_deployment_model = self.model_parser. \
                     convert_to_deploy_azure_vm_from_snapshot_resource_model(
-                    deploy_action=deploy_action,
-                    network_actions=network_actions,
-                    cloudshell_session=cloudshell_session,
-                    logger=logger)
+                        deploy_action=deploy_action,
+                        network_actions=network_actions,
+                        cloudshell_session=cloudshell_session,
+                        logger=logger)
 
                 cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(
                     resource=command_context.resource,
@@ -495,7 +495,6 @@ class AzureShell(object):
 
                 logger.info('Azure VM was successfully powered on')
 
-
     def power_off_vm(self, command_context):
         """Power off Azure VM
 
@@ -615,7 +614,7 @@ class AzureShell(object):
                                                             logger=logger)
 
                     try:
-                        result = 'Created snapshot {0} in resource group {1} for app {2}'\
+                        result = 'Created snapshot {0} in resource group {1} for app {2}' \
                             .format(snapshot.name,
                                     destination_resource_group,
                                     data_holder.name)
