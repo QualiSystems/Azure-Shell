@@ -321,7 +321,8 @@ class TestAzureShell(TestCase):
             resource_group_name=self.group_name,
             resource_full_name=resource_full_name,
             data_holder=data_holder,
-            cloudshell_session=cloudshell_session)
+            cloudshell_session=cloudshell_session,
+            logger=self.logger)
 
     @mock.patch("cloudshell.cp.azure.azure_shell.CloudShellSessionContext")
     @mock.patch("cloudshell.cp.azure.azure_shell.AzureClientsManager")

@@ -26,7 +26,8 @@ class TestPowerAzureVMOperation(TestCase):
                                       resource_group_name=self.resource_group_name,
                                       resource_full_name=self.resource_full_name,
                                       data_holder=self.data_holder,
-                                      cloudshell_session=self.cloudshell_session)
+                                      cloudshell_session=self.cloudshell_session,
+                                      logger=mock.Mock())
 
         # Verify
         self.vm_service.start_vm.assert_called_once_with(self.compute_client,
@@ -50,7 +51,8 @@ class TestPowerAzureVMOperation(TestCase):
                                           resource_group_name=self.resource_group_name,
                                           resource_full_name=self.resource_full_name,
                                           data_holder=self.data_holder,
-                                          cloudshell_session=self.cloudshell_session)
+                                          cloudshell_session=self.cloudshell_session,
+                                          logger=mock.Mock())
 
         # Verify
         self.cloudshell_session.SetResourceLiveStatus.assert_called_once_with(
