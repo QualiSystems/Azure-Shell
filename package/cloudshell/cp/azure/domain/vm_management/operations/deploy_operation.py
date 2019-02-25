@@ -670,8 +670,6 @@ class DeployAzureVMOperation(object):
         except Exception:
             raise
 
-        self.cancellation_service.check_if_cancelled(cancellation_context)
-
     def _create_vm_common_objects(self, logger, data, deployment_model, cloud_provider_model, network_client,
                                   storage_client, cancellation_context):
         """ Creates and configures common VM objects: NIC, Credentials, NSG (if needed)

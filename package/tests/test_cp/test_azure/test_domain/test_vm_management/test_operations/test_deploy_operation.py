@@ -146,6 +146,7 @@ class TestDeployAzureVMOperation(TestCase):
         self.deploy_operation._prepare_deploy_data = Mock(return_value=data)
         self.deploy_operation._create_vm_common_objects = Mock(return_value=updated_data)
         self.deploy_operation._create_vm_custom_script_extension = Mock()
+        self.deploy_operation._create_vm_access_linux_extension = Mock()
         self.deploy_operation._prepare_deployed_app_attributes = Mock(return_value=deployed_app_attributes)
         self.deploy_operation._get_public_ip_address = Mock(return_value="pub_ip_address")
 
