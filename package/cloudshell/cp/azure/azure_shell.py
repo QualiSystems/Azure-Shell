@@ -490,9 +490,11 @@ class AzureShell(object):
                                                      resource_group_name=group_name,
                                                      resource_full_name=resource.fullname,
                                                      data_holder=data_holder,
-                                                     cloudshell_session=cloudshell_session)
+                                                     cloudshell_session=cloudshell_session,
+                                                     logger=logger)
 
                 logger.info('Azure VM was successfully powered on')
+
 
     def power_off_vm(self, command_context):
         """Power off Azure VM

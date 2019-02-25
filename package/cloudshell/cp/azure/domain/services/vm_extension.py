@@ -7,6 +7,14 @@ from cloudshell.cp.azure.common.helpers.url_helper import URLHelper
 
 
 class VMExtensionService(object):
+    WINDOWS_PUBLISHER = "Microsoft.Compute"
+    WINDOWS_EXTENSION_TYPE = "CustomScriptExtension"
+    WINDOWS_HANDLER_VERSION = "1.7"
+
+    LINUX_PUBLISHER = "Microsoft.OSTCExtensions"
+    LINUX_EXTENSION_TYPE = "CustomScriptForLinux"
+    LINUX_HANDLER_VERSION = "1.5"
+
     def __init__(self, url_helper, waiter_service):
         """
 
@@ -16,14 +24,6 @@ class VMExtensionService(object):
         """
         self.waiter_service = waiter_service
         self.url_helper = url_helper
-
-    WINDOWS_PUBLISHER = "Microsoft.Compute"
-    WINDOWS_EXTENSION_TYPE = "CustomScriptExtension"
-    WINDOWS_HANDLER_VERSION = "1.7"
-
-    LINUX_PUBLISHER = "Microsoft.OSTCExtensions"
-    LINUX_EXTENSION_TYPE = "CustomScriptForLinux"
-    LINUX_HANDLER_VERSION = "1.5"
 
     def validate_script_extension(self, image_os_type, script_file, script_configurations):
         """Validate that script extension name and configuration are valid
@@ -88,8 +88,40 @@ class VMExtensionService(object):
                                        })
 
     @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
+    def create_vm_linux_access_extension(self, compute_client, location, group_name, vm_name, image_os_type, username,
+                                         password, timeout=1800, cancellation_context=None, tags=None):
+        """Create VM Access extension
+        """
+        if image_os_type is not OperatingSystemTypes.linux:
+            raise ValueError("VM Access extension is supported by Azure only for Linux.")
+
+        vm_extension = self._prepare_linux_vm_access_extension(location, tags, username, password)
+
+        operation_poller = compute_client.virtual_machine_extensions.create_or_update(
+            resource_group_name=group_name,
+            vm_name=vm_name,
+            vm_extension_name=vm_name,
+            extension_parameters=vm_extension)
+
+        return self.waiter_service.wait_for_task_with_timeout(operation_poller=operation_poller,
+                                                              cancellation_context=cancellation_context,
+                                                              timeout=timeout)
+
+    def _prepare_linux_vm_access_extension(self, location, tags, username, password):
+        vm_extension = VirtualMachineExtension(location=location,
+                                               publisher=self.LINUX_PUBLISHER,
+                                               type_handler_version='1.5',
+                                               virtual_machine_extension_type='VMAccessForLinux',
+                                               tags=tags,
+                                               protected_settings={
+                                                   "username": username,
+                                                   "password": password,
+                                               })
+        return vm_extension
+
+    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def create_script_extension(self, compute_client, location, group_name, vm_name, image_os_type, script_file,
-                                script_configurations,timeout=1800, cancellation_context=None, tags=None):
+                                script_configurations, timeout=1800, cancellation_context=None, tags=None):
         """Create VM Script extension on the Azure
 
         :param CancellationContext cancellation_context:

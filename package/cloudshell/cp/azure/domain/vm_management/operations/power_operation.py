@@ -1,3 +1,6 @@
+import traceback
+
+
 class PowerAzureVMOperation(object):
     def __init__(self, vm_service, vm_custom_params_extractor):
         """
@@ -8,7 +11,8 @@ class PowerAzureVMOperation(object):
         self.vm_service = vm_service
         self.vm_custom_params_extractor = vm_custom_params_extractor
 
-    def power_on(self, compute_client, resource_group_name, resource_full_name, data_holder, cloudshell_session):
+    def power_on(self, compute_client, resource_group_name, resource_full_name, data_holder, cloudshell_session,
+                 logger):
         """Power on Azure VM instance
 
         :param azure.mgmt.compute.compute_management_client.ComputeManagementClient compute_client:
@@ -16,6 +20,7 @@ class PowerAzureVMOperation(object):
         :param str resource_full_name: full resource name on the CloudShell
         :param cloudshell.cp.azure.common.deploy_data_holder.DeployDataHolder data_holder:
         :param cloudshell.api.cloudshell_api.CloudShellAPISession cloudshell_session:
+        :param logging.Logger logger:
         :return
         """
         vm_name = data_holder.name
@@ -33,6 +38,14 @@ class PowerAzureVMOperation(object):
 
         self.vm_service.start_vm(compute_client, resource_group_name, vm_name)
 
+        # if VM powered on successfully clear the sandbox status
+        self._safely_clear_reservation_live_status(cloudshell_session, resource_group_name, logger)
+
+    def _safely_clear_reservation_live_status(self, cloudshell_session, group_name, logger):
+        try:
+            cloudshell_session.SetReservationLiveStatus(group_name, '', '')
+        except:
+            logger.info(traceback.format_exc())
 
     def power_off(self, compute_client, resource_group_name, vm_name):
         """Power off Azure VM instance

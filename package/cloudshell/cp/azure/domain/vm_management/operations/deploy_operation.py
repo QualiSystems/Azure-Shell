@@ -237,6 +237,15 @@ class DeployAzureVMOperation(object):
                 logger=logger,
                 cancellation_context=cancellation_context)
 
+            # 5. create custom script extension
+            self._create_vm_access_linux_extension(
+                deployment_model=deployment_model,
+                cloud_provider_model=cloud_provider_model,
+                compute_client=compute_client,
+                data=data,
+                logger=logger,
+                cancellation_context=cancellation_context)
+
         except QualiScriptExecutionTimeoutException, e:
             logger.info(e.message)
             html_format = "<html><body><span style='color: red;'>{0}</span></body></html>".format(e.message)
@@ -603,6 +612,59 @@ class DeployAzureVMOperation(object):
 
             msg = "App {0} was partially deployed - " \
                   "Custom script extension reached maximum timeout of {1} minutes and {2} seconds" \
+                .format(deployment_model.app_name, seconds / 60, seconds % 60)
+            raise QualiScriptExecutionTimeoutException(msg)
+        except Exception:
+            raise
+
+        self.cancellation_service.check_if_cancelled(cancellation_context)
+
+    def _create_vm_access_linux_extension(self, deployment_model, cloud_provider_model, compute_client, data,
+                                          logger, cancellation_context):
+        """ Create VM Access For Linux extension if linux deployed from Snapshot
+
+        :param BaseDeployAzureVMResourceModel deployment_model:
+        :param AzureCloudProviderResourceModel cloud_provider_model:
+        :param azure.mgmt.compute.compute_management_client.ComputeManagementClient compute_client:
+        :param DeployDataModel data:
+        :param logging.Logger logger:
+        :param CancellationContext cancellation_context:
+        :return:
+        """
+
+        if data.image_model.os_type is not OperatingSystemTypes.linux and\
+                isinstance(deployment_model, DeployAzureVMFromSnapshotResourceModel):
+            # VM Access Extension is supported only for linux and we use it only when the deployment option
+            # is "From Snapshot"
+            return
+
+        if not data.vm_credentials.admin_password:
+            logger.info("No admin password. Cannot run VM Access For Linux extension.")
+            return
+
+        self.cancellation_service.check_if_cancelled(cancellation_context)
+
+        logger.info("Processing VM Access For Linux Extension for VM {}".format(data.vm_name))
+
+        try:
+            self.vm_extension_service.create_vm_linux_access_extension(
+                compute_client=compute_client,
+                location=cloud_provider_model.region,
+                group_name=data.group_name,
+                vm_name=data.vm_name,
+                image_os_type=data.image_model.os_type,
+                username=data.vm_credentials.admin_username,
+                password=data.vm_credentials.admin_password,
+                tags=data.tags,
+                cancellation_context=cancellation_context,
+                timeout=deployment_model.extension_script_timeout)
+
+            logger.info("VM Access For Linux Extension for VM {} was successfully deployed".format(data.vm_name))
+        except QualiTimeoutException:
+            seconds = deployment_model.extension_script_timeout
+
+            msg = "App {0} was partially deployed - " \
+                  "VM Access For Linux extension reached maximum timeout of {1} minutes and {2} seconds" \
                 .format(deployment_model.app_name, seconds / 60, seconds % 60)
             raise QualiScriptExecutionTimeoutException(msg)
         except Exception:
