@@ -584,7 +584,14 @@ class AzureShell(object):
                                                                 group_name=resource_group_name)
 
     def remote_save_snapshot(self, context, cancellation_context, resource_group, snapshot_prefix, disk_type):
-
+        """
+        :param ResourceRemoteCommandContext context:
+        :param CancellationContext cancellation_context:
+        :param str resource_group:
+        :param str snapshot_prefix:
+        :param str disk_type:
+        :return:
+        """
         destination_resource_group = resource_group
         with LoggingSessionContext(context) as logger:
             with ErrorHandlingContext(logger):

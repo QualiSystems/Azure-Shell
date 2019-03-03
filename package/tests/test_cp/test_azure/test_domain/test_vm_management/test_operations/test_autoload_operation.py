@@ -6,6 +6,7 @@ from msrestazure.azure_exceptions import CloudError
 
 from cloudshell.cp.azure.domain.vm_management.operations.autoload_operation import AutoloadOperation
 from cloudshell.cp.azure.common.exceptions.autoload_exception import AutoloadException
+from cloudshell.cp.azure.models.vnet_mode import VnetMode
 
 
 class TestAutoloadOperation(TestCase):
@@ -125,7 +126,8 @@ class TestAutoloadOperation(TestCase):
             self.autoload_operation._validate_mgmt_resource_group(resource_client=resource_client,
                                                                   mgmt_group_name=mgmt_group_name,
                                                                   region=region,
-                                                                  logger=self.logger)
+                                                                  logger=self.logger,
+                                                                  vnet_mode=VnetMode.SINGLE)
         # Verify
         self.assertEqual(ex.exception.message, "Failed to find Management group {}".format(mgmt_group_name))
 
@@ -143,7 +145,8 @@ class TestAutoloadOperation(TestCase):
             self.autoload_operation._validate_mgmt_resource_group(resource_client=resource_client,
                                                                   mgmt_group_name=mgmt_group_name,
                                                                   region=region,
-                                                                  logger=self.logger)
+                                                                  logger=self.logger,
+                                                                  vnet_mode=VnetMode.SINGLE)
         # Verify
         self.assertEqual(ex.exception.message, "Management group {} is not under the {} region".format(mgmt_group_name,
                                                                                                        region))

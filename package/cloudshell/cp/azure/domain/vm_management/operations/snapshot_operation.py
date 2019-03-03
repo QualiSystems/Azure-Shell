@@ -1,4 +1,6 @@
 from azure.mgmt.compute.models import Snapshot, StorageAccountTypes, CreationData, DiskCreateOption
+from cloudshell.cp.azure.common.azure_clients import AzureClientsManager
+from cloudshell.cp.azure.common.parsers.azure_model_parser import AzureCloudProviderResourceModel
 
 
 class SnapshotOperation:
@@ -23,7 +25,16 @@ class SnapshotOperation:
              logger,
              disk_type='Standard_LRS'):
         """
-        :return:  azure.mgmt.compute.models.Snapshot
+        :type disk_type: str
+        :type logger: object
+        :type cancellation_context:
+        :type snapshot_name_prefix: str
+        :type source_resource_group: str
+        :type destination_resource_group: str
+        :type instance_name: str
+        :type cloud_provider_model: AzureCloudProviderResourceModel
+        :type azure_clients: AzureClientsManager
+        :rtype:  Snapshot
         """
 
         vm = self.vm_service.get_vm(azure_clients.compute_client, source_resource_group, instance_name)
