@@ -19,6 +19,7 @@ from cloudshell.cp.azure.domain.vm_management.operations.snapshot_operation impo
 from cloudshell.cp.azure.domain.vm_management.operations.set_app_security_groups import SetAppSecurityGroupsOperation
 from cloudshell.cp.azure.domain.vm_management.operations.vm_details_operation import VmDetailsOperation
 from cloudshell.shell.core.driver_context import ResourceCommandContext, CancellationContext
+from cloudshell.shell.core.context import ResourceRemoteCommandContext
 from cloudshell.shell.core.session.cloudshell_session import CloudShellSessionContext
 from cloudshell.shell.core.session.logging_session import LoggingSessionContext
 
@@ -145,7 +146,8 @@ class AzureShell(object):
                                                                                generic_lock_provider=self.generic_lock_provider)
 
         self.snapshot_operation = SnapshotOperation(vm_service=self.vm_service,
-                                                    task_service=self.task_waiter_service)
+                                                    task_service=self.task_waiter_service,
+                                                    tags_service=self.tags_service)
 
     def get_inventory(self, command_context):
         """Validate Cloud Provider
@@ -597,8 +599,6 @@ class AzureShell(object):
             with ErrorHandlingContext(logger):
                 logger.info("Saving snapshot started")
                 with CloudShellSessionContext(context) as cloudshell_session:
-                    disk_type = self._get_disk_type(disk_type)
-
                     cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(
                         resource=context.resource,
                         cloudshell_session=cloudshell_session)
@@ -606,11 +606,15 @@ class AzureShell(object):
                     resource = context.remote_endpoints[0]
                     data_holder = self.model_parser.convert_app_resource_to_deployed_app(resource)
 
-                    resource_group_name = \
-                        self.model_parser.convert_to_reservation_model(context.remote_reservation).reservation_id
+                    reservation = self.model_parser.convert_to_reservation_model(context.remote_reservation)
+                    resource_group_name = reservation.reservation_id
 
                     azure_clients = AzureClientsManager(cloud_provider_model)
+
+                    reservation = self.model_parser.convert_to_reservation_model(context.remote_reservation)
+
                     snapshot = self.snapshot_operation.save(azure_clients=azure_clients,
+                                                            reservation=reservation,
                                                             cloud_provider_model=cloud_provider_model,
                                                             instance_name=data_holder.name,
                                                             destination_resource_group=destination_resource_group,
@@ -629,16 +633,6 @@ class AzureShell(object):
                     except Exception:
                         logger.exception('Error during snapshot creation')
                         raise Exception('Error during snapshot creation, please check logs')
-
-    def _get_disk_type(self, disk_type):
-        disk_type = disk_type.lower()
-        if disk_type == "ssd":
-            disk_type = StorageAccountTypes.premium_lrs
-        elif disk_type == "hdd":
-            disk_type = StorageAccountTypes.standard_lrs
-        else:
-            raise Exception("disk type should be HDD/SDD")
-        return disk_type
 
     def get_application_ports(self, command_context):
         """Get application ports in a nicely formatted manner
