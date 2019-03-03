@@ -25,7 +25,7 @@ class AutoloadOperation(object):
         self.vm_service = vm_service
         self.network_service = network_service
 
-    def _validate_region(self, subscription_client, subscription_id, region):
+    def _validate_region(self, subscription_client, subscription_id, region, ):
         """Verify Azure region
 
         :param azure.mgmt.resource.SubscriptionClient subscription_client:
@@ -57,12 +57,13 @@ class AutoloadOperation(object):
             logger.exception(error_msg)
             raise AutoloadException(error_msg)
 
-    def _validate_mgmt_resource_group(self, resource_client, mgmt_group_name, region, logger):
+    def _validate_mgmt_resource_group(self, resource_client, mgmt_group_name, region, vnet_mode, logger):
         """Verify that "Management Group Name" exists
 
         :param resource_client: azure.mgmt.resource.ResourceManagementClient instance
         :param mgmt_group_name: (str) management resource group name
         :param region: (str) azure region
+        :param str vnet_mode:
         :param logger: logging.Logger instance
         :return:
         """
@@ -75,7 +76,7 @@ class AutoloadOperation(object):
             logger.exception(error_msg)
             raise AutoloadException(error_msg)
         else:
-            if region != resource_group.location:
+            if vnet_mode == VnetMode.SINGLE and region != resource_group.location:
                 error_msg = "Management group {} is not under the {} region".format(
                     mgmt_group_name,
                     region)
@@ -213,7 +214,8 @@ class AutoloadOperation(object):
         self._validate_mgmt_resource_group(resource_client=azure_clients.resource_client,
                                            mgmt_group_name=cloud_provider_model.management_group_name,
                                            region=cloud_provider_model.region,
-                                           logger=logger)
+                                           logger=logger,
+                                           vnet_mode=cloud_provider_model.vnet_mode)
 
         logger.info("Retrieving virtual networks from MGMT resource group {}".format(
             cloud_provider_model.management_group_name))
