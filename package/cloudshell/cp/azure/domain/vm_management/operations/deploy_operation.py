@@ -631,8 +631,8 @@ class DeployAzureVMOperation(object):
         :return:
         """
 
-        if data.image_model.os_type is not OperatingSystemTypes.linux \
-                and not isinstance(deployment_model, DeployAzureVMFromSnapshotResourceModel):
+        if not (data.image_model.os_type is OperatingSystemTypes.linux
+                and isinstance(deployment_model, DeployAzureVMFromSnapshotResourceModel)):
             # VM Access Extension is supported only for linux and we use it only when the deployment option
             # is "From Snapshot"
             return

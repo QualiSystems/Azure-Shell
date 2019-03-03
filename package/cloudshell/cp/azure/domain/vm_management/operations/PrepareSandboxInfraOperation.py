@@ -96,8 +96,7 @@ class PrepareSandboxInfraOperation(object):
 
         # TODO validate combination of VNET mode and VNET CIDR / Custom VNET DNS
 
-        cidr = cloud_provider_model.vnet_cidr if cloud_provider_model.vnet_mode == VnetMode.MULTIPLE \
-            else network_action.actionParams.cidr
+        cidr = self._get_sandbox_cidr(cloud_provider_model, network_action)
 
         reservation_id = reservation.reservation_id
         group_name = str(reservation_id)
@@ -219,7 +218,7 @@ class PrepareSandboxInfraOperation(object):
             raise Exception('Multiple VNET Mode supports only single subnet per sandbox')
 
         for subnet in subnet_actions:
-            subnet_cidr = cloud_provider_model.vnet_cidr if cloud_provider_model.vnet_mode.MULTIPLE else subnet.actionParams.cidr
+            subnet_cidr = self._get_subnet_cidr(cloud_provider_model, subnet)
 
             logger.warn('creating: ' + subnet_cidr)
             subnet_name = (group_name + '_' + subnet_cidr).replace(' ', '').replace('/', '-')
@@ -247,6 +246,13 @@ class PrepareSandboxInfraOperation(object):
         results.append(create_key_action_result)
 
         return results
+
+    def _get_sandbox_cidr(self, cloud_provider_model, network_action):
+        return cloud_provider_model.vnet_cidr if cloud_provider_model.vnet_mode == VnetMode.MULTIPLE \
+            else network_action.actionParams.cidr
+
+    def _get_subnet_cidr(self, cloud_provider_model, subnet):
+        return cloud_provider_model.vnet_cidr if cloud_provider_model.vnet_mode == VnetMode.MULTIPLE else subnet.actionParams.cidr
 
     def _get_subnet_resource_group(self, cloud_provider_model, group_name):
         return cloud_provider_model.management_group_name if cloud_provider_model.vnet_mode == VnetMode.SINGLE else group_name

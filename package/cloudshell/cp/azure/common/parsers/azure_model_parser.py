@@ -237,7 +237,7 @@ class AzureModelsParser(object):
         """
         :param resource:
         :param cloudshell.api.cloudshell_api.CloudShellAPISession cloudshell_session: instance
-        :return: AzureCloudProviderResourceModel
+        :rtype: AzureCloudProviderResourceModel
         """
         resource_context = resource.attributes
         azure_resource_model = AzureCloudProviderResourceModel()
