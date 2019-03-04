@@ -284,10 +284,10 @@ class AzureShell(object):
             with CloudShellSessionContext(command_context) as cloudshell_session:
                 azure_vm_deployment_model = self.model_parser. \
                     convert_to_deploy_azure_vm_from_snapshot_resource_model(
-                        deploy_action=deploy_action,
-                        network_actions=network_actions,
-                        cloudshell_session=cloudshell_session,
-                        logger=logger)
+                    deploy_action=deploy_action,
+                    network_actions=network_actions,
+                    cloudshell_session=cloudshell_session,
+                    logger=logger)
 
                 cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(
                     resource=command_context.resource,
@@ -585,6 +585,33 @@ class AzureShell(object):
                 return self.access_key_operation.get_access_key(storage_client=azure_clients.storage_client,
                                                                 group_name=resource_group_name)
 
+    def remote_get_snapshots(self, context, snapshots_resource_group):
+        """
+        :param ResourceRemoteCommandContext context:
+        :param str resource_group:
+        :rtype: str
+        """
+        with LoggingSessionContext(context) as logger, \
+                ErrorHandlingContext(logger), \
+                CloudShellSessionContext(context) as cloudshell_session:
+            logger.info("Get snapshots")
+
+            cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(
+                resource=context.resource,
+                cloudshell_session=cloudshell_session)
+            azure_clients = AzureClientsManager(cloud_provider_model)
+
+            resource = context.remote_endpoints[0]
+            data_holder = self.model_parser.convert_app_resource_to_deployed_app(resource)
+
+            reservation = self.model_parser.convert_to_reservation_model(context.remote_reservation)
+
+            return self.snapshot_operation.list(azure_clients=azure_clients,
+                                                reservation=reservation,
+                                                instance_name=data_holder.name,
+                                                snapshots_resource_group=snapshots_resource_group,
+                                                logger=logger)
+
     def remote_save_snapshot(self, context, cancellation_context, resource_group, snapshot_prefix, disk_type):
         """
         :param ResourceRemoteCommandContext context:
@@ -610,8 +637,6 @@ class AzureShell(object):
                     resource_group_name = reservation.reservation_id
 
                     azure_clients = AzureClientsManager(cloud_provider_model)
-
-                    reservation = self.model_parser.convert_to_reservation_model(context.remote_reservation)
 
                     snapshot = self.snapshot_operation.save(azure_clients=azure_clients,
                                                             reservation=reservation,

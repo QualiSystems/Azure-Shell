@@ -74,6 +74,9 @@ class AzureShellDriver(ResourceDriverInterface):
                                                      snapshot_prefix=snapshot_prefix,
                                                      disk_type=disk_type)
 
+    def remote_get_snapshots(self, context, ports, resource_group):
+        return self.azure_shell.remote_get_snapshots(context, resource_group)
+
     def DeleteInstance(self, context, ports):
         self.azure_shell.delete_azure_vm(command_context=context)
 

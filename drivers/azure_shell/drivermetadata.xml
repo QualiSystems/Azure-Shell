@@ -33,6 +33,13 @@
                     <Parameter DefaultValue="HDD" Description="Type of snapshot disk HDD or SSD" DisplayName="Snapshot disk type" Mandatory="True" Name="disk_type" Type="String" />
                 </Parameters>
             </Command>
+            <Command Description="" DisplayName="Get Snapshots" EnableCancellation="false" Name="remote_get_snapshots" Tags="remote_connectivity,allow_unreserved">
+                <Parameters>
+                    <Parameter DefaultValue="" Description="Resource group where to look for saved snapshots" DisplayName="Resource Group" Mandatory="False" Name="resource_group" Type="String" />
+                </Parameters>
+            </Command>
+            <!--<Command Description="" DisplayName="Export Snapshot" EnableCancellation="false" Name="remote_export_snapshot" Tags="remote_connectivity,allow_unreserved">
+            </Command>-->
         </Category>
     </Layout>
 </Driver>
