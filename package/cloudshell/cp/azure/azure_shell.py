@@ -482,11 +482,7 @@ class AzureShell(object):
                 data_holder = self.model_parser.convert_app_resource_to_deployed_app(resource)
 
                 with CloudShellSessionContext(command_context) as cloudshell_session:
-                    cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(
-                        resource=command_context.resource,
-                        cloudshell_session=cloudshell_session)
-
-                    azure_clients = AzureClientsManager(cloud_provider_model)
+                    azure_clients = self._get_azure_clients(cloudshell_session, command_context)
 
                     self.power_vm_operation.power_on(compute_client=azure_clients.compute_client,
                                                      resource_group_name=group_name,
@@ -546,11 +542,7 @@ class AzureShell(object):
                 resource_fullname = self.model_parser.get_connected_resource_fullname(command_context)
 
                 with CloudShellSessionContext(command_context) as cloudshell_session:
-                    cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(
-                        resource=command_context.resource,
-                        cloudshell_session=cloudshell_session)
-
-                    azure_clients = AzureClientsManager(cloud_provider_model)
+                    azure_clients = self._get_azure_clients(cloudshell_session, command_context)
 
                     self.refresh_ip_operation.refresh_ip(cloudshell_session=cloudshell_session,
                                                          compute_client=azure_clients.compute_client,
@@ -585,10 +577,35 @@ class AzureShell(object):
                 return self.access_key_operation.get_access_key(storage_client=azure_clients.storage_client,
                                                                 group_name=resource_group_name)
 
+    def remote_export_snapshot(self, context, resource_group, snapshot_name):
+        """
+        :param ResourceRemoteCommandContext context:
+        :param str resource_groups:
+        :param str snapshot_name:
+        :rtype: str
+        """
+        with LoggingSessionContext(context) as logger, \
+                ErrorHandlingContext(logger), \
+                CloudShellSessionContext(context) as cloudshell_session:
+            logger.info("Export snapshot")
+
+            azure_clients = self._get_azure_clients(cloudshell_session, context)
+
+            logger.info(azure_clients.compute_client)
+
+            resource = context.remote_endpoints[0]
+            data_holder = self.model_parser.convert_app_resource_to_deployed_app(resource)
+
+            return self.snapshot_operation.grant_access(azure_clients=azure_clients,
+                                                        instance_name=data_holder.name,
+                                                        snapshot_name=snapshot_name,
+                                                        resource_group=resource_group,
+                                                        logger=logger)
+
     def remote_get_snapshots(self, context, snapshots_resource_group):
         """
         :param ResourceRemoteCommandContext context:
-        :param str resource_group:
+        :param str snapshots_resource_group:
         :rtype: str
         """
         with LoggingSessionContext(context) as logger, \
@@ -596,10 +613,7 @@ class AzureShell(object):
                 CloudShellSessionContext(context) as cloudshell_session:
             logger.info("Get snapshots")
 
-            cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(
-                resource=context.resource,
-                cloudshell_session=cloudshell_session)
-            azure_clients = AzureClientsManager(cloud_provider_model)
+            azure_clients = self._get_azure_clients(cloudshell_session, context)
 
             resource = context.remote_endpoints[0]
             data_holder = self.model_parser.convert_app_resource_to_deployed_app(resource)
@@ -781,11 +795,7 @@ class AzureShell(object):
                     .reservation_id
 
                 with CloudShellSessionContext(command_context) as cloudshell_session:
-                    cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(
-                        resource=command_context.resource,
-                        cloudshell_session=cloudshell_session)
-
-                    azure_clients = AzureClientsManager(cloud_provider_model)
+                    azure_clients = self._get_azure_clients(cloudshell_session, command_context)
 
                     result = self.set_app_security_groups_operation.set_apps_security_groups(
                         logger=logger,
@@ -795,3 +805,15 @@ class AzureShell(object):
                         group_name=group_name)
 
                     return self.command_result_parser.set_command_result(result)
+
+    def _get_azure_clients(self, cloudshell_session, context):
+        """
+        :param cloudshell_session:
+        :param context:
+        :rtype: AzureClientsManager
+        """
+        cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(
+            resource=context.resource,
+            cloudshell_session=cloudshell_session)
+        azure_clients = AzureClientsManager(cloud_provider_model)
+        return azure_clients

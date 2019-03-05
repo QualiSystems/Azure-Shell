@@ -1,4 +1,4 @@
-<Driver Description="This driver orchestrate all the command that will be executed on Azure" MainClass="driver.AzureShellDriver" Name="Azure Shell Driver" Version="1.8.17">
+<Driver Description="This driver orchestrate all the command that will be executed on Azure" MainClass="driver.AzureShellDriver" Name="Azure Shell Driver" Version="1.8.18">
     <Layout>
         <Category Name="Deployment">
             <Command Description="" DisplayName="Deploy VM" EnableCancellation="true" Name="deploy_vm" Tags="allow_unreserved" />
@@ -28,7 +28,7 @@
         <Category Name="Snapshot">
             <Command Description="" DisplayName="Save Snapshot" EnableCancellation="true" Name="remote_save_snapshot" Tags="remote_connectivity,allow_unreserved">
                 <Parameters>
-                    <Parameter DefaultValue="" Description="Please enter the VM snapshot prefix, for example 'Snapshot1'" DisplayName="Snapshot Prefix" Mandatory="True" Name="snapshot_prefix" Type="String" />
+                    <Parameter DefaultValue="" Description="Please enter the VM snapshot prefix, for example 'V1-'" DisplayName="Snapshot Prefix" Mandatory="False" Name="snapshot_prefix" Type="String" />
                     <Parameter DefaultValue="" Description="Resource group where the snapshot will be saved" DisplayName="Resource Group" Mandatory="True" Name="resource_group" Type="String" />
                     <Parameter DefaultValue="HDD" Description="Type of snapshot disk HDD or SSD" DisplayName="Snapshot disk type" Mandatory="True" Name="disk_type" Type="String" />
                 </Parameters>
@@ -38,8 +38,12 @@
                     <Parameter DefaultValue="" Description="Resource group where to look for saved snapshots" DisplayName="Resource Group" Mandatory="False" Name="resource_group" Type="String" />
                 </Parameters>
             </Command>
-            <!--<Command Description="" DisplayName="Export Snapshot" EnableCancellation="false" Name="remote_export_snapshot" Tags="remote_connectivity,allow_unreserved">
-            </Command>-->
+            <Command Description="" DisplayName="Export Snapshot" EnableCancellation="false" Name="remote_export_snapshot" Tags="remote_connectivity,allow_unreserved">
+                <Parameters>
+                    <Parameter DefaultValue="" Description="Resource group where to look for saved snapshots" DisplayName="Resource Group" Mandatory="True" Name="resource_group" Type="String" />
+                    <Parameter DefaultValue="" Description="Name of saved snapshot" DisplayName="Snapshot Name" Mandatory="True" Name="snapshot_name" Type="String" />
+                </Parameters>
+            </Command>
         </Category>
     </Layout>
 </Driver>
