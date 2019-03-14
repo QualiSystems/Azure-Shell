@@ -458,6 +458,11 @@ class DeployAzureVMOperation(object):
             except:
                 logger.exception('Failed to released ips from pool')
 
+        self.network_service.delete_nsg_artifacts_associated_with_vm(
+            network_client=network_client,
+            resource_group_name=group_name,
+            vm_name=vm_name)
+
     def _get_public_ip_address(self, network_client, azure_vm_deployment_model, group_name, ip_name,
                                cancellation_context, logger):
         """
