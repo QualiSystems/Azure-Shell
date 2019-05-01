@@ -278,9 +278,6 @@ class DeleteAzureVMOperation(object):
                        if
                        is_static_allocation(nic.ip_configurations[0].private_ip_allocation_method)]
 
-        first_nic = network_interfaces[0]
-        vm_nsg_name = first_nic.network_security_group.id.split('/')[-1]
-
         delete_vm_command = partial(self._delete_vm,
                                     compute_client=compute_client,
                                     group_name=group_name,
