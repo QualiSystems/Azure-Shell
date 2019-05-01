@@ -7,6 +7,7 @@ from retrying import retry
 
 from cloudshell.cp.azure.common.helpers.ip_allocation_helper import is_static_allocation, to_azure_type
 from cloudshell.cp.azure.common.helpers.retrying_helpers import retry_if_connection_error
+from cloudshell.cp.azure.domain.services.security_group import SANDBOX_NSG_NAME
 
 
 class NetworkService(object):
@@ -463,7 +464,7 @@ class NetworkService(object):
                                                                        nsg.name)
                 poller.wait()
 
-            if 'sandbox_all_subnets' in nsg.name:
+            if SANDBOX_NSG_NAME in nsg.name:
                 for rule in nsg.security_rules:
                     if vm_name in rule.name:
                         # rollback inbound ports
