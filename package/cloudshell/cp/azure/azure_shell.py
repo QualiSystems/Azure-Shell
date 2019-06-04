@@ -134,7 +134,8 @@ class AzureShell(object):
         self.set_app_security_groups_operation = SetAppSecurityGroupsOperation(vm_service=self.vm_service,
                                                                                resource_id_parser=self.resource_id_parser,
                                                                                nsg_service=self.security_group_service,
-                                                                               generic_lock_provider=self.generic_lock_provider)
+                                                                               generic_lock_provider=self.generic_lock_provider,
+                                                                               name_provider=self.name_provider_service)
 
         self.ip_address_operation = IPAddressOperation(self.ip_service, self.network_service, self.name_provider_service)
 
