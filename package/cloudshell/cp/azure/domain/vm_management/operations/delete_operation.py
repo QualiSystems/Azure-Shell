@@ -278,9 +278,6 @@ class DeleteAzureVMOperation(object):
                        if
                        is_static_allocation(nic.ip_configurations[0].private_ip_allocation_method)]
 
-        first_nic = network_interfaces[0]
-        vm_nsg_name = first_nic.network_security_group.id.split('/')[-1]
-
         delete_vm_command = partial(self._delete_vm,
                                     compute_client=compute_client,
                                     group_name=group_name,
@@ -301,11 +298,9 @@ class DeleteAzureVMOperation(object):
                                            logger=logger,
                                            public_ip_names=public_ip_names)
 
-        delete_vm_nsg_command = partial(network_client.network_security_groups.delete,
-                                        group_name,
-                                        vm_nsg_name)
-
-        commands = [delete_vm_command, delete_nics_command, delete_public_ip_command, delete_vm_nsg_command]
+        commands = [delete_vm_command,
+                    delete_nics_command,
+                    delete_public_ip_command]
 
         try:
             vm = self.vm_service.get_vm(compute_management_client=compute_client,
@@ -339,8 +334,10 @@ class DeleteAzureVMOperation(object):
                 logger.exception('Deleting Azure VM Exception:')
                 raise
 
-        result = network_client.network_security_groups.delete(group_name, vm_nsg_name)
-        result.wait()
+        self.network_service.delete_nsg_artifacts_associated_with_vm(
+            network_client=network_client,
+            resource_group_name=group_name,
+            vm_name=vm_name)
 
         # try releasing private ip address that were statically allocated
         try:
@@ -349,3 +346,4 @@ class DeleteAzureVMOperation(object):
         except:
             logger.warning('Error while trying to release private ips: {}. Error: {}'.format(','.join(private_ips),
                                                                                              traceback.format_exc()))
+

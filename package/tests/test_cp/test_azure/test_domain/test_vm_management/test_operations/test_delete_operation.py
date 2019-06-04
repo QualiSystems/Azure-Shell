@@ -140,6 +140,9 @@ class TestDeleteOperation(TestCase):
         group_name = "AzureTestGroup"
         network_client.network_interfaces.delete = Mock()
         network_client.public_ip_addresses.delete = Mock()
+        nsg = Mock()
+        nsg.name = 'lol'
+        network_client.network_security_groups.list = Mock(return_value=[nsg])
         self.delete_operation.security_group_service.delete_security_rules = Mock()
         self.delete_operation._delete_vm_disk = Mock()
 
@@ -168,6 +171,9 @@ class TestDeleteOperation(TestCase):
         self.vm_service.delete_vm = Mock(side_effect=Exception("Boom!"))
         compute_client = self._prepare_mock_compute_client()
         network_client = self._prepare_mock_network_client()
+        nsg = Mock()
+        nsg.name = 'lol'
+        network_client.network_security_groups.list = Mock(return_value=[nsg])
         self.delete_operation.security_group_service.delete_security_rules = Mock()
         self.delete_operation._delete_vm_disk = Mock()
 
@@ -214,6 +220,9 @@ class TestDeleteOperation(TestCase):
         self.delete_operation.security_group_service.delete_security_rules = Mock()
         compute_client = self._prepare_mock_compute_client()
         network_client = self._prepare_mock_network_client()
+        nsg = Mock()
+        nsg.name = 'lol'
+        network_client.network_security_groups.list = Mock(return_value=[nsg])
         self.delete_operation._delete_vm_disk = Mock()
 
         # Act

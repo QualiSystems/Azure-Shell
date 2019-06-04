@@ -1,11 +1,13 @@
 import time
 
 import azure
-from azure.mgmt.network.models import NetworkInterface, NetworkInterfaceIPConfiguration, VirtualNetwork, RouteTable, Route
+from azure.mgmt.network.models import NetworkInterface, NetworkInterfaceIPConfiguration, VirtualNetwork, RouteTable, \
+    Route
 from retrying import retry
 
 from cloudshell.cp.azure.common.helpers.ip_allocation_helper import is_static_allocation, to_azure_type
 from cloudshell.cp.azure.common.helpers.retrying_helpers import retry_if_connection_error
+from cloudshell.cp.azure.domain.services.security_group import SANDBOX_NSG_NAME
 
 
 class NetworkService(object):
@@ -117,7 +119,8 @@ class NetworkService(object):
 
     @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def create_nic(self, interface_name, group_name, network_client, public_ip_address, region,
-                   subnet, private_ip_allocation_method, tags, logger, reservation_id, cloudshell_session, network_security_group=None):
+                   subnet, private_ip_allocation_method, tags, logger, reservation_id, cloudshell_session,
+                   network_security_group=None):
         """
         The method creates or updates network interface.
         Parameter
@@ -444,3 +447,28 @@ class NetworkService(object):
                      if network and self.tags_service.try_find_tag(
             tags_list=network.tags, tag_key=tag_key) == tag_value),
                     None)
+
+    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
+    def delete_nsg_artifacts_associated_with_vm(self, network_client, resource_group_name, vm_name):
+        """
+        :param azure.mgmt.network.network_management_client.NetworkManagementClient network_client:
+        :param str resource_group_name:
+        :param str vm_name:
+        """
+
+        network_security_groups = network_client.network_security_groups.list(resource_group_name)
+        for nsg in network_security_groups:
+            if vm_name in nsg.name:
+                # rollback vm nsg
+                poller = network_client.network_security_groups.delete(resource_group_name,
+                                                                       nsg.name)
+                poller.wait()
+
+            if SANDBOX_NSG_NAME in nsg.name:
+                for rule in nsg.security_rules:
+                    if vm_name in rule.name:
+                        # rollback inbound ports
+                        poller = network_client.security_rules.delete(resource_group_name,
+                                                                      nsg.name,
+                                                                      rule.name)
+                        poller.wait()
