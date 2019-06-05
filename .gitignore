@@ -12,3 +12,4 @@ drivers/killPython.bat
 package/version.txt
 /package/dist/
 /package/dist.bat
+/local/

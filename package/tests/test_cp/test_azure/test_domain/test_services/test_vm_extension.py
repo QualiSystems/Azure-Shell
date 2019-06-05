@@ -149,7 +149,7 @@ class TestVMExtensionService(TestCase):
     def test_url_helper(self):
         uh = URLHelper()
 
-        self.assertTrue(uh.check_url('http://www.stackoverflow.com'))
+        self.assertTrue(uh.check_url('http://www.google.com'))
         self.assertFalse(uh.check_url('https://en.wikipedia.org/wiki/List_of_HTTP_status_codesqqdfdfqqq'))
         self.assertFalse(uh.check_url('‪C:\\QsPythonDriverHost.log'))
         self.assertFalse(uh.check_url(u'https://gist.github.com/ahmetalpbalkan/b5d4a856fe15464015ae87d5587a4439/raw/466f5c30507c990a4d5a2f5c79f901fa89a80841/hello.shha'))

@@ -1,10 +1,7 @@
 from unittest import TestCase
 
 import mock
-from azure.mgmt.storage.models import StorageAccountCreateParameters
-from mock import MagicMock
-from mock import Mock
-from msrestazure.azure_operation import AzureOperationPoller
+from mock import MagicMock, Mock
 
 
 from cloudshell.cp.azure.domain.services.storage_service import StorageService
