@@ -6,7 +6,8 @@ from azure.mgmt.network.models import NetworkInterface, NetworkInterfaceIPConfig
 from retrying import retry
 
 from cloudshell.cp.azure.common.helpers.ip_allocation_helper import is_static_allocation, to_azure_type
-from cloudshell.cp.azure.common.helpers.retrying_helpers import retry_if_connection_error
+from cloudshell.cp.azure.common.helpers.retrying_helpers import retry_if_connection_error, retryable_error_max_attempts, \
+    retryable_wait_time, retry_if_retryable_error
 from cloudshell.cp.azure.domain.services.security_group import SANDBOX_NSG_NAME
 
 
@@ -117,7 +118,12 @@ class NetworkService(object):
                                cloudshell_session,
                                network_security_group)
 
-    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
+    @retry(stop_max_attempt_number=5,
+           wait_fixed=2000,
+           retry_on_exception=retry_if_connection_error)
+    @retry(stop_max_attempt_number=retryable_error_max_attempts,
+           wait_fixed=retryable_wait_time,
+           retry_on_exception=retry_if_retryable_error)
     def create_nic(self, interface_name, group_name, network_client, public_ip_address, region,
                    subnet, private_ip_allocation_method, tags, logger, reservation_id, cloudshell_session,
                    network_security_group=None):
