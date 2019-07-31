@@ -33,6 +33,7 @@ class RulesAttributeParser(object):
             from_port = from_to_protocol_match.group(from_port)
             to_port = from_to_protocol_match.group(to_port)
             protocol = from_to_protocol_match.group(protocol).lower()
+            name = "inbound_port_"
             return RuleData(protocol=protocol, from_port=from_port, to_port=to_port)
 
         from_protocol_match = re.match(r"^((?P<from_port>\d+):(?P<protocol>(udp|tcp)))$", ports_attribute,

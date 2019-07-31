@@ -3,7 +3,10 @@ from functools import partial
 from multiprocessing.pool import ThreadPool
 from threading import Lock
 
-from azure.mgmt.network.models import SecurityRuleProtocol, SecurityRule, SecurityRuleAccess
+import jsonpickle
+from azure.mgmt.network.models import SecurityRuleProtocol, SecurityRule, SecurityRuleAccess, RouteNextHopType
+from cloudshell.cp.core.models import CreateKeysActionResult, PrepareSubnetParams, PrepareSubnetActionResult, \
+    PrepareCloudInfra, PrepareCloudInfraParams, PrepareSubnet, PrepareCloudInfraResult, CreateKeys
 from msrestazure.azure_exceptions import CloudError
 from azure.mgmt.network.models import VirtualNetwork
 
@@ -12,9 +15,9 @@ from cloudshell.cp.azure.domain.services.network_service import NetworkService
 
 from cloudshell.cp.azure.models.azure_cloud_provider_resource_model import AzureCloudProviderResourceModel
 from cloudshell.cp.azure.common.parsers.azure_resource_id_parser import AzureResourceIdParser
-from cloudshell.cp.core.models import PrepareCloudInfra, PrepareSubnet, CreateKeys, PrepareSubnetActionResult, \
-    CreateKeysActionResult, PrepareCloudInfraResult
-
+from cloudshell.cp.azure.models.network_actions_models import PrepareNetworkActionResult, ConnectivityActionResult, \
+    PrepareNetworkParams
+from cloudshell.cp.azure.models.rule_data import RuleData
 
 INVALID_REQUEST_ERROR = 'Invalid request: {0}'
 
@@ -57,6 +60,9 @@ class PrepareSandboxInfraOperation(object):
         self.subnet_locker = subnet_locker
         self.resource_id_parser = resource_id_parser
 
+    def action_with_cidr(action):
+        return isinstance(action, PrepareCloudInfra) or isinstance(action, PrepareSubnet)
+
     def prepare_connectivity(self,
                              reservation,
                              cloud_provider_model,
@@ -68,23 +74,31 @@ class PrepareSandboxInfraOperation(object):
                              cancellation_context):
         """
         :param logging.Logger logger:
-        :param actions: list[cloudshell.cp.core.models.RequestActionBase]
+        :param actions:
         :param network_client:
         :param storage_client:
         :param resource_client:
         :param cloudshell.cp.azure.models.reservation_model.ReservationModel reservation:
-        :param cloudshell.cp.azure.models.azure_cloud_provider_resource_model.AzureCloudProviderResourceModel cloud_provider_model:cloud provider
+        :param AzureCloudProviderResourceModel cloud_provider_model: cloud provider
         :param cancellation_context cloudshell.shell.core.driver_context.CancellationContext instance
         :return:
         """
-        cidr = self._validate_request_and_extract_cidr(actions)
-        logger.info("Received CIDR {0} from server".format(cidr))
+        logger.info("PrepareConnectivity actions: {0}".format(','.join([jsonpickle.encode(a) for a in actions])))
+        results = []
+
+        # Execute prepareNetwork action first
+        network_action = next((a for a in actions if action_with_cidr(a)), None)
+
+        if not network_action:
+            raise ValueError("Actions list must contain a PrepareNetworkAction.")
+
+        cidr = network_action.actionParams.cidr
 
         reservation_id = reservation.reservation_id
         group_name = str(reservation_id)
-        subnet_name = group_name
         tags = self.tags_service.get_tags(reservation=reservation)
         create_key_action_result = CreateKeysActionResult()
+        subnet_actions = [a for a in actions if isinstance(a, PrepareSubnet)]
 
         # 1. Create a resource group
         logger.info("Creating a resource group: {0} .".format(group_name))
@@ -101,68 +115,83 @@ class PrepareSandboxInfraOperation(object):
                                         tags, cancellation_context, create_key_action_result))
 
         logger.info("Retrieving MGMT vNet from resource group {} by tag {}={}".format(
-                cloud_provider_model.management_group_name,
-                NetworkService.NETWORK_TYPE_TAG_NAME,
-                NetworkService.MGMT_NETWORK_TAG_VALUE))
+            cloud_provider_model.management_group_name,
+            NetworkService.NETWORK_TYPE_TAG_NAME,
+            NetworkService.MGMT_NETWORK_TAG_VALUE))
 
-        virtual_networks = self.network_service.get_virtual_networks(network_client=network_client,
-                                                                     group_name=cloud_provider_model.management_group_name)
+        virtual_networks = self.network_service \
+            .get_virtual_networks(network_client=network_client,
+                                  group_name=cloud_provider_model.management_group_name)
 
         self.cancellation_service.check_if_cancelled(cancellation_context)
 
         management_vnet = self.network_service.get_virtual_network_by_tag(
-                virtual_networks=virtual_networks,
-                tag_key=NetworkService.NETWORK_TYPE_TAG_NAME,
-                tag_value=NetworkService.MGMT_NETWORK_TAG_VALUE)
+            virtual_networks=virtual_networks,
+            tag_key=NetworkService.NETWORK_TYPE_TAG_NAME,
+            tag_value=NetworkService.MGMT_NETWORK_TAG_VALUE)
 
         self._validate_management_vnet(management_vnet)
 
         logger.info("Retrieving sandbox vNet from resource group {} by tag {}={}".format(
-                cloud_provider_model.management_group_name,
-                NetworkService.NETWORK_TYPE_TAG_NAME,
-                NetworkService.SANDBOX_NETWORK_TAG_VALUE))
+            cloud_provider_model.management_group_name,
+            NetworkService.NETWORK_TYPE_TAG_NAME,
+            NetworkService.SANDBOX_NETWORK_TAG_VALUE))
 
         sandbox_vnet = self.network_service.get_virtual_network_by_tag(
-                virtual_networks=virtual_networks,
-                tag_key=NetworkService.NETWORK_TYPE_TAG_NAME,
-                tag_value=NetworkService.SANDBOX_NETWORK_TAG_VALUE)
+            virtual_networks=virtual_networks,
+            tag_key=NetworkService.NETWORK_TYPE_TAG_NAME,
+            tag_value=NetworkService.SANDBOX_NETWORK_TAG_VALUE)
 
         self._validate_sandbox_vnet(sandbox_vnet)
 
-        # 4. Create the NSG object
-        security_group_name = reservation_id
-        logger.info("Creating a network security group '{}' .".format(security_group_name))
-        network_security_group = self.security_group_service.create_network_security_group(
-                network_client=network_client,
-                group_name=group_name,
-                security_group_name=security_group_name,
-                region=cloud_provider_model.region,
-                tags=tags)
+        # 4. Create the sandbox NSG object
+        #
+        # The sandbox subnets NSG is a single NSG in sandbox that can block traffic
+        # to subnets that set their attribute Public = false, i.e. private subnets
+        # the idea is that all subnets in sandbox are subscribed to this subnet.
+
+        security_group_name = self.security_group_service.get_subnets_nsg_name(reservation_id)
+        logger.info("Creating a network security group: '{}' .".format(security_group_name))
+        sandbox_network_security_group = self.security_group_service.create_network_security_group(
+            network_client=network_client,
+            group_name=group_name,
+            security_group_name=security_group_name,
+            region=cloud_provider_model.region,
+            tags=tags)
 
         self.cancellation_service.check_if_cancelled(cancellation_context)
 
-        logger.info("Creating NSG management rules...")
-        # 5. Set rules on NSG to create a sandbox
-        self._create_management_rules(
-                group_name=group_name,
-                management_vnet=management_vnet,
-                network_client=network_client,
-                sandbox_vnet_cidr=cidr,
-                security_group_name=security_group_name,
-                additional_mgmt_networks=cloud_provider_model.additional_mgmt_networks,
-                logger=logger)
+        logger.info("Creating management rules for {0}...".format(security_group_name))
+        # 5. Set rules on the subnets nsg - which handles security for all subnets in sandbox.
+        # Support "additional management traffic" inbound traffic
+        # allow management vnet traffic
+        # deny inbound from other subnets in vnet
+        self._create_subnet_nsg_rules(
+            group_name=group_name,
+            management_vnet=management_vnet,
+            network_client=network_client,
+            sandbox_vnet=sandbox_vnet,
+            sandbox_cidr=cidr,
+            security_group_name=security_group_name,
+            additional_mgmt_networks=cloud_provider_model.additional_mgmt_networks,
+            logger=logger,
+            subnet_actions=subnet_actions)
 
         self.cancellation_service.check_if_cancelled(cancellation_context)
 
-        # 6. Create a subnet with NSG
-        self._create_subnet(cidr=cidr,
-                            cloud_provider_model=cloud_provider_model,
-                            logger=logger,
-                            network_client=network_client,
-                            resource_client=resource_client,
-                            network_security_group=network_security_group,
-                            sandbox_vnet=sandbox_vnet,
-                            subnet_name=subnet_name)
+        # 6. Create additional subnets requested by server
+        for subnet in subnet_actions:
+            logger.warn('creating: ' + subnet.actionParams.cidr)
+            subnet_name = self.name_provider_service.format_subnet_name(group_name, subnet.actionParams.cidr)
+            self._create_subnet(cidr=subnet.actionParams.cidr,
+                                cloud_provider_model=cloud_provider_model,
+                                logger=logger,
+                                network_client=network_client,
+                                resource_client=resource_client,
+                                network_security_group=sandbox_network_security_group,
+                                sandbox_vnet=sandbox_vnet,
+                                subnet_name=subnet_name)
+            results.append(self._create_result(subnet, subnet_name))
 
         self.cancellation_service.check_if_cancelled(cancellation_context)
 
@@ -171,7 +200,11 @@ class PrepareSandboxInfraOperation(object):
         pool.join()
         storage_res.get(timeout=900)  # will wait for 15 min and raise exception if storage account creation failed
 
-        return self._prepare_results(create_key_action_result, actions)
+        results.append(PrepareCloudInfraResult(self._get_action_id_by_type(actions, PrepareCloudInfra)))
+        create_key_action_result.actionId = self._get_action_id_by_type(actions, CreateKeys)
+        results.append(create_key_action_result)
+
+        return results
 
     def _prepare_results(self, create_key_action_result, actions):
         network_action_result = PrepareCloudInfraResult(self._get_action_id_by_type(actions, PrepareCloudInfra))
@@ -189,6 +222,9 @@ class PrepareSandboxInfraOperation(object):
     def _get_action_ids_by_type(self, actions, action_class):
         return [action.actionId for action in actions if isinstance(action, action_class)]
 
+    def _create_result(self, item, subnet_name):
+        return PrepareSubnetActionResult(item.actionId, True, 'PrepareSubnet finished successfully', '', subnet_name)
+
     def _prepare_storage_account_name(self, reservation_id):
         """ Storage account name in azure must be between 3-24 chars. Dashes are not allowed as well.
         :param str reservation_id:
@@ -197,7 +233,8 @@ class PrepareSandboxInfraOperation(object):
         reservation_id = reservation_id.replace("-", "")
         # we need to set a static postfix because we want to ensure we get the same storage account name if
         # prepare connectivity will run more than once
-        return self.name_provider_service.generate_name(name=reservation_id, postfix="cs", max_length=24).replace("-", "")
+        return self.name_provider_service.generate_name(name=reservation_id, postfix="cs", max_length=24).replace("-",
+                                                                                                                  "")
 
     def _create_storage_and_keypairs(self, logger, storage_client, storage_account_name, group_name,
                                      cloud_provider_model, tags, cancellation_context, create_key_action_result):
@@ -265,9 +302,9 @@ class PrepareSandboxInfraOperation(object):
 
         with self.subnet_locker:
             logger.info(
-                    "Creating a subnet {0} under: {1}/{2}.".format(subnet_name,
-                                                                   cloud_provider_model.management_group_name,
-                                                                   sandbox_vnet.name))
+                "Creating a subnet {0} under: {1}/{2}.".format(subnet_name,
+                                                               cloud_provider_model.management_group_name,
+                                                               sandbox_vnet.name))
             create_subnet_command = partial(self.network_service.create_subnet,
                                             network_client=network_client,
                                             resource_group_name=cloud_provider_model.management_group_name,
@@ -280,11 +317,12 @@ class PrepareSandboxInfraOperation(object):
             try:
                 create_subnet_command()
             except CloudError as e:
+                logger.warn(e.message)
                 if "NetcfgInvalidSubnet" not in str(e.error):
                     raise
                 # try to cleanup stale subnet
                 logger.info(
-                        "Subnet with cidr {0} exist in vnet with a different name. Will try to cleanup the stale data."
+                    "Subnet with cidr {0} exist in vnet with a different name. Will try to cleanup the stale data."
                         .format(cidr))
                 self._cleanup_stale_data(network_client=network_client,
                                          resource_client=resource_client,
@@ -327,15 +365,6 @@ class PrepareSandboxInfraOperation(object):
                 resource_group = self.resource_id_parser.get_resource_group_name(resource_id=ip_conf.id)
                 resource_groups.append(resource_group)
 
-        for resource_group in set(resource_groups):
-            logger.info("Resource group {} of the connected to subnet resource is not in the active state. "
-                        "Deleting resource group ".format(resource_group))
-
-            self.vm_service.delete_resource_group(resource_management_client=resource_client,
-                                                  group_name=resource_group)
-
-            logger.info("Resource group {} was successfully deleted".format(resource_group))
-
         logger.info("Deleting Subnet {}...".format(subnet.id))
         self.network_service.delete_subnet(network_client=network_client,
                                            group_name=cloud_provider_model.management_group_name,
@@ -344,117 +373,170 @@ class PrepareSandboxInfraOperation(object):
 
         logger.info("Subnet {} was successfully deleted".format(subnet.id))
 
-    def _create_management_rules(self, group_name, management_vnet, sandbox_vnet_cidr, network_client,
-                                 security_group_name, additional_mgmt_networks, logger):
+    def _create_subnet_nsg_rules(self, group_name, management_vnet, sandbox_vnet, sandbox_cidr, network_client,
+                                 security_group_name, additional_mgmt_networks, logger, subnet_actions):
         """Creates NSG management rules
 
         NOTE: NSG rules must be created only one by one, without concurrency
         :param str group_name: resource group name (reservation id)
-        :param str management_vnet: management network
+        :param VirtualNetwork management_vnet: management network
         :param azure.mgmt.network.NetworkManagementClient network_client:
         :param str security_group_name: NSG name from the Azure
         :param list additional_mgmt_networks: list of additional management networks
         :param logging.Logger logger:
         """
-        used_priorities = []
-        all_symbol = SecurityRuleProtocol.asterisk
+        management_vnet_cidr = management_vnet.address_space.address_prefixes[0]
+        sandbox_vnet_cidr = sandbox_vnet.address_space.address_prefixes[0]
 
-        # rule 0
-        priority = 3950
-        used_priorities.append(priority)
-        logger.info("Creating NSG rule to deny inbound traffic from other subnets with priority {}..."
-                    .format(priority))
+        # RULES OVERVIEW
+        #
+        # Priority 2xxx:
+        #   -   Allow inbound traffic from sandbox CIDR
+        #   -   Deny inbound traffic from internet for subnets that requested Public = False
 
-        operation_poller = self.security_group_service.create_network_security_group_custom_rule(
+        # Priority 4xxx:
+        #   -   Allow inbound traffic for additional management networks
+        #
+        # Priority 4080:
+        #   -   Allow MGMT vnet cidr inbound traffic. Basically providing access to the infrastructure to manage
+        #       elements in the sandbox
+        #
+        # Priority 4090:
+        #   -   Deny inbound traffic from Sandbox VNET (the azure account vnet with
+        #                                               which subnets from all sandboxes are associated.
+        #       The idea is to block traffic from other sandboxes the customer has
+        #
+
+        #
+        # RULES IMPLEMENTATION
+        #
+
+        #
+        # PRIORITY 2xxx:
+        #
+
+        # enable access from sandbox traffic for all subnets. Note that specific VMs can block sandbox traffic using
+        # the VM network security group, which is created per VM.
+
+        for s in subnet_actions:
+            subnet_cidr = s.actionParams.cidr
+            security_rule_name = 'Allow_Sandbox_Traffic_To_{0}'.format(subnet_cidr.replace('/', '-'))
+            allow_all_traffic = [self.allow_all_rule(security_rule_name)]
+
+            self.security_group_service.create_network_security_group_rules(
                 network_client=network_client,
                 group_name=group_name,
                 security_group_name=security_group_name,
-                rule=SecurityRule(
+                inbound_rules=allow_all_traffic,
+                destination_addr=subnet_cidr,
+                source_address=sandbox_cidr,
+                lock=self.subnet_locker,
+                start_from=2000)
+
+            logger.info("Created security rule {0} on NSG {1}".format(security_rule_name, security_group_name))
+
+        # block access from internet to private subnets
+        private_subnets = [s for s in subnet_actions if s.actionParams and
+                           s.actionParams.subnetServiceAttributes and
+                           'Public' in s.actionParams.subnetServiceAttributes and
+                           s.actionParams.subnetServiceAttributes['Public'] == 'False']
+
+        for p in private_subnets:
+            private_subnet_cidr = p.actionParams.cidr
+            security_rule_name = 'Deny_Internet_Traffic_To_Private_Subnet_{0}' \
+                .format(private_subnet_cidr.replace('/', '-'))
+            deny_all_traffic = [self.deny_all_rule(security_rule_name)]
+
+            self.security_group_service.create_network_security_group_rules(
+                network_client=network_client,
+                group_name=group_name,
+                security_group_name=security_group_name,
+                inbound_rules=deny_all_traffic,
+                destination_addr=private_subnet_cidr,
+                source_address=RouteNextHopType.internet,
+                lock=self.subnet_locker,
+                start_from=2000)
+
+            logger.info("Created security rule {0} on NSG {1}".format(security_rule_name, security_group_name))
+        #
+        # PRIORITY 4xxx:
+        #
+
+        #  Allow inbound traffic from additional management networks (can configure on Azure cloud provider resource
+        #  that additional networks are allowed to communicate with subnets and vms)
+
+        for a in additional_mgmt_networks:
+            security_rule_name = 'Allow_{0}_To_{1}'.format(a.replace('/', '-'), sandbox_cidr.replace('/', '-'))
+            allow_traffic_from_additional_mgmt_network = [self.allow_all_rule(security_rule_name)]
+
+            self.security_group_service.create_network_security_group_rules(
+                network_client=network_client,
+                group_name=group_name,
+                security_group_name=security_group_name,
+                inbound_rules=allow_traffic_from_additional_mgmt_network,
+                destination_addr=sandbox_cidr,
+                source_address=a,
+                lock=self.subnet_locker,
+                start_from=4000)
+
+            logger.info("Created security rule {0} on NSG {1}".format(security_rule_name, security_group_name))
+        #
+        # PRIORITY 4080
+        #
+
+        #   Allow MGMT vnet cidr inbound traffic. Basically providing access to the infrastructure to manage
+        #   elements in the sandbox
+
+        security_rule_name = 'Allow_{0}_To_{1}'.format(management_vnet_cidr.replace('/', '-'),
+                                                       sandbox_cidr.replace('/', '-'))
+        allow_traffic_from_management_vnet_cidr = [self.allow_all_rule(security_rule_name)]
+
+        self.security_group_service.create_network_security_group_rules(
+            network_client=network_client,
+            group_name=group_name,
+            security_group_name=security_group_name,
+            inbound_rules=allow_traffic_from_management_vnet_cidr,
+            destination_addr=sandbox_cidr,
+            source_address=management_vnet_cidr,
+            lock=self.subnet_locker,
+            start_from=4080)
+
+        logger.info("Created security rule {0} on NSG {1}".format(security_rule_name, security_group_name))
+
+        #
+        # PRIORITY 4090
+        #
+
+        #   Deny inbound traffic from Sandbox VNET (the azure account vnet with
+        #   which subnets from all sandboxes are associated.)
+        #   The idea is to block traffic from other sandboxes in the account.
+
+        security_rule_name = 'Deny_Traffic_From_Other_Sandboxes_To_Sandbox_CIDR'
+        deny_all_traffic = [self.deny_all_rule(security_rule_name)]
+
+        self.security_group_service.create_network_security_group_rules(
+            network_client=network_client,
+            group_name=group_name,
+            security_group_name=security_group_name,
+            inbound_rules=deny_all_traffic,
+            destination_addr=sandbox_cidr,
+            source_address=sandbox_vnet_cidr,
+            lock=self.subnet_locker,
+            start_from=4090)
+
+        logger.info("Created security rule {0} on NSG {1}".format(security_rule_name, security_group_name))
+
+    def allow_all_rule(self, security_rule_name):
+        return RuleData(protocol=SecurityRuleProtocol.asterisk,
+                        port='*',
                         access=SecurityRuleAccess.allow,
-                        direction="Inbound",
-                        source_address_prefix=sandbox_vnet_cidr,
-                        source_port_range=all_symbol,
-                        name="rule_{}".format(priority),
-                        destination_address_prefix=sandbox_vnet_cidr,
-                        destination_port_range=all_symbol,
-                        priority=priority,
-                        protocol=all_symbol),
-                async=True)
+                        name=security_rule_name)
 
-        # can't create next rule while previous is in the deploying state
-        operation_poller.wait()
-
-        # Rule 1
-        priority = 4000
-        used_priorities.append(priority)
-        logger.info("Creating NSG rule to deny inbound traffic from other subnets with priority {}..."
-                    .format(priority))
-
-        operation_poller = self.security_group_service.create_network_security_group_custom_rule(
-                network_client=network_client,
-                group_name=group_name,
-                security_group_name=security_group_name,
-                rule=SecurityRule(
+    def deny_all_rule(self, security_rule_name):
+        return RuleData(protocol=SecurityRuleProtocol.asterisk,
+                        port='*',
                         access=SecurityRuleAccess.deny,
-                        direction="Inbound",
-                        source_address_prefix='VirtualNetwork',
-                        source_port_range=all_symbol,
-                        name="rule_{}".format(priority),
-                        destination_address_prefix=all_symbol,
-                        destination_port_range=all_symbol,
-                        priority=priority,
-                        protocol=all_symbol),
-                async=True)
-
-        # can't create next rule while previous is in the deploying state
-        operation_poller.wait()
-
-        # Rule 2:
-        source_address_prefix = management_vnet.address_space.address_prefixes[0]
-        priority = 3900
-        used_priorities.append(priority)
-        logger.info("Creating (async) NSG rule to allow management subnet traffic with priority {}".format(priority))
-
-        operation_poller = self.security_group_service.create_network_security_group_custom_rule(
-                network_client=network_client,
-                group_name=group_name,
-                security_group_name=security_group_name,
-                rule=SecurityRule(
-                        access=SecurityRuleAccess.allow,
-                        direction="Inbound",
-                        source_address_prefix=source_address_prefix,
-                        source_port_range=all_symbol,
-                        name="rule_{}".format(priority),
-                        destination_address_prefix=all_symbol,
-                        destination_port_range=all_symbol,
-                        priority=priority,
-                        protocol=all_symbol),
-                async=True)
-        operation_poller.wait()
-
-        # free priorities for additional NSG rules
-        mgmt_rules_priorities = (priority for priority in xrange(3900, 4001, 5) if priority not in used_priorities)
-
-        # create NSG rules for additional management networks
-        logger.info("Creating NSG rules to allow traffic from additional management networks...")
-        for additional_network, priority in zip(additional_mgmt_networks, mgmt_rules_priorities):
-            logger.info("Creating NSG rule for additional management network {} with priority {} ..."
-                        .format(additional_network, priority))
-            self.security_group_service.create_network_security_group_custom_rule(
-                    network_client=network_client,
-                    group_name=group_name,
-                    security_group_name=security_group_name,
-                    rule=SecurityRule(
-                            access=SecurityRuleAccess.allow,
-                            direction="Inbound",
-                            source_address_prefix=additional_network,
-                            source_port_range=all_symbol,
-                            name="rule_{}".format(priority),
-                            destination_address_prefix=all_symbol,
-                            destination_port_range=all_symbol,
-                            priority=priority,
-                            protocol=all_symbol),
-                    async=False)
+                        name=security_rule_name)
 
     @staticmethod
     def _validate_management_vnet(management_vnet):
@@ -477,6 +559,14 @@ class PrepareSandboxInfraOperation(object):
             raise ValueError("Multi subnet mode is not supported in AzureShell")
 
         return requested_cidrs.pop()
+
+    @staticmethod
+    def _create_fault_action_result(action, e):
+        action_result = ConnectivityActionResult()
+        action_result.actionId = action.actionid
+        action_result.success = False
+        action_result.errorMessage = 'PrepareConnectivity ended with the error: {0}'.format(e)
+        return action_result
 
 
 def action_with_cidr(action):

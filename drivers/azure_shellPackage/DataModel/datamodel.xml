@@ -70,7 +70,13 @@
         <Rule Name="Setting" />
       </Rules>
     </AttributeInfo>
-    <AttributeInfo Name="VM Size"  DefaultValue="" Description="The Microsoft Azure VM Size. The VM Size determines the CPU, memory, disk size and networking capacity of the VM. For example: “Standard_A1_v2”. Use the &lt;a href='https://docs.microsoft.com/en-us/azure/virtual-machines/virtual-machines-windows-sizes' target='_blank'&gt;Azure documentation &lt;/a&gt; for more information, or the Azure CLI for a list of your region’s supported values: &lt;i&gt;azure vm sizes --location “West US”&lt;/i&gt;" IsReadOnly="false" Type="String">
+    <AttributeInfo Name="VM Size"  DefaultValue="" Description="The Microsoft Azure VM Size. The VM Size determines the CPU, memory, disk size and networking capacity of the VM. For example: “Standard_A1_v2”. Use the &lt;a href='https://docs.microsoft.com/en-us/azure/virtual-machines/virtual-machines-windows-sizes' target='_blank'&gt;Azure documentation &lt;/a&gt; for more information, or the Azure CLI for a list of your region’s supported values: &lt;i&gt;az vm list-sizes --location “West US”&lt;/i&gt;" IsReadOnly="false" Type="String">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo Name="Disk Size"  DefaultValue="" Description="Specifies the size of an empty data disk in gigabytes." IsReadOnly="false" Type="String">
       <Rules>
         <Rule Name="Configuration" />
         <Rule Name="Setting" />
@@ -104,6 +110,12 @@
       </Rules>
     </AttributeInfo>
     <AttributeInfo Name="Azure Application Key"  DefaultValue="" Description="Application key associated with the Azure API application. The application key allows CloudShell to access the Azure API and is generated as part of the Azure application’s configuration process. For more information, see the “Configure Azure API to work with CloudShell” article in the CloudShell online help." IsReadOnly="false" Type="Password">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo DefaultValue="true"  Name="Allow all Sandbox Traffic" Description="Whether an app should allow inbound traffic from all other apps in the sandbox. If set to false, access from specific apps or subnets can be defined by an API call." IsReadOnly="false" Type="Boolean">
       <Rules>
         <Rule Name="Configuration" />
         <Rule Name="Setting" />
@@ -177,11 +189,16 @@
         <Rule Name="Setting" />
       </Rules>
     </AttributeInfo>
+    <AttributeInfo Name="Private IP Allocation Method" DefaultValue="" IsReadOnly="false" Type="String" Description="Defines the method that will be used to allocated private ip addresses to VMs. When Cloudshell Allocation method is selected the Azure-Shell will use the CloudShell Pool API to checkout the next available ip address when needed. When the instance is deleted the checked out ip addresses will be released. When Azure Allocation method is selected the private ips will be assigned by Azure when creating the network interface.">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
   </Attributes>
   <ResourceFamilies>
     <ResourceFamily Description="" IsAdminOnly="true" IsSearchable="false" Name="Cloud Provider" AllowRemoteConnection="false">
       <AttachedAttributes />
-      <AttributeValues />
       <Models>
         <ResourceModel Description="" ImagePath="Azure.png" Name="Microsoft Azure" SupportsConcurrentCommands="true">
           <AttachedAttributes>
@@ -214,6 +231,12 @@
             </AttachedAttribute>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Additional Mgmt Networks">
               <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Private IP Allocation Method">
+              <AllowedValues>
+                <AllowedValue>Azure Allocation</AllowedValue>
+                <AllowedValue>Cloudshell Allocation</AllowedValue>
+              </AllowedValues>
             </AttachedAttribute>
           </AttachedAttributes>
           <ParentModels />
@@ -255,6 +278,9 @@
       <Models>
         <ResourceModel Description="" Name="Azure VM From Marketplace" ImagePath="AzureMarketplaceImage.png" SupportsConcurrentCommands="false">          <AttachedAttributes>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="VM Size" UserInput="true">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Disk Size" UserInput="true">
               <AllowedValues />
             </AttachedAttribute>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Autoload" UserInput="false">
@@ -302,6 +328,9 @@
                 <AllowedValue>SSD</AllowedValue>
               </AllowedValues>
             </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Allow all Sandbox Traffic" UserInput="true">
+              <AllowedValues />
+            </AttachedAttribute>
           </AttachedAttributes>
           <AttributeValues>
             <AttributeValue Name="Public IP Type" Value="Dynamic" />
@@ -314,6 +343,9 @@
         <ResourceModel Description="" Name="Azure VM From Custom Image" ImagePath="AzureCustomImage.png" SupportsConcurrentCommands="false">
           <AttachedAttributes>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="VM Size" UserInput="true">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Disk Size" UserInput="true">
               <AllowedValues />
             </AttachedAttribute>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Autoload" UserInput="false">
@@ -354,6 +386,9 @@
                 <AllowedValue>HDD</AllowedValue>
                 <AllowedValue>SSD</AllowedValue>
               </AllowedValues>
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Allow all Sandbox Traffic" UserInput="true">
+              <AllowedValues />
             </AttachedAttribute>
           </AttachedAttributes>
           <AttributeValues>

@@ -44,7 +44,9 @@ class TestAzureModelsParser(TestCase):
 
         # Act
         with mock.patch.object(self.tested_class, "_set_base_deploy_azure_vm_model_params") as set_base_params:
+            network_actions = []
             result = self.tested_class.convert_to_deploy_azure_vm_resource_model(deploy_action,
+                                                                                 network_actions,
                                                                                  cloudshell_session,
                                                                                  logger)
 
@@ -73,15 +75,16 @@ class TestAzureModelsParser(TestCase):
                                                              'some_namespace.Password': 'my_encrypted_pass'}
 
         # act
-        result = AzureModelsParser._set_base_deploy_azure_vm_model_params(deployment_resource_model=deployment_resource_model,
-                                                                 deploy_action=deploy_action,
-                                                                 cloudshell_session=cloudshell_session,
-                                                                 logger=logger)
+        result = AzureModelsParser._set_base_deploy_azure_vm_model_params(
+            deployment_resource_model=deployment_resource_model,
+            deploy_action=deploy_action,
+            network_actions=[],
+            cloudshell_session=cloudshell_session,
+            logger=logger)
 
         # assert
         self.assertEqual(result.username, 'my_user')
         self.assertEqual(result.password, 'my_pass')
-
 
     @mock.patch("cloudshell.cp.azure.common.parsers.azure_model_parser.DeployAzureVMFromCustomImageResourceModel")
     @mock.patch("cloudshell.cp.azure.common.parsers.azure_model_parser.jsonpickle")
@@ -103,7 +106,9 @@ class TestAzureModelsParser(TestCase):
         # Act
         self.tested_class._set_base_deploy_azure_vm_model_params = mock.MagicMock()
         # with mock.patch.object(self.tested_class, "_set_base_deploy_azure_vm_model_params") as set_base_params:
+        network_actions = []
         result = self.tested_class.convert_to_deploy_azure_vm_from_custom_image_resource_model(deploy_action,
+                                                                                               network_actions,
                                                                                                cloudshell_session,
                                                                                                logger)
         # Verify
@@ -112,6 +117,7 @@ class TestAzureModelsParser(TestCase):
         self.tested_class._set_base_deploy_azure_vm_model_params.assert_called_once_with(
             deployment_resource_model=deploy_azure_vm_model,
             deploy_action=deploy_action,
+            network_actions=network_actions,
             cloudshell_session=cloudshell_session,
             logger=logger)
 
@@ -136,6 +142,7 @@ class TestAzureModelsParser(TestCase):
         test_resource.attributes["Region"] = "East Canada"
         test_resource.attributes["Management Group Name"] = test_mgmt_group_name = mock.MagicMock()
         test_resource.attributes["Execution Server Selector"] = ""
+        test_resource.attributes["Private IP Allocation Method"] = "Cloudshell Allocation"
         cloudshell_session = mock.MagicMock()
         decrypted_azure_application_key = mock.MagicMock()
         cloudshell_session.DecryptPassword.return_value = decrypted_azure_application_key

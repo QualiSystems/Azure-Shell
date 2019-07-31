@@ -36,24 +36,24 @@ class TestNetworkService(TestCase):
 
         self.network_client.subnets.get.assert_called()
         self.network_client.virtual_networks.create_or_update.assert_called_with(management_group_name,
-                                                                            network_name,
-                                                                            azure.mgmt.network.models.VirtualNetwork(
-                                                                                    location=region,
-                                                                                    tags=tags,
-                                                                                    address_space=azure.mgmt.network.models.AddressSpace(
-                                                                                            address_prefixes=[
-                                                                                                vnet_cidr,
-                                                                                            ],
-                                                                                    ),
-                                                                                    subnets=[
-                                                                                        azure.mgmt.network.models.Subnet(
-                                                                                                network_security_group=network_security_group,
-                                                                                                name=subnet_name,
-                                                                                                address_prefix=subnet_cidr,
-                                                                                        ),
-                                                                                    ],
-                                                                            ),
-                                                                            tags=tags)
+                                                                                 network_name,
+                                                                                 azure.mgmt.network.models.VirtualNetwork(
+                                                                                     location=region,
+                                                                                     tags=tags,
+                                                                                     address_space=azure.mgmt.network.models.AddressSpace(
+                                                                                         address_prefixes=[
+                                                                                             vnet_cidr,
+                                                                                         ],
+                                                                                     ),
+                                                                                     subnets=[
+                                                                                         azure.mgmt.network.models.Subnet(
+                                                                                             network_security_group=network_security_group,
+                                                                                             name=subnet_name,
+                                                                                             address_prefix=subnet_cidr,
+                                                                                         ),
+                                                                                     ],
+                                                                                 ),
+                                                                                 tags=tags)
 
     def test_network_for_vm_fails_when_public_ip_type_is_not_correct(self):
         self.assertRaises(Exception,
@@ -78,6 +78,8 @@ class TestNetworkService(TestCase):
         subnet_name = "subnet"
         ip_name = "ip"
         tags = "tags"
+        reservation_id = 'blabla'
+        cloudshell_session = MagicMock()
 
         network_client = MagicMock()
         network_client.virtual_networks.create_or_update = MagicMock()
@@ -88,32 +90,33 @@ class TestNetworkService(TestCase):
         result.result().ip_configurations = [MagicMock()]
         network_client.network_interfaces.create_or_update = MagicMock(return_value=result)
         cloud_provider_model = MagicMock()
+        cloud_provider_model.private_ip_allocation_method = 'cloudshell allocation'
         sandbox_virtual_network = MagicMock()
         sandbox_virtual_network.name = "sandbox"
         self.network_service.get_sandbox_virtual_network = MagicMock(sandbox_virtual_network)
 
-
         # Act
         self.network_service.create_network_for_vm(
-                network_client=network_client,
-                group_name=management_group_name,
-                interface_name=interface_name,
-                ip_name=ip_name,
-                cloud_provider_model=cloud_provider_model,
-                subnet=MagicMock(),
-                add_public_ip=True,
-                public_ip_type="Static",
-                tags=tags,
-                logger=MagicMock())
+            network_client=network_client,
+            group_name=management_group_name,
+            interface_name=interface_name,
+            ip_name=ip_name,
+            cloud_provider_model=cloud_provider_model,
+            subnet=MagicMock(),
+            add_public_ip=True,
+            public_ip_type="Static",
+            tags=tags,
+            logger=MagicMock(),
+            reservation_id=reservation_id,
+            cloudshell_session=cloudshell_session)
 
         # Verify
 
         self.assertEqual(network_client.network_interfaces.create_or_update.call_count, 1)
 
         # one time static
-        self.assertEqual(network_client.network_interfaces.create_or_update.call_args_list[0][0][2].ip_configurations[
-                             0].private_ip_allocation_method,
-                         IPAllocationMethod.static)
+        self.assertEqual(network_client.network_interfaces.create_or_update.call_args_list[0][0][2].ip_configurations[0]
+                         .private_ip_allocation_method, IPAllocationMethod.static)
 
     def test_delete_subnet(self):
         """Check that method will use network_client to delete subnet and will wait until deletion will be done"""
