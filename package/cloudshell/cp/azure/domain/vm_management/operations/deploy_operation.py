@@ -250,11 +250,13 @@ class DeployAzureVMOperation(object):
         # check if CustomImageDataModel or MarketplaceImageDataModel, no more options
         is_market_place = type(data.image_model) is MarketplaceImageDataModel
         vm_details_data = self.vm_details_provider.create(vm, is_market_place, logger, network_client, data.group_name)
+        additional_data = self._prepare_deployed_app_additional_data(data)
 
         deploy_result = DeployAppResult(vmUuid=vm.vm_id,
                                         vmName=data.vm_name,
                                         deployedAppAddress=data.primary_private_ip_address,
                                         deployedAppAttributes=deployed_app_attributes,
+                                        deployedAppAdditionalData=additional_data,
                                         vmDetailsData=vm_details_data)
 
         return deploy_result
@@ -903,6 +905,15 @@ class DeployAzureVMOperation(object):
 
         return data
 
+    def _prepare_deployed_app_additional_data(self, data):
+        """
+        :param DeployAzureVMOperation.DeployDataModel data:
+        :rtype: dict
+        """
+        return {
+            "resource_group_name": data.group_name
+        }
+
     class DeployDataModel(object):
         def __init__(self):
             self.reservation_id = ''  # type: str
@@ -922,6 +933,7 @@ class DeployAzureVMOperation(object):
             self.all_private_ip_addresses = []  # type: list[str]
             self.public_ip_address = ''  # type: str
             self.nic_requests = []  # type: list[NicRequest]
+
 
 
 def get_ip_from_interface_name(interface_name):
