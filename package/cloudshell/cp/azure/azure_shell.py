@@ -394,7 +394,18 @@ class AzureShell(object):
 
                     logger.info('Deleting Azure VM...')
 
-                    resource_group_name = command_context.remote_reservation.reservation_id
+                    try:
+                        resource_group_name = command_context.remote_reservation.reservation_id
+                    except:
+                        resource = command_context.remote_endpoints[0]
+                        data_holder = self.model_parser.convert_app_resource_to_deployed_app(resource)
+                        resource_group_name = self.vm_custom_params_extractor.get_custom_param_value(
+                            data_holder.vmdetails.vmCustomParams,
+                            "resource_group_name")
+                        if not resource_group_name:
+                            logger.info("We dont have resource group data for this deployed app. So we will not raise "
+                                        "an error so it will be possible to remove the resource from CloudShell")
+                            return
 
                     cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(
                         resource=command_context.resource,
