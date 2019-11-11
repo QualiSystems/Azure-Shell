@@ -7,7 +7,7 @@ from cloudshell.cp.azure.domain.services.parsers.network_actions import NetworkA
 from cloudshell.cp.azure.models.app_security_groups_model import AppSecurityGroupModel, DeployedApp, VmDetails
 from cloudshell.cp.azure.models.azure_cloud_provider_resource_model import AzureCloudProviderResourceModel
 from cloudshell.cp.azure.models.deploy_azure_vm_resource_models import DeployAzureVMResourceModel, \
-    RouteTableRequestResourceModel, RouteResourceModel
+    RouteTableRequestResourceModel, RouteResourceModel, DeployAzureAppServiceResourceModel
 from cloudshell.cp.azure.models.deploy_azure_vm_resource_models import DeployAzureVMFromCustomImageResourceModel
 from cloudshell.cp.azure.common.deploy_data_holder import DeployDataHolder
 from cloudshell.cp.azure.models.reservation_model import ReservationModel
@@ -177,6 +177,31 @@ class AzureModelsParser(object):
         AzureModelsParser.validate_custom_image_model(deployment_resource_model)
 
         return deployment_resource_model
+
+    @staticmethod
+    def convert_to_deploy_app_service_resource_model(deploy_action, cloudshell_session, network_actions, logger):
+        """
+        Convert deployment request JSON to the DeployAzureAppServiceResourceModel model
+
+        :param package.cloudshell.cp.core.models.DeployApp deploy_action: describes the desired deployment
+        :param cloudshell.api.cloudshell_api.CloudShellAPISession cloudshell_session: instance
+        :param logging.Logger logger:
+        :return: deploy_azure_vm_resource_models.DeployAzureAppServiceResourceModel instance
+        :rtype: DeployAzureAppServiceResourceModel
+        """
+        data_attributes = deploy_action.actionParams.deployment.attributes
+        deployment_resource_model = DeployAzureAppServiceResourceModel()
+        deployment_resource_model.runtime = data_attributes['Runtime']
+        deployment_resource_model.operating_system = data_attributes['Operating System']
+
+        # AzureModelsParser._set_base_deploy_azure_vm_model_params(deployment_resource_model=deployment_resource_model,
+        #                                                          deploy_action=deploy_action,
+        #                                                          network_actions=network_actions,
+        #                                                          cloudshell_session=cloudshell_session,
+        #                                                          logger=logger)
+
+        return deployment_resource_model
+
 
     @staticmethod
     def validate_custom_image_model(model):

@@ -1,3 +1,6 @@
+from cloudshell.api.common_cloudshell_api import CloudShellAPIError
+
+
 class RefreshIPOperation(object):
     def __init__(self, vm_service, resource_id_parser):
         """
@@ -10,7 +13,8 @@ class RefreshIPOperation(object):
         self.resource_id_parser = resource_id_parser
 
     def refresh_ip(self, cloudshell_session, compute_client, network_client, resource_group_name, vm_name,
-                   private_ip_on_resource, public_ip_on_resource, resource_fullname, logger):
+                   private_ip_on_resource, public_ip_on_resource, resource_fullname,
+                   deployed_app_resource_model, logger):
         """Refresh Public and Private IP on CloudShell resource from corresponding deployed Azure instance
 
         :param cloudshell_session: cloudshell.api.cloudshell_api.CloudShellAPISession instance
@@ -21,6 +25,7 @@ class RefreshIPOperation(object):
         :param private_ip_on_resource: private IP on the CloudShell resource
         :param public_ip_on_resource: public IP on the CloudShell resource
         :param resource_fullname: full resource name on the CloudShell
+        :param str deployed_app_resource_model: the model name of the deployed app resource
         :param logger: logging.Logger instance
         :return
         """
@@ -59,7 +64,14 @@ class RefreshIPOperation(object):
 
         if public_ip_on_azure != public_ip_on_resource:
             logger.info("Updating Public IP on the resource to '{}' ...".format(public_ip_on_azure))
-            cloudshell_session.SetAttributeValue(resource_fullname, "Public IP", public_ip_on_azure)
+            try:
+                cloudshell_session.SetAttributeValue(resource_fullname, "Public IP", public_ip_on_azure)
+            except CloudShellAPIError as exc:
+                if exc.code == 102:
+                    # attribute not found, try 2nd gen attribute syntax
+                    cloudshell_session.SetAttributeValue(resource_fullname,
+                                                         "{}.Public IP".format(deployed_app_resource_model),
+                                                         public_ip_on_azure)
 
         logger.info("Private IP on Azure: '{}'".format(private_ip_on_azure))
         logger.info("Private IP on CloudShell: '{}'".format(private_ip_on_resource))

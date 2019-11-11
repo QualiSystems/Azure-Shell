@@ -1,5 +1,13 @@
 class VmCustomParamsExtractor(object):
 
+    def get_resource_group_name(self, custom_params):
+        """ Returns the value of "resource_group_name" custom param
+
+        :param custom_params: list[DeployDataHolder] array of VMCustomParams from the deployed app json
+        :return:
+        """
+        return self.get_custom_param_value(custom_params, "resource_group_name")
+
     def get_custom_param_value(self, custom_params, name):
         """Returns the value of the requested custom param
 

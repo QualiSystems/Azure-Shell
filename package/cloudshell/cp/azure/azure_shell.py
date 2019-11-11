@@ -16,6 +16,7 @@ from cloudshell.cp.azure.common.parsers.azure_model_parser import AzureModelsPar
 from cloudshell.cp.azure.common.parsers.azure_resource_id_parser import AzureResourceIdParser
 from cloudshell.cp.azure.common.parsers.command_result_parser import CommandResultsParser
 from cloudshell.cp.azure.common.parsers.custom_param_extractor import VmCustomParamsExtractor
+from cloudshell.cp.azure.domain.azure_services_operations.app_services_operation import AppServicesOperation
 from cloudshell.cp.azure.domain.common.vm_details_provider import VmDetailsProvider
 from cloudshell.cp.azure.domain.networking_management.operations.add_route_operation import AddRouteOperation
 from cloudshell.cp.azure.domain.networking_management.operations.ip_operation import IPAddressOperation
@@ -109,6 +110,13 @@ class AzureShell(object):
             vm_details_provider=self.vm_details_provider,
             ip_service=self.ip_service)
 
+        self.deploy_app_service_operation = AppServicesOperation(
+            network_service=self.network_service,
+            tags_service=self.tags_service,
+            name_provider_service=self.name_provider_service,
+            cancellation_service=self.cancellation_service
+        )
+
         self.power_vm_operation = PowerAzureVMOperation(vm_service=self.vm_service,
                                                         vm_custom_params_extractor=self.vm_custom_params_extractor)
 
@@ -129,7 +137,8 @@ class AzureShell(object):
             vm_custom_params_extractor=self.vm_custom_params_extractor)
 
         self.vm_details_operation = VmDetailsOperation(vm_service=self.vm_service,
-                                                       vm_details_provider=self.vm_details_provider)
+                                                       vm_details_provider=self.vm_details_provider,
+                                                       vm_custom_params_extractor=self.vm_custom_params_extractor)
 
         self.set_app_security_groups_operation = SetAppSecurityGroupsOperation(vm_service=self.vm_service,
                                                                                resource_id_parser=self.resource_id_parser,
@@ -221,6 +230,53 @@ class AzureShell(object):
                                                                        route_table_request=route_table_request_model,
                                                                        sandbox_id=reservation_id,
                                                                        subnet_lcoker=self.subnet_locker)
+
+    def deploy_app_service(self, command_context, actions, cancellation_context):
+        """ Will create an app service
+
+        :param command_context:
+        :param actions:
+        :param cancellation_context:
+        :return:
+        """
+        deploy_action = single(actions, lambda x: isinstance(x, DeployApp))
+        network_actions = [a for a in actions if isinstance(a, ConnectSubnet)]
+        with LoggingSessionContext(command_context) as logger:
+            with ErrorHandlingContext(logger):
+                logger.info('Deploying App Service')
+                logger.debug(
+                    "Deploying App Service actions: {0}".format(','.join([jsonpickle.encode(a) for a in actions])))
+
+                with CloudShellSessionContext(command_context) as cloudshell_session:
+                    azure_deploy_app_service_model = self.model_parser.convert_to_deploy_app_service_resource_model(
+                        deploy_action=deploy_action,
+                        cloudshell_session=cloudshell_session,
+                        network_actions=network_actions,
+                        logger=logger)
+
+                    cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(
+                        resource=command_context.resource,
+                        cloudshell_session=cloudshell_session)
+
+                azure_clients = AzureClientsManager(cloud_provider_model)
+
+                results = self.deploy_app_service_operation.deploy_code(
+                    deployment_model=azure_deploy_app_service_model,
+                    cloud_provider_model=cloud_provider_model,
+                    reservation=self.model_parser.convert_to_reservation_model(command_context.reservation),
+                    network_client=azure_clients.network_client,
+                    network_actions=network_actions,
+                    cancellation_context=cancellation_context,
+                    logger=logger,
+                    cloudshell_session=cloudshell_session)
+
+                logger.info('End deploying App Service')
+
+                # if not error until here then its safe to assume that all network actions created OK
+                network_results = [ConnectToSubnetActionResult(action.actionId, True, '', '', '') for action in
+                                   network_actions]
+                results.actionId = deploy_action.actionId
+                return [results] + network_results
 
     def deploy_azure_vm(self, command_context, actions, cancellation_context):
         """ Will deploy Azure Image on the cloud provider
@@ -394,18 +450,30 @@ class AzureShell(object):
 
                     logger.info('Deleting Azure VM...')
 
+                    reservation_id = None
+                    resource_group_name = None
                     try:
-                        resource_group_name = command_context.remote_reservation.reservation_id
+                        reservation_id = command_context.remote_reservation.reservation_id
                     except:
-                        resource = command_context.remote_endpoints[0]
-                        data_holder = self.model_parser.convert_app_resource_to_deployed_app(resource)
-                        resource_group_name = self.vm_custom_params_extractor.get_custom_param_value(
-                            data_holder.vmdetails.vmCustomParams,
-                            "resource_group_name")
+                        # try get resource group id from custom params if command runs outside of a sandbox context
+                        resource_group_name = self._get_group_name_from_custom_params(
+                            command_context.remote_endpoints[0])
                         if not resource_group_name:
                             logger.info("We dont have resource group data for this deployed app. So we will not raise "
                                         "an error so it will be possible to remove the resource from CloudShell")
                             return
+
+                    # get the resource group name from custom params in case we dont have it already
+                    if not resource_group_name:
+                        resource_group_name = self._get_group_name_from_custom_params(command_context.remote_endpoints[0])
+
+                    if resource_group_name and reservation_id and resource_group_name != reservation_id:
+                        logger.info("Deleting a deployed app from a reservation that is not the original reservation "
+                                    "is not allowed")
+                        raise Exception("Operation not allowed")
+
+                    if not resource_group_name and reservation_id:
+                        resource_group_name = reservation_id
 
                     cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(
                         resource=command_context.resource,
@@ -432,6 +500,12 @@ class AzureShell(object):
 
                     logger.info('End Deleting Azure VM')
 
+    def _get_group_name_from_custom_params(self, resource):
+        data_holder = self.model_parser.convert_app_resource_to_deployed_app(resource)
+        resource_group_name = \
+            self.vm_custom_params_extractor.get_resource_group_name(data_holder.vmdetails.vmCustomParams)
+        return resource_group_name
+
     def power_on_vm(self, command_context):
         """Power on Azure VM
 
@@ -442,11 +516,11 @@ class AzureShell(object):
             with ErrorHandlingContext(logger):
                 logger.info('Starting power on operation on Azure VM...')
 
-                group_name = self.model_parser.convert_to_reservation_model(command_context.remote_reservation) \
-                    .reservation_id
+                group_name = self._get_group_name(command_context)
 
                 resource = command_context.remote_endpoints[0]
                 data_holder = self.model_parser.convert_app_resource_to_deployed_app(resource)
+
 
                 with CloudShellSessionContext(command_context) as cloudshell_session:
                     cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(
@@ -473,8 +547,7 @@ class AzureShell(object):
             with ErrorHandlingContext(logger):
                 logger.info('Starting power off operation on Azure VM...')
 
-                group_name = self.model_parser.convert_to_reservation_model(command_context.remote_reservation) \
-                    .reservation_id
+                group_name = self._get_group_name(command_context)
 
                 resource = command_context.remote_endpoints[0]
                 data_holder = self.model_parser.convert_app_resource_to_deployed_app(resource)
@@ -505,11 +578,12 @@ class AzureShell(object):
                 resource = command_context.remote_endpoints[0]
                 data_holder = self.model_parser.convert_app_resource_to_deployed_app(resource)
                 vm_name = data_holder.name
-                group_name = self.model_parser.convert_to_reservation_model(command_context.remote_reservation) \
-                    .reservation_id
+                resource_model = data_holder.model
                 private_ip = self.model_parser.get_private_ip_from_connected_resource_details(command_context)
                 public_ip = self.model_parser.get_public_ip_from_connected_resource_details(command_context)
                 resource_fullname = self.model_parser.get_connected_resource_fullname(command_context)
+
+                group_name = self._get_group_name(command_context)
 
                 with CloudShellSessionContext(command_context) as cloudshell_session:
                     cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(
@@ -526,9 +600,21 @@ class AzureShell(object):
                                                          private_ip_on_resource=private_ip,
                                                          public_ip_on_resource=public_ip,
                                                          resource_fullname=resource_fullname,
+                                                         deployed_app_resource_model=resource_model,
                                                          logger=logger)
 
                 logger.info('Azure VM IPs were successfully refreshed'.format(vm_name))
+
+    def _get_group_name(self, command_context):
+        """
+        :param ResourceRemoteCommandContext command_context:
+        :rtype: str
+        """
+        group_name = self._get_group_name_from_custom_params(command_context.remote_endpoints[0])
+        if not group_name:
+            group_name = self.model_parser.convert_to_reservation_model(command_context.remote_reservation) \
+                .reservation_id
+        return group_name
 
     def get_access_key(self, command_context):
         """Returns public key
@@ -545,11 +631,10 @@ class AzureShell(object):
                         cloudshell_session=cloudshell_session)
 
                 azure_clients = AzureClientsManager(cloud_provider_model)
-                resource_group_name = \
-                    self.model_parser.convert_to_reservation_model(command_context.remote_reservation).reservation_id
+                group_name = self._get_group_name(command_context)
 
                 return self.access_key_operation.get_access_key(storage_client=azure_clients.storage_client,
-                                                                group_name=resource_group_name)
+                                                                group_name=group_name)
 
     def get_application_ports(self, command_context):
         """Get application ports in a nicely formatted manner
@@ -568,15 +653,12 @@ class AzureShell(object):
                 network_client = azure_clients.network_client
                 resource = command_context.remote_endpoints[0]
                 vm_name = resource.fullname
-
-                resource_group_name = \
-                    self.model_parser.\
-                        convert_to_reservation_model(command_context.remote_reservation).reservation_id
+                group_name = self._get_group_name(command_context)
 
                 allow_sandbox_traffic = self.model_parser.\
                     get_allow_all_storage_traffic_from_connected_resource_details(command_context)
 
-                vm_nsg = self._get_vm_nsg(azure_clients, compute_client, network_client, resource_group_name, vm_name)
+                vm_nsg = self._get_vm_nsg(azure_clients, compute_client, network_client, group_name, vm_name)
 
                 results_str_list = ['App Name: ' + resource.fullname,
                                     'Allow Sandbox Traffic: ' + str(allow_sandbox_traffic)]
@@ -626,10 +708,12 @@ class AzureShell(object):
         with LoggingSessionContext(command_context) as logger:
             with ErrorHandlingContext(logger):
                 logger.info("Starting get_vm_details operation...")
+                logger.info("request:")
+                logger.info(requests_json)
 
                 requests = DeployDataHolder(jsonpickle.decode(requests_json)).items
 
-                group_name = self.model_parser.convert_to_reservation_model(command_context.reservation) \
+                sandbox_id = self.model_parser.convert_to_reservation_model(command_context.reservation) \
                     .reservation_id
 
                 # resource = command_context.remote_endpoints[0]
@@ -648,7 +732,7 @@ class AzureShell(object):
                 azure_clients = AzureClientsManager(cloud_provider_model)
 
                 vm_details = self.vm_details_operation.get_vm_details(compute_client=azure_clients.compute_client,
-                                                                      group_name=group_name,
+                                                                      sandbox_id=sandbox_id,
                                                                       requests=requests,
                                                                       logger=logger,
                                                                       network_client=azure_clients.network_client,
@@ -669,8 +753,7 @@ class AzureShell(object):
 
                 app_security_group_models = self.model_parser.convert_to_app_security_group_models(request)
 
-                group_name = self.model_parser.convert_to_reservation_model(command_context.reservation) \
-                    .reservation_id
+                group_name = self._get_group_name(command_context)
 
                 with CloudShellSessionContext(command_context) as cloudshell_session:
                     cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(
@@ -711,3 +794,4 @@ class AzureShell(object):
                                                                           reservation_id=reservation_id,
                                                                           subnet_cidr=subnet_cidr,
                                                                           owner=owner)
+

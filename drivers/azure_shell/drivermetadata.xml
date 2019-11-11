@@ -1,4 +1,4 @@
-<Driver Description="This driver orchestrate all the command that will be executed on Azure" MainClass="driver.AzureShellDriver" Name="Azure Shell Driver" Version="1.9.6">
+<Driver Description="This driver orchestrate all the command that will be executed on Azure" MainClass="driver.AzureShellDriver" Name="Azure Shell Driver" Version="1.9.12">
     <Layout>
         <Category Name="Deployment">
             <Command Description="" DisplayName="Deploy VM" EnableCancellation="true" Name="deploy_vm" Tags="allow_unreserved" />

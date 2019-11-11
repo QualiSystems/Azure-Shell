@@ -54,3 +54,10 @@ class DeployAzureVMFromCustomImageResourceModel(BaseDeployAzureVMResourceModel):
         super(DeployAzureVMFromCustomImageResourceModel, self).__init__()
         self.image_name = ""
         self.image_resource_group = ""
+
+
+class DeployAzureAppServiceResourceModel(BaseDeployAzureVMResourceModel):
+    def __init__(self):
+        super(DeployAzureAppServiceResourceModel, self).__init__()
+        self.runtime = ""  # type: str
+        self.operating_system = ""  # type: str

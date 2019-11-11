@@ -3,6 +3,7 @@ from azure.mgmt.network import NetworkManagementClient
 from azure.mgmt.resource import ResourceManagementClient
 from azure.mgmt.resource import SubscriptionClient
 from azure.mgmt.storage import StorageManagementClient
+from azure.mgmt.web import WebSiteManagementClient
 from msrestazure.azure_active_directory import ServicePrincipalCredentials
 
 from cloudshell.cp.azure.common.singletons import SingletonByArgsMeta
@@ -48,6 +49,7 @@ class AzureClientsManager(AbstractComparableInstance):
         self._storage_client = None
         self._resource_client = None
         self._subscription_client = None
+        self._website_client = None
 
     def _get_service_credentials(self):
         return ServicePrincipalCredentials(client_id=self._application_id, secret=self._application_key, tenant=self._tenant)
@@ -63,6 +65,16 @@ class AzureClientsManager(AbstractComparableInstance):
 
     def _get_azure_tenant(self, cloud_provider_model):
         return cloud_provider_model.azure_tenant
+
+    @property
+    def web_client(self):
+        if self._website_client is None:
+            with SingletonByArgsMeta.lock:
+                if self._website_client is None:
+                    self._website_client = WebSiteManagementClient(self._service_credentials, self._subscription_id)
+                    self._website_client.config.add_user_agent(self._tracking_id)
+
+        return self._website_client
 
     @property
     def compute_client(self):
