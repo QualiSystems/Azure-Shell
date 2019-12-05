@@ -19,6 +19,11 @@ class ConnectionParamsParser(object):
         if isinstance(params_data, ConnectToSubnetParams):
             params = SubnetConnectionParams()
             params.subnet_id = params_data.subnetId
+            if hasattr(params_data, 'vnicName'):
+                vnic_name_attr = NetworkActionAttribute()
+                vnic_name_attr.name = VNIC_NAME_ATTRIBUTE
+                vnic_name_attr.value = params_data.vnicName
+                params.custom_attributes.append(vnic_name_attr)
 
         elif isinstance(params_data, PrepareSubnetParams):
             params = PrepareSubnetParamsData()
