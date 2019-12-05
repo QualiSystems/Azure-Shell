@@ -20,6 +20,18 @@ class ConnectionParamsParser(object):
             params = SubnetConnectionParams()
             params.subnet_id = params_data.subnetId
 
+            # after 9.0 versions, name of vnic with which a connect subnet action is associated, is not held in
+            # custom attribute, but rather as an attribute of ConnectToSubnetParams
+            # however, to minimize issues with backwards compatibility to pre-9.0 versions, we are still going to
+            # keep vnic name in custom attributes;
+            # basically this area should be revisited to get rid of references to pre-9.0 data structures
+            # ("custom attributes")
+            if hasattr(params_data, 'vnicName'):
+                vnic_name_attr = NetworkActionAttribute()
+                vnic_name_attr.name = VNIC_NAME_ATTRIBUTE
+                vnic_name_attr.value = params_data.vnicName
+                params.custom_attributes.append(vnic_name_attr)
+
         elif isinstance(params_data, PrepareSubnetParams):
             params = PrepareSubnetParamsData()
             params.is_public = convert_to_bool(params_data.isPublic)
