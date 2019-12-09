@@ -506,10 +506,11 @@ class AzureShell(object):
             self.vm_custom_params_extractor.get_resource_group_name(data_holder.vmdetails.vmCustomParams)
         return resource_group_name
 
-    def power_on_vm(self, command_context):
+    def power_on_vm(self, command_context, set_live_status=False):
         """Power on Azure VM
 
         :param ResourceCommandContext command_context:
+        :param set_live_status: bool
         :return:
         """
         with LoggingSessionContext(command_context) as logger:
@@ -520,7 +521,6 @@ class AzureShell(object):
 
                 resource = command_context.remote_endpoints[0]
                 data_holder = self.model_parser.convert_app_resource_to_deployed_app(resource)
-
 
                 with CloudShellSessionContext(command_context) as cloudshell_session:
                     cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(
@@ -534,6 +534,9 @@ class AzureShell(object):
                                                      resource_full_name=resource.fullname,
                                                      data_holder=data_holder,
                                                      cloudshell_session=cloudshell_session)
+
+                    if set_live_status:
+                        cloudshell_session.SetResourceLiveStatus(resource.fullname, 'Online', 'Active')
 
                 logger.info('Azure VM was successfully powered on')
 

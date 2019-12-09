@@ -14,7 +14,7 @@ class AzureShellDriver(ResourceDriverInterface):
         self.deployments = dict()
         self.deployments['Azure VM From Marketplace'] = self.deploy_vm
         self.deployments['Azure VM From Custom Image'] = self.deploy_vm_from_custom_image
-        self.deployments['Azure App Service'] = self.deploy_app_service
+        # self.deployments['Azure App Service'] = self.deploy_app_service
         self.azure_shell = AzureShell()
 
     def Deploy(self, context, request=None, cancellation_context=None):
@@ -49,16 +49,19 @@ class AzureShellDriver(ResourceDriverInterface):
                                                             actions=actions,
                                                             cancellation_context=cancellation_context)
 
-    def deploy_app_service(self, context, actions, cancellation_context):
-        return self.azure_shell.deploy_app_service(command_context=context,
-                                                   actions=actions,
-                                                   cancellation_context=cancellation_context)
+    # def deploy_app_service(self, context, actions, cancellation_context):
+    #     return self.azure_shell.deploy_app_service(command_context=context,
+    #                                                actions=actions,
+    #                                                cancellation_context=cancellation_context)
 
     def PowerOn(self, context, ports):
         return self.azure_shell.power_on_vm(context)
 
     def PowerOff(self, context, ports):
         return self.azure_shell.power_off_vm(context)
+
+    def TurnOnHidden(self, context, ports):
+        return self.azure_shell.power_on_vm(context, True)
 
     def PowerCycle(self, context, ports, delay):
         pass
