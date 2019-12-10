@@ -56,7 +56,7 @@ class ConnectionParamsParser(object):
         """
         params_base.cidr = data.cidr
         params_base.subnetServiceAttributes = ConnectionParamsParser.parse_subnet_service_attributes(data)
-        params_base.custom_attributes = []
+        params_base.custom_attributes = (params_base.custom_attributes or [])
 
     @staticmethod
     def parse_custom_network_action_attributes(action):
