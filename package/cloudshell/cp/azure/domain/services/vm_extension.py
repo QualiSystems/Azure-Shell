@@ -19,7 +19,7 @@ class VMExtensionService(object):
 
     WINDOWS_PUBLISHER = "Microsoft.Compute"
     WINDOWS_EXTENSION_TYPE = "CustomScriptExtension"
-    WINDOWS_HANDLER_VERSION = "1.7"
+    WINDOWS_HANDLER_VERSION = "1.9"
 
     LINUX_PUBLISHER = "Microsoft.OSTCExtensions"
     LINUX_EXTENSION_TYPE = "CustomScriptForLinux"
