@@ -497,7 +497,7 @@ class AzureShell(object):
                 group_name = self.model_parser.convert_to_reservation_model(command_context.remote_reservation) \
                     .reservation_id
                 private_ip = self.model_parser.get_private_ip_from_connected_resource_details(command_context)
-                public_ip = self.model_parser.get_public_ip_from_connected_resource_details(command_context)
+                public_ip_attr = self.model_parser.get_public_ip_tuple_attribute_from_connected_resource_details(command_context)
                 resource_fullname = self.model_parser.get_connected_resource_fullname(command_context)
 
                 with CloudShellSessionContext(command_context) as cloudshell_session:
@@ -513,7 +513,7 @@ class AzureShell(object):
                                                          resource_group_name=group_name,
                                                          vm_name=vm_name,
                                                          private_ip_on_resource=private_ip,
-                                                         public_ip_on_resource=public_ip,
+                                                         public_ip_on_resource_attr_tuple=public_ip_attr,
                                                          resource_fullname=resource_fullname,
                                                          logger=logger)
 
