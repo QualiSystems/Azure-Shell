@@ -399,11 +399,11 @@ class TestAzureShell(TestCase):
 
         command_context = mock.MagicMock()
         private_ip = mock.MagicMock()
-        public_ip = mock.MagicMock()
+        public_ip = '1.2.3.4'
         resource_fullname = mock.MagicMock()
 
         self.azure_shell.model_parser.get_private_ip_from_connected_resource_details.return_value = private_ip
-        self.azure_shell.model_parser.get_public_ip_from_connected_resource_details.return_value = public_ip
+        self.azure_shell.model_parser.get_public_ip_tuple_attribute_from_connected_resource_details.return_value = ("Public IP", public_ip)
         self.azure_shell.model_parser.get_connected_resource_fullname.return_value = resource_fullname
 
         # Act
@@ -420,7 +420,7 @@ class TestAzureShell(TestCase):
             resource_group_name=self.group_name,
             vm_name=self.vm_name,
             private_ip_on_resource=private_ip,
-            public_ip_on_resource=public_ip,
+            public_ip_on_resource_attr_tuple=("Public IP", public_ip),
             resource_fullname=resource_fullname,
             logger=self.logger)
 
