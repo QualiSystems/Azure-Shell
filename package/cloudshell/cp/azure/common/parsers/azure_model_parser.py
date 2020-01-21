@@ -283,8 +283,8 @@ class AzureModelsParser(object):
         Finds the attribute value by name ignoring attribute namespaces.
         :param dict attributes: Attributes key value dict to search on.
         :param str name: Attribute name to search for.
-        :return: Tuple
-        :rtype: str
+        :return: Tuple (name, value).(name, None) if not found.
+        :rtype:  Tuple
         """
         for key, val in attributes.iteritems():
             splitted = key.split(".")
