@@ -30,6 +30,14 @@ def retry_if_retryable_error(exception):
     return isinstance(exception, CloudError) and _is_retryable_error_message(exception)
 
 
+def retry_if_os_provisioning_did_not_finish(exception):
+    """Return True if OS provisioning for the VM did not finish in the allotted time but may still finish
+
+     provisioning successfully
+    :param exceptions.Exception exception:
+    """
+    return isinstance(exception, CloudError) and "check provisioning state later" in str(exception).lower()
+
 def _is_retryable_error_message(exception):
     error_has_retryable_in_message = retryable_error_string.lower() in exception.message.lower()
     return error_has_retryable_in_message

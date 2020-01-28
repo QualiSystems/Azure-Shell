@@ -10,7 +10,7 @@ from azure.mgmt.resource.resources.models import ResourceGroup
 from retrying import retry
 
 from cloudshell.cp.azure.common.helpers.retrying_helpers import retry_if_connection_error, retryable_error_max_attempts, \
-    retryable_wait_time, retry_if_retryable_error
+    retryable_wait_time, retry_if_retryable_error, retry_if_os_provisioning_did_not_finish
 
 
 class VirtualMachineService(object):
@@ -69,6 +69,9 @@ class VirtualMachineService(object):
     @retry(stop_max_attempt_number=retryable_error_max_attempts,
            wait_fixed=retryable_wait_time,
            retry_on_exception=retry_if_retryable_error)
+    @retry(stop_max_attempt_number=60,
+           wait_fixed=60000,
+           retry_on_exception=retry_if_os_provisioning_did_not_finish)
     def _create_vm(self, compute_management_client, region, group_name, vm_name, hardware_profile, network_profile,
                    os_profile, storage_profile, cancellation_context, tags, vm_plan=None, logger=None):
         """Create and deploy Azure VM from the given parameters
