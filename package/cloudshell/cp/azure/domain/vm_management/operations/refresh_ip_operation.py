@@ -10,7 +10,7 @@ class RefreshIPOperation(object):
         self.resource_id_parser = resource_id_parser
 
     def refresh_ip(self, cloudshell_session, compute_client, network_client, resource_group_name, vm_name,
-                   private_ip_on_resource, public_ip_on_resource, resource_fullname, logger):
+                   private_ip_on_resource, public_ip_on_resource_attr_tuple, resource_fullname, logger):
         """Refresh Public and Private IP on CloudShell resource from corresponding deployed Azure instance
 
         :param cloudshell_session: cloudshell.api.cloudshell_api.CloudShellAPISession instance
@@ -19,7 +19,7 @@ class RefreshIPOperation(object):
         :param resource_group_name: The name of the resource group
         :param vm_name: The name of the virtual machine
         :param private_ip_on_resource: private IP on the CloudShell resource
-        :param public_ip_on_resource: public IP on the CloudShell resource
+        :param public_ip_on_resource_attr_tuple: (key,val) public IP on the CloudShell resource (we preserve public ip namespace key)
         :param resource_fullname: full resource name on the CloudShell
         :param logger: logging.Logger instance
         :return
@@ -27,6 +27,9 @@ class RefreshIPOperation(object):
         # check if VM exists and in the correct state
         logger.info("Check that VM {} exists under resource group {} and is active".format(
                 vm_name, resource_group_name))
+
+        public_ip_key = public_ip_on_resource_attr_tuple[0]
+        public_ip_on_resource = public_ip_on_resource_attr_tuple[1]
 
         vm = self.vm_service.get_active_vm(
             compute_management_client=compute_client,
@@ -42,7 +45,6 @@ class RefreshIPOperation(object):
 
         vm_ip_configuration = nic.ip_configurations[0]
         private_ip_on_azure = vm_ip_configuration.private_ip_address
-
         public_ip_reference = vm_ip_configuration.public_ip_address
 
         if public_ip_reference is None:
@@ -59,7 +61,7 @@ class RefreshIPOperation(object):
 
         if public_ip_on_azure != public_ip_on_resource:
             logger.info("Updating Public IP on the resource to '{}' ...".format(public_ip_on_azure))
-            cloudshell_session.SetAttributeValue(resource_fullname, "Public IP", public_ip_on_azure)
+            cloudshell_session.SetAttributeValue(resource_fullname, public_ip_key, public_ip_on_azure)
 
         logger.info("Private IP on Azure: '{}'".format(private_ip_on_azure))
         logger.info("Private IP on CloudShell: '{}'".format(private_ip_on_resource))

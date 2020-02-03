@@ -97,7 +97,6 @@ class PrepareSandboxInfraOperation(object):
         reservation_id = reservation.reservation_id
         group_name = str(reservation_id)
         tags = self.tags_service.get_tags(reservation=reservation)
-        network_action_result = PrepareNetworkActionResult()
         create_key_action_result = CreateKeysActionResult()
         subnet_actions = [a for a in actions if isinstance(a, PrepareSubnet)]
 
@@ -151,7 +150,7 @@ class PrepareSandboxInfraOperation(object):
         # to subnets that set their attribute Public = false, i.e. private subnets
         # the idea is that all subnets in sandbox are subscribed to this subnet.
 
-        security_group_name = "NSG_sandbox_all_subnets_" + reservation_id
+        security_group_name = self.security_group_service.get_subnets_nsg_name(reservation_id)
         logger.info("Creating a network security group: '{}' .".format(security_group_name))
         sandbox_network_security_group = self.security_group_service.create_network_security_group(
             network_client=network_client,
@@ -183,7 +182,7 @@ class PrepareSandboxInfraOperation(object):
         # 6. Create additional subnets requested by server
         for subnet in subnet_actions:
             logger.warn('creating: ' + subnet.actionParams.cidr)
-            subnet_name = (group_name + '_' + subnet.actionParams.cidr).replace(' ', '').replace('/', '-')
+            subnet_name = self.name_provider_service.format_subnet_name(group_name, subnet.actionParams.cidr)
             self._create_subnet(cidr=subnet.actionParams.cidr,
                                 cloud_provider_model=cloud_provider_model,
                                 logger=logger,
@@ -394,7 +393,7 @@ class PrepareSandboxInfraOperation(object):
         # Priority 2xxx:
         #   -   Allow inbound traffic from sandbox CIDR
         #   -   Deny inbound traffic from internet for subnets that requested Public = False
-        #
+
         # Priority 4xxx:
         #   -   Allow inbound traffic for additional management networks
         #

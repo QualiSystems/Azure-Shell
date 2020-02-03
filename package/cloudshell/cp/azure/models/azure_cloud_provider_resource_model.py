@@ -14,3 +14,4 @@ class AzureCloudProviderResourceModel(object):
         self.management_group_name = ''  # type: str
         self.additional_mgmt_networks = ''  # type: str
         self.cloud_provider_name = ''  # type: str
+        self.private_ip_allocation_method = ''  # type: str

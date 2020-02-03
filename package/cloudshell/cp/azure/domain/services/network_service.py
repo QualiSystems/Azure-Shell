@@ -1,9 +1,14 @@
+import time
+
 import azure
-from azure.mgmt.network.models import NetworkInterface, NetworkInterfaceIPConfiguration, IPAllocationMethod, \
-    VirtualNetwork
+from azure.mgmt.network.models import NetworkInterface, NetworkInterfaceIPConfiguration, VirtualNetwork, RouteTable, \
+    Route
 from retrying import retry
 
-from cloudshell.cp.azure.common.helpers.retrying_helpers import retry_if_connection_error
+from cloudshell.cp.azure.common.helpers.ip_allocation_helper import is_static_allocation, to_azure_type
+from cloudshell.cp.azure.common.helpers.retrying_helpers import retry_if_connection_error, retryable_error_max_attempts, \
+    retryable_wait_time, retry_if_retryable_error
+from cloudshell.cp.azure.domain.services.security_group import SANDBOX_NSG_NAME
 
 
 class NetworkService(object):
@@ -65,12 +70,15 @@ class NetworkService(object):
                               add_public_ip,
                               public_ip_type,
                               logger,
-                              lock_provider,
+                              reservation_id,
+                              cloudshell_session,
                               network_security_group=None):
         """
         This method creates a an ip address and a nic for the vm
+        :param cloudshell.api.cloudshell_api.CloudShellAPISession cloudshell_session:
+        :param str reservation_id:
         :param azure.mgmt.network.models.NetworkSecurityGroup network_security_group:
-        :param cloud_provider_model:
+        :param AzureCloudProviderResourceModel cloud_provider_model:
         :param public_ip_type:
         :param add_public_ip:
         :param network_client:
@@ -84,9 +92,6 @@ class NetworkService(object):
         """
 
         region = cloud_provider_model.region
-        management_group_name = cloud_provider_model.management_group_name
-        sandbox_virtual_network = self.get_sandbox_virtual_network(network_client=network_client,
-                                                                   group_name=management_group_name)
 
         # 1. Create ip address
         public_ip_address = None
@@ -102,53 +107,55 @@ class NetworkService(object):
         # 2. Create NIC
         return self.create_nic(interface_name,
                                group_name,
-                               management_group_name,
                                network_client,
                                public_ip_address,
                                region,
                                subnet,
-                               IPAllocationMethod.static,
+                               to_azure_type(cloud_provider_model.private_ip_allocation_method),
                                tags,
-                               sandbox_virtual_network.name,
                                logger,
-                               lock_provider,
+                               reservation_id,
+                               cloudshell_session,
                                network_security_group)
 
-    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
-    def create_nic(self, interface_name, group_name, management_group_name, network_client, public_ip_address, region,
-                   subnet,
-                   private_ip_allocation_method, tags, virtual_network_name,
-                   logger, lock_provider, network_security_group=None):
+    @retry(stop_max_attempt_number=5,
+           wait_fixed=2000,
+           retry_on_exception=retry_if_connection_error)
+    @retry(stop_max_attempt_number=retryable_error_max_attempts,
+           wait_fixed=retryable_wait_time,
+           retry_on_exception=retry_if_retryable_error)
+    def create_nic(self, interface_name, group_name, network_client, public_ip_address, region,
+                   subnet, private_ip_allocation_method, tags, logger, reservation_id, cloudshell_session,
+                   network_security_group=None):
         """
         The method creates or updates network interface.
         Parameter
         :param azure.mgmt.network.models.NetworkSecurityGroup network_security_group:
         :param logger:
-        :param virtual_network_name:
         :param group_name:
         :param interface_name:
-        :param management_group_name:
         :param network_client:
         :param public_ip_address:
         :param region:
         :param subnet:
-        :param IPAllocationMethod private_ip_allocation_method:
+        :param str private_ip_allocation_method:
         :param tags:
+        :param cloudshell.api.cloudshell_api.CloudShellAPISession cloudshell_session:
+        :param str reservation_id:
         :return:
         """
 
         # private_ip_address in required only in the case of static allocation method
         # in the case of dynamic allocation method is ignored
-
         # purpose of static allocation -> on restart machine, the ip can get lost. By using static we ensure the ip
         # will remain the same
 
-        private_ip_address = ""
-        if private_ip_allocation_method == IPAllocationMethod.static:
-            private_ip_address = self.ip_service.get_available_private_ip(network_client, management_group_name,
-                                                                          virtual_network_name,
-                                                                          subnet.address_prefix[:-3],
-                                                                          logger)
+        private_ip_address = None
+        if is_static_allocation(private_ip_allocation_method):
+            private_ip_address = self.ip_service.get_next_available_ip_from_cs_pool(logger=logger,
+                                                                                    api=cloudshell_session,
+                                                                                    reservation_id=reservation_id,
+                                                                                    subnet_cidr=subnet.address_prefix)
 
         ip_config = NetworkInterfaceIPConfiguration(name='default',
                                                     private_ip_allocation_method=private_ip_allocation_method,
@@ -160,12 +167,21 @@ class NetworkService(object):
                                              network_security_group=network_security_group,
                                              ip_configurations=[ip_config],
                                              tags=tags)
+
+        start_time = time.time()
+
         operation_poller = network_client.network_interfaces.create_or_update(
             group_name,
             interface_name,
             network_interface)
 
-        return operation_poller.result()
+        # wait for nic to be created
+        # todo - if nic creation failed release checked out ip from pool
+        nic = operation_poller.result()
+        elapsed_time = time.time() - start_time
+        logger.info("Done creating nic '{}'. Operation took {} seconds".format(nic.name, elapsed_time))
+
+        return nic
 
     @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def _create_public_ip(self, network_client, region, group_name, ip_name, public_ip_type, tags):
@@ -437,3 +453,28 @@ class NetworkService(object):
                      if network and self.tags_service.try_find_tag(
             tags_list=network.tags, tag_key=tag_key) == tag_value),
                     None)
+
+    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
+    def delete_nsg_artifacts_associated_with_vm(self, network_client, resource_group_name, vm_name):
+        """
+        :param azure.mgmt.network.network_management_client.NetworkManagementClient network_client:
+        :param str resource_group_name:
+        :param str vm_name:
+        """
+
+        network_security_groups = network_client.network_security_groups.list(resource_group_name)
+        for nsg in network_security_groups:
+            if vm_name in nsg.name:
+                # rollback vm nsg
+                poller = network_client.network_security_groups.delete(resource_group_name,
+                                                                       nsg.name)
+                poller.wait()
+
+            if SANDBOX_NSG_NAME in nsg.name:
+                for rule in nsg.security_rules:
+                    if vm_name in rule.name:
+                        # rollback inbound ports
+                        poller = network_client.security_rules.delete(resource_group_name,
+                                                                      nsg.name,
+                                                                      rule.name)
+                        poller.wait()

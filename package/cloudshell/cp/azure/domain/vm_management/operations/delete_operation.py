@@ -1,20 +1,19 @@
+import traceback
 from functools import partial
-from threading import Lock
 
 from azure.mgmt.network.models import VirtualNetwork, Subnet
+from cloudshell.api.cloudshell_api import CloudShellAPISession
 from msrestazure.azure_exceptions import CloudError
+
+from cloudshell.cp.azure.common.helpers.ip_allocation_helper import is_static_allocation
+from cloudshell.cp.azure.domain.services.ip_service import IpService
 
 
 class DeleteAzureVMOperation(object):
-    def __init__(self,
-                 vm_service,
-                 network_service,
-                 tags_service,
-                 security_group_service,
-                 storage_service,
-                 generic_lock_provider,
-                 subnet_locker):
+    def __init__(self, vm_service, network_service, tags_service, security_group_service, storage_service,
+                 generic_lock_provider, subnet_locker, ip_service):
         """
+        :param ip_service:
         :param cloudshell.cp.azure.domain.services.virtual_machine_service.VirtualMachineService vm_service:
         :param cloudshell.cp.azure.domain.services.network_service.NetworkService network_service:
         :param cloudshell.cp.azure.domain.services.tags.TagService tags_service:
@@ -22,6 +21,7 @@ class DeleteAzureVMOperation(object):
         :param cloudshell.cp.azure.domain.services.storage_service.StorageService storage_service:
         :param cloudshell.cp.azure.domain.services.lock_service.GenericLockProvider generic_lock_provider:
         :param threading.Lock subnet_locker:
+        :param cloudshell.cp.azure.domain.services.ip_service.IpService ip_service:
         :return:
         """
         self.vm_service = vm_service
@@ -31,6 +31,7 @@ class DeleteAzureVMOperation(object):
         self.storage_service = storage_service
         self.subnet_locker = subnet_locker
         self.generic_lock_provider = generic_lock_provider
+        self.ip_service = ip_service
 
     def cleanup_connectivity(self, network_client, resource_client, cloud_provider_model,
                              resource_group_name, request, logger):
@@ -82,7 +83,8 @@ class DeleteAzureVMOperation(object):
             result['errorMessage'] = 'CleanupSandboxInfra ended with the error(s): {}'.format(errors)
 
         # release the generic lock for reservation in context
-        self.generic_lock_provider.remove_lock_resource(resource_group_name, logger=logger)
+        self.generic_lock_provider.remove_lock_resource(resource_group_name, logger)
+        self.generic_lock_provider.remove_lock_resource(IpService.SANDBOX_LOCK_KEY.format(resource_group_name), logger)
 
         return result
 
@@ -252,7 +254,7 @@ class DeleteAzureVMOperation(object):
                                         group_name=group_name,
                                         public_ip_names=public_ip_names)
 
-    def delete(self, compute_client, network_client, storage_client, group_name, vm_name, logger):
+    def delete(self, compute_client, network_client, storage_client, group_name, vm_name, logger, cloudshell_session):
         """Delete VM and all related resources
 
         :param azure.mgmt.compute.ComputeManagementClient compute_client:
@@ -261,6 +263,7 @@ class DeleteAzureVMOperation(object):
         :param group_name: (str) The name of the resource group
         :param vm_name: (str) the same as ip_name and interface_name
         :param logger: logging.Logger instance
+        :param CloudShellAPISession cloudshell_session:
         :return:
         """
 
@@ -271,9 +274,9 @@ class DeleteAzureVMOperation(object):
                            if len(ni.ip_configurations) > 0 and
                            hasattr(ni.ip_configurations[0], 'public_ip_address') and
                            ni.ip_configurations[0].public_ip_address is not None]
-
-        first_nic = network_interfaces[0]
-        vm_nsg_name = first_nic.network_security_group.id.split('/')[-1]
+        private_ips = [nic.ip_configurations[0].private_ip_address for nic in network_interfaces
+                       if
+                       is_static_allocation(nic.ip_configurations[0].private_ip_allocation_method)]
 
         delete_vm_command = partial(self._delete_vm,
                                     compute_client=compute_client,
@@ -282,11 +285,11 @@ class DeleteAzureVMOperation(object):
                                     logger=logger)
 
         delete_nics_command = partial(self._delete_nics,
-                                     network_client=network_client,
-                                     group_name=group_name,
-                                     vm_name=vm_name,
-                                     logger=logger,
-                                     interface_names=network_interface_names)
+                                      network_client=network_client,
+                                      group_name=group_name,
+                                      vm_name=vm_name,
+                                      logger=logger,
+                                      interface_names=network_interface_names)
 
         delete_public_ip_command = partial(self._delete_public_ip,
                                            network_client=network_client,
@@ -295,11 +298,9 @@ class DeleteAzureVMOperation(object):
                                            logger=logger,
                                            public_ip_names=public_ip_names)
 
-        delete_vm_nsg_command = partial(network_client.network_security_groups.delete,
-                                        group_name,
-                                        vm_nsg_name)
-
-        commands = [delete_vm_command, delete_nics_command, delete_public_ip_command, delete_vm_nsg_command]
+        commands = [delete_vm_command,
+                    delete_nics_command,
+                    delete_public_ip_command]
 
         try:
             vm = self.vm_service.get_vm(compute_management_client=compute_client,
@@ -332,3 +333,17 @@ class DeleteAzureVMOperation(object):
             except Exception:
                 logger.exception('Deleting Azure VM Exception:')
                 raise
+
+        self.network_service.delete_nsg_artifacts_associated_with_vm(
+            network_client=network_client,
+            resource_group_name=group_name,
+            vm_name=vm_name)
+
+        # try releasing private ip address that were statically allocated
+        try:
+            if private_ips:
+                self.ip_service.release_ips(logger, cloudshell_session, group_name, private_ips)
+        except:
+            logger.warning('Error while trying to release private ips: {}. Error: {}'.format(','.join(private_ips),
+                                                                                             traceback.format_exc()))
+

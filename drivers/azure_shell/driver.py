@@ -41,8 +41,8 @@ class AzureShellDriver(ResourceDriverInterface):
                                                 actions=actions,
                                                 cancellation_context=cancellation_context)
 
-    def create_route_table(self,context,request):
-        return self.azure_shell.create_route_table(context, request)
+    def CreateRouteTables(self, context, request):
+        return self.azure_shell.create_route_tables(context, request)
 
     def deploy_vm_from_custom_image(self, context, actions, cancellation_context):
         return self.azure_shell.deploy_vm_from_custom_image(command_context=context,
@@ -86,3 +86,6 @@ class AzureShellDriver(ResourceDriverInterface):
 
     def SetAppSecurityGroups(self, context, request):
         return self.azure_shell.set_app_security_groups(context, request)
+
+    def GetAvailablePrivateIP(self, context, subnet_cidr, owner):
+        return self.azure_shell.get_available_private_ip(context, subnet_cidr, owner)

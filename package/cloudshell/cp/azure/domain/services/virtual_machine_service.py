@@ -9,7 +9,8 @@ from azure.mgmt.compute.models.ssh_public_key import SshPublicKey
 from azure.mgmt.resource.resources.models import ResourceGroup
 from retrying import retry
 
-from cloudshell.cp.azure.common.helpers.retrying_helpers import retry_if_connection_error
+from cloudshell.cp.azure.common.helpers.retrying_helpers import retry_if_connection_error, retryable_error_max_attempts, \
+    retryable_wait_time, retry_if_retryable_error
 
 
 class VirtualMachineService(object):
@@ -62,7 +63,12 @@ class VirtualMachineService(object):
 
         return LinuxConfiguration(disable_password_authentication=True, ssh=ssh_config)
 
-    @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
+    @retry(stop_max_attempt_number=5,
+           wait_fixed=2000,
+           retry_on_exception=retry_if_connection_error)
+    @retry(stop_max_attempt_number=retryable_error_max_attempts,
+           wait_fixed=retryable_wait_time,
+           retry_on_exception=retry_if_retryable_error)
     def _create_vm(self, compute_management_client, region, group_name, vm_name, hardware_profile, network_profile,
                    os_profile, storage_profile, cancellation_context, tags, vm_plan=None, logger=None):
         """Create and deploy Azure VM from the given parameters

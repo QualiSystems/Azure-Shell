@@ -6,6 +6,7 @@ from mock import Mock, MagicMock
 from msrestazure.azure_exceptions import CloudError
 from requests import Response
 
+from cloudshell.cp.azure.domain.services.ip_service import IpService
 from cloudshell.cp.azure.domain.services.network_service import NetworkService
 from cloudshell.cp.azure.domain.services.security_group import SecurityGroupService
 from cloudshell.cp.azure.domain.services.tags import TagService
@@ -23,13 +24,15 @@ class TestDeleteOperation(TestCase):
         self.security_group_service = SecurityGroupService(self.network_service)
         self.generic_lock_provider = Mock()
         self.generic_lock_provider.get_resource_lock = Mock(return_value=Mock())
+        self.ip_service = IpService(self.generic_lock_provider)
         self.delete_operation = DeleteAzureVMOperation(vm_service=self.vm_service,
                                                        network_service=self.network_service,
                                                        tags_service=self.tags_service,
                                                        security_group_service=self.security_group_service,
                                                        storage_service=self.storage_service,
                                                        generic_lock_provider=self.generic_lock_provider,
-                                                       subnet_locker=Lock())
+                                                       subnet_locker=Lock(),
+                                                       ip_service=self.ip_service)
 
     def test_cleanup_on_error(self):
         # Arrange
@@ -137,6 +140,9 @@ class TestDeleteOperation(TestCase):
         group_name = "AzureTestGroup"
         network_client.network_interfaces.delete = Mock()
         network_client.public_ip_addresses.delete = Mock()
+        nsg = Mock()
+        nsg.name = 'lol'
+        network_client.network_security_groups.list = Mock(return_value=[nsg])
         self.delete_operation.security_group_service.delete_security_rules = Mock()
         self.delete_operation._delete_vm_disk = Mock()
 
@@ -146,7 +152,8 @@ class TestDeleteOperation(TestCase):
                                      storage_client=storage_client,
                                      group_name=group_name,
                                      vm_name="AzureTestVM",
-                                     logger=self.logger)
+                                     logger=self.logger,
+                                     cloudshell_session=MagicMock())
 
         # Verify
         self.vm_service.delete_vm.assert_called()
@@ -164,6 +171,9 @@ class TestDeleteOperation(TestCase):
         self.vm_service.delete_vm = Mock(side_effect=Exception("Boom!"))
         compute_client = self._prepare_mock_compute_client()
         network_client = self._prepare_mock_network_client()
+        nsg = Mock()
+        nsg.name = 'lol'
+        network_client.network_security_groups.list = Mock(return_value=[nsg])
         self.delete_operation.security_group_service.delete_security_rules = Mock()
         self.delete_operation._delete_vm_disk = Mock()
 
@@ -176,7 +186,8 @@ class TestDeleteOperation(TestCase):
                           Mock(),
                           "AzureTestGroup",
                           "AzureTestVM",
-                          self.logger)
+                          self.logger,
+                          Mock())
 
         # Verify
         self.logger.exception.assert_called()
@@ -209,6 +220,9 @@ class TestDeleteOperation(TestCase):
         self.delete_operation.security_group_service.delete_security_rules = Mock()
         compute_client = self._prepare_mock_compute_client()
         network_client = self._prepare_mock_network_client()
+        nsg = Mock()
+        nsg.name = 'lol'
+        network_client.network_security_groups.list = Mock(return_value=[nsg])
         self.delete_operation._delete_vm_disk = Mock()
 
         # Act
@@ -218,7 +232,8 @@ class TestDeleteOperation(TestCase):
                 Mock(),
                 "group_name",
                 "vm_name",
-                self.logger)
+                self.logger,
+                cloudshell_session=MagicMock())
 
         # Verify
         self.logger.info.assert_called()
@@ -348,3 +363,56 @@ class TestDeleteOperation(TestCase):
         self.vm_service.delete_managed_disk.assert_called_once_with(compute_management_client=compute_client,
                                                                     resource_group=group_name,
                                                                     disk_name=managed_disk_name)
+
+    def test_remove_nsg_and_routetable_from_subnets(self):
+        resource_group_name = 'my_sandbox'
+        network_client = Mock()
+        cloud_provider_model = Mock()
+        cloud_provider_model.management_group_name = resource_group_name
+        logger = Mock()
+        virtual_network = Mock()
+        virtual_network.name = 'trololo'
+        subnet = Mock()
+        subnet.name = resource_group_name
+        virtual_network.subnets = [subnet]
+        self.network_service.get_sandbox_virtual_network = Mock()
+        self.network_service.get_sandbox_virtual_network.return_value = virtual_network
+        self.network_service.update_subnet = Mock()
+
+        # Act
+        self.delete_operation.remove_nsg_and_routetable_from_subnets(network_client,
+                                                                     resource_group_name,
+                                                                     cloud_provider_model,
+                                                                     logger)
+
+        # Verify
+        self.network_service.update_subnet.assert_called_with(network_client=network_client,
+                                                              resource_group_name=resource_group_name,
+                                                              virtual_network_name=virtual_network.name,
+                                                              subnet_name=subnet.name,
+                                                              subnet=subnet)
+
+    def test_delete_sandbox_subnets(self):
+        resource_group_name = 'my_sandbox'
+        network_client = Mock()
+        cloud_provider_model = Mock()
+        logger = Mock()
+        cloud_provider_model.management_group_name = resource_group_name
+        virtual_network = Mock()
+        virtual_network.name = 'trololo'
+        subnet = Mock()
+        subnet.name = resource_group_name
+        virtual_network.subnets = [subnet]
+        self.network_service.get_sandbox_virtual_network = Mock()
+        self.network_service.get_sandbox_virtual_network.return_value = virtual_network
+        self.network_service.delete_subnet = Mock()
+
+        self.delete_operation.delete_sandbox_subnets(network_client,
+                                                     cloud_provider_model,
+                                                     resource_group_name,
+                                                     logger)
+
+        self.network_service.delete_subnet.assert_called_with(network_client=network_client,
+                                                              group_name=resource_group_name,
+                                                              vnet_name=virtual_network.name,
+                                                              subnet_name=subnet.name)

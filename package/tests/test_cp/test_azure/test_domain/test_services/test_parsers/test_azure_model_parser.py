@@ -142,6 +142,7 @@ class TestAzureModelsParser(TestCase):
         test_resource.attributes["Region"] = "East Canada"
         test_resource.attributes["Management Group Name"] = test_mgmt_group_name = mock.MagicMock()
         test_resource.attributes["Execution Server Selector"] = ""
+        test_resource.attributes["Private IP Allocation Method"] = "Cloudshell Allocation"
         cloudshell_session = mock.MagicMock()
         decrypted_azure_application_key = mock.MagicMock()
         cloudshell_session.DecryptPassword.return_value = decrypted_azure_application_key
@@ -197,6 +198,19 @@ class TestAzureModelsParser(TestCase):
 
         # Verify
         self.assertIs(result, public_ip)
+
+    def test_get_sec_gen_public_ip_attribute_from_connected_resource_details(self):
+        """Check that method will return Public IP attr from the context"""
+        public_ip = mock.MagicMock()
+        resource_context = mock.MagicMock(remote_endpoints=[
+            mock.MagicMock(attributes={"second_gen.Public IP": public_ip})])
+
+        # Act
+        result = self.tested_class.get_public_ip_tuple_attribute_from_connected_resource_details(resource_context)
+
+        # Verify
+        self.assertIs(result[1], public_ip)
+        self.assertIs(result[0],"second_gen.Public IP")
 
     def test_get_private_ip_from_connected_resource_details(self):
         """Check that method will return Private IP attr from the context"""

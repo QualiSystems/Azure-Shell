@@ -8,6 +8,7 @@ from cloudshell.cp.azure.common.helpers.retrying_helpers import retry_if_connect
 from cloudshell.cp.azure.models.port_data import PortData
 from cloudshell.cp.azure.models.rule_data import RuleData
 
+SANDBOX_NSG_NAME = "NSG_sandbox_all_subnets_"
 
 class SecurityGroupService(object):
     RULE_DEFAULT_PRIORITY = 1000
@@ -339,3 +340,6 @@ class SecurityGroupService(object):
                     security_rule_name=vm_rule.name)
                 result.wait()
                 logger.info("Security group rule '{}' deleted.".format(vm_rule.name))
+
+    def get_subnets_nsg_name(self, reservation_id):
+        return SANDBOX_NSG_NAME + reservation_id

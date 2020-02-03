@@ -1,5 +1,6 @@
 import jsonpickle
 from cloudshell.cp.core.utils import first_or_default
+from typing import List
 
 from cloudshell.cp.azure.common.parsers.security_group_parser import SecurityGroupParser
 from cloudshell.cp.azure.domain.services.parsers.network_actions import NetworkActionsParser
@@ -14,6 +15,8 @@ from cloudshell.cp.azure.domain.services.parsers.connection_params import conver
 
 
 class AzureModelsParser(object):
+    PUBLIC_IP_KEY = "Public IP"
+
     @staticmethod
     def convert_app_resource_to_deployed_app(resource):
         json_str = jsonpickle.decode(resource.app_context.deployed_app_json)
@@ -97,33 +100,35 @@ class AzureModelsParser(object):
 
 
     @staticmethod
-    def convert_to_route_table_model(route_table_request, cloudshell_session, logger):
+    def convert_to_route_table_model(route_table_request):
         """
         Convert deployment request JSON to the DeployAzureVMResourceModel model
 
         :param str deployment_request: JSON string
-        :param cloudshell.api.cloudshell_api.CloudShellAPISession cloudshell_session: instance
-        :param logging.Logger logger:
         :return: deploy_azure_vm_resource_models.DeployAzureVMResourceModel instance
-        :rtype: RouteTableRequestResourceModel
+        :rtype: list[RouteTableRequestResourceModel]
         """
         data = jsonpickle.decode(route_table_request)
-        route_table_model = RouteTableRequestResourceModel()
-        route_table_model.name=data['name']
-        route_table_model.subnets = []
-        if data['subnets']:
-            route_table_model.subnets=data['subnets']
-        routes =[]
-        for route in data['routes']:
-            route_model = RouteResourceModel()
-            route_model.name=route['name']
-            route_model.route_address_prefix=route['address_prefix']
-            route_model.next_hop_type=route['next_hop_type']
-            route_model.next_hope_address=route['next_hop_address']
-            routes.append(route_model)
-        route_table_model.routes=routes
+        route_table_models = []
+        for route_table in data['route_tables']:
+            route_table_model = RouteTableRequestResourceModel()
+            route_table_model.name = route_table['name']
+            route_table_model.subnets = []
+            if route_table['subnets']:
+                route_table_model.subnets = route_table['subnets']
+            routes = []
+            for route in route_table['routes']:
+                route_model = RouteResourceModel()
+                route_model.name = route['name']
+                route_model.route_address_prefix = route['address_prefix']
+                route_model.next_hop_type = route['next_hop_type']
+                route_model.next_hope_address = route['next_hop_address']
+                routes.append(route_model)
+            route_table_model.routes = routes
 
-        return route_table_model
+            route_table_models.append(route_table_model)
+
+        return route_table_models
 
     @staticmethod
     def convert_to_deploy_azure_vm_resource_model(deploy_action, network_actions, cloudshell_session, logger):
@@ -202,6 +207,7 @@ class AzureModelsParser(object):
         azure_resource_model.vm_size = resource_context['VM Size']
         azure_resource_model.region = resource_context['Region'].replace(" ", "").lower()
         azure_resource_model.management_group_name = resource_context['Management Group Name']
+        azure_resource_model.private_ip_allocation_method = resource_context["Private IP Allocation Method"]
 
         azure_resource_model.networks_in_use = AzureModelsParser._convert_list_attribute(
             resource_context['Networks In Use'])
@@ -228,9 +234,18 @@ class AzureModelsParser(object):
         public_ip = ""
         if resource_context.remote_endpoints is not None:
             attributes = resource_context.remote_endpoints[0].attributes
-            public_ip = AzureModelsParser.get_attribute_value_by_name_ignoring_namespace(attributes, "Public IP")
+            public_ip = AzureModelsParser.get_attribute_value_by_name_ignoring_namespace(attributes, AzureModelsParser.PUBLIC_IP_KEY)
 
         return public_ip
+
+    @staticmethod
+    def get_public_ip_tuple_attribute_from_connected_resource_details(resource_context):
+
+        if resource_context.remote_endpoints is not None:
+            attributes = resource_context.remote_endpoints[0].attributes
+            return AzureModelsParser.get_matching_attribute_tuple_ignoring_namespace(attributes, AzureModelsParser.PUBLIC_IP_KEY)
+
+        return (AzureModelsParser.PUBLIC_IP_KEY, None)
 
     @staticmethod
     def get_private_ip_from_connected_resource_details(resource_context):
@@ -263,6 +278,24 @@ class AzureModelsParser(object):
         return None
 
     @staticmethod
+    def get_matching_attribute_tuple_ignoring_namespace(attributes, name):
+        """
+        Finds the attribute value by name ignoring attribute namespaces.
+        :param dict attributes: Attributes key value dict to search on.
+        :param str name: Attribute name to search for.
+        :return: Tuple (name, value).(name, None) if not found.
+        :rtype:  Tuple
+        """
+        for key, val in attributes.iteritems():
+            splitted = key.split(".")
+            last_part = splitted[-1]  # get last part of namespace.
+
+            if name == last_part:
+                return key, val
+
+        return name, None
+
+    @staticmethod
     def parse_deploy_networking_configurations(actions, logger):
         """
         :param deployment_request: request object to parse
@@ -284,7 +317,7 @@ class AzureModelsParser(object):
     @staticmethod
     def convert_to_app_security_group_models(request):
         """
-        :rtype list[AppSecurityGroupModel]:
+        :rtype List[AppSecurityGroupModel]:
         """
         security_group_models = []
 
@@ -303,5 +336,13 @@ class AzureModelsParser(object):
 
         return security_group_models
 
-
-
+    @staticmethod
+    def get_allow_all_storage_traffic_from_connected_resource_details(resource_context):
+        allow_traffic_on_resource = ""
+        allow_all_storage_traffic = 'Allow all Sandbox Traffic'
+        if resource_context.remote_endpoints is not None:
+            data = jsonpickle.decode(resource_context.remote_endpoints[0].app_context.app_request_json)
+            attributes = {d["name"]: d["value"] for d in data["deploymentService"]["attributes"]}
+            allow_traffic_on_resource = AzureModelsParser.get_attribute_value_by_name_ignoring_namespace(
+                attributes, allow_all_storage_traffic)
+        return allow_traffic_on_resource

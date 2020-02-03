@@ -70,7 +70,7 @@
         <Rule Name="Setting" />
       </Rules>
     </AttributeInfo>
-    <AttributeInfo Name="VM Size"  DefaultValue="" Description="The Microsoft Azure VM Size. The VM Size determines the CPU, memory, disk size and networking capacity of the VM. For example: “Standard_A1_v2”. Use the &lt;a href='https://docs.microsoft.com/en-us/azure/virtual-machines/virtual-machines-windows-sizes' target='_blank'&gt;Azure documentation &lt;/a&gt; for more information, or the Azure CLI for a list of your region’s supported values: &lt;i&gt;azure vm sizes --location “West US”&lt;/i&gt;" IsReadOnly="false" Type="String">
+    <AttributeInfo Name="VM Size"  DefaultValue="" Description="The Microsoft Azure VM Size. The VM Size determines the CPU, memory, disk size and networking capacity of the VM. For example: “Standard_A1_v2”. Use the &lt;a href='https://docs.microsoft.com/en-us/azure/virtual-machines/virtual-machines-windows-sizes' target='_blank'&gt;Azure documentation &lt;/a&gt; for more information, or the Azure CLI for a list of your region’s supported values: &lt;i&gt;az vm list-sizes --location “West US”&lt;/i&gt;" IsReadOnly="false" Type="String">
       <Rules>
         <Rule Name="Configuration" />
         <Rule Name="Setting" />
@@ -189,11 +189,16 @@
         <Rule Name="Setting" />
       </Rules>
     </AttributeInfo>
+    <AttributeInfo Name="Private IP Allocation Method" DefaultValue="" IsReadOnly="false" Type="String" Description="Defines the method that will be used to allocated private ip addresses to VMs. When Cloudshell Allocation method is selected the Azure-Shell will use the CloudShell Pool API to checkout the next available ip address when needed. When the instance is deleted the checked out ip addresses will be released. When Azure Allocation method is selected the private ips will be assigned by Azure when creating the network interface.">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
   </Attributes>
   <ResourceFamilies>
     <ResourceFamily Description="" IsAdminOnly="true" IsSearchable="false" Name="Cloud Provider" AllowRemoteConnection="false">
       <AttachedAttributes />
-      <AttributeValues />
       <Models>
         <ResourceModel Description="" ImagePath="Azure.png" Name="Microsoft Azure" SupportsConcurrentCommands="true">
           <AttachedAttributes>
@@ -201,8 +206,6 @@
               <AllowedValues/>
             </AttachedAttribute>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="VM Size">
-              <AllowedValues />
-            </AttachedAttribute><AttachedAttribute IsLocal="true" IsOverridable="true" Name="Disk Size">
               <AllowedValues />
             </AttachedAttribute>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Networks In Use">
@@ -228,6 +231,12 @@
             </AttachedAttribute>
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Additional Mgmt Networks">
               <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Private IP Allocation Method">
+              <AllowedValues>
+                <AllowedValue>Azure Allocation</AllowedValue>
+                <AllowedValue>Cloudshell Allocation</AllowedValue>
+              </AllowedValues>
             </AttachedAttribute>
           </AttachedAttributes>
           <ParentModels />
@@ -377,6 +386,9 @@
                 <AllowedValue>HDD</AllowedValue>
                 <AllowedValue>SSD</AllowedValue>
               </AllowedValues>
+            </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Allow all Sandbox Traffic" UserInput="true">
+              <AllowedValues />
             </AttachedAttribute>
           </AttachedAttributes>
           <AttributeValues>

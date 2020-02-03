@@ -241,6 +241,11 @@ class TestAzureShell(TestCase):
     def test_delete_azure_vm(self, error_handling_class, logging_context_class, azure_clients_manager_class,
                              cloudshell_session_context_class):
         """Check that method uses ErrorHandlingContext and delete_azure_vm_operation.delete method"""
+
+        cloudshell_session = mock.MagicMock()
+        cloudshell_session_context = mock.MagicMock(__enter__=mock.MagicMock(return_value=cloudshell_session))
+        cloudshell_session_context_class.return_value = cloudshell_session_context
+
         # mock LoggingSessionContext and ErrorHandlingContext
         logging_context = mock.MagicMock(__enter__=mock.MagicMock(return_value=self.logger))
         logging_context_class.return_value = logging_context
@@ -277,7 +282,8 @@ class TestAzureShell(TestCase):
             storage_client=azure_clients_manager.storage_client,
             group_name=self.group_name,
             vm_name=self.vm_name,
-            logger=self.logger)
+            logger=self.logger,
+            cloudshell_session=cloudshell_session)
 
     @mock.patch("cloudshell.cp.azure.azure_shell.CloudShellSessionContext")
     @mock.patch("cloudshell.cp.azure.azure_shell.AzureClientsManager")
@@ -393,11 +399,11 @@ class TestAzureShell(TestCase):
 
         command_context = mock.MagicMock()
         private_ip = mock.MagicMock()
-        public_ip = mock.MagicMock()
+        public_ip = '1.2.3.4'
         resource_fullname = mock.MagicMock()
 
         self.azure_shell.model_parser.get_private_ip_from_connected_resource_details.return_value = private_ip
-        self.azure_shell.model_parser.get_public_ip_from_connected_resource_details.return_value = public_ip
+        self.azure_shell.model_parser.get_public_ip_tuple_attribute_from_connected_resource_details.return_value = ("Public IP", public_ip)
         self.azure_shell.model_parser.get_connected_resource_fullname.return_value = resource_fullname
 
         # Act
@@ -414,7 +420,7 @@ class TestAzureShell(TestCase):
             resource_group_name=self.group_name,
             vm_name=self.vm_name,
             private_ip_on_resource=private_ip,
-            public_ip_on_resource=public_ip,
+            public_ip_on_resource_attr_tuple=("Public IP", public_ip),
             resource_fullname=resource_fullname,
             logger=self.logger)
 
@@ -446,21 +452,19 @@ class TestAzureShell(TestCase):
         azure_clients_manager_class.return_value = azure_clients_manager
 
         resource = mock.MagicMock()
+        reservation = mock.MagicMock()
+        reservation.reservation_id = 'ghi'
+        resource.fullname = 'abc'
         command_context = mock.MagicMock(remote_endpoints=[resource])
         data_holder = mock.MagicMock()
         self.azure_shell.model_parser.convert_app_resource_to_deployed_app.return_value = data_holder
+        self.azure_shell.model_parser.convert_to_reservation_model.return_value = reservation
+        self.azure_shell.model_parser.get_allow_all_storage_traffic_from_connected_resource_details.return_value \
+            = True
 
-        custom_rules_output = [
-            'Protocol: {4}\n'
-            'Source Address: {0}\nSource Port Range: {1}\n'
-            'Destination Address: {2}\nDestination Port Range: {3}\n\n'
-                .format(rule.source_address_prefix,
-                        rule.source_port_range,
-                        rule.destination_address_prefix,
-                        rule.destination_port_range,
-                        rule.protocol)
-            for rule in mock_rules if rule.name.startswith('rule_')]
-        expected_output = '\n'.join(custom_rules_output)
+        expected_output = "App Name: abc\n" \
+                          "Allow Sandbox Traffic: True\n" \
+                          "Ports: 10-20, Protocol: tcp, Destination: destPrefix"
 
         # Act
         actual_output = self.azure_shell.get_application_ports(command_context=command_context)
