@@ -51,7 +51,7 @@ class TestRefreshIPOperation(TestCase):
             resource_group_name=self.resource_group_name,
             vm_name=self.vm_name,
             private_ip_on_resource=self.private_ip_on_resource,
-            public_ip_on_resource=self.public_ip_on_resource,
+            public_ip_on_resource_attr_tuple=("Public IP", self.public_ip_on_resource),
             resource_fullname=self.resource_fullname,
             logger=self.logger)
 
@@ -85,7 +85,7 @@ class TestRefreshIPOperation(TestCase):
             resource_group_name=self.resource_group_name,
             vm_name=self.vm_name,
             private_ip_on_resource=self.private_ip_on_resource,
-            public_ip_on_resource=self.public_ip_on_resource,
+            public_ip_on_resource_attr_tuple=("Public IP", self.public_ip_on_resource),
             resource_fullname=self.resource_fullname,
             logger=self.logger)
 
@@ -115,7 +115,7 @@ class TestRefreshIPOperation(TestCase):
             resource_group_name=self.resource_group_name,
             vm_name=self.vm_name,
             private_ip_on_resource=self.private_ip_on_resource,
-            public_ip_on_resource=self.public_ip_on_resource,
+            public_ip_on_resource_attr_tuple=("Public IP", self.public_ip_on_resource),
             resource_fullname=self.resource_fullname,
             logger=self.logger)
 

@@ -15,6 +15,8 @@ from cloudshell.cp.azure.domain.services.parsers.connection_params import conver
 
 
 class AzureModelsParser(object):
+    PUBLIC_IP_KEY = "Public IP"
+
     @staticmethod
     def convert_app_resource_to_deployed_app(resource):
         json_str = jsonpickle.decode(resource.app_context.deployed_app_json)
@@ -232,9 +234,18 @@ class AzureModelsParser(object):
         public_ip = ""
         if resource_context.remote_endpoints is not None:
             attributes = resource_context.remote_endpoints[0].attributes
-            public_ip = AzureModelsParser.get_attribute_value_by_name_ignoring_namespace(attributes, "Public IP")
+            public_ip = AzureModelsParser.get_attribute_value_by_name_ignoring_namespace(attributes, AzureModelsParser.PUBLIC_IP_KEY)
 
         return public_ip
+
+    @staticmethod
+    def get_public_ip_tuple_attribute_from_connected_resource_details(resource_context):
+
+        if resource_context.remote_endpoints is not None:
+            attributes = resource_context.remote_endpoints[0].attributes
+            return AzureModelsParser.get_matching_attribute_tuple_ignoring_namespace(attributes, AzureModelsParser.PUBLIC_IP_KEY)
+
+        return (AzureModelsParser.PUBLIC_IP_KEY, None)
 
     @staticmethod
     def get_private_ip_from_connected_resource_details(resource_context):
@@ -265,6 +276,24 @@ class AzureModelsParser(object):
             if name == last_part:
                 return val
         return None
+
+    @staticmethod
+    def get_matching_attribute_tuple_ignoring_namespace(attributes, name):
+        """
+        Finds the attribute value by name ignoring attribute namespaces.
+        :param dict attributes: Attributes key value dict to search on.
+        :param str name: Attribute name to search for.
+        :return: Tuple (name, value).(name, None) if not found.
+        :rtype:  Tuple
+        """
+        for key, val in attributes.iteritems():
+            splitted = key.split(".")
+            last_part = splitted[-1]  # get last part of namespace.
+
+            if name == last_part:
+                return key, val
+
+        return name, None
 
     @staticmethod
     def parse_deploy_networking_configurations(actions, logger):
