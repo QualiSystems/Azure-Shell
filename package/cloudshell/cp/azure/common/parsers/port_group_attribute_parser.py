@@ -32,7 +32,7 @@ class PortGroupAttributeParser(object):
         :rtype: list[PortData]
         """
         if ports_attribute:
-            splitted_ports = filter(lambda x: x, ports_attribute.strip().split(';'))
+            splitted_ports = [x for x in ports_attribute.strip().split(';') if x]
             port_data_array = [PortGroupAttributeParser._single_port_parse(port.strip()) for port in splitted_ports]
             return port_data_array
         return None

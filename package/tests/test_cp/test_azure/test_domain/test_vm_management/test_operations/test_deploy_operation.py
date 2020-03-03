@@ -205,7 +205,7 @@ class TestDeployAzureVMOperation(TestCase):
                                                           network_actions=network_actions)
 
         # Verify
-        self.assertEquals(self.cancellation_service.check_if_cancelled.call_count, 2)
+        self.assertEqual(self.cancellation_service.check_if_cancelled.call_count, 2)
         self.cancellation_service.check_if_cancelled.assert_called_with(cancellation_context)
         self.deploy_operation._prepare_deploy_data.assert_called_once_with(
             logger=logger,
@@ -251,11 +251,11 @@ class TestDeployAzureVMOperation(TestCase):
             admin_password=updated_data.vm_credentials.admin_password,
             public_ip=updated_data.public_ip_address
         )
-        self.assertEquals(updated_data.public_ip_address, "pub_ip_address")
-        self.assertEquals(result.vmName, updated_data.vm_name)
-        self.assertEquals(result.vmUuid, vm.vm_id)
-        self.assertEquals(result.deployedAppAttributes, deployed_app_attributes)
-        self.assertEquals(result.deployedAppAddress, updated_data.primary_private_ip_address)
+        self.assertEqual(updated_data.public_ip_address, "pub_ip_address")
+        self.assertEqual(result.vmName, updated_data.vm_name)
+        self.assertEqual(result.vmUuid, vm.vm_id)
+        self.assertEqual(result.deployedAppAttributes, deployed_app_attributes)
+        self.assertEqual(result.deployedAppAddress, updated_data.primary_private_ip_address)
 
     def test_deploy_from_custom_image(self):
         # Arrange
@@ -287,7 +287,7 @@ class TestDeployAzureVMOperation(TestCase):
             network_actions=network_actions)
 
         # Assert
-        self.assertEquals(expected_result, res)
+        self.assertEqual(expected_result, res)
         self.deploy_operation._deploy_vm_generic.assert_called_once_with(
             create_vm_action=self.deploy_operation._create_vm_custom_image_action,
             deployment_model=azure_vm_deployment_model,
@@ -328,7 +328,7 @@ class TestDeployAzureVMOperation(TestCase):
                                                             network_actions=network_actions)
 
         # Assert
-        self.assertEquals(expected_result, res)
+        self.assertEqual(expected_result, res)
         self.deploy_operation._deploy_vm_generic.assert_called_once_with(
             create_vm_action=self.deploy_operation._create_vm_marketplace_action,
             deployment_model=azure_vm_deployment_model,
@@ -662,24 +662,24 @@ class TestDeployAzureVMOperation(TestCase):
         self.deploy_operation._prepare_vm_size._get_sandbox_subnet()
         self.deploy_operation.storage_service.get_sandbox_storage_account_name()
         self.deploy_operation.tags_service.get_tags()
-        self.assertEquals(data.reservation_id, reservation_id)
-        self.assertEquals(data.group_name, reservation_id)
-        self.assertEquals(data.image_model, image_data_model)
+        self.assertEqual(data.reservation_id, reservation_id)
+        self.assertEqual(data.group_name, reservation_id)
+        self.assertEqual(data.image_model, image_data_model)
         self.name_provider_service.normalize_name.assert_called_once_with(deployment_model.app_name)
-        self.assertEquals(data.app_name, "cool-app")
-        self.assertEquals(data.nic_requests[0].interface_name, "random_name-0")
-        self.assertEquals(data.nic_requests[1].interface_name, "random_name-1")
-        self.assertEquals(data.computer_name, "computer_name")
-        self.assertEquals(data.vm_name, "random_name")
-        self.assertEquals(data.vm_size, "vm_size")
-        self.assertEquals(data.nic_requests[0], self.deploy_operation._get_nic_requests(network_client,
+        self.assertEqual(data.app_name, "cool-app")
+        self.assertEqual(data.nic_requests[0].interface_name, "random_name-0")
+        self.assertEqual(data.nic_requests[1].interface_name, "random_name-1")
+        self.assertEqual(data.computer_name, "computer_name")
+        self.assertEqual(data.vm_name, "random_name")
+        self.assertEqual(data.vm_size, "vm_size")
+        self.assertEqual(data.nic_requests[0], self.deploy_operation._get_nic_requests(network_client,
                                                                                                cloud_provider_model,
                                                                                                logger,
                                                                                                deployment_model,
                                                                                                data.group_name,
                                                                                                data.app_name)[0])
-        self.assertEquals(data.storage_account_name, "storage")
-        self.assertEquals(data.tags, self.deploy_operation.tags_service.get_tags.return_value)
+        self.assertEqual(data.storage_account_name, "storage")
+        self.assertEqual(data.tags, self.deploy_operation.tags_service.get_tags.return_value)
 
     def test_vm_common_objects(self):
         # Arrange
@@ -727,7 +727,7 @@ class TestDeployAzureVMOperation(TestCase):
         # Assert
 
         self.deploy_operation.cancellation_service.check_if_cancelled.assert_called_with(cancellation_context)
-        self.assertEquals(self.deploy_operation.cancellation_service.check_if_cancelled.call_count, 2)
+        self.assertEqual(self.deploy_operation.cancellation_service.check_if_cancelled.call_count, 2)
         self.deploy_operation.network_service.create_network_for_vm.assert_called_once_with(
             network_client=network_client,
             group_name=data.group_name,
@@ -753,9 +753,9 @@ class TestDeployAzureVMOperation(TestCase):
             storage_client=storage_client,
             group_name=data.group_name,
             storage_name=data.storage_account_name)
-        self.assertEquals(data_res.nics[0], nic)
-        self.assertEquals(data_res.primary_private_ip_address, nic.ip_configurations[0].private_ip_address)
-        self.assertEquals(data_res.vm_credentials, credentials)
+        self.assertEqual(data_res.nics[0], nic)
+        self.assertEqual(data_res.primary_private_ip_address, nic.ip_configurations[0].private_ip_address)
+        self.assertEqual(data_res.vm_credentials, credentials)
 
     def test_create_vm_custom_script_extension_no_ext_script_file(self):
         # Assert
@@ -802,7 +802,7 @@ class TestDeployAzureVMOperation(TestCase):
 
         # Assert
         self.deploy_operation.cancellation_service.check_if_cancelled.assert_called_with(cancellation_context)
-        self.assertEquals(self.deploy_operation.cancellation_service.check_if_cancelled.call_count, 2)
+        self.assertEqual(self.deploy_operation.cancellation_service.check_if_cancelled.call_count, 2)
         self.deploy_operation.vm_extension_service.create_script_extension.assert_called_once_with(
             compute_client=compute_client,
             location=cloud_provider_model.region,
@@ -824,7 +824,7 @@ class TestDeployAzureVMOperation(TestCase):
         network_actions = []
 
         # Act & Assert
-        with self.assertRaisesRegexp(Exception,
+        with self.assertRaisesRegex(Exception,
                                      '"Inbound Ports" attribute must be empty when "Add Public IP" is false'):
             self.deploy_operation._validate_deployment_model(vm_deployment_model=deployment_model,
                                                              os_type=os_type,
@@ -862,10 +862,10 @@ class TestDeployAzureVMOperation(TestCase):
                                                                      admin_password='pass',
                                                                      public_ip='5.5.5.5')
 
-        self.assertEquals(value_for(res, 'User'), value_for(expected_res, 'User'))
-        self.assertEquals(value_for(res, 'Password'), value_for(expected_res, 'Password'))
-        self.assertEquals(value_for(res, 'Public IP'), value_for(expected_res, 'Public IP'))
-        self.assertEquals(len(res), len(expected_res))
+        self.assertEqual(value_for(res, 'User'), value_for(expected_res, 'User'))
+        self.assertEqual(value_for(res, 'Password'), value_for(expected_res, 'Password'))
+        self.assertEqual(value_for(res, 'Public IP'), value_for(expected_res, 'Public IP'))
+        self.assertEqual(len(res), len(expected_res))
 
 
 def value_for(attributes, attribute_name):

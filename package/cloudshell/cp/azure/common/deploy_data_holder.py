@@ -22,7 +22,7 @@ class DeployDataHolder(object):
 
     @staticmethod
     def _is_primitive(thing):
-        primitive = (int, str, bool, float, unicode)
+        primitive = (int, bytes, bool, float, str)
         return isinstance(thing, primitive)
 
     @staticmethod

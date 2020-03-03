@@ -45,7 +45,7 @@ class DeleteAzureVMOperation(object):
         """
         logger.info("Start Cleanup Connectivity operation")
         result = {'success': True,
-                  'actionId': next(iter(filter(lambda x: x.type == "cleanupNetwork", request.actions))).actionId}
+                  'actionId': next(iter([x for x in request.actions if x.type == "cleanupNetwork"])).actionId}
 
         remove_nsg_from_subnets_command = partial(self.remove_nsg_and_routetable_from_subnets,
                                                   network_client=network_client,

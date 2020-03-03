@@ -342,7 +342,7 @@ class PrepareSandboxInfraOperation(object):
         :param logging.Logger logger:
         :return:
         """
-        stale_subnets = filter(lambda x: x.address_prefix == subnet_cidr, sandbox_vnet.subnets)
+        stale_subnets = [x for x in sandbox_vnet.subnets if x.address_prefix == subnet_cidr]
         if len(stale_subnets) == 0:
             logger.info("Stale subnet with cidr {0} not found".format(subnet_cidr))
             return

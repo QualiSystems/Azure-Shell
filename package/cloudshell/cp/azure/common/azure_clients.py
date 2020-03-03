@@ -9,9 +9,7 @@ from cloudshell.cp.azure.common.singletons import SingletonByArgsMeta
 from cloudshell.cp.azure.common.singletons import AbstractComparableInstance
 
 
-class AzureClientsManager(AbstractComparableInstance):
-    __metaclass__ = SingletonByArgsMeta
-
+class AzureClientsManager(AbstractComparableInstance, metaclass=SingletonByArgsMeta):
     def check_params_equality(self, cloud_provider, *args, **kwargs):
         """Check if instance have the same attributes for initializing Azure session as provided in cloud_provider
 

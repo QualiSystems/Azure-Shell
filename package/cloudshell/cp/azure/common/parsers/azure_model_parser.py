@@ -56,7 +56,7 @@ class AzureModelsParser(object):
         deployment_resource_model.app_name = deploy_action.actionParams.appName
         logical_resource = deploy_action.actionParams.appResource.attributes  # its not a dictionary!!?@@#@!?#
 
-        keys = logical_resource.keys()
+        keys = list(logical_resource.keys())
 
         username_key = 'User'
         full_username_key = first_or_default(keys, AzureModelsParser._gen2_attributes_lambda(username_key))
@@ -272,7 +272,7 @@ class AzureModelsParser(object):
         :return: Attribute str value. None if not found.
         :rtype: str
         """
-        for key, val in attributes.iteritems():
+        for key, val in attributes.items():
             last_part = key.split(".")[-1]  # get last part of namespace.
             if name == last_part:
                 return val
@@ -287,7 +287,7 @@ class AzureModelsParser(object):
         :return: Tuple (name, value).(name, None) if not found.
         :rtype:  Tuple
         """
-        for key, val in attributes.iteritems():
+        for key, val in attributes.items():
             splitted = key.split(".")
             last_part = splitted[-1]  # get last part of namespace.
 

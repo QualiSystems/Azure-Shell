@@ -54,7 +54,7 @@ class TestIpOperation(TestCase):
             .format(m.cloud_provider_model.private_ip_allocation_method)
 
         # Verify
-        self.assertRaisesRegexp(ValueError, error_message, self.ip_operation.get_available_private_ip,
+        self.assertRaisesRegex(ValueError, error_message, self.ip_operation.get_available_private_ip,
                                 m.logger,
                                 m.cloudshell_session,
                                 m.cloud_provider_model,

@@ -113,7 +113,7 @@ class TestPrepareSandboxInfra(TestCase):
         # Assert
         self.name_provider_service.generate_name.assert_called_once_with(name="someid", postfix="cs",
                                                                          max_length=24)
-        self.assertEquals(res, "someidguid")
+        self.assertEqual(res, "someidguid")
 
     def test_extract_cidr_throws_error(self):
         action = Mock()

@@ -129,7 +129,7 @@ class TestVirtualMachineService(TestCase):
         storage_type = self.vm_service._get_storage_type(disk_type=disk_type)
 
         # Assert
-        self.assertEquals(storage_type, StorageAccountTypes.premium_lrs)
+        self.assertEqual(storage_type, StorageAccountTypes.premium_lrs)
 
     def test_get_storage_type_standard(self):
         # Arrange
@@ -139,7 +139,7 @@ class TestVirtualMachineService(TestCase):
         storage_type = self.vm_service._get_storage_type(disk_type=disk_type)
 
         # Assert
-        self.assertEquals(storage_type, StorageAccountTypes.standard_lrs)
+        self.assertEqual(storage_type, StorageAccountTypes.standard_lrs)
 
     @patch("cloudshell.cp.azure.domain.services.virtual_machine_service.OSDisk")
     @patch("cloudshell.cp.azure.domain.services.virtual_machine_service.ManagedDiskParameters")
@@ -446,10 +446,10 @@ class TestVirtualMachineService(TestCase):
 
         # Assert
         self.vm_service._prepare_linux_configuration.assert_called_once_with(vm_credentials.ssh_key)
-        self.assertEquals(os_profile.admin_username, vm_credentials.admin_username)
-        self.assertEquals(os_profile.admin_password, vm_credentials.admin_password)
-        self.assertEquals(os_profile.linux_configuration, linux_configuration)
-        self.assertEquals(os_profile.computer_name, computer_name)
+        self.assertEqual(os_profile.admin_username, vm_credentials.admin_username)
+        self.assertEqual(os_profile.admin_password, vm_credentials.admin_password)
+        self.assertEqual(os_profile.linux_configuration, linux_configuration)
+        self.assertEqual(os_profile.computer_name, computer_name)
 
     def test_prepare_os_profile_no_accesskey(self):
         # Arrange
@@ -466,7 +466,7 @@ class TestVirtualMachineService(TestCase):
 
         # Assert
         self.vm_service._prepare_linux_configuration.assert_not_called()
-        self.assertEquals(os_profile.admin_username, vm_credentials.admin_username)
-        self.assertEquals(os_profile.admin_password, vm_credentials.admin_password)
-        self.assertEquals(os_profile.linux_configuration, None)
-        self.assertEquals(os_profile.computer_name, computer_name)
+        self.assertEqual(os_profile.admin_username, vm_credentials.admin_username)
+        self.assertEqual(os_profile.admin_password, vm_credentials.admin_password)
+        self.assertEqual(os_profile.linux_configuration, None)
+        self.assertEqual(os_profile.computer_name, computer_name)

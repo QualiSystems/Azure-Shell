@@ -20,10 +20,10 @@ class VMCredentialsService(object):
         :return: (str) generated password
         """
         # generate password with given length from the lowercase letters
-        password = [random.choice(string.ascii_lowercase) for _ in xrange(length)]
+        password = [random.choice(string.ascii_lowercase) for _ in range(length)]
 
         # add uppercase and digit symbol to the password
-        rand_idxs = random.sample(xrange(length), 2)
+        rand_idxs = random.sample(range(length), 2)
 
         for idx, symbols_range in zip(rand_idxs, [string.ascii_uppercase, string.digits]):
             password[idx] = random.choice(symbols_range)

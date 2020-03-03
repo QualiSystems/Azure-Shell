@@ -43,7 +43,7 @@ class TestPowerAzureVMOperation(TestCase):
         if VM extension installation fails"""
         self.vm_custom_params_extractor.get_custom_param_value.return_value = "True"
 
-        with self.assertRaisesRegexp(Exception, "Partially deployed app: VM Custom Script Extension failed to compete "
+        with self.assertRaisesRegex(Exception, "Partially deployed app: VM Custom Script Extension failed to compete "
                                                 "within the specified timeout"):
             # Act
             self.power_operation.power_on(compute_client=self.compute_client,

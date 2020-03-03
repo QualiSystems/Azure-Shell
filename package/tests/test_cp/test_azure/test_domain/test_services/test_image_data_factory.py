@@ -18,7 +18,7 @@ class TestImageDataFactory(TestCase):
     def test_unsupported_deployment_model(self):
         deployment_model = Mock()
 
-        with self.assertRaisesRegexp(Exception, "Unsupported deployment_model type"):
+        with self.assertRaisesRegex(Exception, "Unsupported deployment_model type"):
             self.image_data_factory.get_image_data_model(deployment_model=deployment_model,
                                                          cloud_provider_model=self.cloud_provider_model,
                                                          compute_client=self.compute_client,
@@ -37,7 +37,7 @@ class TestImageDataFactory(TestCase):
                                                               compute_client=self.compute_client,
                                                               logger=self.logger)
 
-        self.assertEquals(result, expected_result)
+        self.assertEqual(result, expected_result)
         self.image_data_factory._get_custom_image_data.assert_called_once_with(
                 deployment_model=deployment_model, compute_client=self.compute_client, logger=self.logger)
         self.image_data_factory._get_marketplace_image_data.assert_not_called()
@@ -55,7 +55,7 @@ class TestImageDataFactory(TestCase):
                                                               compute_client=self.compute_client,
                                                               logger=self.logger)
 
-        self.assertEquals(result, expected_result)
+        self.assertEqual(result, expected_result)
         self.image_data_factory._get_marketplace_image_data.assert_called_once_with(
                 deployment_model=deployment_model,
                 logger=self.logger,
@@ -75,8 +75,8 @@ class TestImageDataFactory(TestCase):
                                                                 logger=self.logger)
 
         # assert
-        self.assertEquals(result.os_type, image_mock.storage_profile.os_disk.os_type)
-        self.assertEquals(result.image_id, image_mock.id)
+        self.assertEqual(result.os_type, image_mock.storage_profile.os_disk.os_type)
+        self.assertEqual(result.image_id, image_mock.id)
 
     def test_get_marketplace_image_data(self):
         # arrange
@@ -97,5 +97,5 @@ class TestImageDataFactory(TestCase):
                 publisher_name=deployment_model.image_publisher,
                 offer=deployment_model.image_offer,
                 skus=deployment_model.image_sku)
-        self.assertEquals(result.os_type, image.os_disk_image.operating_system)
-        self.assertEquals(result.purchase_plan, image.plan)
+        self.assertEqual(result.os_type, image.os_disk_image.operating_system)
+        self.assertEqual(result.purchase_plan, image.plan)

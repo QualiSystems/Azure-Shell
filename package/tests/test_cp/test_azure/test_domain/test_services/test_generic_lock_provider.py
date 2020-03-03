@@ -18,8 +18,8 @@ class TestGenericLockProvider(TestCase):
         thread2.start()
         while len(locks) < 12:
             threading._sleep(0.001)
-        self.assertEquals(len(locks), 12)
-        self.assertEquals(len(list(set(locks))), 6)
+        self.assertEqual(len(locks), 12)
+        self.assertEqual(len(list(set(locks))), 6)
 
     def test_lock_remove_for_each_key(self):
         locks = []
@@ -30,7 +30,7 @@ class TestGenericLockProvider(TestCase):
         self.generic_lock_provider.remove_lock_resource("key1", Mock())
         locks.append(self.generic_lock_provider.get_resource_lock("key1", Mock()))
 
-        self.assertEquals(len(list(set(locks))), 7)
+        self.assertEqual(len(list(set(locks))), 7)
 
 
 class LockCreatorThread(threading.Thread):

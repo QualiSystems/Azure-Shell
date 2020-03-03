@@ -118,7 +118,7 @@ class SetAppSecurityGroupsOperation(object):
         :param str subnet_name:
         :return:
         """
-        for (k, v) in nic_to_subnet_map.items():
+        for k, v in nic_to_subnet_map.items():
             if v == subnet_name:
                 return k
         return None

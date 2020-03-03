@@ -12,7 +12,7 @@ class RulesAttributeParser(object):
         :return: list[RuleData]
         :rtype: list[RuleData]
         """
-        splitted_ports = filter(None, ports_attribute.strip().split(';'))
+        splitted_ports = [_f for _f in ports_attribute.strip().split(';') if _f]
 
         return [
             RulesAttributeParser._single_port_parse(port.strip())

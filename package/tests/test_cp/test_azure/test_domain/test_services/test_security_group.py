@@ -34,7 +34,7 @@ class TestSecurityGroupService(TestCase):
         generator = self.security_group_service._rule_priority_generator([])
 
         # Verify
-        generated_values = [next(generator) for _ in xrange(4)]
+        generated_values = [next(generator) for _ in range(4)]
         self.assertEqual(expected_values, generated_values)
 
     def test_list_network_security_group(self):

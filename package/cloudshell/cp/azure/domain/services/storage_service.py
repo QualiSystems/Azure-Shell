@@ -2,7 +2,7 @@ from datetime import datetime
 from datetime import timedelta
 from threading import Lock
 import time
-from urlparse import urlparse
+from urllib.parse import urlparse
 
 import azure
 from azure.mgmt.storage.models import SkuName, StorageAccountCreateParameters

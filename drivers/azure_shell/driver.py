@@ -5,7 +5,6 @@ from cloudshell.cp.core.models import DeployApp, DriverResponse
 from cloudshell.cp.core.utils import single
 
 
-
 class AzureShellDriver(ResourceDriverInterface):
     def __init__(self):
         """

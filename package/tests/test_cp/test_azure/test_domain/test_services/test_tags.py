@@ -36,4 +36,4 @@ class TestTagService(TestCase):
         # tags_list.keys = Mock(return_value={"MyKey" : "Val1"})
         tag_key = "MyKey"
         tag_value = self.tags_service.try_find_tag(tags_list=tags_list, tag_key=tag_key)
-        self.assertEquals(tag_value, "Val1")
+        self.assertEqual(tag_value, "Val1")

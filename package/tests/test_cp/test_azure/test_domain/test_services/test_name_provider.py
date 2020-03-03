@@ -29,8 +29,8 @@ class TestNameProviderService(TestCase):
         result = self.name_provider_service.generate_name(name=test_name, max_length=test_length, postfix=test_postfix)
 
         # Verify
-        self.assertEquals(len(result), test_length)
-        self.assertEquals(result, "some-t-xxxxxxxx")
+        self.assertEqual(len(result), test_length)
+        self.assertEqual(result, "some-t-xxxxxxxx")
 
     def test_generate_name_with_long_base_name(self):
         """Check that method will always generate unique names"""
@@ -51,8 +51,8 @@ class TestNameProviderService(TestCase):
 
         # Verify
         self.assertNotEqual(uuid1, uuid2)
-        self.assertEquals(len(uuid1), 8)
-        self.assertEquals(len(uuid2), 8)
+        self.assertEqual(len(uuid1), 8)
+        self.assertEqual(len(uuid2), 8)
 
     def test_normalize_resource_name(self):
         # Assert
@@ -62,4 +62,4 @@ class TestNameProviderService(TestCase):
         result = self.name_provider_service.normalize_name(name=test_name)
 
         # Verify
-        self.assertEquals(result, "some-test-name")
+        self.assertEqual(result, "some-test-name")

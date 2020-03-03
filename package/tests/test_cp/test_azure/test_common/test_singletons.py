@@ -7,9 +7,7 @@ from cloudshell.cp.azure.common.singletons import SingletonByArgsMeta
 class TestSingletonByArgsMeta(TestCase):
     def test_metaclass_will_return_same_instance(self):
         """Check that metaclass call will return same instance for the same arguments"""
-        class TestedClass(AbstractComparableInstance):
-            __metaclass__ = SingletonByArgsMeta
-
+        class TestedClass(AbstractComparableInstance, metaclass=SingletonByArgsMeta):
             def __init__(self, a, b, c):
                 self.a = a
                 self.b = b
@@ -26,9 +24,7 @@ class TestSingletonByArgsMeta(TestCase):
 
     def test_metaclass_raises_exception_if_class_does_not_inherit_comparable_interface(self):
         """Check that metaclass call will raise an exception if class hasn't implement AbstractComparableInstance"""
-        class TestedClass(object):
-            __metaclass__ = SingletonByArgsMeta
-
+        class TestedClass(object, metaclass=SingletonByArgsMeta):
             def __init__(self, a, b, c):
                 self.a = a
                 self.b = b

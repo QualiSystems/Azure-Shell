@@ -35,7 +35,7 @@ class TestDeployDataHolder(TestCase):
 
     def test_is_primitive_returns_true(self):
         """Check that method will return True for all primitive types"""
-        for primitive_type in (535, "test_string", False, 12.45, u"test_unicode_stirng"):
+        for primitive_type in (535, "test_string", False, 12.45, "test_unicode_stirng"):
             is_primitive = self.tested_class._is_primitive(primitive_type)
             self.assertTrue(is_primitive)
 

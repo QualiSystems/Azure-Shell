@@ -56,7 +56,7 @@ class IpService(object):
         # conformance, along with the x.x.x.1-x.x.x.3 addresses of each subnet, which are used for Azure services.
         ip_network = IPNetwork(subnet_cidr)
         reserved_ips = list(ip_network[0:4]) + [ip_network[-1]]
-        reserved_ips_str_arr = map(lambda x: str(x), reserved_ips)
+        reserved_ips_str_arr = [str(x) for x in reserved_ips]
         return reserved_ips_str_arr
 
     def _get_pool_id(self, reservation_id):

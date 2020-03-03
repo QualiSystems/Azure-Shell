@@ -21,7 +21,7 @@ class TestCryptographyService(TestCase):
 
         # Verify
         self.crypto_service.rsa_service.encrypt.assert_called_once()
-        self.assertEquals(crypto_dto.encrypted_asymmetric_key, encrypted_secret_key)
-        self.assertNotEquals(crypto_dto.encrypted_input, plain_text)
+        self.assertEqual(crypto_dto.encrypted_asymmetric_key, encrypted_secret_key)
+        self.assertNotEqual(crypto_dto.encrypted_input, plain_text)
         self.assertTrue(crypto_dto.encrypted_input)
 

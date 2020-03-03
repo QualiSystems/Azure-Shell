@@ -231,7 +231,7 @@ class NetworkService(object):
 
         if not allocation_type:
             raise Exception("Incorrect allocation type {}. Possible values are {}"
-                            .format(ip_type, [type_map.title() for type_map in types_map.iterkeys()]))
+                            .format(ip_type, [type_map.title() for type_map in types_map.keys()]))
 
         return allocation_type
 

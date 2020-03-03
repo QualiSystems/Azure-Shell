@@ -207,7 +207,7 @@ class DeployAzureVMOperation(object):
                 logger=logger,
                 cancellation_context=cancellation_context)
 
-        except QualiScriptExecutionTimeoutException, e:
+        except QualiScriptExecutionTimeoutException as e:
             logger.info(e.message)
             html_format = "<html><body><span style='color: red;'>{0}</span></body></html>".format(e.message)
             cloudshell_session.WriteMessageToReservationOutput(reservationId=reservation.reservation_id,
