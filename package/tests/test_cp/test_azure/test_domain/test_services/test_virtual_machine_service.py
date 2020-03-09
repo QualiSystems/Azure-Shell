@@ -307,7 +307,7 @@ class TestVirtualMachineService(TestCase):
         vm_name = "test_group_name"
         compute_management_client.virtual_machines.power_off.return_value = operation_poller
 
-        res = self.vm_service.start_vm(compute_management_client, group_name, vm_name, async=True)
+        res = self.vm_service.start_vm(compute_management_client, group_name, vm_name, run_async=True)
 
         operation_poller.result.assert_not_called()
         self.assertIsNone(res)
@@ -320,7 +320,7 @@ class TestVirtualMachineService(TestCase):
         vm_name = "test_group_name"
         compute_management_client.virtual_machines.power_off.return_value = operation_poller
 
-        res = self.vm_service.stop_vm(compute_management_client, group_name, vm_name, async=True)
+        res = self.vm_service.stop_vm(compute_management_client, group_name, vm_name, run_async=True)
 
         operation_poller.result.assert_not_called()
         self.assertIsNone(res)

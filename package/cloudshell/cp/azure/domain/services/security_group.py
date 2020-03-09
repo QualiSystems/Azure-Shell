@@ -146,7 +146,7 @@ class SecurityGroupService(object):
 
     @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def create_network_security_group_custom_rule(self, network_client, group_name, security_group_name, rule,
-                                                  async=False):
+                                                  run_async=False):
         """Create NSG inbound management rule on the Azure
 
         :param rule: azure.mgmt.network.models.security_rule.SecurityRule
@@ -154,7 +154,7 @@ class SecurityGroupService(object):
         :param group_name: resource group name (reservation id)
         :param security_group_name: NSG name from the Azure
         :param rule: azure.mgmt.network.models.SecurityRule instance
-        :param async: (bool) wait/no for result operation
+        :param run_async: (bool) wait/no for result operation
         :return: azure.mgmt.network.models.SecurityRule/msrestazure.azure_operation.AzureOperationPoller
         """
         operation_poller = network_client.security_rules.create_or_update(
@@ -163,7 +163,7 @@ class SecurityGroupService(object):
             security_rule_name=rule.name,
             security_rule_parameters=rule)
 
-        if async:
+        if run_async:
             return operation_poller
 
         return operation_poller.result()

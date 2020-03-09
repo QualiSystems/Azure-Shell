@@ -356,33 +356,33 @@ class VirtualMachineService(object):
         result.wait()
 
     @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
-    def start_vm(self, compute_management_client, group_name, vm_name, async=False):
+    def start_vm(self, compute_management_client, group_name, vm_name, run_async=False):
         """Start Azure VM instance
 
         :param azure.mgmt.compute.compute_management_client.ComputeManagementClient compute_management_client:
         :param group_name: The name of the resource group.
         :param vm_name: The name of the virtual machine.
-        :param async: (bool) whether wait for VM operation result or not
+        :param run_async: (bool) whether wait for VM operation result or not
         :return:
         """
         operation_poller = compute_management_client.virtual_machines.start(resource_group_name=group_name,
                                                                             vm_name=vm_name)
-        if not async:
+        if not run_async:
             return operation_poller.result()
 
     @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
-    def stop_vm(self, compute_management_client, group_name, vm_name, async=False):
+    def stop_vm(self, compute_management_client, group_name, vm_name, run_async=False):
         """Stop Azure VM instance
 
         :param azure.mgmt.compute.compute_management_client.ComputeManagementClient compute_management_client:
         :param group_name: The name of the resource group.
         :param vm_name: The name of the virtual machine.
-        :param async: (bool) whether wait for VM operation result or not
+        :param run_async: (bool) whether wait for VM operation result or not
         :return:
         """
         async_vm_deallocate = compute_management_client.virtual_machines.deallocate(resource_group_name=group_name,
                                                                                     vm_name=vm_name)
-        if not async:
+        if not run_async:
             async_vm_deallocate.wait()
 
     @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
