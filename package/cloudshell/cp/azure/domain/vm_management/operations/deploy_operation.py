@@ -615,6 +615,7 @@ class DeployAzureVMOperation(object):
                                                              logger=logger,
                                                              network_security_group=vm_nsg,
                                                              reservation_id=data.reservation_id,
+                                                             enable_ip_forwarding=data.enable_ip_forwarding,
                                                              cloudshell_session=cloudshell_session)
 
             private_ip_address = nic.ip_configurations[0].private_ip_address
@@ -885,6 +886,8 @@ class DeployAzureVMOperation(object):
         data.vm_size = self._prepare_vm_size(azure_vm_deployment_model=deployment_model,
                                              cloud_provider_model=cloud_provider_model)
 
+        data.enable_ip_forwarding = deployment_model.enable_ip_forwarding
+
         logger.warn("Retrieve sandbox subnet {}".format(data.group_name))
         data.nic_requests = self._get_nic_requests(network_client=network_client,
                                                    cloud_provider_model=cloud_provider_model,
@@ -922,6 +925,7 @@ class DeployAzureVMOperation(object):
             self.all_private_ip_addresses = []  # type: list[str]
             self.public_ip_address = ''  # type: str
             self.nic_requests = []  # type: list[NicRequest]
+            self.enable_ip_forwarding = False  # type: bool
 
 
 def get_ip_from_interface_name(interface_name):

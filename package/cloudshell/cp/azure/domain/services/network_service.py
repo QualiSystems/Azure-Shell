@@ -72,9 +72,11 @@ class NetworkService(object):
                               logger,
                               reservation_id,
                               cloudshell_session,
+                              enable_ip_forwarding,
                               network_security_group=None):
         """
-        This method creates a an ip address and a nic for the vm
+        This method creates an ip address and a nic for the vm
+        :param logger:
         :param cloudshell.api.cloudshell_api.CloudShellAPISession cloudshell_session:
         :param str reservation_id:
         :param azure.mgmt.network.models.NetworkSecurityGroup network_security_group:
@@ -85,9 +87,9 @@ class NetworkService(object):
         :param group_name:
         :param interface_name:
         :param ip_name:
-        :param region:
         :param subnet:
         :param tags:
+        :param boolean enable_ip_forwarding:
         :rtype: NetworkInterface
         """
 
@@ -116,6 +118,7 @@ class NetworkService(object):
                                logger,
                                reservation_id,
                                cloudshell_session,
+                               enable_ip_forwarding,
                                network_security_group)
 
     @retry(stop_max_attempt_number=5,
@@ -126,7 +129,7 @@ class NetworkService(object):
            retry_on_exception=retry_if_retryable_error)
     def create_nic(self, interface_name, group_name, network_client, public_ip_address, region,
                    subnet, private_ip_allocation_method, tags, logger, reservation_id, cloudshell_session,
-                   network_security_group=None):
+                   enable_ip_forwarding, network_security_group=None):
         """
         The method creates or updates network interface.
         Parameter
@@ -142,6 +145,7 @@ class NetworkService(object):
         :param tags:
         :param cloudshell.api.cloudshell_api.CloudShellAPISession cloudshell_session:
         :param str reservation_id:
+        :param boolean enable_ip_forwarding:
         :return:
         """
 
@@ -166,6 +170,7 @@ class NetworkService(object):
         network_interface = NetworkInterface(location=region,
                                              network_security_group=network_security_group,
                                              ip_configurations=[ip_config],
+                                             enable_ip_forwarding=enable_ip_forwarding,
                                              tags=tags)
 
         start_time = time.time()

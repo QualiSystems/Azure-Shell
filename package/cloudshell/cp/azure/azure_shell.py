@@ -137,7 +137,8 @@ class AzureShell(object):
                                                                                generic_lock_provider=self.generic_lock_provider,
                                                                                name_provider=self.name_provider_service)
 
-        self.ip_address_operation = IPAddressOperation(self.ip_service, self.network_service, self.name_provider_service)
+        self.ip_address_operation = IPAddressOperation(self.ip_service, self.network_service,
+                                                       self.name_provider_service)
 
     def get_inventory(self, command_context):
         """Validate Cloud Provider
@@ -291,10 +292,10 @@ class AzureShell(object):
                 with CloudShellSessionContext(command_context) as cloudshell_session:
                     azure_vm_deployment_model = self.model_parser. \
                         convert_to_deploy_azure_vm_from_custom_image_resource_model(
-                        deploy_action=deploy_action,
-                        network_actions=network_actions,
-                        cloudshell_session=cloudshell_session,
-                        logger=logger)
+                            deploy_action=deploy_action,
+                            network_actions=network_actions,
+                            cloudshell_session=cloudshell_session,
+                            logger=logger)
 
                     cloud_provider_model = self.model_parser.convert_to_cloud_provider_resource_model(
                         resource=command_context.resource,
@@ -497,7 +498,8 @@ class AzureShell(object):
                 group_name = self.model_parser.convert_to_reservation_model(command_context.remote_reservation) \
                     .reservation_id
                 private_ip = self.model_parser.get_private_ip_from_connected_resource_details(command_context)
-                public_ip_attr = self.model_parser.get_public_ip_tuple_attribute_from_connected_resource_details(command_context)
+                public_ip_attr = self.model_parser.get_public_ip_tuple_attribute_from_connected_resource_details(
+                    command_context)
                 resource_fullname = self.model_parser.get_connected_resource_fullname(command_context)
 
                 with CloudShellSessionContext(command_context) as cloudshell_session:
@@ -559,10 +561,10 @@ class AzureShell(object):
                 vm_name = resource.fullname
 
                 resource_group_name = \
-                    self.model_parser.\
+                    self.model_parser. \
                         convert_to_reservation_model(command_context.remote_reservation).reservation_id
 
-                allow_sandbox_traffic = self.model_parser.\
+                allow_sandbox_traffic = self.model_parser. \
                     get_allow_all_storage_traffic_from_connected_resource_details(command_context)
 
                 vm_nsg = self._get_vm_nsg(azure_clients, compute_client, network_client, resource_group_name, vm_name)
