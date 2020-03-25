@@ -400,11 +400,15 @@
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Allow all Sandbox Traffic" UserInput="true">
               <AllowedValues />
             </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Enable IP Forwarding" UserInput="false">
+               <AllowedValues />
+            </AttachedAttribute>
           </AttachedAttributes>
           <AttributeValues>
             <AttributeValue Name="Public IP Type" Value="Dynamic" />
             <AttributeValue Name="Disk Type" Value="HDD" />
             <AttributeValue Name="Wait for IP" Value="False" />
+            <AttributeValue Name="Enable IP Forwarding" Value="False" />
           </AttributeValues>
           <ParentModels />
           <Drivers/>
