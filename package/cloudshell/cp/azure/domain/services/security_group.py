@@ -10,6 +10,7 @@ from cloudshell.cp.azure.models.rule_data import RuleData
 
 SANDBOX_NSG_NAME = "NSG_sandbox_all_subnets_"
 
+
 class SecurityGroupService(object):
     RULE_DEFAULT_PRIORITY = 1000
     RULE_PRIORITY_INCREASE_STEP = 5

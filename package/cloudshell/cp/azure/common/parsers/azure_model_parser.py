@@ -11,11 +11,11 @@ from cloudshell.cp.azure.models.deploy_azure_vm_resource_models import DeployAzu
 from cloudshell.cp.azure.models.deploy_azure_vm_resource_models import DeployAzureVMFromCustomImageResourceModel
 from cloudshell.cp.azure.common.deploy_data_holder import DeployDataHolder
 from cloudshell.cp.azure.models.reservation_model import ReservationModel
-from cloudshell.cp.azure.domain.services.parsers.connection_params import convert_to_bool
 
 
 class AzureModelsParser(object):
     PUBLIC_IP_KEY = "Public IP"
+    SHELL_NAME = "Microsoft Azure 2G"
 
     @staticmethod
     def convert_app_resource_to_deployed_app(resource):
@@ -39,20 +39,35 @@ class AzureModelsParser(object):
         :param cloudshell.api.cloudshell_api.CloudShellAPISession cloudshell_session: instance
         :param logging.Logger logger:
         """
-
         data_attributes = deploy_action.actionParams.deployment.attributes
-        deployment_resource_model.add_public_ip = AzureModelsParser.convert_to_boolean(data_attributes['Add Public IP'])
-        deployment_resource_model.autoload = AzureModelsParser.convert_to_boolean(data_attributes['Autoload'])
-        deployment_resource_model.inbound_ports = data_attributes['Inbound Ports']
-        deployment_resource_model.vm_size = data_attributes['VM Size']
-        deployment_resource_model.disk_size = data_attributes['Disk Size']
-        deployment_resource_model.public_ip_type = data_attributes['Public IP Type']
-        deployment_resource_model.extension_script_file = data_attributes['Extension Script file']
-        deployment_resource_model.extension_script_configurations = data_attributes['Extension Script Configurations']
-        deployment_resource_model.extension_script_timeout = (int(data_attributes['Extension Script Timeout']))
-        deployment_resource_model.disk_type = data_attributes['Disk Type']
-        deployment_resource_model.allow_all_sandbox_traffic = data_attributes['Allow all Sandbox Traffic']
-        deployment_resource_model.enable_ip_forwarding = AzureModelsParser.convert_to_boolean(data_attributes['Enable IP Forwarding'])
+
+        attr_prefix = deploy_action.actionParams.deployment.deploymentPath
+
+        deployment_resource_model.add_public_ip = AzureModelsParser.convert_to_boolean(
+            data_attributes[f'{attr_prefix}.Add Public IP'])
+
+        deployment_resource_model.autoload = AzureModelsParser.convert_to_boolean(
+            data_attributes[f'{attr_prefix}.Autoload'])
+
+        deployment_resource_model.inbound_ports = data_attributes[f'{attr_prefix}.Inbound Ports']
+        deployment_resource_model.vm_size = data_attributes[f'{attr_prefix}.VM Size']
+        deployment_resource_model.disk_size = data_attributes[f'{attr_prefix}.Disk Size']
+        deployment_resource_model.public_ip_type = data_attributes[f'{attr_prefix}.Public IP Type']
+        deployment_resource_model.extension_script_file = data_attributes[f'{attr_prefix}.Extension Script file']
+
+        deployment_resource_model.extension_script_configurations = data_attributes[
+            f'{attr_prefix}.Extension Script Configurations']
+
+        deployment_resource_model.extension_script_timeout = (int(
+            data_attributes[f'{attr_prefix}.Extension Script Timeout']))
+
+        deployment_resource_model.disk_type = data_attributes[f'{attr_prefix}.Disk Type']
+        deployment_resource_model.allow_all_sandbox_traffic = data_attributes[
+            f'{attr_prefix}.Allow all Sandbox Traffic']
+
+        deployment_resource_model.enable_ip_forwarding = AzureModelsParser.convert_to_boolean(
+            data_attributes[f'{attr_prefix}.Enable IP Forwarding'])
+
         deployment_resource_model.app_name = deploy_action.actionParams.appName
         logical_resource = deploy_action.actionParams.appResource.attributes  # its not a dictionary!!?@@#@!?#
 
@@ -72,7 +87,7 @@ class AzureModelsParser(object):
             deployment_resource_model.password = decrypted_pass.Value
 
         deployment_resource_model.network_configurations = \
-            AzureModelsParser.parse_deploy_networking_configurations(network_actions,logger)
+            AzureModelsParser.parse_deploy_networking_configurations(network_actions, logger)
 
         return deployment_resource_model
 
@@ -81,7 +96,7 @@ class AzureModelsParser(object):
         return lambda x: x == attribute_key or x.endswith("." + attribute_key)
 
     @staticmethod
-    def convert_to_boolean( value):
+    def convert_to_boolean(value):
         return value.lower() in ['1', 'true']
 
     @staticmethod
@@ -93,12 +108,9 @@ class AzureModelsParser(object):
         :rtype: list
         """
         if attribute:
-            list_attr = [param.strip() for param in attribute.split(",")]
-        else:
-            list_attr = []
+            return [param.strip() for param in attribute.split(",")]
 
-        return list_attr
-
+        return []
 
     @staticmethod
     def convert_to_route_table_model(route_table_request):
@@ -144,10 +156,13 @@ class AzureModelsParser(object):
         """
         deployment_resource_model = DeployAzureVMResourceModel()
         data_attributes = deploy_action.actionParams.deployment.attributes
-        deployment_resource_model.image_offer = data_attributes['Image Offer']
-        deployment_resource_model.image_publisher = data_attributes['Image Publisher']
-        deployment_resource_model.image_sku = data_attributes['Image SKU']
-        deployment_resource_model.image_version = data_attributes['Image Version']
+        attr_prefix = deploy_action.actionParams.deployment.deploymentPath
+
+        deployment_resource_model.image_offer = data_attributes[f'{attr_prefix}.Image Offer']
+        deployment_resource_model.image_publisher = data_attributes[f'{attr_prefix}.Image Publisher']
+        deployment_resource_model.image_sku = data_attributes[f'{attr_prefix}.Image SKU']
+        deployment_resource_model.image_version = data_attributes[f'{attr_prefix}.Image Version']
+
         AzureModelsParser._set_base_deploy_azure_vm_model_params(deployment_resource_model=deployment_resource_model,
                                                                  deploy_action=deploy_action,
                                                                  network_actions=network_actions,
@@ -168,9 +183,11 @@ class AzureModelsParser(object):
         :rtype: DeployAzureVMFromCustomImageResourceModel
         """
         data_attributes = deploy_action.actionParams.deployment.attributes
+        attr_prefix = deploy_action.actionParams.deployment.deploymentPath
         deployment_resource_model = DeployAzureVMFromCustomImageResourceModel()
-        deployment_resource_model.image_name = data_attributes['Azure Image']
-        deployment_resource_model.image_resource_group = data_attributes['Azure Resource Group']
+        deployment_resource_model.image_name = data_attributes[f'{attr_prefix}.Azure Image']
+        deployment_resource_model.image_resource_group = data_attributes[f'{attr_prefix}.Azure Resource Group']
+
         AzureModelsParser._set_base_deploy_azure_vm_model_params(deployment_resource_model=deployment_resource_model,
                                                                  deploy_action=deploy_action,
                                                                  network_actions=network_actions,
@@ -202,21 +219,31 @@ class AzureModelsParser(object):
         """
         resource_context = resource.attributes
         azure_resource_model = AzureCloudProviderResourceModel()
-        azure_resource_model.azure_application_id = resource_context['Azure Application ID']
-        azure_resource_model.azure_subscription_id = resource_context['Azure Subscription ID']
-        azure_resource_model.azure_tenant = resource_context['Azure Tenant ID']
-        azure_resource_model.vm_size = resource_context['VM Size']
-        azure_resource_model.region = resource_context['Region'].replace(" ", "").lower()
-        azure_resource_model.management_group_name = resource_context['Management Group Name']
-        azure_resource_model.private_ip_allocation_method = resource_context["Private IP Allocation Method"]
+
+        azure_resource_model.azure_application_id = resource_context[
+            f'{AzureModelsParser.SHELL_NAME}.Azure Application ID']
+
+        azure_resource_model.azure_subscription_id = resource_context[
+            f'{AzureModelsParser.SHELL_NAME}.Azure Subscription ID']
+
+        azure_resource_model.azure_tenant = resource_context[f'{AzureModelsParser.SHELL_NAME}.Azure Tenant ID']
+        azure_resource_model.vm_size = resource_context[f'{AzureModelsParser.SHELL_NAME}.VM Size']
+        azure_resource_model.region = resource_context[
+            f'{AzureModelsParser.SHELL_NAME}.Region'].replace(" ", "").lower()
+
+        azure_resource_model.management_group_name = resource_context[
+            f'{AzureModelsParser.SHELL_NAME}.Management Group Name']
+
+        azure_resource_model.private_ip_allocation_method = resource_context[
+            f'{AzureModelsParser.SHELL_NAME}.Private IP Allocation Method']
 
         azure_resource_model.networks_in_use = AzureModelsParser._convert_list_attribute(
-            resource_context['Networks In Use'])
+            resource_context[f'{AzureModelsParser.SHELL_NAME}.Networks in use'])
 
         azure_resource_model.additional_mgmt_networks = AzureModelsParser._convert_list_attribute(
-            resource_context['Additional Mgmt Networks'])
+            resource_context[f'{AzureModelsParser.SHELL_NAME}.Additional Mgmt Networks'])
 
-        encrypted_azure_application_key = resource_context['Azure Application Key']
+        encrypted_azure_application_key = resource_context[f'{AzureModelsParser.SHELL_NAME}.Azure Application Key']
         azure_application_key = cloudshell_session.DecryptPassword(encrypted_azure_application_key)
         azure_resource_model.azure_application_key = azure_application_key.Value
 
