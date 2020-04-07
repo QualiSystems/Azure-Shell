@@ -108,7 +108,6 @@ class VMCredentialsService(object):
         :return: (tuple) username, password and ssh_key
         """
         ssh_key = None
-
         if not username:
             username = self.DEFAULT_LINUX_USERNAME
         if not password:

@@ -169,7 +169,7 @@ class TestStorageService(TestCase):
         file_name = "testfilename"
         file_service = MagicMock()
         mocked_file = MagicMock()
-        file_service.get_file_to_bytes.return_value = mocked_file
+        file_service.get_file_to_text.return_value = mocked_file
         self.storage_service._get_file_service = MagicMock(return_value=file_service)
 
         # Act
@@ -181,9 +181,9 @@ class TestStorageService(TestCase):
                                                    file_name=file_name)
 
         # Verify
-        file_service.get_file_to_bytes.assert_called_once_with(share_name=share_name,
-                                                               directory_name=directory_name,
-                                                               file_name=file_name)
+        file_service.get_file_to_text.assert_called_once_with(share_name=share_name,
+                                                              directory_name=directory_name,
+                                                              file_name=file_name)
         self.assertEqual(azure_file, mocked_file)
 
     @mock.patch("cloudshell.cp.azure.domain.services.storage_service.AzureBlobUrlModel")

@@ -168,7 +168,7 @@ class StorageService(object):
                 group_name=group_name,
                 storage_name=storage_name)
 
-        azure_file = file_service.get_file_to_bytes(
+        azure_file = file_service.get_file_to_text(
                 share_name=share_name,
                 directory_name=directory_name,
                 file_name=file_name)

@@ -58,6 +58,7 @@ class VirtualMachineService(object):
         :param ssh_key: cloudshell.cp.azure.models.authorized_key.AuthorizedKey instance
         :return: azure.mgmt.compute.models.linux_configuration.LinuxConfiguration instance
         """
+
         ssh_public_key = SshPublicKey(path=ssh_key.path_to_key, key_data=ssh_key.key_data)
         ssh_config = SshConfiguration(public_keys=[ssh_public_key])
 
