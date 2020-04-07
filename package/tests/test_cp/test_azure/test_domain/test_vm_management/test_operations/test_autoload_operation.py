@@ -194,7 +194,7 @@ class TestAutoloadOperation(TestCase):
             mock.call("Microsoft.Compute")])
 
     def test_validate_networks_in_use_not_all_sandbox_subnets_listed(self):
-        """Check that method will raise AutoloadException if "Networks In Use" attribute is invalid
+        """Check that method will raise AutoloadException if "Networks in use" attribute is invalid
 
         Verify that all subnets in the "sandbox" vNet are listed in the attribute"""
         self.autoload_operation._validate_cidr_format = mock.MagicMock(return_value=True)
@@ -216,7 +216,7 @@ class TestAutoloadOperation(TestCase):
         self.autoload_operation._validate_cidr_format.assert_any_call("network4", self.logger)
 
     def test_validate_networks_in_use_with_invalid_cidr_format(self):
-        """Check that method will raise AutoloadException if "Networks In Use" attribute have invalid CIDR format"""
+        """Check that method will raise AutoloadException if "Networks in use" attribute have invalid CIDR format"""
         self.autoload_operation._validate_cidr_format = mock.MagicMock(return_value=False)
         networks_in_use = ["network2", "network4"]
         sandbox_vnet = mock.MagicMock()
@@ -227,7 +227,7 @@ class TestAutoloadOperation(TestCase):
                                                               networks_in_use=networks_in_use,
                                                               logger=self.logger)
         # Verify
-        self.assertEqual(ex.exception.message, 'CIDR network2 under the "Networks In Use" attribute '
+        self.assertEqual(ex.exception.message, 'CIDR network2 under the "Networks in use" attribute '
                                                'is not in the valid format')
 
     def test_validate_cidr_format(self):

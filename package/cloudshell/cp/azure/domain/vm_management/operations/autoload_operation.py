@@ -154,7 +154,7 @@ class AutoloadOperation(object):
         return True
 
     def _validate_networks_in_use(self, sandbox_vnet, networks_in_use, logger):
-        """Verify "Networks In Use" attribute
+        """Verify "Networks in use" attribute
 
         :param sandbox_vnet: azure.mgmt.network.models.virtual_network.VirtualNetwork instance
         :param networks_in_use: list of used networks ["10.10.10.10/24", "20.20.20.20/24", ...]

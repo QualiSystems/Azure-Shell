@@ -138,7 +138,7 @@ class TestAzureModelsParser(TestCase):
         test_resource.attributes["Azure Subscription ID"] = test_azure_subscription_id = mock.MagicMock()
         test_resource.attributes["Azure Tenant ID"] = test_azure_tenant = mock.MagicMock()
         test_resource.attributes["VM Size"] = test_vm_size = mock.MagicMock()
-        test_resource.attributes["Networks In Use"] = "network1,  network2 "
+        test_resource.attributes["Networks in use"] = "network1,  network2 "
         test_resource.attributes["Region"] = "East Canada"
         test_resource.attributes["Management Group Name"] = test_mgmt_group_name = mock.MagicMock()
         test_resource.attributes["Execution Server Selector"] = ""
