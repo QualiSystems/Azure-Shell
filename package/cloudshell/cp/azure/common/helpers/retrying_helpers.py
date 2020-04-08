@@ -31,6 +31,6 @@ def retry_if_retryable_error(exception):
 
 
 def _is_retryable_error_message(exception):
-    error_has_retryable_in_message = retryable_error_string.lower() in exception.message.lower()
+    error_has_retryable_in_message = retryable_error_string.lower() in str(exception).lower()
     return error_has_retryable_in_message
 

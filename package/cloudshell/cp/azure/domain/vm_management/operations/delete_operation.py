@@ -76,7 +76,7 @@ class DeleteAzureVMOperation(object):
                 command()
             except Exception as e:
                 logger.exception("Error in cleanup connectivity. Error: ")
-                errors.append(e.message)
+                errors.append(str(e))
 
         if errors:
             result['success'] = False
@@ -326,7 +326,7 @@ class DeleteAzureVMOperation(object):
             except CloudError as e:
                 if e.response.reason == "Not Found":
                     logger.info('Deleting Azure Resource Not Found Exception:', exc_info=1)
-                    logger.info(e.message)
+                    logger.info(str(e))
                 else:
                     logger.exception('Deleting Azure VM Exception:')
                     raise

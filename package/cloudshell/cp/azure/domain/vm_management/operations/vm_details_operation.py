@@ -39,7 +39,7 @@ class VmDetailsOperation(object):
 
             except Exception as e:
                 logger.error("Error getting vm details for '{0}': {1}".format(vm_name, traceback.format_exc()))
-                result = VmDetailsData(errorMessage=e.message)
+                result = VmDetailsData(errorMessage=str(e))
 
             result.appName = vm_name
             results.append(result)

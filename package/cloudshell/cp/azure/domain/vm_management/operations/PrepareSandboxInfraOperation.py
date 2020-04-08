@@ -317,7 +317,7 @@ class PrepareSandboxInfraOperation(object):
             try:
                 create_subnet_command()
             except CloudError as e:
-                logger.warn(e.message)
+                logger.warn(str(e))
                 if "NetcfgInvalidSubnet" not in str(e.error):
                     raise
                 # try to cleanup stale subnet

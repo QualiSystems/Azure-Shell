@@ -208,8 +208,8 @@ class DeployAzureVMOperation(object):
                 cancellation_context=cancellation_context)
 
         except QualiScriptExecutionTimeoutException as e:
-            logger.info(e.message)
-            html_format = "<html><body><span style='color: red;'>{0}</span></body></html>".format(e.message)
+            logger.info(str(e))
+            html_format = "<html><body><span style='color: red;'>{0}</span></body></html>".format(str(e))
             cloudshell_session.WriteMessageToReservationOutput(reservationId=reservation.reservation_id,
                                                                message=html_format)
             extension_time_out = True
@@ -265,7 +265,7 @@ class DeployAzureVMOperation(object):
         :param BaseDeployAzureVMResourceModel deployment_model:
         :return:
         """
-        match = re.search('storage account type .+ is not supported for vm size', exc.message.lower())
+        match = re.search('storage account type .+ is not supported for vm size', str(exc).lower())
         if match:
             exc.error.message += "\nDisk Type attribute value {} doesn't support the selected VM size.".format(
                 deployment_model.disk_type)

@@ -58,7 +58,7 @@ class TestAutoloadOperation(TestCase):
             self.autoload_operation._validate_api_credentials(cloud_provider_model=cloud_provider_model,
                                                               logger=self.logger)
         # Verify
-        self.assertEqual(ex.exception.message, "Failed to connect to Azure API, please check the log for more details")
+        self.assertEqual(str(ex.exception), "Failed to connect to Azure API, please check the log for more details")
 
     def test_validate_region(self):
         """Check that method will not raise AutoloadException if region is a valid Azure Geo-location"""
@@ -91,7 +91,7 @@ class TestAutoloadOperation(TestCase):
                                                      region="")
 
         # Verify
-        self.assertEqual(ex.exception.message, "Region attribute can not be empty")
+        self.assertEqual(str(ex.exception), "Region attribute can not be empty")
 
     def test_validate_region_is_invalid(self):
         """Check that method will raise AutoloadException if region is invalid Azure Geo-location"""
@@ -106,7 +106,7 @@ class TestAutoloadOperation(TestCase):
                                                      region=region)
 
         # Verify
-        self.assertEqual(ex.exception.message, 'Region "{}" is not a valid Azure Geo-location'.format(region))
+        self.assertEqual(str(ex.exception), 'Region "{}" is not a valid Azure Geo-location'.format(region))
         self.subscription_service.list_available_regions.assert_called_once_with(
             subscription_client=subscription_client,
             subscription_id=subscription_id)
@@ -125,7 +125,7 @@ class TestAutoloadOperation(TestCase):
                                                                   region=region,
                                                                   logger=self.logger)
         # Verify
-        self.assertEqual(ex.exception.message, "Failed to find Management group {}".format(mgmt_group_name))
+        self.assertEqual(str(ex.exception), "Failed to find Management group {}".format(mgmt_group_name))
 
     def test_validate_mgmt_resource_group_not_in_provided_region(self):
         """Check that method will raise AutoloadException if management resource group is not in the provided region"""
@@ -143,7 +143,7 @@ class TestAutoloadOperation(TestCase):
                                                                   region=region,
                                                                   logger=self.logger)
         # Verify
-        self.assertEqual(ex.exception.message, "Management group {} is not under the {} region".format(mgmt_group_name,
+        self.assertEqual(str(ex.exception), "Management group {} is not under the {} region".format(mgmt_group_name,
                                                                                                        region))
 
     def test_validate_vnet(self,):
@@ -160,7 +160,7 @@ class TestAutoloadOperation(TestCase):
                                                    network_tag=network_tag,
                                                    logger=self.logger)
         # Verify
-        self.assertEqual(ex.exception.message, 'Failed to find Vnet with network type "{}" tag under Management '
+        self.assertEqual(str(ex.exception), 'Failed to find Vnet with network type "{}" tag under Management '
                                                'group {}'.format(network_tag,
                                                                  mgmt_group_name))
 
@@ -177,7 +177,7 @@ class TestAutoloadOperation(TestCase):
                                                       region=region,
                                                       vm_size=vm_size)
         # Verify
-        self.assertEqual(ex.exception.message, "VM Size {} is not valid".format(vm_size))
+        self.assertEqual(str(ex.exception), "VM Size {} is not valid".format(vm_size))
 
     def test_register_azure_providers(self):
         """Check that method will use resource client to register Azure providers"""
@@ -208,7 +208,7 @@ class TestAutoloadOperation(TestCase):
                                                               networks_in_use=networks_in_use,
                                                               logger=self.logger)
         # Verify
-        self.assertEqual(ex.exception.message, 'The following subnets "network1" were found under the "{}" VNet '
+        self.assertEqual(str(ex.exception), 'The following subnets "network1" were found under the "{}" VNet '
                                                'in Azure and should be set in the "Network In Use" field.'
                          .format(sandbox_vnet.name))
 
@@ -227,7 +227,7 @@ class TestAutoloadOperation(TestCase):
                                                               networks_in_use=networks_in_use,
                                                               logger=self.logger)
         # Verify
-        self.assertEqual(ex.exception.message, 'CIDR network2 under the "Networks in use" attribute '
+        self.assertEqual(str(ex.exception), 'CIDR network2 under the "Networks in use" attribute '
                                                'is not in the valid format')
 
     def test_validate_cidr_format(self):
@@ -265,5 +265,5 @@ class TestAutoloadOperation(TestCase):
                 additional_mgmt_networks=additional_mgmt_networks,
                 logger=self.logger)
         # Verify
-        self.assertEqual(ex.exception.message, 'CIDR network2 under the "Additional Mgmt Networks" attribute '
+        self.assertEqual(str(ex.exception), 'CIDR network2 under the "Additional Mgmt Networks" attribute '
                                                'is not in the valid format')
