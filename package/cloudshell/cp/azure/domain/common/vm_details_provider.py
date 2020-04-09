@@ -23,9 +23,6 @@ class VmDetailsProvider(object):
         :param logging.Logger logger:
         :return:
         """
-        vm_instance_data = None
-        vm_network_data = None
-
         if is_market_place:
             vm_instance_data = self._get_vm_instance_data_for_market_place(instance)
             vm_network_data = self._get_vm_network_data(instance, network_client, group_name, logger)
