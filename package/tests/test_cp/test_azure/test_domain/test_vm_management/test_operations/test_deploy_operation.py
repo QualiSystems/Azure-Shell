@@ -741,6 +741,7 @@ class TestDeployAzureVMOperation(TestCase):
             tags=data.tags,
             logger=logger,
             reservation_id=data_res.reservation_id,
+            enable_ip_forwarding=data.enable_ip_forwarding,
             cloudshell_session=cloudshell_session)
 
         self.deploy_operation.vm_credentials_service.prepare_credentials.assert_called_once_with(

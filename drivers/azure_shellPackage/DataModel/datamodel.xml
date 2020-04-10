@@ -195,6 +195,12 @@
         <Rule Name="Setting" />
       </Rules>
     </AttributeInfo>
+    <AttributeInfo Name="Enable IP Forwarding" DefaultValue="" IsReadOnly="false" Type="Boolean" Description="Enables IP forwarding on all network interfaces of the app in order to support virtual appliances like routers and firewalls that are connected to multiple subnets.">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
   </Attributes>
   <ResourceFamilies>
     <ResourceFamily Description="" IsAdminOnly="true" IsSearchable="false" Name="Cloud Provider" AllowRemoteConnection="false">
@@ -331,11 +337,15 @@
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Allow all Sandbox Traffic" UserInput="true">
               <AllowedValues />
             </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Enable IP Forwarding" UserInput="false">
+               <AllowedValues />
+            </AttachedAttribute>
           </AttachedAttributes>
           <AttributeValues>
             <AttributeValue Name="Public IP Type" Value="Dynamic" />
             <AttributeValue Name="Disk Type" Value="HDD" />
             <AttributeValue Name="Wait for IP" Value="False" />
+            <AttributeValue Name="Enable IP Forwarding" Value="False" />
           </AttributeValues>
           <ParentModels />
           <Drivers/>
@@ -390,11 +400,15 @@
             <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Allow all Sandbox Traffic" UserInput="true">
               <AllowedValues />
             </AttachedAttribute>
+            <AttachedAttribute IsLocal="true" IsOverridable="true" Name="Enable IP Forwarding" UserInput="false">
+               <AllowedValues />
+            </AttachedAttribute>
           </AttachedAttributes>
           <AttributeValues>
             <AttributeValue Name="Public IP Type" Value="Dynamic" />
             <AttributeValue Name="Disk Type" Value="HDD" />
             <AttributeValue Name="Wait for IP" Value="False" />
+            <AttributeValue Name="Enable IP Forwarding" Value="False" />
           </AttributeValues>
           <ParentModels />
           <Drivers/>
