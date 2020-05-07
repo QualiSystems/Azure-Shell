@@ -108,6 +108,7 @@ class TestNetworkService(TestCase):
             tags=tags,
             logger=MagicMock(),
             reservation_id=reservation_id,
+            enable_ip_forwarding=False,
             cloudshell_session=cloudshell_session)
 
         # Verify

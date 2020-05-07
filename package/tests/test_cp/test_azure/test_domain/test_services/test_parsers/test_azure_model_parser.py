@@ -199,6 +199,19 @@ class TestAzureModelsParser(TestCase):
         # Verify
         self.assertIs(result, public_ip)
 
+    def test_get_sec_gen_public_ip_attribute_from_connected_resource_details(self):
+        """Check that method will return Public IP attr from the context"""
+        public_ip = mock.MagicMock()
+        resource_context = mock.MagicMock(remote_endpoints=[
+            mock.MagicMock(attributes={"second_gen.Public IP": public_ip})])
+
+        # Act
+        result = self.tested_class.get_public_ip_tuple_attribute_from_connected_resource_details(resource_context)
+
+        # Verify
+        self.assertIs(result[1], public_ip)
+        self.assertIs(result[0],"second_gen.Public IP")
+
     def test_get_private_ip_from_connected_resource_details(self):
         """Check that method will return Private IP attr from the context"""
         private_ip = mock.MagicMock()
