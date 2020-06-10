@@ -177,6 +177,7 @@ class DeployAzureVMOperation(object):
                 cloud_provider_model=cloud_provider_model,
                 network_client=network_client,
                 storage_client=storage_client,
+                compute_client=compute_client,
                 cancellation_context=cancellation_context,
                 cloudshell_session=cloudshell_session)
 
@@ -304,7 +305,8 @@ class DeployAzureVMOperation(object):
             vm_size=data.vm_size,
             cancellation_context=cancellation_context,
             disk_size=deployment_model.disk_size,
-            logger=logger)
+            logger=logger,
+            availability_set=data.availability_set)
 
     def _create_vm_marketplace_action(self, compute_client, deployment_model, cloud_provider_model,
                                       data, cancellation_context, logger):
@@ -335,7 +337,8 @@ class DeployAzureVMOperation(object):
             vm_size=data.vm_size,
             purchase_plan=data.image_model.purchase_plan,  # type should be MarketplaceImageDataModel
             cancellation_context=cancellation_context,
-            disk_size=deployment_model.disk_size)
+            disk_size=deployment_model.disk_size,
+            availability_set=data.availability_set)
 
     def _get_nic_requests(self, network_client, cloud_provider_model, logger, deployment_model, resource_group_name,
                           vm_name):
@@ -566,7 +569,7 @@ class DeployAzureVMOperation(object):
         self.cancellation_service.check_if_cancelled(cancellation_context)
 
     def _create_vm_common_objects(self, logger, data, deployment_model, cloud_provider_model, network_client,
-                                  storage_client, cancellation_context, cloudshell_session):
+                                  storage_client, compute_client, cancellation_context, cloudshell_session):
         """ Creates and configures common VM objects: NIC, Credentials, NSG (if needed)
 
         :param cloudshell_session:
@@ -576,6 +579,7 @@ class DeployAzureVMOperation(object):
         :param logging.Logger logger:
         :param azure.mgmt.network.network_management_client.NetworkManagementClient network_client:
         :param azure.mgmt.network.network_management_client.StorageManagementClient storage_client:
+        :param azure.mgmt.storage.storage_management_client.ComputeManagementClient compute_client:
         :param CancellationContext cancellation_context:
         :param cloudshell.api.cloudshell_api.CloudShellAPISession cloudshell_session:
         :return: Updated DeployDataModel instance
@@ -653,8 +657,50 @@ class DeployAzureVMOperation(object):
             storage_name=data.storage_account_name)
 
         self.cancellation_service.check_if_cancelled(cancellation_context)
+        
+        # 6. get or create availability set
+        data.availability_set = self._get_or_create_availability_set(compute_client, cloud_provider_model,
+                                                                     data, deployment_model, logger)
 
         return data
+
+    def _get_or_create_availability_set(self, compute_client, cloud_provider_model, data, deployment_model, logger):
+        """
+        :param azure.mgmt.storage.storage_management_client.ComputeManagementClient compute_client:
+        :param AzureCloudProviderResourceModel cloud_provider_model:
+        :param DeployAzureVMOperation.DeployDataModel data:
+        :param BaseDeployAzureVMResourceModel deployment_model:
+        :param logging.Logger logger:
+        :return: availability set id
+        :rtype: azure.mgmt.compute.models.AvailabilitySet
+        """
+        # return None if no av set value
+        if not deployment_model.availability_set:
+            return None
+
+        try:
+            avset = compute_client.availability_sets.get(data.group_name, deployment_model.availability_set)
+            return avset
+        except CloudError:
+            logger.info('Availability set {} doesnt exist'.format(deployment_model.availability_set))
+
+        lock_key = '{}{}'.format(data.group_name, deployment_model.availability_set)
+        subnet_nsg_lock = self.generic_lock_provider.get_resource_lock(lock_key, logger)
+
+        with subnet_nsg_lock:
+            try:
+                logger.info('Inside lock. Trying to get availability set again before creating')
+                return compute_client.availability_sets.get(data.group_name, deployment_model.availability_set)
+            except CloudError:
+                logger.info('Creating availability set {}'.format(deployment_model.availability_set))
+                avset_params = {
+                    'location': cloud_provider_model.region,
+                    'sku': {'name': 'Aligned'},
+                    'platform_fault_domain_count': 2
+                }
+                return compute_client.availability_sets.create_or_update(data.group_name,
+                                                                         deployment_model.availability_set,
+                                                                         avset_params)
 
     def _create_vm_network_security_group(self, cancellation_context, cloud_provider_model, data, deployment_model,
                                           logger, network_client):
@@ -922,6 +968,7 @@ class DeployAzureVMOperation(object):
             self.all_private_ip_addresses = []  # type: list[str]
             self.public_ip_address = ''  # type: str
             self.nic_requests = []  # type: list[NicRequest]
+            self.availability_set = None  # type: str
 
 
 def get_ip_from_interface_name(interface_name):

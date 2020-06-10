@@ -1,7 +1,7 @@
 from azure.mgmt.compute.models import OSProfile, HardwareProfile, NetworkProfile, \
     NetworkInterfaceReference, DiskCreateOptionTypes, ImageReference, OSDisk, \
     VirtualMachine, StorageProfile, Plan, ManagedDiskParameters, StorageAccountTypes, DiagnosticsProfile, \
-    BootDiagnostics
+    BootDiagnostics, AvailabilitySet, SubResource
 from azure.mgmt.compute.models import OperatingSystemTypes, VirtualMachineImage
 from azure.mgmt.compute.models.linux_configuration import LinuxConfiguration
 from azure.mgmt.compute.models.ssh_configuration import SshConfiguration
@@ -70,7 +70,8 @@ class VirtualMachineService(object):
            wait_fixed=retryable_wait_time,
            retry_on_exception=retry_if_retryable_error)
     def _create_vm(self, compute_management_client, region, group_name, vm_name, hardware_profile, network_profile,
-                   os_profile, storage_profile, cancellation_context, tags, vm_plan=None, logger=None):
+                   os_profile, storage_profile, cancellation_context, tags, availability_set=None, vm_plan=None,
+                   logger=None):
         """Create and deploy Azure VM from the given parameters
 
         :param compute_management_client: azure.mgmt.compute.compute_management_client.ComputeManagementClient
@@ -85,6 +86,9 @@ class VirtualMachineService(object):
         :param tags: azure tags
         :rtype: azure.mgmt.compute.models.VirtualMachine
         """
+
+        av_set = self._prepare_availability_set(availability_set)
+
         virtual_machine = VirtualMachine(location=region,
                                          tags=tags,
                                          os_profile=os_profile,
@@ -93,7 +97,8 @@ class VirtualMachineService(object):
                                          storage_profile=storage_profile,
                                          diagnostics_profile=DiagnosticsProfile(
                                              boot_diagnostics=BootDiagnostics(enabled=False)),
-                                         plan=vm_plan)
+                                         plan=vm_plan,
+                                         availability_set=av_set)
 
         if logger:
             logger.info('Created POCO VM for {0} in resource group {1}'.format(vm_name, group_name))
@@ -107,6 +112,10 @@ class VirtualMachineService(object):
         return self.task_waiter_service.wait_for_task(operation_poller=operation_poller,
                                                       cancellation_context=cancellation_context,
                                                       logger=logger)
+
+    def _prepare_availability_set(self, availability_set):
+        av_set = SubResource(id=availability_set.id) if availability_set else None
+        return av_set
 
     def _prepare_os_profile(self, vm_credentials, computer_name):
         """Prepare OS profile object for the VM
@@ -153,7 +162,8 @@ class VirtualMachineService(object):
                                     vm_size,
                                     cancellation_context,
                                     disk_size,
-                                    logger):
+                                    logger,
+                                    availability_set):
 
         """Create VM from custom image URN
 
@@ -188,7 +198,8 @@ class VirtualMachineService(object):
             network_interface.primary = False
         network_interfaces[0].primary = True
 
-        logger.info('Prepared {2} network interfaces for {0} in resource group {1}'.format(vm_name, group_name, len(network_interfaces)))
+        logger.info('Prepared {2} network interfaces for {0} in resource group {1}'.format(vm_name, group_name,
+                                                                                           len(network_interfaces)))
 
         network_profile = NetworkProfile(network_interfaces=network_interfaces)
 
@@ -196,25 +207,26 @@ class VirtualMachineService(object):
 
         image = compute_management_client.images.get(resource_group_name=image_resource_group, image_name=image_name)
         storage_profile = StorageProfile(
-                os_disk=self._prepare_os_disk(disk_type, disk_size),
-                image_reference=ImageReference(id=image.id))
+            os_disk=self._prepare_os_disk(disk_type, disk_size),
+            image_reference=ImageReference(id=image.id))
 
         logger.info('Prepared Storage Profile for {0} in resource group {1}'.format(vm_name, group_name))
 
         logger.info('Before actual create vm for {0} in resource group {1}'.format(vm_name, group_name))
 
         return self._create_vm(
-                compute_management_client=compute_management_client,
-                region=region,
-                group_name=group_name,
-                vm_name=vm_name,
-                hardware_profile=hardware_profile,
-                network_profile=network_profile,
-                os_profile=os_profile,
-                storage_profile=storage_profile,
-                cancellation_context=cancellation_context,
-                tags=tags,
-                logger=logger)
+            compute_management_client=compute_management_client,
+            region=region,
+            group_name=group_name,
+            vm_name=vm_name,
+            hardware_profile=hardware_profile,
+            network_profile=network_profile,
+            os_profile=os_profile,
+            storage_profile=storage_profile,
+            cancellation_context=cancellation_context,
+            tags=tags,
+            logger=logger,
+            availability_set=availability_set)
 
     def _get_storage_type(self, disk_type):
         """
@@ -247,7 +259,8 @@ class VirtualMachineService(object):
                                    vm_size,
                                    purchase_plan,
                                    cancellation_context,
-                                   disk_size):
+                                   disk_size,
+                                   availability_set):
         """
 
         :param vm_size: (str) Azure instance type
@@ -280,28 +293,29 @@ class VirtualMachineService(object):
         network_profile = NetworkProfile(network_interfaces=network_interfaces)
 
         storage_profile = StorageProfile(
-                os_disk=self._prepare_os_disk(disk_type, disk_size),
-                image_reference=ImageReference(publisher=image_publisher,
-                                               offer=image_offer,
-                                               sku=image_sku,
-                                               version=image_version))
+            os_disk=self._prepare_os_disk(disk_type, disk_size),
+            image_reference=ImageReference(publisher=image_publisher,
+                                           offer=image_offer,
+                                           sku=image_sku,
+                                           version=image_version))
 
         vm_plan = None
         if purchase_plan is not None:
             vm_plan = Plan(name=purchase_plan.name, publisher=purchase_plan.publisher, product=purchase_plan.product)
 
         return self._create_vm(
-                compute_management_client=compute_management_client,
-                region=region,
-                group_name=group_name,
-                vm_name=vm_name,
-                hardware_profile=hardware_profile,
-                network_profile=network_profile,
-                os_profile=os_profile,
-                storage_profile=storage_profile,
-                cancellation_context=cancellation_context,
-                tags=tags,
-                vm_plan=vm_plan)
+            compute_management_client=compute_management_client,
+            region=region,
+            group_name=group_name,
+            vm_name=vm_name,
+            hardware_profile=hardware_profile,
+            network_profile=network_profile,
+            os_profile=os_profile,
+            storage_profile=storage_profile,
+            cancellation_context=cancellation_context,
+            tags=tags,
+            vm_plan=vm_plan,
+            availability_set=availability_set)
 
     def _prepare_os_disk(self, disk_type, disk_size):
         """
@@ -320,7 +334,7 @@ class VirtualMachineService(object):
         return \
             OSDisk(create_option=DiskCreateOptionTypes.from_image,
                    managed_disk=ManagedDiskParameters(
-                           storage_account_type=self._get_storage_type(disk_type)))
+                       storage_account_type=self._get_storage_type(disk_type)))
 
     @retry(stop_max_attempt_number=5, wait_fixed=2000, retry_on_exception=retry_if_connection_error)
     def create_resource_group(self, resource_management_client, group_name, region, tags):
@@ -399,19 +413,19 @@ class VirtualMachineService(object):
         """
         # get last version first (required for the virtual machine images GET Api)
         image_resources = compute_management_client.virtual_machine_images.list(
-                location=location,
-                publisher_name=publisher_name,
-                offer=offer,
-                skus=skus)
+            location=location,
+            publisher_name=publisher_name,
+            offer=offer,
+            skus=skus)
 
         version = image_resources[-1].name
 
         deployed_image = compute_management_client.virtual_machine_images.get(
-                location=location,
-                publisher_name=publisher_name,
-                offer=offer,
-                skus=skus,
-                version=version)
+            location=location,
+            publisher_name=publisher_name,
+            offer=offer,
+            skus=skus,
+            version=version)
 
         return deployed_image
 

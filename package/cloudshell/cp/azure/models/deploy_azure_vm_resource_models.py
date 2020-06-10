@@ -17,6 +17,7 @@ class BaseDeployAzureVMResourceModel(object):
         self.extension_script_timeout = 0  # type: int
         self.disk_type = ''  # type: str
         self.allow_all_sandbox_traffic = True  # type: bool
+        self.availability_set = ''  # type: str
 
 
 class DeployARMTemplateResourceModel():
