@@ -52,7 +52,7 @@ class AzureModelsParser(object):
         deployment_resource_model.extension_script_timeout = (int(data_attributes['Extension Script Timeout']))
         deployment_resource_model.disk_type = data_attributes['Disk Type']
         deployment_resource_model.allow_all_sandbox_traffic = data_attributes['Allow all Sandbox Traffic']
-        deployment_resource_model.enable_ip_forwarding = AzureModelsParser.convert_to_boolean(data_attributes['Enable IP Forwarding'])
+        deployment_resource_model.enable_ip_forwarding = AzureModelsParser.convert_to_boolean(data_attributes.get('Enable IP Forwarding', "False"))
         deployment_resource_model.app_name = deploy_action.actionParams.appName
         logical_resource = deploy_action.actionParams.appResource.attributes  # its not a dictionary!!?@@#@!?#
 
