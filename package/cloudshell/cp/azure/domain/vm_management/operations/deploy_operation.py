@@ -808,9 +808,6 @@ class DeployAzureVMOperation(object):
         if all_subnets_are_private and vm_deployment_model.add_public_ip:
             raise ValueError("Cannot deploy app with public ip when connected only to private subnets")
 
-        if vm_deployment_model.inbound_ports and not vm_deployment_model.add_public_ip:
-            raise Exception('"Inbound Ports" attribute must be empty when "Add Public IP" is false')
-
         if vm_deployment_model.extension_script_file:
             self.vm_extension_service.validate_script_extension(
                 image_os_type=os_type,

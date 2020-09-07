@@ -523,17 +523,6 @@ class TestDeployAzureVMOperation(TestCase):
             # Verify
             self.fail("Method should not raise any exception. Got: {}: {}".format(type(e), e))
 
-    def test_validate_deployment_model_raises_exception(self):
-        """Check that method will raise Exception if "Add Public IP" attr is False and "Inbound Ports" is not empty"""
-        vm_deployment_mode = MagicMock(inbound_ports="80:tcp", add_public_ip=False)
-        os_type = Mock()
-        network_actions = []
-
-        with self.assertRaises(Exception):
-            self.deploy_operation._validate_deployment_model(vm_deployment_mode,
-                                                             os_type=os_type,
-                                                             network_actions=network_actions)
-
     def test_validate_resource_is_single_per_group_several_resources(self):
         """Check that method will not throw Exception if length of resource list is more than 1"""
         group_name = "test_group_name"
@@ -814,21 +803,6 @@ class TestDeployAzureVMOperation(TestCase):
             tags=data.tags,
             cancellation_context=cancellation_context,
             timeout=deployment_model.extension_script_timeout)
-
-    def test_validate_deployment_model_throws_when_has_inbound_ports_without_public_ip(self):
-        # Arrange
-        deployment_model = Mock()
-        deployment_model.inbound_ports = "xxx"
-        deployment_model.add_public_ip = None
-        os_type = Mock()
-        network_actions = []
-
-        # Act & Assert
-        with self.assertRaisesRegexp(Exception,
-                                     '"Inbound Ports" attribute must be empty when "Add Public IP" is false'):
-            self.deploy_operation._validate_deployment_model(vm_deployment_model=deployment_model,
-                                                             os_type=os_type,
-                                                             network_actions=network_actions)
 
     def test_validate_deployment_model_has_extension_script_file(self):
         # Arrange
