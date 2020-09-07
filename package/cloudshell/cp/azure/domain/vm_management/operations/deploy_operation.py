@@ -593,7 +593,9 @@ class DeployAzureVMOperation(object):
 
         inbound_rules = RulesAttributeParser.parse_port_group_attribute(deployment_model.inbound_ports)
         for rule in inbound_rules:
-            rule.name = "{0}_inbound_ports".format(data.vm_name.replace(" ", ""))
+            rule.name = "{vm_name}_inbound_ports:{port_range}:{protocol}".format(vm_name=data.vm_name.replace(" ", ""),
+                                                                                 port_range=rule.port_range,
+                                                                                 protocol=rule.protocol)
 
         subnet_nsg_lock = self.generic_lock_provider.get_resource_lock(lock_key=subnets_nsg_name, logger=logger)
 
