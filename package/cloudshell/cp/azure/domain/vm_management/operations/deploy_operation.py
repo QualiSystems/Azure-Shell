@@ -629,19 +629,15 @@ class DeployAzureVMOperation(object):
             logger.info("NIC private IP is {}".format(data.primary_private_ip_address))
             data.nics.append(nic)
 
-            # once we have the NIC ip, we can create a permissive security rule for inbound ports but only to ip
-            # inbound ports only works on public subnets! private subnets are allowed all traffic from sandbox
-            # but no traffic from public addresses.
-            if nic_request.is_public:
-                logger.info("Adding inbound port rules to sandbox subnets NSG, with ip address as destination {0}"
-                            .format(private_ip_address))
-                self.security_group_service.create_network_security_group_rules(network_client,
-                                                                                data.group_name,
-                                                                                subnets_nsg_name,
-                                                                                inbound_rules,
-                                                                                private_ip_address,
-                                                                                subnet_nsg_lock,
-                                                                                start_from=1000)
+            logger.info("Adding inbound port rules to sandbox subnets NSG, with ip address as destination {0}"
+                        .format(private_ip_address))
+            self.security_group_service.create_network_security_group_rules(network_client,
+                                                                            data.group_name,
+                                                                            subnets_nsg_name,
+                                                                            inbound_rules,
+                                                                            private_ip_address,
+                                                                            subnet_nsg_lock,
+                                                                            start_from=1000)
 
         # 5. Prepare credentials for VM
         logger.info("Prepare credentials for the VM {}".format(data.vm_name))
