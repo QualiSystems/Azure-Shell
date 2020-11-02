@@ -14,3 +14,4 @@ package/version.txt
 /package/dist.bat
 /local/
 /package/.eggs
+.vscode

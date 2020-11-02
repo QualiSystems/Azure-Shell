@@ -384,6 +384,7 @@ class PrepareSandboxInfraOperation(object):
         :param str security_group_name: NSG name from the Azure
         :param list additional_mgmt_networks: list of additional management networks
         :param logging.Logger logger:
+        :param list cloudshell.cp.core.models.PrepareSubnet subnet_actions:
         """
         management_vnet_cidr = management_vnet.address_space.address_prefixes[0]
         sandbox_vnet_cidr = sandbox_vnet.address_space.address_prefixes[0]
@@ -436,10 +437,7 @@ class PrepareSandboxInfraOperation(object):
             logger.info("Created security rule {0} on NSG {1}".format(security_rule_name, security_group_name))
 
         # block access from internet to private subnets
-        private_subnets = [s for s in subnet_actions if s.actionParams and
-                           s.actionParams.subnetServiceAttributes and
-                           'Public' in s.actionParams.subnetServiceAttributes and
-                           s.actionParams.subnetServiceAttributes['Public'] == 'False']
+        private_subnets = [s for s in subnet_actions if s.actionParams.isPublic==False]
 
         for p in private_subnets:
             private_subnet_cidr = p.actionParams.cidr
