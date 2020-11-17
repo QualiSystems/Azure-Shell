@@ -437,7 +437,7 @@ class PrepareSandboxInfraOperation(object):
             logger.info("Created security rule {0} on NSG {1}".format(security_rule_name, security_group_name))
 
         # block access from internet to private subnets
-        private_subnets = [s for s in subnet_actions if s.actionParams.isPublic==False]
+        private_subnets = [s for s in subnet_actions if not s.actionParams.isPublic]
 
         for p in private_subnets:
             private_subnet_cidr = p.actionParams.cidr
