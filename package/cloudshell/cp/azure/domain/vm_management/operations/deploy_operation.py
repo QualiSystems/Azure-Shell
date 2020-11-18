@@ -797,11 +797,7 @@ class DeployAzureVMOperation(object):
         """
 
         # if there are only private subnets, and we ask for public ip, that is a problem:
-
-        all_subnets_are_private = network_actions and all(s.actionParams.subnetServiceAttributes['Public'] == 'False'
-                                                          for s in network_actions if s.actionParams and
-                                                          s.actionParams.subnetServiceAttributes and
-                                                          'Public' in s.actionParams.subnetServiceAttributes)
+        all_subnets_are_private = network_actions and all(not s.actionParams.isPublic for s in network_actions)
 
         if all_subnets_are_private and vm_deployment_model.add_public_ip:
             raise ValueError("Cannot deploy app with public ip when connected only to private subnets")
