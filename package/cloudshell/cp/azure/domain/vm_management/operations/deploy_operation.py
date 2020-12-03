@@ -593,7 +593,9 @@ class DeployAzureVMOperation(object):
 
         inbound_rules = RulesAttributeParser.parse_port_group_attribute(deployment_model.inbound_ports)
         for rule in inbound_rules:
-            rule.name = "{0}_inbound_ports".format(data.vm_name.replace(" ", ""))
+            rule.name = "{vm_name}_inbound_ports:{port_range}:{protocol}".format(vm_name=data.vm_name.replace(" ", ""),
+                                                                                 port_range=rule.port_range,
+                                                                                 protocol=rule.protocol)
 
         subnet_nsg_lock = self.generic_lock_provider.get_resource_lock(lock_key=subnets_nsg_name, logger=logger)
 
@@ -627,19 +629,15 @@ class DeployAzureVMOperation(object):
             logger.info("NIC private IP is {}".format(data.primary_private_ip_address))
             data.nics.append(nic)
 
-            # once we have the NIC ip, we can create a permissive security rule for inbound ports but only to ip
-            # inbound ports only works on public subnets! private subnets are allowed all traffic from sandbox
-            # but no traffic from public addresses.
-            if nic_request.is_public:
-                logger.info("Adding inbound port rules to sandbox subnets NSG, with ip address as destination {0}"
-                            .format(private_ip_address))
-                self.security_group_service.create_network_security_group_rules(network_client,
-                                                                                data.group_name,
-                                                                                subnets_nsg_name,
-                                                                                inbound_rules,
-                                                                                private_ip_address,
-                                                                                subnet_nsg_lock,
-                                                                                start_from=1000)
+            logger.info("Adding inbound port rules to sandbox subnets NSG, with ip address as destination {0}"
+                        .format(private_ip_address))
+            self.security_group_service.create_network_security_group_rules(network_client,
+                                                                            data.group_name,
+                                                                            subnets_nsg_name,
+                                                                            inbound_rules,
+                                                                            private_ip_address,
+                                                                            subnet_nsg_lock,
+                                                                            start_from=1000)
 
         # 5. Prepare credentials for VM
         logger.info("Prepare credentials for the VM {}".format(data.vm_name))
@@ -799,17 +797,10 @@ class DeployAzureVMOperation(object):
         """
 
         # if there are only private subnets, and we ask for public ip, that is a problem:
-
-        all_subnets_are_private = network_actions and all(s.actionParams.subnetServiceAttributes['Public'] == 'False'
-                                                          for s in network_actions if s.actionParams and
-                                                          s.actionParams.subnetServiceAttributes and
-                                                          'Public' in s.actionParams.subnetServiceAttributes)
+        all_subnets_are_private = network_actions and all(not s.actionParams.isPublic for s in network_actions)
 
         if all_subnets_are_private and vm_deployment_model.add_public_ip:
             raise ValueError("Cannot deploy app with public ip when connected only to private subnets")
-
-        if vm_deployment_model.inbound_ports and not vm_deployment_model.add_public_ip:
-            raise Exception('"Inbound Ports" attribute must be empty when "Add Public IP" is false')
 
         if vm_deployment_model.extension_script_file:
             self.vm_extension_service.validate_script_extension(

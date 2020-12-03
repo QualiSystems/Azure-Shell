@@ -11,7 +11,7 @@ class AddRouteOperation(object):
         :param cloudshell.cp.azure.domain.services.network_service.NetworkService network_service:
 
         """
-        self.network_service= network_service
+        self.network_service = network_service
 
     @retry(stop_max_attempt_number=retrying_helpers.retryable_error_max_attempts,
            wait_fixed=retrying_helpers.retryable_wait_time,

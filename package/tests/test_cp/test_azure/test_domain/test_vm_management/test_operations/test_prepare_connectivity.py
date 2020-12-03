@@ -57,6 +57,7 @@ class TestPrepareSandboxInfra(TestCase):
         subnet_action = PrepareSubnet()
         subnet_action.actionParams = PrepareSubnetParams
         subnet_action.actionParams.cidr = "10.0.0.0/24"
+        subnet_action.actionParams.isPublic = True
         subnet_action.actionParams.subnetServiceAttributes = dict()
         subnet_action.actionId = '1'
         create_keys_action = CreateKeys()

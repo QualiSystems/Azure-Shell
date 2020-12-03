@@ -70,7 +70,7 @@
         <Rule Name="Setting" />
       </Rules>
     </AttributeInfo>
-    <AttributeInfo Name="VM Size"  DefaultValue="" Description="The Microsoft Azure VM Size. The VM Size determines the CPU, memory, disk size and networking capacity of the VM. For example: “Standard_A1_v2”. Use the &lt;a href='https://docs.microsoft.com/en-us/azure/virtual-machines/virtual-machines-windows-sizes' target='_blank'&gt;Azure documentation &lt;/a&gt; for more information, or the Azure CLI for a list of your region’s supported values: &lt;i&gt;az vm list-sizes --location “West US”&lt;/i&gt;" IsReadOnly="false" Type="String">
+    <AttributeInfo Name="VM Size"  DefaultValue="" Description="The Microsoft Azure VM Size. The VM Size determines the CPU, memory, disk size and networking capacity of the VM. For example: “Standard_A1_v2”. Use the &lt;a href='https://docs.microsoft.com/en-us/azure/virtual-machines/sizes' target='_blank'&gt;Azure documentation &lt;/a&gt; for more information, or the Azure CLI for a list of your region’s supported values: &lt;i&gt;az vm list-sizes --location “West US”&lt;/i&gt;" IsReadOnly="false" Type="String">
       <Rules>
         <Rule Name="Configuration" />
         <Rule Name="Setting" />

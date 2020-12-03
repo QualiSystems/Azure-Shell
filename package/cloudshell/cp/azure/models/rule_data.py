@@ -19,3 +19,7 @@ class RuleData(object):
     def __repr__(self):
         repr_string = super(RuleData, self).__repr__()
         return "{} With attrs: {}".format(repr_string, self.__dict__)
+
+    @property
+    def port_range(self):
+        return self.port or "{}-{}".format(self.from_port, self.to_port)
