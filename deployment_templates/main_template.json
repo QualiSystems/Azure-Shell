@@ -62,12 +62,12 @@
 		"SandboxVnetCIDR": {
 			"defaultValue": "10.0.0.0/8",
 			"type": "String",
-			"metadata": { "description": "The IP range (in CIDR notation) to be used for the Sandbox VNet. Example: 10.0.0.0/8" }
+			"metadata": { "description": "The IP range (in CIDR notation) to be used for the Sandbox VNet. This must be a subnet within the 10.0.0.0/8 CIDR block. Example: 10.0.0.0/8" }
 		},
 		"SandboxVnetSubnetCIDR": {
 			"defaultValue": "10.0.0.0/24",
 			"type": "String",
-			"metadata": { "description": "The IP range (in CIDR notation) of the deafult subnet to be used by the Sandbox VNet. This range must be included in the Sandbox VNet’s range. When creating a VNet in Azure it always creates a default subnet. After the template is deployed you can delete this redundand subnet manually. Example: 10.0.0.0/24" }
+			"metadata": { "description": "The IP range (in CIDR notation) of the deafult subnet to be used by the Sandbox VNet. This range must be included in the Sandbox VNet’s range. When creating a VNet in Azure it always creates a default subnet. After the template is deployed you can delete this redundant subnet manually. Example: 10.0.0.0/24" }
 		}
 	},
 	"variables": {
