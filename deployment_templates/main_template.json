@@ -98,7 +98,7 @@
 		"scriptUrlES":"https://raw.githubusercontent.com/QualiSystems/Execution-Server-Cloud-Installer/develop/cloudshell_es_install_script.sh",
 		"commandToExeES":"[concat('sh cloudshell_es_install_script.sh ', parameters('CloudshellServerIP'),' ',parameters('CloudshellAdmin'),' ', parameters('CloudshellAdminPassword'),' ',variables('virtualMachineEsNameInVM') )]",
 		"scriptNameEs": "Execution-Server-Script",
-		"vmSize":"Standard_A3"
+		"vmSize":"Standard_D4s_v4"
 	},
 	"resources": [
       {
