@@ -93,7 +93,7 @@
 		"qx_template_location":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/develop/deployment_templates/",
 		"vpn_template_location":"https://raw.githubusercontent.com/QualiSystems/Azure-Shell/develop/deployment_templates/",
 		"scriptUrl":"https://quali-prod-binaries.s3.amazonaws.com/deploy-qualix-docker-5.0.1.506.sh",
-		"commandToExe":"bash guacamole-quali-install.sh",
+		"commandToExe":"bash deploy-qualix-docker-5.0.1.506.sh",
 		"scriptName": "QualiX-Script",
 		"scriptUrlES":"https://raw.githubusercontent.com/QualiSystems/Execution-Server-Cloud-Installer/develop/cloudshell_es_install_script.sh",
 		"commandToExeES":"[concat('sh cloudshell_es_install_script.sh ', parameters('CloudshellServerIP'),' ',parameters('CloudshellAdmin'),' ', parameters('CloudshellAdminPassword'),' ',variables('virtualMachineEsNameInVM') )]",
